@@ -1,4 +1,5 @@
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Resources;
 
 namespace Ready4Balfolk.Domain.Services.Queue;
 
@@ -33,7 +34,7 @@ public sealed class QueueGuard(IReadOnlyList<IQueueRule> rules) : IQueueGuard
         {
             var verdict = rule.EvaluateAdd(item, adjustedItems);
             if (verdict is { Allowed: false })
-                return QueueAddResult.Deny(verdict.Reason ?? "Denied by queue rule.");
+                return QueueAddResult.Deny(verdict.Reason ?? DomainStrings.QueueGuard_DeniedByRule);
         }
 
         return QueueAddResult.Allow(combinedPredicate);

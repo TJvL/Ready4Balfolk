@@ -1,5 +1,6 @@
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tree;
+using Ready4Balfolk.Domain.Resources;
 
 namespace Ready4Balfolk.Domain.Services.Editor;
 
@@ -33,8 +34,9 @@ public static class DanceTreeTransforms
         return CollectAllBranchNames(roots).Where(existing => excludePath is null || !existing.Path.SequenceEqual(excludePath)).All(existing => StringNormalizer.Normalize(existing.Name) != normalized);
     }
 
-    private static string GenerateUniqueLeafName(IReadOnlyList<DanceBranch> roots, string baseName = "New Dance")
+    private static string GenerateUniqueLeafName(IReadOnlyList<DanceBranch> roots, string? baseName = null)
     {
+        baseName ??= DomainStrings.DanceTreeTransforms_NewDance;
         if (IsLeafNameUnique(roots, baseName))
             return baseName;
         for (var i = 2; ; i++)
@@ -45,8 +47,9 @@ public static class DanceTreeTransforms
         }
     }
 
-    private static string GenerateUniqueBranchName(IReadOnlyList<DanceBranch> roots, string baseName = "New Category")
+    private static string GenerateUniqueBranchName(IReadOnlyList<DanceBranch> roots, string? baseName = null)
     {
+        baseName ??= DomainStrings.DanceTreeTransforms_NewCategory;
         if (IsBranchNameUnique(roots, baseName))
             return baseName;
         for (var i = 2; ; i++)

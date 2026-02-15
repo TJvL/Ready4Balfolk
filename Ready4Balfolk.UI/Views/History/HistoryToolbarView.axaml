@@ -3,12 +3,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.History"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="40"
              x:Class="Ready4Balfolk.UI.Views.History.HistoryToolbarView"
              x:DataType="local:HistoryViewModel">
     <StackPanel Orientation="Horizontal" Spacing="4">
         <Button Click="OnToggleClick"
-                ToolTip.Tip="Switch to queue"
+                ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_SwitchToQueue}"
                 Padding="8"
                 Focusable="False">
             <PathIcon Data="{StaticResource IconMenu}"
@@ -18,7 +19,7 @@
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
         <Button Click="OnExportClick"
-                ToolTip.Tip="Export history"
+                ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ExportHistory}"
                 IsEnabled="{Binding HasItems}"
                 Padding="8"
                 Focusable="False">
@@ -26,7 +27,7 @@
                       Width="16" Height="16" />
         </Button>
         <Button Command="{Binding ClearHistoryCommand}"
-                ToolTip.Tip="Clear history"
+                ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ClearHistory}"
                 Padding="8"
                 Focusable="False">
             <PathIcon Data="{StaticResource IconDelete}"

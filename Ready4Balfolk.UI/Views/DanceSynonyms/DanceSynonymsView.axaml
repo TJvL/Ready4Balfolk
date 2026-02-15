@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:conv="using:Avalonia.Data.Converters"
              xmlns:local="using:Ready4Balfolk.UI.Views.DanceSynonyms"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ready4Balfolk.UI.Views.DanceSynonyms.DanceSynonymsView"
              x:DataType="local:DanceSynonymsViewModel">
@@ -14,11 +15,11 @@
     <Grid RowDefinitions="Auto,*">
         <!-- Toolbar -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-            <Button Click="OnBackClick" ToolTip.Tip="Back" Padding="8" Focusable="False">
+            <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Back}" Padding="8" Focusable="False">
                 <PathIcon Data="{StaticResource IconArrowLeft}"
                           Width="16" Height="16" />
             </Button>
-            <TextBlock Text="Dance Synonyms" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"
+            <TextBlock Text="{x:Static res:UiStrings.DanceSynonyms_Title}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"
                        Margin="0,0,16,0" />
 
             <!-- Undo/Redo -->
@@ -45,7 +46,7 @@
 
             <!-- Import/Export -->
             <Button x:Name="ImportButton"
-                    ToolTip.Tip="Import synonyms"
+                    ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_ImportSynonyms}"
                     Padding="8"
                     Click="OnImportClick"
                     IsEnabled="{Binding !IsLocked}"
@@ -55,7 +56,7 @@
                     Width="16" Height="16" />
             </Button>
             <Button x:Name="ExportButton"
-                    ToolTip.Tip="Export synonyms"
+                    ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_ExportSynonyms}"
                     Padding="8"
                     Click="OnExportClick"
                     Focusable="False">
@@ -74,7 +75,7 @@
 
             <!-- Add Line -->
             <Button Command="{Binding AddLineCommand}"
-                    ToolTip.Tip="Add new dance"
+                    ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_AddNewDance}"
                     Padding="8"
                     IsEnabled="{Binding !IsLocked}"
                     Focusable="False">
@@ -116,7 +117,7 @@
                                              Text="{Binding Name, Mode=TwoWay}"
                                              FontWeight="SemiBold"
                                              FontSize="14"
-                                             Watermark="Dance name"
+                                             Watermark="{x:Static res:UiStrings.DanceSynonyms_DanceNameWatermark}"
                                              BorderThickness="0"
                                              Background="Transparent"
                                              Padding="0"
@@ -133,7 +134,7 @@
                                         <!-- Pencil / Confirm (V) share the same slot -->
                                         <Panel>
                                             <Button Command="{Binding ToggleEditingCommand}"
-                                                    ToolTip.Tip="Edit"
+                                                    ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Edit}"
                                                     Padding="6"
                                                     Background="Transparent"
                                                     BorderThickness="0"
@@ -144,7 +145,7 @@
                                                     Width="14" Height="14" />
                                             </Button>
                                             <Button Command="{Binding ToggleEditingCommand}"
-                                                    ToolTip.Tip="Confirm"
+                                                    ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Confirm}"
                                                     Padding="6"
                                                     Background="Transparent"
                                                     BorderThickness="0"
@@ -159,7 +160,7 @@
                                         <!-- Trash / Cancel (X) share the same slot -->
                                         <Panel>
                                             <Button Command="{Binding DeleteOrCancelCommand}"
-                                                    ToolTip.Tip="Delete"
+                                                    ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Delete}"
                                                     Padding="6"
                                                     Background="Transparent"
                                                     BorderThickness="0"
@@ -170,7 +171,7 @@
                                                     Width="14" Height="14" />
                                             </Button>
                                             <Button Command="{Binding DeleteOrCancelCommand}"
-                                                    ToolTip.Tip="Cancel"
+                                                    ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Cancel}"
                                                     Padding="6"
                                                     Background="Transparent"
                                                     BorderThickness="0"
@@ -238,7 +239,7 @@
                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                             <TextBox Text="{Binding NewSynonymText, Mode=TwoWay}"
                                                      Width="120"
-                                                     Watermark="synonym"
+                                                     Watermark="{x:Static res:UiStrings.DanceSynonyms_SynonymWatermark}"
                                                      FontSize="12"
                                                      Padding="0"
                                                      MinHeight="0"
@@ -251,7 +252,7 @@
                                                      KeyDown="OnNewSynonymKeyDown" />
                                             <!-- Confirm synonym (V) — enabled only when text has content -->
                                             <Button Command="{Binding ConfirmAddSynonymCommand}"
-                                                    ToolTip.Tip="Confirm"
+                                                    ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Confirm}"
                                                     Padding="2"
                                                     Background="Transparent"
                                                     BorderThickness="0"
@@ -263,7 +264,7 @@
                                                     Width="10" Height="10" />
                                             </Button>
                                             <Button Command="{Binding CancelAddSynonymCommand}"
-                                                    ToolTip.Tip="Cancel"
+                                                    ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Cancel}"
                                                     Padding="2"
                                                     Background="Transparent"
                                                     BorderThickness="0"
@@ -278,7 +279,7 @@
 
                                     <!-- Add synonym button (hidden when editing or adding) -->
                                     <Button Command="{Binding StartAddSynonymCommand}"
-                                            ToolTip.Tip="Add synonym"
+                                            ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_AddSynonym}"
                                             Padding="6,4"
                                             Margin="0,0,0,6"
                                             Focusable="False">

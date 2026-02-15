@@ -1,8 +1,10 @@
+using Ready4Balfolk.Domain.Resources;
+
 namespace Ready4Balfolk.Domain.Models.QueueItems;
 
 public sealed record StopQueueItem : IQueueItem
 {
-    public string Description => "Stop";
+    public string Description => DomainStrings.StopQueueItem_Description;
     public TimeSpan? Duration => null;
     public bool RandomlyAdded => false;
 }

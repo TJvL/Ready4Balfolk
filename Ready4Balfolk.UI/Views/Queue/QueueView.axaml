@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Queue"
              xmlns:queueItems="using:Ready4Balfolk.Domain.Models.QueueItems"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="Ready4Balfolk.UI.Views.Queue.QueueView"
              x:DataType="local:QueueViewModel">
@@ -81,7 +82,7 @@
                                            FontWeight="Bold"
                                            VerticalAlignment="Center"
                                            Margin="0,0,8,0" />
-                                <TextBlock Grid.Column="1" Text="STOP — Playback will pause here"
+                                <TextBlock Grid.Column="1" Text="{x:Static res:UiStrings.Queue_StopMarker}"
                                            VerticalAlignment="Center"
                                            FontStyle="Italic"
                                            Opacity="0.8" />
@@ -97,7 +98,7 @@
                                           Width="10" Height="10"
                                           Foreground="{DynamicResource DelayMarkerForeground}"
                                           Margin="0,0,8,0" />
-                                <TextBlock Grid.Column="1" Text="DELAY — Playback will pause temporarily"
+                                <TextBlock Grid.Column="1" Text="{x:Static res:UiStrings.Queue_DelayMarker}"
                                            VerticalAlignment="Center"
                                            FontStyle="Italic"
                                            Opacity="0.8" />
@@ -118,7 +119,7 @@
                                           Width="10" Height="10"
                                           Foreground="{DynamicResource MessageMarkerForeground}"
                                           Margin="0,0,8,0" />
-                                <TextBlock Grid.Column="1" Text="MESSAGE —"
+                                <TextBlock Grid.Column="1" Text="{x:Static res:UiStrings.Queue_MessageMarker}"
                                            VerticalAlignment="Center"
                                            FontStyle="Italic"
                                            Opacity="0.8"
@@ -161,7 +162,7 @@
                                 <!-- Refresh button -->
                                 <Button Grid.Column="4"
                                         Click="OnRefreshAutoQueuedClick"
-                                        ToolTip.Tip="Pick different random track"
+                                        ToolTip.Tip="{x:Static res:UiStrings.Queue_RefreshAutoTrack}"
                                         Padding="2"
                                         Margin="0,0,4,0"
                                         Background="Transparent"
@@ -175,7 +176,7 @@
                                 <!-- Pin button -->
                                 <Button Grid.Column="5"
                                         Click="OnPinAutoQueuedClick"
-                                        ToolTip.Tip="Keep this track"
+                                        ToolTip.Tip="{x:Static res:UiStrings.Queue_KeepTrack}"
                                         Padding="2"
                                         Margin="0,0,8,0"
                                         Background="Transparent"

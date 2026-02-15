@@ -3,13 +3,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.TrackCatalog"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="40"
              x:Class="Ready4Balfolk.UI.Views.TrackCatalog.TrackCatalogToolbarView"
              x:DataType="local:TrackCatalogViewModel">
     <DockPanel>
         <Button DockPanel.Dock="Left"
                 Click="OnToggleClick"
-                ToolTip.Tip="Switch to dance tree"
+                ToolTip.Tip="{x:Static res:UiStrings.TrackCatalog_SwitchToDanceTree}"
                 Padding="8"
                 Focusable="False">
             <PathIcon Data="{StaticResource IconTreeStructure}"
@@ -20,7 +21,7 @@
 
         <Button DockPanel.Dock="Right"
                 Command="{Binding ClearSearchCommand}"
-                ToolTip.Tip="Clear search"
+                ToolTip.Tip="{x:Static res:UiStrings.TrackCatalog_ClearSearch}"
                 Padding="8"
                 Margin="4,0,0,0"
                 Focusable="False">
@@ -29,7 +30,7 @@
         </Button>
 
         <TextBox Text="{Binding SearchText}"
-                 Watermark="Search tracks..."
+                 Watermark="{x:Static res:UiStrings.TrackCatalog_SearchWatermark}"
                  VerticalAlignment="Center" />
     </DockPanel>
 </UserControl>

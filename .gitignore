@@ -56,6 +56,9 @@ nunit-*.xml
 # IDEA
 .idea/
 
+# Rider user settings
+*.sln.DotSettings.user
+
 # Native dependencies
 build/
 

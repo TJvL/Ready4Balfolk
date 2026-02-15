@@ -1,5 +1,6 @@
 using System;
 using Ready4Balfolk.Domain.Models.History;
+using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.History;
 
@@ -9,10 +10,10 @@ public readonly struct HistoryItemViewModel(QueueHistoryEntry entry)
 
     public string Type => entry switch
     {
-        TrackHistoryEntry => "Track",
-        MessageHistoryEntry => "Message",
-        DelayHistoryEntry => "Delay",
-        StopHistoryEntry => "Stop",
+        TrackHistoryEntry => UiStrings.History_TypeTrack,
+        MessageHistoryEntry => UiStrings.History_TypeMessage,
+        DelayHistoryEntry => UiStrings.History_TypeDelay,
+        StopHistoryEntry => UiStrings.History_TypeStop,
         _ => ""
     };
 
@@ -35,8 +36,8 @@ public readonly struct HistoryItemViewModel(QueueHistoryEntry entry)
 
     public string Status => entry.CompletionStatus switch
     {
-        CompletionStatus.Finished => "Finished",
-        CompletionStatus.Skipped => "Skipped",
+        CompletionStatus.Finished => UiStrings.History_StatusFinished,
+        CompletionStatus.Skipped => UiStrings.History_StatusSkipped,
         _ => ""
     };
 

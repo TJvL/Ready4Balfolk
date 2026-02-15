@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -11,6 +13,8 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Settings;
 
@@ -18,6 +22,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
 {
     private readonly ISettingsStore _settingsStore;
     private readonly ILoggerService _loggerService;
+    private readonly IConfirmationService _confirmationService;
     private readonly CompositeDisposable _disposables = [];
     private bool _syncing;
 
@@ -29,9 +34,13 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool AllowDuplicateTracksInQueue { get; set; }
     [Reactive] public partial bool RequirePlaybackConfirmation { get; set; }
     [Reactive] public partial ApplicationTheme SelectedTheme { get; set; }
+    [Reactive] public partial ApplicationLanguage SelectedLanguage { get; set; }
 
     public IReadOnlyList<ApplicationTheme> AvailableThemes { get; } =
         Enum.GetValues<ApplicationTheme>();
+
+    public IReadOnlyList<ApplicationLanguage> AvailableLanguages { get; } =
+        Enum.GetValues<ApplicationLanguage>();
 
     public string AppVersion { get; } = GetAppVersion();
 
@@ -44,10 +53,12 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         return info is null || info.Contains("-dev") ? "dev" : info;
     }
 
-    public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService)
+    public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
+        IConfirmationService confirmationService)
     {
         _settingsStore = settingsStore;
         _loggerService = loggerService;
+        _confirmationService = confirmationService;
 
         var current = settingsStore.Current;
         MusicDirectoryPath = current.MusicDirectoryPath;
@@ -58,6 +69,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         AllowDuplicateTracksInQueue = current.AllowDuplicateTracksInQueue;
         RequirePlaybackConfirmation = current.RequirePlaybackConfirmation;
         SelectedTheme = current.ApplicationTheme;
+        SelectedLanguage = current.ApplicationLanguage;
 
         ThrottledSave(x => x.MusicDirectoryPath, v => s => s with { MusicDirectoryPath = v });
         ThrottledSave(x => x.MaxQueueItems, v => s => s with { MaxQueueItems = v });
@@ -67,6 +79,13 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         ThrottledSave(x => x.AllowDuplicateTracksInQueue, v => s => s with { AllowDuplicateTracksInQueue = v });
         ThrottledSave(x => x.RequirePlaybackConfirmation, v => s => s with { RequirePlaybackConfirmation = v });
         ThrottledSave(x => x.SelectedTheme, v => s => s with { ApplicationTheme = v });
+
+        this.WhenAnyValue(x => x.SelectedLanguage)
+            .Skip(1)
+            .DistinctUntilChanged()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(OnLanguageChanged)
+            .DisposeWith(_disposables);
 
         settingsStore.Observe()
             .Skip(1)
@@ -86,6 +105,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         AllowDuplicateTracksInQueue = s.AllowDuplicateTracksInQueue;
         RequirePlaybackConfirmation = s.RequirePlaybackConfirmation;
         SelectedTheme = s.ApplicationTheme;
+        SelectedLanguage = s.ApplicationLanguage;
         _syncing = false;
     }
 
@@ -109,6 +129,51 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     }
 
     public async Task ExportLogAsync(FileInfo file) => await _loggerService.ExportAsync(file);
+
+    private async void OnLanguageChanged(ApplicationLanguage newLanguage)
+    {
+        if (_syncing)
+            return;
+
+        var currentLanguage = _settingsStore.Current.ApplicationLanguage;
+        if (newLanguage == currentLanguage)
+            return;
+
+        var confirmed = await _confirmationService.ConfirmAsync(
+            UiStrings.Settings_LanguageRestartTitle,
+            UiStrings.Settings_LanguageRestartMessage,
+            UiStrings.Dialog_Restart,
+            UiStrings.Dialog_Cancel);
+
+        if (!confirmed)
+        {
+            _syncing = true;
+            SelectedLanguage = currentLanguage;
+            _syncing = false;
+            return;
+        }
+
+        await _settingsStore.UpdateAsync(s => s with { ApplicationLanguage = newLanguage });
+        RestartApplication();
+    }
+
+    private static void RestartApplication()
+    {
+        var exePath = Environment.ProcessPath;
+        if (exePath is not null)
+        {
+            // Use setsid to start in a new session, fully detached from parent
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "setsid",
+                Arguments = $"--fork /bin/sh -c \"sleep 0.3 && '{exePath}'\"",
+                WorkingDirectory = Path.GetDirectoryName(exePath)!,
+                UseShellExecute = false
+            });
+        }
+
+        Environment.Exit(0);
+    }
 
     public void Dispose() => _disposables.Dispose();
 }

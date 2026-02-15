@@ -6,6 +6,7 @@ using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
+using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.Presentation;
 
@@ -84,13 +85,13 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
                 break;
             case DelayQueueItem:
                 IsMessageMode = false;
-                CurrentDance = "Delay";
+                CurrentDance = UiStrings.Presentation_Delay;
                 CurrentArtist = "";
                 CurrentTitle = "";
                 break;
             case StopQueueItem:
                 IsMessageMode = false;
-                CurrentDance = "Stop";
+                CurrentDance = UiStrings.Presentation_Stop;
                 CurrentArtist = "";
                 CurrentTitle = "";
                 break;
@@ -139,17 +140,17 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
                 SetNextTrack(track);
                 break;
             case MessageQueueItem message:
-                NextDance = "Message";
+                NextDance = UiStrings.Presentation_Message;
                 NextArtist = message.Description;
                 NextTitle = "";
                 break;
             case DelayQueueItem:
-                NextDance = "Delay";
+                NextDance = UiStrings.Presentation_Delay;
                 NextArtist = "";
                 NextTitle = "";
                 break;
             case StopQueueItem:
-                NextDance = "Stop";
+                NextDance = UiStrings.Presentation_Stop;
                 NextArtist = "";
                 NextTitle = "";
                 break;

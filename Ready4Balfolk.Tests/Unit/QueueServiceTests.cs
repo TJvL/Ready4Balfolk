@@ -1,8 +1,10 @@
+using System.Globalization;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -226,7 +228,7 @@ public sealed class QueueServiceTests : IDisposable
 
         var result = _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("C"), false));
         Assert.False(result.Allowed);
-        Assert.Contains("full", result.RejectionReason!);
+        Assert.Contains(string.Format(CultureInfo.CurrentCulture, DomainStrings.MaxItemsRule_QueueFull, 2), result.RejectionReason!);
     }
 
     [Fact]
@@ -239,7 +241,7 @@ public sealed class QueueServiceTests : IDisposable
 
         var result = _sut.InsertAt(0, new TrackQueueItem(TestData.CreateTrack("C"), false));
         Assert.False(result.Allowed);
-        Assert.Contains("full", result.RejectionReason!);
+        Assert.Contains(string.Format(CultureInfo.CurrentCulture, DomainStrings.MaxItemsRule_QueueFull, 2), result.RejectionReason!);
     }
 
     // --- Reactive ---

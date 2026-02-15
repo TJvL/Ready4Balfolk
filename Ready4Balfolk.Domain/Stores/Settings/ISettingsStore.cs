@@ -6,6 +6,5 @@ public interface ISettingsStore : IDisposable
 {
     ApplicationSettings Current { get; }
     IObservable<ApplicationSettings> Observe();
-    Task LoadAsync();
     Task UpdateAsync(Func<ApplicationSettings, ApplicationSettings> transform);
 }

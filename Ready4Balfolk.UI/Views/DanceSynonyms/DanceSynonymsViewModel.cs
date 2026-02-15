@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reactive.Disposables;
@@ -11,6 +12,7 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Synonyms;
 using Ready4Balfolk.Domain.Services.Editor;
 using Ready4Balfolk.Domain.Stores.Synonym;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.DanceSynonyms;
@@ -66,12 +68,12 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
         _hasEntriesHelper.DisposeWith(_disposables);
 
         _undoTooltipHelper = editorHistory.UndoDescription
-            .Select(desc => desc is not null ? $"Undo: {desc} (Ctrl+Z)" : "Undo (Ctrl+Z)")
+            .Select(desc => desc is not null ? string.Format(CultureInfo.CurrentCulture, UiStrings.DanceSynonyms_UndoFormat, desc) : UiStrings.DanceSynonyms_UndoDefault)
             .ToProperty(this, x => x.UndoTooltip);
         _undoTooltipHelper.DisposeWith(_disposables);
 
         _redoTooltipHelper = editorHistory.RedoDescription
-            .Select(desc => desc is not null ? $"Redo: {desc} (Ctrl+Y)" : "Redo (Ctrl+Y)")
+            .Select(desc => desc is not null ? string.Format(CultureInfo.CurrentCulture, UiStrings.DanceSynonyms_RedoFormat, desc) : UiStrings.DanceSynonyms_RedoDefault)
             .ToProperty(this, x => x.RedoTooltip);
         _redoTooltipHelper.DisposeWith(_disposables);
 
@@ -119,13 +121,13 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
 
         if (string.IsNullOrWhiteSpace(name))
         {
-            _notifications.Show("Name cannot be empty.", NotificationSeverity.Warning);
+            _notifications.Show(UiStrings.DanceSynonyms_NameEmpty, NotificationSeverity.Warning);
             return;
         }
 
         if (!DanceSynonymTransforms.IsNameUnique(_store.Current, name, excludeMainIndex: index))
         {
-            _notifications.Show($"The name '{name}' is already in use.", NotificationSeverity.Warning);
+            _notifications.Show(string.Format(CultureInfo.CurrentCulture, UiStrings.DanceSynonyms_NameInUse, name), NotificationSeverity.Warning);
             return;
         }
 

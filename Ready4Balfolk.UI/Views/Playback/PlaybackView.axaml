@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Playback"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
              x:Class="Ready4Balfolk.UI.Views.Playback.PlaybackView"
              x:DataType="local:PlaybackViewModel">
@@ -114,7 +115,7 @@
                             Height="40"
                             HorizontalContentAlignment="Center"
                             VerticalContentAlignment="Center"
-                            ToolTip.Tip="Restart track"
+                            ToolTip.Tip="{x:Static res:UiStrings.Playback_RestartTrack}"
                             Focusable="False">
                         <PathIcon
                             Data="{StaticResource IconRestart}" />

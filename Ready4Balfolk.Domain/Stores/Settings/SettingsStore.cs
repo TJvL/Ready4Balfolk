@@ -17,7 +17,7 @@ public sealed class SettingsStore(DirectoryInfo settingsDirectoryInfo) : ISettin
     };
 
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly BehaviorSubject<ApplicationSettings> _settings = new(new ApplicationSettings());
+    private readonly BehaviorSubject<ApplicationSettings> _settings = new(LoadInitial(settingsDirectoryInfo));
 
     private string SettingsFilePath => Path.Combine(settingsDirectoryInfo.FullName, SettingsFileName);
 
@@ -25,15 +25,21 @@ public sealed class SettingsStore(DirectoryInfo settingsDirectoryInfo) : ISettin
 
     public IObservable<ApplicationSettings> Observe() => _settings.AsObservable();
 
-    public async Task LoadAsync()
+    private static ApplicationSettings LoadInitial(DirectoryInfo directory)
     {
-        if (!File.Exists(SettingsFilePath))
-            return;
+        var path = Path.Combine(directory.FullName, SettingsFileName);
+        if (!File.Exists(path))
+            return new ApplicationSettings();
 
-        await using var stream = File.OpenRead(SettingsFilePath);
-        var settings = await JsonSerializer.DeserializeAsync<ApplicationSettings>(stream, JsonOptions);
-        if (settings != null)
-            _settings.OnNext(settings);
+        try
+        {
+            var json = File.ReadAllText(path);
+            return JsonSerializer.Deserialize<ApplicationSettings>(json, JsonOptions) ?? new ApplicationSettings();
+        }
+        catch (JsonException)
+        {
+            return new ApplicationSettings();
+        }
     }
 
     public async Task UpdateAsync(Func<ApplicationSettings, ApplicationSettings> transform)

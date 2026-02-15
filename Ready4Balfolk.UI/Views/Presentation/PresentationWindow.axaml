@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="using:Ready4Balfolk.UI.Views.Presentation"
         xmlns:conv="using:Avalonia.Data.Converters"
+        xmlns:res="using:Ready4Balfolk.UI.Resources"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
         x:Class="Ready4Balfolk.UI.Views.Presentation.PresentationWindow"
         x:DataType="local:PresentationDisplayViewModel"
@@ -57,7 +58,7 @@
 
                 <!-- No current item -->
                 <TextBlock IsVisible="{Binding !HasCurrentItem}"
-                           Text="No track playing"
+                           Text="{x:Static res:UiStrings.Presentation_NoTrackPlaying}"
                            Foreground="#666666"
                            FontSize="96"
                            HorizontalAlignment="Center"
@@ -79,7 +80,7 @@
                 <StackPanel IsVisible="{Binding HasNextItem}"
                             VerticalAlignment="Center"
                             HorizontalAlignment="Center">
-                    <TextBlock Text="Next"
+                    <TextBlock Text="{x:Static res:UiStrings.Presentation_Next}"
                                Foreground="#888888"
                                FontSize="56"
                                HorizontalAlignment="Center"
@@ -109,7 +110,7 @@
 
                 <!-- No next item -->
                 <TextBlock IsVisible="{Binding !HasNextItem}"
-                           Text="No next track"
+                           Text="{x:Static res:UiStrings.Presentation_NoNextTrack}"
                            Foreground="#444444"
                            FontSize="64"
                            HorizontalAlignment="Center"

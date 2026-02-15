@@ -1,5 +1,6 @@
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Synonyms;
+using Ready4Balfolk.Domain.Resources;
 
 namespace Ready4Balfolk.Domain.Services.Editor;
 
@@ -36,7 +37,7 @@ public static class DanceSynonymTransforms
     }
 
     public static IReadOnlyList<DanceMainName> AddMainName(IReadOnlyList<DanceMainName> list)
-        => [.. list, new("New Dance", [])];
+        => [.. list, new(DomainStrings.DanceSynonymTransforms_NewDance, [])];
 
     public static IReadOnlyList<DanceMainName> DeleteMainName(IEnumerable<DanceMainName> list, int index)
         => list.Where((_, i) => i != index).ToList();
@@ -48,7 +49,7 @@ public static class DanceSynonymTransforms
     public static IReadOnlyList<DanceMainName> AddSynonym(
         IEnumerable<DanceMainName> list, int mainNameIndex)
         => list.Select((m, i) => i == mainNameIndex
-            ? m with { Synonyms = [.. m.Synonyms, new DanceSynonym("New Synonym")] }
+            ? m with { Synonyms = [.. m.Synonyms, new DanceSynonym(DomainStrings.DanceSynonymTransforms_NewSynonym)] }
             : m).ToList();
 
     public static IReadOnlyList<DanceMainName> AddSynonymWithName(

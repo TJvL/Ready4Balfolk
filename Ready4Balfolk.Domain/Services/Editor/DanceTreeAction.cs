@@ -1,4 +1,6 @@
+using System.Globalization;
 using Ready4Balfolk.Domain.Models.Tree;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Stores.Tree;
 
 namespace Ready4Balfolk.Domain.Services.Editor;
@@ -46,72 +48,72 @@ public sealed class DanceTreeAction : IEditorAction
     // Factory methods
 
     public static DanceTreeAction AddBranch(IDanceTreeStore store, int[] path)
-        => new(store, "Add category",
+        => new(store, DomainStrings.DanceTreeAction_AddCategory,
             roots => DanceTreeTransforms.AddBranch(roots, path));
 
     public static DanceTreeAction AddLeaf(IDanceTreeStore store, int[] path)
-        => new(store, "Add dance",
+        => new(store, DomainStrings.DanceTreeAction_AddDance,
             roots => DanceTreeTransforms.AddLeaf(roots, path),
             _ => path.Length > 0
                 ? EditorActionResult.Ok()
-                : EditorActionResult.Error("Cannot add a dance to the root level."));
+                : EditorActionResult.Error(DomainStrings.DanceTreeAction_CannotAddDanceToRoot));
 
     public static DanceTreeAction AddLeafWithName(IDanceTreeStore store, int[] path, string name)
-        => new(store, $"Add dance '{name}'",
+        => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_AddDanceWithName, name),
             roots => DanceTreeTransforms.AddLeaf(roots, path, name),
             roots => path.Length == 0
-                    ? EditorActionResult.Error("Cannot add a dance to the root level.")
+                    ? EditorActionResult.Error(DomainStrings.DanceTreeAction_CannotAddDanceToRoot)
                     : string.IsNullOrWhiteSpace(name)
-                    ? EditorActionResult.Error("Dance name cannot be empty.")
+                    ? EditorActionResult.Error(DomainStrings.DanceTreeAction_DanceNameEmpty)
                     : DanceTreeTransforms.IsLeafNameUnique(roots, name)
                     ? EditorActionResult.Ok()
-                    : EditorActionResult.Error($"A dance named '{name}' already exists."));
+                    : EditorActionResult.Error(string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_DanceNameExists, name)));
 
     public static DanceTreeAction DeleteBranch(IDanceTreeStore store, int[] path)
     {
         var name = ResolveBranchName(store.Current, path);
-        return new(store, $"Delete category '{name}'",
+        return new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_DeleteCategory, name),
             roots => DanceTreeTransforms.DeleteBranch(roots, path));
     }
 
     public static DanceTreeAction DeleteLeaf(IDanceTreeStore store, int[] parentPath, int leafIndex)
     {
         var name = ResolveLeafName(store.Current, parentPath, leafIndex);
-        return new(store, $"Delete dance '{name}'",
+        return new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_DeleteDance, name),
             roots => DanceTreeTransforms.DeleteLeaf(roots, parentPath, leafIndex));
     }
 
     public static DanceTreeAction RenameBranch(IDanceTreeStore store, int[] path, string newName)
-        => new(store, $"Rename category to '{newName}'",
+        => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_RenameCategory, newName),
             roots => DanceTreeTransforms.RenameBranch(roots, path, newName),
             roots => string.IsNullOrWhiteSpace(newName)
-                    ? EditorActionResult.Error("Category name cannot be empty.")
+                    ? EditorActionResult.Error(DomainStrings.DanceTreeAction_CategoryNameEmpty)
                     : DanceTreeTransforms.IsBranchNameUnique(roots, newName, excludePath: path)
                     ? EditorActionResult.Ok()
-                    : EditorActionResult.Error($"A category named '{newName}' already exists."));
+                    : EditorActionResult.Error(string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_CategoryNameExists, newName)));
 
     public static DanceTreeAction ReweightBranch(IDanceTreeStore store, int[] path, int newWeight)
-        => new(store, $"Change category weight to {newWeight}",
+        => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_ReweightCategory, newWeight),
             roots => DanceTreeTransforms.ReweightBranch(roots, path, newWeight),
             _ => newWeight >= 0
                 ? EditorActionResult.Ok()
-                : EditorActionResult.Error("Weight must be zero or positive."));
+                : EditorActionResult.Error(DomainStrings.DanceTreeAction_WeightMustBePositive));
 
     public static DanceTreeAction RenameLeaf(IDanceTreeStore store, int[] parentPath, int leafIndex, string newName)
-        => new(store, $"Rename dance to '{newName}'",
+        => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_RenameDance, newName),
             roots => DanceTreeTransforms.RenameLeaf(roots, parentPath, leafIndex, newName),
             roots => string.IsNullOrWhiteSpace(newName)
-                    ? EditorActionResult.Error("Dance name cannot be empty.")
+                    ? EditorActionResult.Error(DomainStrings.DanceTreeAction_DanceNameEmpty)
                     : DanceTreeTransforms.IsLeafNameUnique(roots, newName, excludeParentPath: parentPath, excludeLeafIndex: leafIndex)
                     ? EditorActionResult.Ok()
-                    : EditorActionResult.Error($"A dance named '{newName}' already exists."));
+                    : EditorActionResult.Error(string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_DanceNameExists, newName)));
 
     public static DanceTreeAction ReweightLeaf(IDanceTreeStore store, int[] parentPath, int leafIndex, int newWeight)
-        => new(store, $"Change dance weight to {newWeight}",
+        => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_ReweightDance, newWeight),
             roots => DanceTreeTransforms.ReweightLeaf(roots, parentPath, leafIndex, newWeight),
             _ => newWeight >= 0
                 ? EditorActionResult.Ok()
-                : EditorActionResult.Error("Weight must be zero or positive."));
+                : EditorActionResult.Error(DomainStrings.DanceTreeAction_WeightMustBePositive));
 
     private static string ResolveBranchName(IReadOnlyList<DanceBranch> roots, int[] path)
     {

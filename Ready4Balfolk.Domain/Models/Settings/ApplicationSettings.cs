@@ -9,12 +9,13 @@ public sealed record ApplicationSettings(
     bool AllowDuplicateTracksInQueue,
     bool RequirePlaybackConfirmation,
     ApplicationTheme ApplicationTheme,
+    ApplicationLanguage ApplicationLanguage,
     WindowState MainWindowState,
     IEnumerable<WindowState> PresentationWindowStates,
     IEnumerable<string> CollapsedBranches)
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
-        new WindowState(), [], [])
+        ApplicationLanguage.English, new WindowState(), [], [])
     {
     }
 }

@@ -2,6 +2,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
 using Ready4Balfolk.Domain.Models.Tree;
+using Ready4Balfolk.Domain.Resources;
 
 namespace Ready4Balfolk.Domain.Stores.Tree;
 
@@ -67,22 +68,22 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanc
     public async Task ImportAsync(FileInfo sourceFileInfo)
     {
         if (!sourceFileInfo.Exists)
-            throw new FileNotFoundException("Import file not found.", sourceFileInfo.FullName);
+            throw new FileNotFoundException(DomainStrings.ImportFileNotFound, sourceFileInfo.FullName);
 
         List<DanceBranch> branches;
         try
         {
             await using var stream = File.OpenRead(sourceFileInfo.FullName);
             branches = await JsonSerializer.DeserializeAsync<List<DanceBranch>>(stream, JsonOptions)
-                       ?? throw new InvalidDataException("Import file contains null.");
+                       ?? throw new InvalidDataException(DomainStrings.ImportFileContainsNull);
         }
         catch (JsonException ex)
         {
-            throw new InvalidDataException("Import file is not a valid dance tree JSON structure.", ex);
+            throw new InvalidDataException(DomainStrings.DanceTreeStore_InvalidJson, ex);
         }
 
         if (branches.Any(b => string.IsNullOrWhiteSpace(b.Name)))
-            throw new InvalidDataException("Import file contains branches with missing names.");
+            throw new InvalidDataException(DomainStrings.DanceTreeStore_MissingNames);
 
         await _gate.WaitAsync();
         try

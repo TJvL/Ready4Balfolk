@@ -3,12 +3,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Toolbar"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="40"
              x:Class="Ready4Balfolk.UI.Views.Toolbar.ToolbarView"
              x:DataType="local:ToolbarViewModel">
     <StackPanel Orientation="Horizontal" Spacing="4">
         <Button Click="OnExitClick"
-                ToolTip.Tip="Exit"
+                ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Exit}"
                 Padding="8"
                 Focusable="False">
             <PathIcon Data="{StaticResource IconLogin}"
@@ -18,21 +19,21 @@
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
         <Button Click="OnHelpClick"
-                ToolTip.Tip="Help"
+                ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Help}"
                 Padding="8"
                 Focusable="False">
             <PathIcon Data="{StaticResource IconHelp}"
                       Width="16" Height="16" />
         </Button>
         <Button Click="OnSettingsClick"
-                ToolTip.Tip="Settings"
+                ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Settings}"
                 Padding="8"
                 Focusable="False">
             <PathIcon Data="{StaticResource IconSettings}"
                       Width="16" Height="16" />
         </Button>
         <Button Click="OnSynonymsClick"
-                ToolTip.Tip="Dance Synonyms"
+                ToolTip.Tip="{x:Static res:UiStrings.Toolbar_DanceSynonyms}"
                 Padding="8"
                 Focusable="False">
             <PathIcon Data="{StaticResource IconBook}"

@@ -351,5 +351,8 @@ dotnet_diagnostic.IDE0303.severity = warning
 dotnet_diagnostic.IDE0304.severity = warning
 dotnet_diagnostic.IDE0305.severity = warning
 
+# Localized resource strings cannot be cached as CompositeFormat
+dotnet_diagnostic.CA1863.severity = none
+
 # Suppress false positives from source generators
 dotnet_diagnostic.CS8618.severity = suggestion

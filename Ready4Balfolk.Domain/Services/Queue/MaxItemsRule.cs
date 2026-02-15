@@ -1,4 +1,6 @@
+using System.Globalization;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Resources;
 
 namespace Ready4Balfolk.Domain.Services.Queue;
 
@@ -9,7 +11,7 @@ public sealed class MaxItemsRule(int maxItems) : IQueueRule
 
     public QueueRuleVerdict? EvaluateAdd(IQueueItem item, IReadOnlyList<IQueueItem> adjustedItems)
         => adjustedItems.Count >= maxItems
-            ? new QueueRuleVerdict(false, $"Queue is full (max {maxItems} items).")
+            ? new QueueRuleVerdict(false, string.Format(CultureInfo.CurrentCulture, DomainStrings.MaxItemsRule_QueueFull, maxItems))
             : null;
 
     public IReadOnlyList<int> GetEvictionIndices(IReadOnlyList<IQueueItem> currentItems)

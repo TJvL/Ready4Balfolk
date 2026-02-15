@@ -3,10 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:message="clr-namespace:Ready4Balfolk.UI.Views.Dialogs.Message"
+        xmlns:res="using:Ready4Balfolk.UI.Resources"
         mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="220"
         x:Class="Ready4Balfolk.UI.Views.Dialogs.Message.RequestMessageDialogView"
         x:DataType="message:RequestMessageDialogViewModel"
-        Title="Request Message"
+        Title="{x:Static res:UiStrings.Dialog_RequestMessageTitle}"
         Width="450"
         Height="220"
         WindowStartupLocation="CenterOwner"
@@ -16,18 +17,18 @@
         <!-- Message input -->
         <StackPanel Grid.Row="0" Spacing="4">
             <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0" Text="Message" />
+                <TextBlock Grid.Column="0" Text="{x:Static res:UiStrings.Dialog_MessageLabel}" />
                 <TextBlock Grid.Column="1" Text="{CompiledBinding CharacterCount}" Opacity="0.6" />
             </Grid>
             <TextBox Text="{CompiledBinding Message}"
                      MaxLength="60"
-                     Watermark="Enter message to display..." />
+                     Watermark="{x:Static res:UiStrings.Dialog_MessageWatermark}" />
         </StackPanel>
 
         <!-- Use delay checkbox -->
         <CheckBox Grid.Row="1"
                   IsChecked="{CompiledBinding UseDelay}"
-                  Content="Use timed delay (otherwise stops until manual resume)"
+                  Content="{x:Static res:UiStrings.Dialog_UseTimedDelay}"
                   Margin="0,16,0,0" />
 
         <!-- Delay duration -->
@@ -35,7 +36,7 @@
                     Spacing="4"
                     Margin="0,12,0,0"
                     IsVisible="{CompiledBinding UseDelay}">
-            <TextBlock Text="Delay duration (seconds)" />
+            <TextBlock Text="{x:Static res:UiStrings.Dialog_DelayDuration}" />
             <NumericUpDown Value="{CompiledBinding DelaySeconds}"
                            Minimum="1"
                            Maximum="300"
@@ -49,16 +50,16 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="8">
-            <Button Content="Cancel"
+            <Button Content="{x:Static res:UiStrings.Dialog_Cancel}"
                     Command="{CompiledBinding CancelCommand}"
-                    Width="80"
+                    MinWidth="80"
                     IsCancel="True" />
             <!-- The accent class is provided by FluentAvalonia at runtime, so these are false positives. -->
             <!-- ReSharper disable once Xaml.StyleClassNotFound -->
             <Button x:Name="OkButton"
-                    Content="OK"
+                    Content="{x:Static res:UiStrings.Dialog_OK}"
                     Command="{CompiledBinding OkCommand}"
-                    Width="80"
+                    MinWidth="80"
                     Classes="accent"
                     IsDefault="True" />
         </StackPanel>

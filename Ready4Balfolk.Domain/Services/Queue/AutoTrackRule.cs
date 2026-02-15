@@ -1,4 +1,5 @@
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Resources;
 
 namespace Ready4Balfolk.Domain.Services.Queue;
 
@@ -9,7 +10,7 @@ public sealed class AutoTrackRule(bool autoQueueEnabled) : IQueueRule
 
     public QueueRuleVerdict? EvaluateAdd(IQueueItem item, IReadOnlyList<IQueueItem> adjustedItems)
         => item is AutoTrackQueueItem && adjustedItems.Count > 0
-            ? new QueueRuleVerdict(false, "Auto-track can only be added to an empty queue.")
+            ? new QueueRuleVerdict(false, DomainStrings.AutoTrackRule_OnlyEmptyQueue)
             : null;
 
     public IReadOnlyList<int> GetEvictionIndices(IReadOnlyList<IQueueItem> currentItems)

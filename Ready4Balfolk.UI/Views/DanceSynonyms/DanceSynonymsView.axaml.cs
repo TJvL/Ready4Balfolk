@@ -9,6 +9,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.DanceSynonyms;
@@ -30,10 +31,10 @@ public partial class DanceSynonymsView : ReactiveUserControl<DanceSynonymsViewMo
     {
         var confirmationService = App.Services.GetRequiredService<IConfirmationService>();
         if (!await confirmationService.ConfirmAsync(
-                "Import Synonyms",
-                "Importing will permanently overwrite the current dance synonyms. Consider exporting a backup first.\n\nContinue with import?",
-                "Import",
-                "Cancel"))
+                UiStrings.DanceSynonyms_ImportTitle,
+                UiStrings.DanceSynonyms_ImportConfirmMessage,
+                UiStrings.DanceSynonyms_ImportButton,
+                UiStrings.DanceSynonyms_CancelButton))
         {
             return;
         }
@@ -44,7 +45,7 @@ public partial class DanceSynonymsView : ReactiveUserControl<DanceSynonymsViewMo
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Import Dance Synonyms",
+            Title = UiStrings.DanceSynonyms_ImportFilePickerTitle,
             AllowMultiple = false,
             FileTypeFilter = [JsonFileType]
         });
@@ -61,7 +62,7 @@ public partial class DanceSynonymsView : ReactiveUserControl<DanceSynonymsViewMo
 
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Export Dance Synonyms",
+            Title = UiStrings.DanceSynonyms_ExportFilePickerTitle,
             SuggestedFileName = "dance_synonyms",
             FileTypeChoices = [JsonFileType]
         });

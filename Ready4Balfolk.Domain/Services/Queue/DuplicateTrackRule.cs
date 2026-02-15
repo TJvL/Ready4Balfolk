@@ -1,5 +1,6 @@
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Stores.History;
 
 namespace Ready4Balfolk.Domain.Services.Queue;
@@ -21,19 +22,19 @@ public sealed class DuplicateTrackRule(
 
         if (adjustedItems.Any(i => GetFilePath(i) == filePath))
         {
-            return new QueueRuleVerdict(false, "Track is already in the queue.");
+            return new QueueRuleVerdict(false, DomainStrings.DuplicateTrackRule_AlreadyInQueue);
         }
 
         var currentPlaying = currentItemProvider();
         if (currentPlaying is not null && GetFilePath(currentPlaying) == filePath)
         {
-            return new QueueRuleVerdict(false, "Track is currently playing.");
+            return new QueueRuleVerdict(false, DomainStrings.DuplicateTrackRule_CurrentlyPlaying);
         }
 
         var history = historyStore.Current;
         return history.Entries.OfType<TrackHistoryEntry>()
             .Any(e => e.CompletionStatus == CompletionStatus.Finished && e.FilePath == filePath)
-            ? new QueueRuleVerdict(false, "Track was already played.")
+            ? new QueueRuleVerdict(false, DomainStrings.DuplicateTrackRule_AlreadyPlayed)
             : null;
     }
 

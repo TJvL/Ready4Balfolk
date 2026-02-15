@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using ReactiveUI;
+using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 
@@ -9,25 +10,25 @@ public class ConfirmationDialogViewModel : ReactiveObject
     {
         get;
         set => this.RaiseAndSetIfChanged(ref field, value);
-    } = "Confirm";
+    } = UiStrings.Dialog_ConfirmDefault;
 
     public string Message
     {
         get;
         set => this.RaiseAndSetIfChanged(ref field, value);
-    } = "Are you sure?";
+    } = UiStrings.Dialog_AreYouSure;
 
     public string ConfirmText
     {
         get;
         set => this.RaiseAndSetIfChanged(ref field, value);
-    } = "Yes";
+    } = UiStrings.Dialog_YesDefault;
 
     public string CancelText
     {
         get;
         set => this.RaiseAndSetIfChanged(ref field, value);
-    } = "No";
+    } = UiStrings.Dialog_NoDefault;
 
     public bool? DialogResult
     {

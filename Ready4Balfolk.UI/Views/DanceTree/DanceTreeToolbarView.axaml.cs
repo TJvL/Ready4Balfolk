@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.DanceTree;
@@ -25,10 +26,10 @@ public partial class DanceTreeToolbarView : ReactiveUserControl<DanceTreeViewMod
     {
         var confirmationService = App.Services.GetRequiredService<IConfirmationService>();
         if (!await confirmationService.ConfirmAsync(
-                "Import Dance Tree",
-                "Importing will permanently overwrite the current dance tree. Consider exporting a backup first.\n\nContinue with import?",
-                "Import",
-                "Cancel"))
+                UiStrings.DanceTreeToolbar_ImportTitle,
+                UiStrings.DanceTreeToolbar_ImportConfirmMessage,
+                UiStrings.DanceTreeToolbar_ImportButton,
+                UiStrings.DanceTreeToolbar_CancelButton))
         {
             return;
         }
@@ -39,7 +40,7 @@ public partial class DanceTreeToolbarView : ReactiveUserControl<DanceTreeViewMod
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Import Dance Tree",
+            Title = UiStrings.DanceTreeToolbar_ImportTitle,
             AllowMultiple = false,
             FileTypeFilter = [JsonFileType]
         });
@@ -56,7 +57,7 @@ public partial class DanceTreeToolbarView : ReactiveUserControl<DanceTreeViewMod
 
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Export Dance Tree",
+            Title = UiStrings.DanceTreeToolbar_ExportTitle,
             SuggestedFileName = "dance_tree",
             FileTypeChoices = [JsonFileType]
         });

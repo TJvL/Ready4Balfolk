@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.TrackCatalog"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ready4Balfolk.UI.Views.TrackCatalog.TrackCatalogView"
              x:DataType="local:TrackCatalogViewModel">
@@ -38,19 +39,19 @@
             </Style>
         </DataGrid.Styles>
         <DataGrid.Columns>
-            <DataGridTextColumn Header="Dance"
+            <DataGridTextColumn Header="{x:Static res:UiStrings.TrackCatalog_ColumnDance}"
                                 Binding="{ReflectionBinding Dance}"
                                 SortMemberPath="Dance"
                                 Width="*" />
-            <DataGridTextColumn Header="Artist"
+            <DataGridTextColumn Header="{x:Static res:UiStrings.TrackCatalog_ColumnArtist}"
                                 Binding="{ReflectionBinding Artist}"
                                 SortMemberPath="Artist"
                                 Width="*" />
-            <DataGridTextColumn Header="Title"
+            <DataGridTextColumn Header="{x:Static res:UiStrings.TrackCatalog_ColumnTitle}"
                                 Binding="{ReflectionBinding Title}"
                                 SortMemberPath="Title"
                                 Width="2*" />
-            <DataGridTextColumn Header="Length"
+            <DataGridTextColumn Header="{x:Static res:UiStrings.TrackCatalog_ColumnLength}"
                                 Binding="{ReflectionBinding LengthFormatted}"
                                 SortMemberPath="Track.Length"
                                 Width="100" />

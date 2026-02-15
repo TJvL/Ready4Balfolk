@@ -1,7 +1,9 @@
 using System;
+using System.Globalization;
 using System.Reactive.Linq;
 using System.Windows.Input;
 using ReactiveUI;
+using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.Dialogs.Message;
 
@@ -49,7 +51,7 @@ public class RequestMessageDialogViewModel : ReactiveObject
         CancelCommand = ReactiveCommand.Create(() => DialogResult = false);
 
         this.WhenAnyValue(x => x.Message)
-            .Select(m => $"{m.Length}/60")
+            .Select(m => string.Format(CultureInfo.CurrentCulture, UiStrings.Dialog_CharacterCountFormat, m.Length))
             .Subscribe(c => CharacterCount = c);
     }
 }
