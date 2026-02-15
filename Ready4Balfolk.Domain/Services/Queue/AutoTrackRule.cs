@@ -13,16 +13,12 @@ public sealed class AutoTrackRule(bool autoQueueEnabled) : IQueueRule
             : null;
 
     public IReadOnlyList<int> GetEvictionIndices(IReadOnlyList<IQueueItem> currentItems)
-    {
-        if (autoQueueEnabled)
-            return [];
-
-        return currentItems
-            .Select((item, index) => (item, index))
-            .Where(x => x.item is AutoTrackQueueItem)
-            .Select(x => x.index)
-            .ToList();
-    }
+        => autoQueueEnabled
+            ? []
+            : [.. currentItems
+                .Select((item, index) => (item, index))
+                .Where(x => x.item is AutoTrackQueueItem)
+                .Select(x => x.index)];
 
     public bool? CanRemove(IQueueItem item)
         => item is AutoTrackQueueItem ? false : null;
