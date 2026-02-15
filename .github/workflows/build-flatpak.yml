@@ -31,20 +31,22 @@ jobs:
 
       - name: Stage Flatpak content
         run: |
-          mkdir -p flatpak-stage/stage/bin
-          cp -r flatpak-publish/* flatpak-stage/stage/bin/
-          chmod +x flatpak-stage/stage/bin/Ready4Balfolk.UI
+          STAGE=packaging/linux/flatpak-stage
+
+          mkdir -p $STAGE/stage/bin
+          cp -r flatpak-publish/* $STAGE/stage/bin/
+          chmod +x $STAGE/stage/bin/Ready4Balfolk.UI
 
           # Desktop file
-          mkdir -p flatpak-stage/stage/share/applications
+          mkdir -p $STAGE/stage/share/applications
           cp packaging/linux/io.github.tjvl.Ready4Balfolk.desktop \
-            flatpak-stage/stage/share/applications/
+            $STAGE/stage/share/applications/
 
           # Icons from generated PNGs
           for size in 16 24 32 48 64 128 256 512; do
             icon="icons/icon-${size}.png"
             if [ -f "$icon" ]; then
-              dest="flatpak-stage/stage/share/icons/hicolor/${size}x${size}/apps"
+              dest="$STAGE/stage/share/icons/hicolor/${size}x${size}/apps"
               mkdir -p "$dest"
               cp "$icon" "$dest/io.github.tjvl.Ready4Balfolk.png"
             fi
