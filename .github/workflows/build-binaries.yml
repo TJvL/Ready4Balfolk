@@ -36,6 +36,15 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get install -y librsvg2-bin icoutils
 
+      - name: Install icon tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install imagemagick
+
+      - name: Install icon tools (Windows)
+        if: runner.os == 'Windows'
+        run: choco install imagemagick -y
+        shell: pwsh
+
       - name: Publish (single-file)
         run: >-
           dotnet publish Ready4Balfolk.UI/Ready4Balfolk.UI.csproj
