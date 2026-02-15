@@ -4,27 +4,28 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Settings"
              xmlns:danceTree="using:Ready4Balfolk.UI.Views.DanceTree"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ready4Balfolk.UI.Views.Settings.SettingsView"
              x:DataType="local:SettingsViewModel">
     <ScrollViewer>
         <StackPanel Spacing="16" Margin="16">
             <StackPanel Spacing="8">
-                <TextBlock Text="Music Directory" />
+                <TextBlock Text="{x:Static res:UiStrings.Settings_MusicDirectory}" />
                 <Grid ColumnDefinitions="*, Auto">
                     <TextBox Grid.Column="0"
                              Text="{Binding MusicDirectoryPath, Mode=TwoWay}"
-                             Watermark="Select a directory..."
+                             Watermark="{x:Static res:UiStrings.Settings_MusicDirectoryWatermark}"
                              IsReadOnly="True" />
                     <Button Grid.Column="1"
-                            Content="Browse..."
+                            Content="{x:Static res:UiStrings.Settings_Browse}"
                             Margin="8,0,0,0"
                             Click="OnBrowseButtonClick" />
                 </Grid>
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <TextBlock Text="Maximum Queue Items" />
+                <TextBlock Text="{x:Static res:UiStrings.Settings_MaxQueueItems}" />
                 <NumericUpDown Value="{Binding MaxQueueItems, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
                                Minimum="1"
                                Maximum="100"
@@ -34,20 +35,20 @@
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <TextBlock Text="Delay Duration (seconds)" />
+                <TextBlock Text="{x:Static res:UiStrings.Settings_DelayDuration}" />
                 <NumericUpDown Value="{Binding DelaySeconds, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
                                Minimum="1"
                                Maximum="300"
                                Increment="5"
                                Width="120"
                                HorizontalAlignment="Left" />
-                <TextBlock Text="Used for 'Request Delay' - pauses playback for this duration"
+                <TextBlock Text="{x:Static res:UiStrings.Settings_DelayDescription}"
                            FontSize="11"
                            Opacity="0.6" />
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <TextBlock Text="Presentation Displays" />
+                <TextBlock Text="{x:Static res:UiStrings.Settings_PresentationDisplays}" />
                 <NumericUpDown Value="{Binding PresentationDisplayCount, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
                                Minimum="0"
                                Maximum="10"
@@ -55,69 +56,87 @@
                                Width="120"
                                HorizontalAlignment="Left"
                                Focusable="False" />
-                <TextBlock Text="Number of presentation windows to show (0 = disabled)"
+                <TextBlock Text="{x:Static res:UiStrings.Settings_PresentationDescription}"
                            FontSize="11"
                            Opacity="0.6" />
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <CheckBox Content="Auto-queue random track during playback"
+                <CheckBox Content="{x:Static res:UiStrings.Settings_AutoQueue}"
                           IsChecked="{Binding AutoQueueRandomTrack, Mode=TwoWay}"
                           Focusable="False" />
                 <TextBlock
-                    Text="Automatically adds a random track when playing. Removed when manually adding items."
+                    Text="{x:Static res:UiStrings.Settings_AutoQueueDescription}"
                     FontSize="11"
                     Opacity="0.6" />
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <CheckBox Content="Allow duplicate tracks in queue in the same session"
+                <CheckBox Content="{x:Static res:UiStrings.Settings_AllowDuplicates}"
                           IsChecked="{Binding AllowDuplicateTracksInQueue, Mode=TwoWay}"
                           Focusable="False" />
                 <TextBlock
-                    Text="When disabled, tracks that are currently playing, in the queue, or have already played this session cannot be added again."
+                    Text="{x:Static res:UiStrings.Settings_AllowDuplicatesDescription}"
                     FontSize="11"
                     Opacity="0.6"
                     TextWrapping="Wrap" />
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <CheckBox Content="Confirm before skip, clear, and restart"
+                <CheckBox Content="{x:Static res:UiStrings.Settings_ConfirmPlayback}"
                           IsChecked="{Binding RequirePlaybackConfirmation, Mode=TwoWay}"
                           Focusable="False" />
                 <TextBlock
-                    Text="Show a confirmation dialog before skipping to the next item, clearing the current track, or restarting playback"
+                    Text="{x:Static res:UiStrings.Settings_ConfirmPlaybackDescription}"
                     FontSize="11"
                     Opacity="0.6"
                     TextWrapping="Wrap" />
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <TextBlock Text="Theme" />
+                <TextBlock Text="{x:Static res:UiStrings.Settings_Theme}" />
                 <ComboBox ItemsSource="{Binding AvailableThemes}"
                           SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
                           Width="120"
                           HorizontalAlignment="Left"
                           Focusable="False" />
-                <TextBlock Text="Choose between Auto (follows system), Light, or Dark theme"
+                <TextBlock Text="{x:Static res:UiStrings.Settings_ThemeDescription}"
+                           FontSize="11"
+                           Opacity="0.6" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="{x:Static res:UiStrings.Settings_Language}" />
+                <ComboBox ItemsSource="{Binding AvailableLanguages}"
+                          SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
+                          Width="160"
+                          HorizontalAlignment="Left"
+                          Focusable="False">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={x:Static local:LanguageDisplayConverter.Instance}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="{x:Static res:UiStrings.Settings_LanguageDescription}"
                            FontSize="11"
                            Opacity="0.6" />
             </StackPanel>
 
             <!-- Troubleshooting section -->
             <StackPanel Spacing="8" Margin="0,16,0,0">
-                <TextBlock Text="Troubleshooting" FontSize="18" FontWeight="SemiBold" />
-                <Button Content="Export Log File"
+                <TextBlock Text="{x:Static res:UiStrings.Settings_Troubleshooting}" FontSize="18" FontWeight="SemiBold" />
+                <Button Content="{x:Static res:UiStrings.Settings_ExportLog}"
                         Click="OnExportLogClick"
                         HorizontalAlignment="Left"
                         Focusable="False" />
-                <TextBlock Text="Save the application log file for troubleshooting or bug reports"
+                <TextBlock Text="{x:Static res:UiStrings.Settings_ExportLogDescription}"
                            FontSize="11"
                            Opacity="0.6" />
             </StackPanel>
 
             <!-- Version info -->
-            <TextBlock Text="{Binding AppVersion, StringFormat='Version {0}'}"
+            <TextBlock Text="{Binding AppVersion, StringFormat={x:Static res:UiStrings.Settings_VersionFormat}}"
                        FontSize="11"
                        Opacity="0.5"
                        Margin="0,24,0,0"

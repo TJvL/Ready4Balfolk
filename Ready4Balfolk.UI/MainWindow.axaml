@@ -13,10 +13,11 @@
         xmlns:help="using:Ready4Balfolk.UI.Views.Help"
         xmlns:danceSynonyms="using:Ready4Balfolk.UI.Views.DanceSynonyms"
         xmlns:notifications="using:Ready4Balfolk.UI.Views.Notifications"
+        xmlns:res="using:Ready4Balfolk.UI.Resources"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
         x:Class="Ready4Balfolk.UI.MainWindow"
         x:DataType="ui:MainWindowViewModel"
-        Title="Ready4Balfolk"
+        Title="{x:Static res:UiStrings.MainWindow_Title}"
         Icon="/Assets/icon.ico">
     <Panel>
         <!-- Main Screen -->
@@ -74,11 +75,11 @@
         <DockPanel IsVisible="{Binding Navigation.IsSettingsScreen}"
                    Margin="16">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-                <Button Click="OnBackClick" ToolTip.Tip="Back" Padding="8" Focusable="False">
+                <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
                     <PathIcon Data="{StaticResource IconArrowLeft}"
                               Width="16" Height="16" />
                 </Button>
-                <TextBlock Text="Settings" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
+                <TextBlock Text="{x:Static res:UiStrings.MainWindow_Settings}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
             </StackPanel>
             <settings:SettingsView DataContext="{Binding Settings}" />
         </DockPanel>
@@ -87,11 +88,11 @@
         <DockPanel IsVisible="{Binding Navigation.IsHelpScreen}"
                    Margin="16">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-                <Button Click="OnBackClick" ToolTip.Tip="Back" Padding="8" Focusable="False">
+                <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
                     <PathIcon Data="{StaticResource IconArrowLeft}"
                               Width="16" Height="16" />
                 </Button>
-                <TextBlock Text="Help" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
+                <TextBlock Text="{x:Static res:UiStrings.MainWindow_Help}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
             </StackPanel>
             <help:HelpView />
         </DockPanel>

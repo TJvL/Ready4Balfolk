@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using ReactiveUI.Avalonia;
+using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.Settings;
 
@@ -28,7 +29,7 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
 
         var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = "Select Music Directory",
+            Title = UiStrings.Settings_SelectMusicDirectory,
             AllowMultiple = false
         });
 
@@ -44,7 +45,7 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
 
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Export Log File",
+            Title = UiStrings.Settings_ExportLogTitle,
             SuggestedFileName = $"ready4balfolk-log-{DateTime.Now:yyyy-MM-dd-HHmmss}",
             FileTypeChoices = [LogFileType]
         });

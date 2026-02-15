@@ -3,12 +3,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.DanceTree"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="40"
              x:Class="Ready4Balfolk.UI.Views.DanceTree.DanceTreeToolbarView"
              x:DataType="local:DanceTreeViewModel">
     <StackPanel Orientation="Horizontal" Spacing="4">
         <Button Click="OnToggleClick"
-                ToolTip.Tip="Switch to track list"
+                ToolTip.Tip="{x:Static res:UiStrings.DanceTreeToolbar_SwitchToTrackList}"
                 Padding="8"
                 Focusable="False">
             <PathIcon Data="{StaticResource IconMenu}"
@@ -34,14 +35,14 @@
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
-        <Button ToolTip.Tip="Import dance tree"
+        <Button ToolTip.Tip="{x:Static res:UiStrings.DanceTreeToolbar_ImportDanceTree}"
                 Padding="8"
                 Click="OnImportClick"
                 Focusable="False">
             <PathIcon Data="{StaticResource IconFileImport}"
                       Width="16" Height="16" />
         </Button>
-        <Button ToolTip.Tip="Export dance tree"
+        <Button ToolTip.Tip="{x:Static res:UiStrings.DanceTreeToolbar_ExportDanceTree}"
                 Padding="8"
                 IsEnabled="{Binding HasEntries}"
                 Click="OnExportClick"

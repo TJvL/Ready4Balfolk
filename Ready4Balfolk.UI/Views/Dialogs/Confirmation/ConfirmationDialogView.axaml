@@ -26,14 +26,14 @@
                     Spacing="8">
             <Button Content="{CompiledBinding CancelText}"
                     Command="{CompiledBinding CancelCommand}"
-                    Width="80"
+                    MinWidth="80"
                     IsCancel="True" />
             <!-- The accent class is provided by FluentAvalonia at runtime, so these are false positives. -->
             <!-- ReSharper disable once Xaml.StyleClassNotFound -->
             <Button x:Name="ConfirmButton"
                     Content="{CompiledBinding ConfirmText}"
                     Command="{CompiledBinding ConfirmCommand}"
-                    Width="80"
+                    MinWidth="80"
                     Classes="accent"
                     IsDefault="True" />
         </StackPanel>

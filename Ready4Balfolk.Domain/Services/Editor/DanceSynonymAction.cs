@@ -1,4 +1,6 @@
+using System.Globalization;
 using Ready4Balfolk.Domain.Models.Synonyms;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Stores.Synonym;
 
 namespace Ready4Balfolk.Domain.Services.Editor;
@@ -46,38 +48,38 @@ public sealed class DanceSynonymAction : IEditorAction
     // Factory methods
 
     public static DanceSynonymAction AddMainName(IDanceSynonymStore store)
-        => new(store, "Add dance name",
+        => new(store, DomainStrings.DanceSynonymAction_AddDanceName,
             DanceSynonymTransforms.AddMainName);
 
     public static DanceSynonymAction DeleteMainName(IDanceSynonymStore store, int index)
     {
         var name = index < store.Current.Count ? store.Current[index].Name : "?";
-        return new(store, $"Delete dance name '{name}'",
+        return new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceSynonymAction_DeleteDanceName, name),
             list => DanceSynonymTransforms.DeleteMainName(list, index));
     }
 
     public static DanceSynonymAction RenameMainName(IDanceSynonymStore store, int index, string newName)
-        => new(store, $"Rename dance name to '{newName}'",
+        => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceSynonymAction_RenameDanceName, newName),
             list => DanceSynonymTransforms.RenameMainName(list, index, newName),
             list => !string.IsNullOrWhiteSpace(newName)
                 ? DanceSynonymTransforms.IsNameUnique(list, newName, excludeMainIndex: index)
                     ? EditorActionResult.Ok()
-                    : EditorActionResult.Error($"The name '{newName}' is already in use.")
-                : EditorActionResult.Error("Dance name cannot be empty."));
+                    : EditorActionResult.Error(string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceSynonymAction_NameAlreadyInUse, newName))
+                : EditorActionResult.Error(DomainStrings.DanceSynonymAction_DanceNameEmpty));
 
     public static DanceSynonymAction AddSynonym(IDanceSynonymStore store, int mainNameIndex)
-        => new(store, "Add synonym",
+        => new(store, DomainStrings.DanceSynonymAction_AddSynonym,
             list => DanceSynonymTransforms.AddSynonym(list, mainNameIndex));
 
     public static DanceSynonymAction AddSynonymWithName(
         IDanceSynonymStore store, int mainNameIndex, string name)
-        => new(store, $"Add synonym '{name}'",
+        => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceSynonymAction_AddSynonymWithName, name),
             list => DanceSynonymTransforms.AddSynonymWithName(list, mainNameIndex, name),
             list => !string.IsNullOrWhiteSpace(name)
                 ? DanceSynonymTransforms.IsNameUnique(list, name)
                     ? EditorActionResult.Ok()
-                    : EditorActionResult.Error($"The name '{name}' is already in use.")
-                : EditorActionResult.Error("Synonym name cannot be empty."));
+                    : EditorActionResult.Error(string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceSynonymAction_NameAlreadyInUse, name))
+                : EditorActionResult.Error(DomainStrings.DanceSynonymAction_SynonymNameEmpty));
 
     public static DanceSynonymAction DeleteSynonym(IDanceSynonymStore store, int mainNameIndex, int synonymIndex)
     {
@@ -87,17 +89,17 @@ public sealed class DanceSynonymAction : IEditorAction
                 ? syns[synonymIndex].Name
                 : "?"
             : "?";
-        return new(store, $"Delete synonym '{name}'",
+        return new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceSynonymAction_DeleteSynonym, name),
             list => DanceSynonymTransforms.DeleteSynonym(list, mainNameIndex, synonymIndex));
     }
 
     public static DanceSynonymAction RenameSynonym(
         IDanceSynonymStore store, int mainNameIndex, int synonymIndex, string newName)
-        => new(store, $"Rename synonym to '{newName}'",
+        => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceSynonymAction_RenameSynonym, newName),
             list => DanceSynonymTransforms.RenameSynonym(list, mainNameIndex, synonymIndex, newName),
             list => !string.IsNullOrWhiteSpace(newName)
                 ? DanceSynonymTransforms.IsNameUnique(list, newName, excludeMainIndex: mainNameIndex, excludeSynonymIndex: synonymIndex)
                     ? EditorActionResult.Ok()
-                    : EditorActionResult.Error($"The name '{newName}' is already in use.")
-                : EditorActionResult.Error("Synonym name cannot be empty."));
+                    : EditorActionResult.Error(string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceSynonymAction_NameAlreadyInUse, newName))
+                : EditorActionResult.Error(DomainStrings.DanceSynonymAction_SynonymNameEmpty));
 }

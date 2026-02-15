@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.History;
@@ -29,7 +30,7 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
 
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Export History",
+            Title = UiStrings.HistoryToolbar_ExportTitle,
             SuggestedFileName = "queue_history",
             FileTypeChoices = [JsonFileType]
         });

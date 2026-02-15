@@ -1,6 +1,7 @@
 using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Tree;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Editor;
 using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.Tests.Helpers;
@@ -67,7 +68,7 @@ public sealed class DanceTreeActionTests : IDisposable
         var result = await action.ExecuteAsync();
 
         Assert.False(result.Success);
-        Assert.Contains("root", result.ErrorMessage!, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(DomainStrings.DanceTreeAction_CannotAddDanceToRoot, result.ErrorMessage!);
     }
 
     [Fact]

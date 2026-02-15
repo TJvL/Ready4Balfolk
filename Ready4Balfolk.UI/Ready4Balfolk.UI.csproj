@@ -34,12 +34,20 @@
     </ItemGroup>
 
     <ItemGroup>
+      <EmbeddedResource Update="Resources\UiStrings.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>UiStrings.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
       <AdditionalFiles Include="Views\Dialogs\Confirmation\ConfirmationDialogView.axaml" />
       <AdditionalFiles Include="Views\Dialogs\Message\RequestMessageDialogView.axaml" />
     </ItemGroup>
 
     <ItemGroup>
       <AvaloniaResource Include="..\documentation\help.md" Link="Views\Help\help.md" />
+      <AvaloniaResource Include="..\documentation\help.nl.md" Link="Views\Help\help.nl.md" />
     </ItemGroup>
 
     <Target Name="GenerateIcons" BeforeTargets="PrepareForBuild">

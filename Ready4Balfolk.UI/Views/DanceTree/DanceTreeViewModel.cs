@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reactive.Disposables;
@@ -18,6 +19,7 @@ using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Domain.Stores.Tree;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.DanceTree;
@@ -81,7 +83,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         }
         else
         {
-            _notificationService.Show("No tracks available for random selection",
+            _notificationService.Show(UiStrings.DanceTree_NoTracksAvailable,
                 NotificationSeverity.Warning);
         }
     }
@@ -120,12 +122,12 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         _hasEntriesHelper.DisposeWith(_disposables);
 
         _undoTooltipHelper = editorHistoryService.UndoDescription
-            .Select(desc => desc is not null ? $"Undo: {desc} (Ctrl+Z)" : "Undo (Ctrl+Z)")
+            .Select(desc => desc is not null ? string.Format(CultureInfo.CurrentCulture, UiStrings.DanceTreeToolbar_UndoFormat, desc) : UiStrings.DanceTreeToolbar_UndoDefault)
             .ToProperty(this, x => x.UndoTooltip);
         _undoTooltipHelper.DisposeWith(_disposables);
 
         _redoTooltipHelper = editorHistoryService.RedoDescription
-            .Select(desc => desc is not null ? $"Redo: {desc} (Ctrl+Y)" : "Redo (Ctrl+Y)")
+            .Select(desc => desc is not null ? string.Format(CultureInfo.CurrentCulture, UiStrings.DanceTreeToolbar_RedoFormat, desc) : UiStrings.DanceTreeToolbar_RedoDefault)
             .ToProperty(this, x => x.RedoTooltip);
         _redoTooltipHelper.DisposeWith(_disposables);
 
@@ -193,7 +195,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
             CommitDirect, CommitTracked, _trackCounts, WhenMarkedChanged, m => Marked = m,
             HandleRequestAddBranch, HandleRequestAddLeaf, HandleConfirmEdit, HandleCancelEdit,
             _collapsedBranches ?? []);
-        var root = new DanceCategoryNode("Dance", branches, context);
+        var root = new DanceCategoryNode(UiStrings.DanceTree_RootName, branches, context);
         DanceTreeDisplayRoot = new List<DanceCategoryNode> { root };
 
         if (_pendingSelection is { } pending)
@@ -286,7 +288,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         var name = branch.Name.Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            _notificationService.Show("Name cannot be empty.", NotificationSeverity.Warning);
+            _notificationService.Show(UiStrings.DanceTree_NameEmpty, NotificationSeverity.Warning);
             return;
         }
 
@@ -295,14 +297,14 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         if (!DanceTreeTransforms.IsBranchNameUnique(roots, name, excludePath: branch.Path))
         {
             _notificationService.Show(
-                $"A category named \u2018{name}\u2019 already exists.", NotificationSeverity.Warning);
+                string.Format(CultureInfo.CurrentCulture, UiStrings.DanceTree_CategoryNameExists, name), NotificationSeverity.Warning);
             return;
         }
 
         if (!DanceTreeTransforms.IsLeafNameUnique(roots, name))
         {
             _notificationService.Show(
-                $"A dance named \u2018{name}\u2019 already exists.", NotificationSeverity.Warning);
+                string.Format(CultureInfo.CurrentCulture, UiStrings.DanceTree_DanceNameExists, name), NotificationSeverity.Warning);
             return;
         }
 
@@ -318,7 +320,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         var name = leaf.Name.Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            _notificationService.Show("Name cannot be empty.", NotificationSeverity.Warning);
+            _notificationService.Show(UiStrings.DanceTree_NameEmpty, NotificationSeverity.Warning);
             return;
         }
 
@@ -328,14 +330,14 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
                 excludeParentPath: leaf.ParentPath, excludeLeafIndex: leaf.LeafIndex))
         {
             _notificationService.Show(
-                $"A dance named \u2018{name}\u2019 already exists.", NotificationSeverity.Warning);
+                string.Format(CultureInfo.CurrentCulture, UiStrings.DanceTree_DanceNameExists, name), NotificationSeverity.Warning);
             return;
         }
 
         if (!DanceTreeTransforms.IsBranchNameUnique(roots, name))
         {
             _notificationService.Show(
-                $"A category named \u2018{name}\u2019 already exists.", NotificationSeverity.Warning);
+                string.Format(CultureInfo.CurrentCulture, UiStrings.DanceTree_CategoryNameExists, name), NotificationSeverity.Warning);
             return;
         }
 

@@ -8,6 +8,7 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Playback;
@@ -46,7 +47,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     private async Task Restart()
     {
         if (HasCurrentItem && _settingsStore.Current.RequirePlaybackConfirmation &&
-            !await _confirmationService.ConfirmAsync("Restart", "Restart the current track?", "Restart", "Cancel"))
+            !await _confirmationService.ConfirmAsync(UiStrings.Playback_RestartTitle, UiStrings.Playback_RestartMessage, UiStrings.Playback_RestartButton, UiStrings.Playback_CancelButton))
         {
             return;
         }
@@ -61,12 +62,12 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         {
             if (_queueService.Count > 0)
             {
-                if (!await _confirmationService.ConfirmAsync("Skip", "Skip to the next item in the queue?", "Skip", "Cancel"))
+                if (!await _confirmationService.ConfirmAsync(UiStrings.Playback_SkipTitle, UiStrings.Playback_SkipMessage, UiStrings.Playback_SkipButton, UiStrings.Playback_CancelButton))
                     return;
             }
             else
             {
-                if (!await _confirmationService.ConfirmAsync("Clear", "Stop playback and clear the current item?", "Clear", "Cancel"))
+                if (!await _confirmationService.ConfirmAsync(UiStrings.Playback_ClearTitle, UiStrings.Playback_ClearMessage, UiStrings.Playback_ClearButton, UiStrings.Playback_CancelButton))
                     return;
             }
         }
@@ -151,14 +152,14 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             case DelayQueueItem:
                 IsMessageMode = false;
                 HasTrack = false;
-                DanceName = "Delay";
+                DanceName = UiStrings.Playback_Delay;
                 ArtistName = "";
                 TrackTitle = "";
                 break;
             case StopQueueItem:
                 IsMessageMode = false;
                 HasTrack = false;
-                DanceName = "Stop";
+                DanceName = UiStrings.Playback_Stop;
                 ArtistName = "";
                 TrackTitle = "";
                 break;

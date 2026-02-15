@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -14,6 +15,7 @@ using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Synonym;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Domain.Stores.Tree;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Views.DanceTree;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 using Ready4Balfolk.UI.Views.Presentation;
@@ -45,7 +47,6 @@ public sealed class App : Application
 
             mainWindow.Opened += async (_, _) =>
             {
-                await settingsStore.LoadAsync();
                 await Services.GetRequiredService<IDanceTreeStore>().LoadAsync();
                 await Services.GetRequiredService<IDanceSynonymStore>().LoadAsync();
                 await Services.GetRequiredService<IQueueHistoryStore>().LoadAsync();
@@ -92,8 +93,8 @@ public sealed class App : Application
 
                 var dialogVm = new ConfirmationDialogViewModel
                 {
-                    Title = "Exit",
-                    Message = "Are you sure you want to quit?"
+                    Title = UiStrings.App_ExitTitle,
+                    Message = UiStrings.App_ExitMessage
                 };
                 var dialog = new ConfirmationDialogView { DataContext = dialogVm };
                 await dialog.ShowDialog(mainWindow);
@@ -184,7 +185,7 @@ public sealed class App : Application
             var window = new PresentationWindow
             {
                 WindowIndex = index,
-                Title = $"Presentation Display {index + 1}"
+                Title = string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_WindowTitle, index + 1)
             };
 
             // Restore state after the window is shown so the WM respects position

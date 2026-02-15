@@ -1,8 +1,10 @@
+using System.Globalization;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Synonyms;
+using Ready4Balfolk.Domain.Resources;
 
 namespace Ready4Balfolk.Domain.Stores.Synonym;
 
@@ -69,22 +71,22 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
     public async Task ImportAsync(FileInfo sourceFileInfo)
     {
         if (!sourceFileInfo.Exists)
-            throw new FileNotFoundException("Import file not found.", sourceFileInfo.FullName);
+            throw new FileNotFoundException(DomainStrings.ImportFileNotFound, sourceFileInfo.FullName);
 
         List<DanceMainName> synonyms;
         try
         {
             await using var stream = File.OpenRead(sourceFileInfo.FullName);
             synonyms = await JsonSerializer.DeserializeAsync<List<DanceMainName>>(stream, JsonOptions)
-                       ?? throw new InvalidDataException("Import file contains null.");
+                       ?? throw new InvalidDataException(DomainStrings.ImportFileContainsNull);
         }
         catch (JsonException ex)
         {
-            throw new InvalidDataException("Import file is not a valid dance synonyms JSON structure.", ex);
+            throw new InvalidDataException(DomainStrings.DanceSynonymStore_InvalidJson, ex);
         }
 
         if (synonyms.Any(s => string.IsNullOrWhiteSpace(s.Name)))
-            throw new InvalidDataException("Import file contains entries with missing names.");
+            throw new InvalidDataException(DomainStrings.DanceSynonymStore_MissingNames);
 
         var allNames = synonyms
             .SelectMany(m => new[] { m.Name }.Concat(m.Synonyms.Select(s => s.Name)))
@@ -98,7 +100,7 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
         if (duplicates.Count > 0)
         {
             throw new InvalidDataException(
-                $"Import file contains duplicate names: {string.Join(", ", duplicates)}.");
+                string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceSynonymStore_DuplicateNames, string.Join(", ", duplicates)));
         }
 
         await _gate.WaitAsync();

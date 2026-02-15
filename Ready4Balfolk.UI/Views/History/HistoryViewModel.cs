@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reactive.Disposables;
@@ -11,6 +12,7 @@ using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.History;
@@ -36,7 +38,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
     [ReactiveCommand(CanExecute = nameof(CanClearHistory))]
     private async Task ClearHistory()
     {
-        if (!await _confirmationService.ConfirmAsync("Clear History", "Remove all history entries?", "Clear", "Cancel"))
+        if (!await _confirmationService.ConfirmAsync(UiStrings.HistoryToolbar_ClearHistoryTitle, UiStrings.HistoryToolbar_ClearHistoryMessage, UiStrings.HistoryToolbar_ClearButton, UiStrings.HistoryToolbar_CancelButton))
             return;
 
         await _historyStore.ClearAsync();
@@ -48,7 +50,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
     {
         _historyStore = historyStore;
         _confirmationService = confirmationService;
-        ItemCountText = "No history";
+        ItemCountText = UiStrings.History_NoHistory;
         TotalDurationText = "";
 
         _sourceList.Connect()
@@ -80,12 +82,15 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
     {
         if (history.Entries.Count == 0)
         {
-            ItemCountText = "No history";
+            ItemCountText = UiStrings.History_NoHistory;
             TotalDurationText = "";
             return;
         }
 
-        ItemCountText = $"{history.Entries.Count} item{(history.Entries.Count != 1 ? "s" : "")}";
+        ItemCountText = history.Entries.Count == 1
+            ? string.Format(CultureInfo.CurrentCulture, UiStrings.History_ItemCount, history.Entries.Count)
+            : string.Format(CultureInfo.CurrentCulture, UiStrings.History_ItemCountPlural, history.Entries.Count);
+
         var totalDuration = history.TotalDuration;
         TotalDurationText = $"{(int)totalDuration.TotalMinutes}:{totalDuration.Seconds:D2}";
     }

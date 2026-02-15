@@ -1,12 +1,15 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Reactive;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 using ReactiveUI.Avalonia.Splat;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Editor;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -39,6 +42,7 @@ file static class Program
         new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ready4Balfolk"));
 
     private static readonly FileLoggerService LoggerService = new(DataDirectory);
+    private static readonly SettingsStore SettingsStore = new(DataDirectory);
 
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
@@ -53,6 +57,14 @@ file static class Program
 #endif
         if (isDebug)
             LoggerService.MinimumLevel = LogLevel.Debug;
+
+        var culture = SettingsStore.Current.ApplicationLanguage switch
+        {
+            ApplicationLanguage.Dutch => new CultureInfo("nl"),
+            _ => new CultureInfo("en")
+        };
+        Thread.CurrentThread.CurrentUICulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
 
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
@@ -115,7 +127,7 @@ file static class Program
         // Stores
         services.AddSingleton<IDanceTreeStore>(_ => new DanceTreeStore(DataDirectory));
         services.AddSingleton<IDanceSynonymStore>(_ => new DanceSynonymStore(DataDirectory));
-        services.AddSingleton<ISettingsStore>(_ => new SettingsStore(DataDirectory));
+        services.AddSingleton<ISettingsStore>(SettingsStore);
         services.AddSingleton<IQueueHistoryStore>(_ => new QueueHistoryStore(DataDirectory));
         services.AddSingleton<ITrackStore, TrackStore>();
 

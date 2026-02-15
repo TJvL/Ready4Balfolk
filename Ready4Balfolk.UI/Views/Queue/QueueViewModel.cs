@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
@@ -13,6 +14,7 @@ using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.DanceTree;
 
@@ -95,8 +97,8 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     [ReactiveCommand(CanExecute = nameof(CanClearQueue))]
     private async Task ClearQueue()
     {
-        if (!await _confirmationService.ConfirmAsync("Clear Queue", "Remove all items from the queue?", "Clear",
-                "Cancel"))
+        if (!await _confirmationService.ConfirmAsync(UiStrings.QueueToolbar_ClearQueueTitle, UiStrings.QueueToolbar_ClearQueueMessage, UiStrings.QueueToolbar_ClearButton,
+                UiStrings.QueueToolbar_CancelButton))
         {
             return;
         }
@@ -127,7 +129,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         _danceTreeViewModel = danceTreeViewModel;
         _confirmationService = confirmationService;
         _notificationService = notificationService;
-        ItemCountText = "Queue empty";
+        ItemCountText = UiStrings.Queue_Empty;
         FinishTimeText = "";
 
         queueService.Connect()
@@ -259,8 +261,10 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     private void UpdateItemCountText()
     {
         ItemCountText = _queuedItems.Count == 0
-            ? "Queue empty"
-            : $"{_queuedItems.Count} item{(_queuedItems.Count != 1 ? "s" : "")}";
+            ? UiStrings.Queue_Empty
+            : _queuedItems.Count == 1
+                ? string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_ItemCount, _queuedItems.Count)
+                : string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_ItemCountPlural, _queuedItems.Count);
     }
 
     private void UpdateFinishTimeText()
@@ -295,8 +299,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         var finishTime = DateTime.Now + currentRemaining + queueDuration;
-        var verb = halts ? "halts" : "finishes";
-        FinishTimeText = $"Playlist {verb} at: {finishTime:HH:mm}";
+        FinishTimeText = halts
+            ? string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistHaltsAt, finishTime.ToString("HH:mm", CultureInfo.CurrentCulture))
+            : string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistFinishesAt, finishTime.ToString("HH:mm", CultureInfo.CurrentCulture));
     }
 
     public void Dispose() => _disposables.Dispose();
