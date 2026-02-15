@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Ready4Balfolk.UI.Views.TrackCatalog"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="40"
+             x:Class="Ready4Balfolk.UI.Views.TrackCatalog.TrackCatalogToolbarView"
+             x:DataType="local:TrackCatalogViewModel">
+    <DockPanel>
+        <Button DockPanel.Dock="Left"
+                Click="OnToggleClick"
+                ToolTip.Tip="Switch to dance tree"
+                Padding="8"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconTreeStructure}"
+                      Width="16" Height="16" />
+        </Button>
+
+        <Rectangle DockPanel.Dock="Left" Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
+
+        <Button DockPanel.Dock="Right"
+                Command="{Binding ClearSearchCommand}"
+                ToolTip.Tip="Clear search"
+                Padding="8"
+                Margin="4,0,0,0"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconClose}"
+                      Width="14" Height="14" />
+        </Button>
+
+        <TextBox Text="{Binding SearchText}"
+                 Watermark="Search tracks..."
+                 VerticalAlignment="Center" />
+    </DockPanel>
+</UserControl>

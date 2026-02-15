@@ -1,0 +1,32 @@
+app-id: io.github.tjvl.Ready4Balfolk
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: Ready4Balfolk.UI
+
+finish-args:
+  - --filesystem=host:ro
+  - --socket=pulseaudio
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+
+modules:
+  - name: ready4balfolk
+    buildsystem: simple
+    build-commands:
+      - install -d /app/bin
+      - cp -r stage/bin/* /app/bin/
+      - chmod +x /app/bin/Ready4Balfolk.UI
+      - install -Dm644 stage/share/applications/io.github.tjvl.Ready4Balfolk.desktop /app/share/applications/io.github.tjvl.Ready4Balfolk.desktop
+      - |
+        for size in 16 24 32 48 64 128 256 512; do
+          if [ -f "stage/share/icons/hicolor/${size}x${size}/apps/io.github.tjvl.Ready4Balfolk.png" ]; then
+            install -Dm644 "stage/share/icons/hicolor/${size}x${size}/apps/io.github.tjvl.Ready4Balfolk.png" \
+              "/app/share/icons/hicolor/${size}x${size}/apps/io.github.tjvl.Ready4Balfolk.png"
+          fi
+        done
+    sources:
+      - type: dir
+        path: flatpak-stage

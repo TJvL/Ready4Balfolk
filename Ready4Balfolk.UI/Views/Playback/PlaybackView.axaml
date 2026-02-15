@@ -1,0 +1,142 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Ready4Balfolk.UI.Views.Playback"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
+             x:Class="Ready4Balfolk.UI.Views.Playback.PlaybackView"
+             x:DataType="local:PlaybackViewModel">
+    <Grid RowDefinitions="Auto">
+        <!-- Playback Panel at the top -->
+        <Border Grid.Row="0"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                <!-- Dance Name (normal mode - not message) -->
+                <TextBlock Grid.Row="0"
+                           Text="{Binding DanceName}"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,0,8"
+                           IsVisible="{Binding !IsMessageMode}" />
+
+                <!-- Dance Name (message mode - scrolling) -->
+                <Border Grid.Row="0"
+                        ClipToBounds="True"
+                        HorizontalAlignment="Stretch"
+                        Height="26"
+                        Margin="0,0,0,8"
+                        IsVisible="{Binding IsMessageMode}">
+                    <Canvas x:Name="MessageCanvas" ClipToBounds="True">
+                        <TextBlock x:Name="MessageTextBlock"
+                                   Text="{Binding DanceName}"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   Canvas.Left="0" />
+                    </Canvas>
+                </Border>
+
+                <!-- Artist and Title on same line (when track loaded) -->
+                <Border Grid.Row="1"
+                        ClipToBounds="True"
+                        HorizontalAlignment="Stretch"
+                        Height="28"
+                        Margin="0,0,0,16"
+                        IsVisible="{Binding HasTrack}">
+                    <Canvas x:Name="TrackInfoCanvas" ClipToBounds="True">
+                        <StackPanel x:Name="TrackInfoPanel"
+                                    Orientation="Horizontal"
+                                    Canvas.Left="0">
+                            <TextBlock Text="{Binding ArtistName}"
+                                       FontSize="16"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text=" — "
+                                       FontSize="16"
+                                       Opacity="0.6"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding TrackTitle}"
+                                       FontSize="16"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Canvas>
+                </Border>
+
+                <!-- Placeholder when no track -->
+                <TextBlock Grid.Row="1"
+                           Text="..."
+                           FontSize="16"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,16"
+                           IsVisible="{Binding !HasTrack}" />
+
+                <!-- Progress Bar with Time -->
+                <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding CurrentTime}"
+                               VerticalAlignment="Center"
+                               MinWidth="38"
+                               TextAlignment="Right"
+                               Margin="0,0,8,0" />
+                    <ProgressBar Grid.Column="1"
+                                 Minimum="0"
+                                 Maximum="{Binding Duration}"
+                                 Value="{Binding Progress}"
+                                 Height="8"
+                                 VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding TotalTime}"
+                               VerticalAlignment="Center"
+                               Margin="8,0,0,0" />
+                </Grid>
+
+                <!-- Playback Controls -->
+                <StackPanel Grid.Row="3"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Spacing="16">
+                    <Button Command="{Binding PlayPauseCommand}"
+                            Width="60"
+                            Height="40"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            Focusable="False">
+                        <Panel>
+                            <PathIcon Data="{StaticResource IconPlay}" IsVisible="{Binding !IsPlaying}" />
+                            <PathIcon Data="{StaticResource IconPause}" IsVisible="{Binding IsPlaying}" />
+                        </Panel>
+                    </Button>
+                    <Button Command="{Binding RestartCommand}"
+                            Width="60"
+                            Height="40"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            ToolTip.Tip="Restart track"
+                            Focusable="False">
+                        <PathIcon
+                            Data="{StaticResource IconRestart}" />
+                    </Button>
+                    <Button Command="{Binding NextOrClearCommand}"
+                            Width="60"
+                            Height="40"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            Focusable="False">
+                        <Panel>
+                            <!-- Next track icon - shown when queue has items -->
+                            <PathIcon Data="{StaticResource IconSkipNext}"
+                                      IsVisible="{Binding ShowNextIcon}" />
+                            <!-- Clear/X icon - shown when queue is empty -->
+                            <PathIcon
+                                Data="{StaticResource IconClose}"
+                                IsVisible="{Binding !ShowNextIcon}" />
+                        </Panel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

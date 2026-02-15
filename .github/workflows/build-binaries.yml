@@ -1,0 +1,98 @@
+name: Build Binaries
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            runtime: linux-x64
+            artifact: Ready4Balfolk-linux-x64
+          - os: windows-latest
+            runtime: win-x64
+            artifact: Ready4Balfolk-win-x64
+          - os: macos-latest
+            runtime: osx-arm64
+            artifact: Ready4Balfolk-osx-arm64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install icon tools (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y librsvg2-bin icoutils
+
+      - name: Publish (single-file)
+        run: >-
+          dotnet publish Ready4Balfolk.UI/Ready4Balfolk.UI.csproj
+          -c Release
+          -r ${{ matrix.runtime }}
+          -p:Version=${{ inputs.version }}
+          -p:PublishSingleFile=true
+          -p:SelfContained=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -o publish
+
+      - name: Publish (non-single-file for Flatpak)
+        if: matrix.runtime == 'linux-x64'
+        run: >-
+          dotnet publish Ready4Balfolk.UI/Ready4Balfolk.UI.csproj
+          -c Release
+          -r linux-x64
+          -p:Version=${{ inputs.version }}
+          -p:PublishSingleFile=false
+          -p:SelfContained=true
+          -o publish-flatpak
+
+      - name: Include icon in publish (Windows)
+        if: runner.os == 'Windows'
+        run: Copy-Item Ready4Balfolk.UI/Assets/icon.ico publish/icon.ico
+        shell: pwsh
+
+      - name: Create archive (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path publish/* -DestinationPath ${{ matrix.artifact }}.zip
+        shell: pwsh
+
+      - name: Create archive (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cd publish
+          tar -czvf ../${{ matrix.artifact }}.tar.gz *
+
+      - name: Upload portable archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}.zip
+            ${{ matrix.artifact }}.tar.gz
+          if-no-files-found: ignore
+
+      - name: Upload Flatpak publish
+        if: matrix.runtime == 'linux-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-flatpak-publish
+          path: publish-flatpak/
+
+      - name: Upload generated icons
+        if: matrix.runtime == 'linux-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-icons
+          path: Ready4Balfolk.UI/Assets/icon-*.png

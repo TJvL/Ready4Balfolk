@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:message="clr-namespace:Ready4Balfolk.UI.Views.Dialogs.Message"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="220"
+        x:Class="Ready4Balfolk.UI.Views.Dialogs.Message.RequestMessageDialogView"
+        x:DataType="message:RequestMessageDialogViewModel"
+        Title="Request Message"
+        Width="450"
+        Height="220"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False">
+    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <!-- Message input -->
+        <StackPanel Grid.Row="0" Spacing="4">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="Message" />
+                <TextBlock Grid.Column="1" Text="{CompiledBinding CharacterCount}" Opacity="0.6" />
+            </Grid>
+            <TextBox Text="{CompiledBinding Message}"
+                     MaxLength="60"
+                     Watermark="Enter message to display..." />
+        </StackPanel>
+
+        <!-- Use delay checkbox -->
+        <CheckBox Grid.Row="1"
+                  IsChecked="{CompiledBinding UseDelay}"
+                  Content="Use timed delay (otherwise stops until manual resume)"
+                  Margin="0,16,0,0" />
+
+        <!-- Delay duration -->
+        <StackPanel Grid.Row="2"
+                    Spacing="4"
+                    Margin="0,12,0,0"
+                    IsVisible="{CompiledBinding UseDelay}">
+            <TextBlock Text="Delay duration (seconds)" />
+            <NumericUpDown Value="{CompiledBinding DelaySeconds}"
+                           Minimum="1"
+                           Maximum="300"
+                           Increment="5"
+                           Width="120"
+                           HorizontalAlignment="Left" />
+        </StackPanel>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="4"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+            <Button Content="Cancel"
+                    Command="{CompiledBinding CancelCommand}"
+                    Width="80"
+                    IsCancel="True" />
+            <!-- The accent class is provided by FluentAvalonia at runtime, so these are false positives. -->
+            <!-- ReSharper disable once Xaml.StyleClassNotFound -->
+            <Button x:Name="OkButton"
+                    Content="OK"
+                    Command="{CompiledBinding OkCommand}"
+                    Width="80"
+                    Classes="accent"
+                    IsDefault="True" />
+        </StackPanel>
+    </Grid>
+</Window>

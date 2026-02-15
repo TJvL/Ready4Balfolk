@@ -1,0 +1,120 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:Ready4Balfolk.UI.Views.Presentation"
+        xmlns:conv="using:Avalonia.Data.Converters"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        x:Class="Ready4Balfolk.UI.Views.Presentation.PresentationWindow"
+        x:DataType="local:PresentationDisplayViewModel"
+        Title="Presentation Display"
+        Background="#1a1a1a"
+        MinWidth="400" MinHeight="300"
+        Width="800" Height="600">
+
+    <Viewbox Stretch="Uniform">
+        <Grid Width="1920" Height="1080" RowDefinitions="*,Auto,*">
+
+            <!-- Current item (top half) -->
+            <Grid Grid.Row="0" VerticalAlignment="Center" Margin="80,20">
+                <StackPanel IsVisible="{Binding HasCurrentItem}"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center">
+                    <!-- Track display (non-message) -->
+                    <StackPanel IsVisible="{Binding !IsMessageMode}">
+                        <TextBlock Text="{Binding CurrentDance}"
+                                   Foreground="White"
+                                   FontSize="140"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,24" />
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding CurrentArtist}"
+                                       Foreground="#dddddd"
+                                       FontSize="72" />
+                            <TextBlock Text=" &#x2014; "
+                                       Foreground="#cccccc"
+                                       FontSize="72"
+                                       IsVisible="{Binding CurrentTitle, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                            <TextBlock Text="{Binding CurrentTitle}"
+                                       Foreground="#bbbbbb"
+                                       FontSize="72" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Message mode -->
+                    <TextBlock IsVisible="{Binding IsMessageMode}"
+                               Text="{Binding CurrentDance}"
+                               Foreground="White"
+                               FontSize="140"
+                               FontWeight="Bold"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!-- No current item -->
+                <TextBlock IsVisible="{Binding !HasCurrentItem}"
+                           Text="No track playing"
+                           Foreground="#666666"
+                           FontSize="96"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+            </Grid>
+
+            <!-- Progress bar (middle) -->
+            <ProgressBar Grid.Row="1"
+                         Minimum="0"
+                         Maximum="{Binding Duration}"
+                         Value="{Binding Progress}"
+                         Foreground="#4CAF50"
+                         Height="24"
+                         Margin="80,0"
+                         IsVisible="{Binding HasCurrentItem}" />
+
+            <!-- Next item (bottom half) -->
+            <Grid Grid.Row="2" VerticalAlignment="Center" Margin="80,20">
+                <StackPanel IsVisible="{Binding HasNextItem}"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center">
+                    <TextBlock Text="Next"
+                               Foreground="#888888"
+                               FontSize="56"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,16" />
+                    <TextBlock Text="{Binding NextDance}"
+                               Foreground="#dddddd"
+                               FontSize="96"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,12" />
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding NextArtist}"
+                                   Foreground="#bbbbbb"
+                                   FontSize="56" />
+                        <TextBlock Text=" &#x2014; "
+                                   Foreground="#aaaaaa"
+                                   FontSize="56"
+                                   IsVisible="{Binding NextTitle, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                        <TextBlock Text="{Binding NextTitle}"
+                                   Foreground="#999999"
+                                   FontSize="56" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- No next item -->
+                <TextBlock IsVisible="{Binding !HasNextItem}"
+                           Text="No next track"
+                           Foreground="#444444"
+                           FontSize="64"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+            </Grid>
+        </Grid>
+    </Viewbox>
+</Window>

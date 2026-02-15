@@ -1,0 +1,75 @@
+<Project>
+
+    <PropertyGroup>
+        <BassNativeDir>$(MSBuildThisFileDirectory)build/bass-native/</BassNativeDir>
+        <_BassIsWindows>$([MSBuild]::IsOSPlatform('Windows'))</_BassIsWindows>
+        <_BassIsLinux>$([MSBuild]::IsOSPlatform('Linux'))</_BassIsLinux>
+        <_BassIsMacOS>$([MSBuild]::IsOSPlatform('OSX'))</_BassIsMacOS>
+        <_BassArch>$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)</_BassArch>
+    </PropertyGroup>
+
+    <!-- Windows -->
+    <PropertyGroup Condition="'$(_BassIsWindows)' == 'true'">
+        <_BassZipUrl>https://www.un4seen.com/files/bass24.zip</_BassZipUrl>
+        <_BassZipFile>bass24.zip</_BassZipFile>
+        <_BassExtractDir>win/</_BassExtractDir>
+        <_BassOutputFile>bass.dll</_BassOutputFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsWindows)' == 'true' AND '$(_BassArch)' == 'X64'">
+        <_BassNativeFile>x64/bass.dll</_BassNativeFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsWindows)' == 'true' AND '$(_BassArch)' == 'X86'">
+        <_BassNativeFile>bass.dll</_BassNativeFile>
+    </PropertyGroup>
+
+    <!-- Linux -->
+    <PropertyGroup Condition="'$(_BassIsLinux)' == 'true'">
+        <_BassZipUrl>https://www.un4seen.com/files/bass24-linux.zip</_BassZipUrl>
+        <_BassZipFile>bass24-linux.zip</_BassZipFile>
+        <_BassExtractDir>linux/</_BassExtractDir>
+        <_BassOutputFile>libbass.so</_BassOutputFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsLinux)' == 'true' AND '$(_BassArch)' == 'X64'">
+        <_BassNativeFile>libs/x86_64/libbass.so</_BassNativeFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsLinux)' == 'true' AND '$(_BassArch)' == 'Arm64'">
+        <_BassNativeFile>libs/aarch64/libbass.so</_BassNativeFile>
+    </PropertyGroup>
+
+    <!-- macOS -->
+    <PropertyGroup Condition="'$(_BassIsMacOS)' == 'true'">
+        <_BassZipUrl>https://www.un4seen.com/files/bass24-osx.zip</_BassZipUrl>
+        <_BassZipFile>bass24-osx.zip</_BassZipFile>
+        <_BassExtractDir>osx/</_BassExtractDir>
+        <_BassOutputFile>libbass.dylib</_BassOutputFile>
+        <_BassNativeFile>libbass.dylib</_BassNativeFile>
+    </PropertyGroup>
+
+    <Target Name="DownloadBassNative"
+            BeforeTargets="PrepareForBuild"
+            Condition="'$(_BassZipUrl)' != '' AND '$(_BassNativeFile)' != ''">
+        <MakeDir Directories="$(BassNativeDir)"/>
+
+        <DownloadFile SourceUrl="$(_BassZipUrl)"
+                      DestinationFolder="$(BassNativeDir)"
+                      SkipUnchangedFiles="true"
+                      Condition="!Exists('$(BassNativeDir)$(_BassZipFile)')"/>
+
+        <Unzip SourceFiles="$(BassNativeDir)$(_BassZipFile)"
+               DestinationFolder="$(BassNativeDir)$(_BassExtractDir)"
+               OverwriteReadOnlyFiles="true"
+               Condition="!Exists('$(BassNativeDir)$(_BassExtractDir)$(_BassNativeFile)')"/>
+
+        <ItemGroup>
+            <None Include="$(BassNativeDir)$(_BassExtractDir)$(_BassNativeFile)"
+                  CopyToOutputDirectory="PreserveNewest"
+                  CopyToPublishDirectory="Always"
+                  Link="$(_BassOutputFile)" />
+        </ItemGroup>
+    </Target>
+
+</Project>

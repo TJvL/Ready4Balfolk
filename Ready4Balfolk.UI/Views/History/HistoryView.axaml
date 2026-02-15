@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Ready4Balfolk.UI.Views.History"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ready4Balfolk.UI.Views.History.HistoryView"
+             x:DataType="local:HistoryViewModel">
+    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="8"
+            ClipToBounds="True">
+    <Grid RowDefinitions="*,Auto" ClipToBounds="True">
+        <ListBox Grid.Row="0"
+                 ItemsSource="{Binding Items}"
+                 SelectionMode="Single"
+                 FontSize="13"
+                 ClipToBounds="True">
+            <ListBox.Styles>
+                <Style Selector="ListBoxItem">
+                    <Setter Property="IsHitTestVisible" Value="False" />
+                </Style>
+            </ListBox.Styles>
+            <ListBox.DataTemplates>
+                <DataTemplate DataType="local:HistoryItemViewModel">
+                    <Grid ColumnDefinitions="*,60,60">
+                        <TextBlock Grid.Column="0" Text="{Binding Description}"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="1" Text="{Binding DurationFormatted}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Right"
+                                   Margin="8,0" />
+                        <TextBlock Grid.Column="2" Text="{Binding Status}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Right"
+                                   Opacity="0.6" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.DataTemplates>
+        </ListBox>
+
+        <Border Grid.Row="1"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                CornerRadius="4"
+                Padding="10,6"
+                Margin="0,8,0,0"
+                MinHeight="32">
+            <Grid ColumnDefinitions="*,*">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding ItemCountText}"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding TotalDurationText}"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+            </Grid>
+        </Border>
+    </Grid>
+    </Border>
+</UserControl>

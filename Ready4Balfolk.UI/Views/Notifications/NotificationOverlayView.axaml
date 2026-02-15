@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:notifications="using:Ready4Balfolk.UI.Views.Notifications"
+             xmlns:services="using:Ready4Balfolk.UI.Services"
+             x:Class="Ready4Balfolk.UI.Views.Notifications.NotificationOverlayView"
+             x:DataType="services:NotificationService">
+
+    <UserControl.Styles>
+        <Style Selector="Border.notification-bar">
+            <Style.Animations>
+                <Animation Duration="0:0:0.3" FillMode="Forward">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="0" />
+                        <Setter Property="TranslateTransform.Y" Value="-15" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="1" />
+                        <Setter Property="TranslateTransform.Y" Value="0" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+    </UserControl.Styles>
+
+    <ItemsControl ItemsSource="{Binding Notifications}"
+                  VerticalAlignment="Bottom"
+                  HorizontalAlignment="Stretch">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="services:NotificationItem">
+                <Border Classes="notification-bar"
+                        Background="{Binding Severity, Converter={x:Static notifications:SeverityToBrushConverter.Instance}}"
+                        Padding="16,10"
+                        Margin="0,2,0,0"
+                        Cursor="Hand"
+                        PointerPressed="OnNotificationPressed">
+                    <Border.RenderTransform>
+                        <TranslateTransform />
+                    </Border.RenderTransform>
+                    <TextBlock Text="{Binding Message}"
+                               Foreground="{DynamicResource NotificationTextBrush}"
+                               FontSize="14" />
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

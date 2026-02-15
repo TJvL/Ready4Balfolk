@@ -1,0 +1,72 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Ready4Balfolk.UI.App"
+             RequestedThemeVariant="Default">
+             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="/Icons.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <!-- Stop marker: brighter orange for dark backgrounds -->
+                    <SolidColorBrush x:Key="StopMarkerForeground" Color="#FFB74D" />
+                    <SolidColorBrush x:Key="StopMarkerBackground" Color="#30FF8C00" />
+                    <!-- Delay marker: brighter blue -->
+                    <SolidColorBrush x:Key="DelayMarkerForeground" Color="#64B5F6" />
+                    <SolidColorBrush x:Key="DelayMarkerBackground" Color="#304169E1" />
+                    <!-- Message marker: brighter teal -->
+                    <SolidColorBrush x:Key="MessageMarkerForeground" Color="#4DB6AC" />
+                    <SolidColorBrush x:Key="MessageMarkerBackground" Color="#3000897B" />
+                    <!-- Auto-track -->
+                    <SolidColorBrush x:Key="AutoTrackForeground" Color="#B0B0B0" />
+                    <SolidColorBrush x:Key="AutoTrackBackground" Color="#18808080" />
+                    <!-- Drop indicator -->
+                    <SolidColorBrush x:Key="DropIndicatorBrush" Color="#42A5F5" />
+                    <!-- Dance tree marked indicator -->
+                    <SolidColorBrush x:Key="MarkedActiveBrush" Color="#42A5F5" />
+                    <SolidColorBrush x:Key="MarkedMutedBrush" Color="#3C42A5F5" />
+                    <!-- Notification banners -->
+                    <SolidColorBrush x:Key="NotificationErrorBrush" Color="#EF5350" />
+                    <SolidColorBrush x:Key="NotificationWarningBrush" Color="#FFA726" />
+                    <SolidColorBrush x:Key="NotificationInfoBrush" Color="#42A5F5" />
+                    <SolidColorBrush x:Key="NotificationTextBrush" Color="White" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <!-- Stop marker: deeper orange for light backgrounds -->
+                    <SolidColorBrush x:Key="StopMarkerForeground" Color="#E65100" />
+                    <SolidColorBrush x:Key="StopMarkerBackground" Color="#20E65100" />
+                    <!-- Delay marker: deeper blue -->
+                    <SolidColorBrush x:Key="DelayMarkerForeground" Color="#1565C0" />
+                    <SolidColorBrush x:Key="DelayMarkerBackground" Color="#201565C0" />
+                    <!-- Message marker: deeper teal -->
+                    <SolidColorBrush x:Key="MessageMarkerForeground" Color="#00695C" />
+                    <SolidColorBrush x:Key="MessageMarkerBackground" Color="#2000695C" />
+                    <!-- Auto-track -->
+                    <SolidColorBrush x:Key="AutoTrackForeground" Color="#757575" />
+                    <SolidColorBrush x:Key="AutoTrackBackground" Color="#15757575" />
+                    <!-- Drop indicator -->
+                    <SolidColorBrush x:Key="DropIndicatorBrush" Color="#1565C0" />
+                    <!-- Dance tree marked indicator -->
+                    <SolidColorBrush x:Key="MarkedActiveBrush" Color="#1565C0" />
+                    <SolidColorBrush x:Key="MarkedMutedBrush" Color="#3C1565C0" />
+                    <!-- Notification banners -->
+                    <SolidColorBrush x:Key="NotificationErrorBrush" Color="#D32F2F" />
+                    <SolidColorBrush x:Key="NotificationWarningBrush" Color="#F57C00" />
+                    <SolidColorBrush x:Key="NotificationInfoBrush" Color="#1976D2" />
+                    <SolidColorBrush x:Key="NotificationTextBrush" Color="White" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+        <Style Selector="Button:disabled">
+            <Setter Property="Opacity" Value="0.35" />
+        </Style>
+    </Application.Styles>
+</Application>

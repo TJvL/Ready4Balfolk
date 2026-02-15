@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Ready4Balfolk.UI.Views.Toolbar"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="40"
+             x:Class="Ready4Balfolk.UI.Views.Toolbar.ToolbarView"
+             x:DataType="local:ToolbarViewModel">
+    <StackPanel Orientation="Horizontal" Spacing="4">
+        <Button Click="OnExitClick"
+                ToolTip.Tip="Exit"
+                Padding="8"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconLogin}"
+                      Width="16" Height="16" />
+        </Button>
+
+        <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
+
+        <Button Click="OnHelpClick"
+                ToolTip.Tip="Help"
+                Padding="8"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconHelp}"
+                      Width="16" Height="16" />
+        </Button>
+        <Button Click="OnSettingsClick"
+                ToolTip.Tip="Settings"
+                Padding="8"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconSettings}"
+                      Width="16" Height="16" />
+        </Button>
+        <Button Click="OnSynonymsClick"
+                ToolTip.Tip="Dance Synonyms"
+                Padding="8"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconBook}"
+                      Width="16" Height="16" />
+        </Button>
+    </StackPanel>
+</UserControl>

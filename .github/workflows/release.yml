@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate version format
+        run: |
+          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Error: Version must be in format X.Y.Z (e.g., 1.0.0)"
+            exit 1
+          fi
+          echo "Version format valid: ${{ inputs.version }}"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check tag doesn't exist
+        run: |
+          if git rev-parse "v${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "Error: Tag v${{ inputs.version }} already exists"
+            exit 1
+          fi
+          echo "Tag v${{ inputs.version }} is available"
+
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  build-binaries:
+    needs: [validate, verify]
+    uses: ./.github/workflows/build-binaries.yml
+    with:
+      version: ${{ inputs.version }}
+
+  build-flatpak:
+    needs: build-binaries
+    uses: ./.github/workflows/build-flatpak.yml
+    with:
+      version: ${{ inputs.version }}
+
+  build-inno-setup:
+    needs: build-binaries
+    uses: ./.github/workflows/build-inno-setup.yml
+    with:
+      version: ${{ inputs.version }}
+
+  build-dmg:
+    needs: build-binaries
+    uses: ./.github/workflows/build-dmg.yml
+    with:
+      version: ${{ inputs.version }}
+
+  release:
+    needs: [build-binaries, build-flatpak, build-inno-setup, build-dmg]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: Release ${{ inputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/Ready4Balfolk-linux-x64/*.tar.gz
+            artifacts/Ready4Balfolk-win-x64/*.zip
+            artifacts/Ready4Balfolk-osx-arm64/*.tar.gz
+            artifacts/Ready4Balfolk-win-x64-setup/*.exe
+            artifacts/Ready4Balfolk-osx-arm64-dmg/*.dmg
+            artifacts/**/*.flatpak

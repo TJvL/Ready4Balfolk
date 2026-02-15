@@ -1,0 +1,38 @@
+name: Build Inno Setup
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+
+jobs:
+  inno-setup:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Ready4Balfolk-win-x64
+          path: download
+
+      - name: Extract archive
+        run: Expand-Archive -Path download/Ready4Balfolk-win-x64.zip -DestinationPath publish
+        shell: pwsh
+
+      - name: Build installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: packaging/windows/setup.iss
+        env:
+          APP_VERSION: ${{ inputs.version }}
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ready4Balfolk-win-x64-setup
+          path: installer-output/*.exe

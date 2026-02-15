@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Ready4Balfolk.UI.Views.TrackCatalog"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ready4Balfolk.UI.Views.TrackCatalog.TrackCatalogView"
+             x:DataType="local:TrackCatalogViewModel">
+    <DataGrid
+        x:Name="TracksDataGrid"
+        ItemsSource="{Binding Tracks}"
+        AutoGenerateColumns="False"
+        IsReadOnly="True"
+        CanUserReorderColumns="True"
+        CanUserResizeColumns="True"
+        CanUserSortColumns="True"
+        GridLinesVisibility="None"
+        SelectionMode="Single"
+        Sorting="DataGridSorting"
+        DoubleTapped="DataGridDoubleTapped">
+        <DataGrid.Styles>
+            <Style Selector="DataGridCell:focus /template/ Grid#FocusVisual">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+            <Style Selector="DataGridCell:current /template/ Grid#FocusVisual">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+            <Style Selector="DataGridCell">
+                <Setter Property="BorderThickness" Value="0" />
+            </Style>
+            <Style Selector="DataGridColumnHeader">
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="SeparatorBrush" Value="Transparent" />
+                <Setter Property="AreSeparatorsVisible" Value="False" />
+            </Style>
+            <Style Selector="DataGridRow">
+                <Setter Property="BorderThickness" Value="0" />
+            </Style>
+        </DataGrid.Styles>
+        <DataGrid.Columns>
+            <DataGridTextColumn Header="Dance"
+                                Binding="{ReflectionBinding Dance}"
+                                SortMemberPath="Dance"
+                                Width="*" />
+            <DataGridTextColumn Header="Artist"
+                                Binding="{ReflectionBinding Artist}"
+                                SortMemberPath="Artist"
+                                Width="*" />
+            <DataGridTextColumn Header="Title"
+                                Binding="{ReflectionBinding Title}"
+                                SortMemberPath="Title"
+                                Width="2*" />
+            <DataGridTextColumn Header="Length"
+                                Binding="{ReflectionBinding LengthFormatted}"
+                                SortMemberPath="Track.Length"
+                                Width="100" />
+        </DataGrid.Columns>
+    </DataGrid>
+</UserControl>

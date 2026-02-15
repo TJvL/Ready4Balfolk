@@ -1,0 +1,58 @@
+name: Build Flatpak
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+
+jobs:
+  flatpak:
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:freedesktop-24.08
+      options: --privileged
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Flatpak publish
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-x64-flatpak-publish
+          path: flatpak-publish
+
+      - name: Download generated icons
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-icons
+          path: icons
+
+      - name: Stage Flatpak content
+        run: |
+          mkdir -p flatpak-stage/stage/bin
+          cp -r flatpak-publish/* flatpak-stage/stage/bin/
+          chmod +x flatpak-stage/stage/bin/Ready4Balfolk.UI
+
+          # Desktop file
+          mkdir -p flatpak-stage/stage/share/applications
+          cp packaging/linux/io.github.tjvl.Ready4Balfolk.desktop \
+            flatpak-stage/stage/share/applications/
+
+          # Icons from generated PNGs
+          for size in 16 24 32 48 64 128 256 512; do
+            icon="icons/icon-${size}.png"
+            if [ -f "$icon" ]; then
+              dest="flatpak-stage/stage/share/icons/hicolor/${size}x${size}/apps"
+              mkdir -p "$dest"
+              cp "$icon" "$dest/io.github.tjvl.Ready4Balfolk.png"
+            fi
+          done
+
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: packaging/linux/io.github.tjvl.Ready4Balfolk.yml
+          bundle: Ready4Balfolk-${{ inputs.version }}.flatpak
+          cache-key: flatpak-builder-${{ github.sha }}

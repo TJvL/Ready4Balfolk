@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Ready4Balfolk.UI.Views.DanceTree"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="40"
+             x:Class="Ready4Balfolk.UI.Views.DanceTree.DanceTreeToolbarView"
+             x:DataType="local:DanceTreeViewModel">
+    <StackPanel Orientation="Horizontal" Spacing="4">
+        <Button Click="OnToggleClick"
+                ToolTip.Tip="Switch to track list"
+                Padding="8"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconMenu}"
+                      Width="16" Height="16" />
+        </Button>
+
+        <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
+
+        <Button Command="{Binding UndoCommand}"
+                ToolTip.Tip="{Binding UndoTooltip}"
+                Padding="8"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconUndo}"
+                      Width="16" Height="16" />
+        </Button>
+        <Button Command="{Binding RedoCommand}"
+                ToolTip.Tip="{Binding RedoTooltip}"
+                Padding="8"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconRedo}"
+                      Width="16" Height="16" />
+        </Button>
+
+        <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
+
+        <Button ToolTip.Tip="Import dance tree"
+                Padding="8"
+                Click="OnImportClick"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconFileImport}"
+                      Width="16" Height="16" />
+        </Button>
+        <Button ToolTip.Tip="Export dance tree"
+                Padding="8"
+                IsEnabled="{Binding HasEntries}"
+                Click="OnExportClick"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconFileExport}"
+                      Width="16" Height="16" />
+        </Button>
+    </StackPanel>
+</UserControl>
