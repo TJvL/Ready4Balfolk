@@ -14,6 +14,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Synonym;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.UI.Resources;
@@ -48,6 +49,9 @@ public sealed class App : Application
 
             mainWindow.Opened += (_, _) =>
             {
+                var logger = Services.GetRequiredService<ILoggerService>();
+                _ = logger.InfoAsync($"Window opened in {Program.StartupStopwatch.ElapsedMilliseconds} ms");
+
                 _ = Task.Run(() => Services.GetRequiredService<IDanceTreeStore>().LoadAsync());
                 _ = Task.Run(() => Services.GetRequiredService<IDanceSynonymStore>().LoadAsync());
                 _ = Task.Run(() => Services.GetRequiredService<IQueueHistoryStore>().LoadAsync());

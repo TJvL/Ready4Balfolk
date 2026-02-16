@@ -12,6 +12,12 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
         return new Track(dance, artist, title, mp3FileInfo, duration);
     }
 
+    public Track LoadTrackWithDuration(FileInfo mp3FileInfo, TimeSpan duration)
+    {
+        var (dance, artist, title) = ParseFileName(mp3FileInfo);
+        return new Track(dance, artist, title, mp3FileInfo, duration);
+    }
+
     private static (string Dance, string Artist, string Title) ParseFileName(FileInfo mp3FileInfo)
     {
         var nameWithoutExtension = Path.GetFileNameWithoutExtension(mp3FileInfo.Name);
