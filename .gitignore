@@ -53,6 +53,9 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 
+# Visual Studio
+.vs/
+
 # IDEA
 .idea/
 
