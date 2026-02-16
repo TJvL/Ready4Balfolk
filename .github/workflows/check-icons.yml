@@ -1,0 +1,36 @@
+name: Check Icons
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-icons:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ImageMagick
+        run: sudo apt-get install -y imagemagick
+
+      - name: Regenerate icons
+        run: bash scripts/generate-icons.sh
+
+      - name: Check for differences
+        run: |
+          if ! git diff --quiet Ready4Balfolk.UI/Assets/; then
+            echo "ERROR: Committed icons are out of date with icon.svg."
+            echo ""
+            echo "The following files differ:"
+            git diff --name-only Ready4Balfolk.UI/Assets/
+            echo ""
+            echo "Please regenerate icons locally and commit the results:"
+            echo "  bash scripts/generate-icons.sh"
+            echo "  # or on Windows:"
+            echo "  pwsh scripts/generate-icons.ps1"
+            exit 1
+          fi
+          echo "Icons are up to date."

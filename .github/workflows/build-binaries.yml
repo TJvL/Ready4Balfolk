@@ -32,19 +32,6 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install icon tools (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get install -y librsvg2-bin icoutils
-
-      - name: Install icon tools (macOS)
-        if: runner.os == 'macOS'
-        run: brew install imagemagick
-
-      - name: Install icon tools (Windows)
-        if: runner.os == 'Windows'
-        run: choco install imagemagick -y
-        shell: pwsh
-
       - name: Publish (single-file)
         run: >-
           dotnet publish Ready4Balfolk.UI/Ready4Balfolk.UI.csproj
@@ -98,10 +85,3 @@ jobs:
         with:
           name: linux-x64-flatpak-publish
           path: publish-flatpak/
-
-      - name: Upload generated icons
-        if: matrix.runtime == 'linux-x64'
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-icons
-          path: Ready4Balfolk.UI/Assets/icon-*.png

@@ -65,11 +65,8 @@ nunit-*.xml
 # Native dependencies
 build/
 
-# Generated icons (regenerated from SVG at build time)
-Ready4Balfolk.UI/Assets/icon-*.png
-Ready4Balfolk.UI/Assets/icon.ico
-Ready4Balfolk.UI/Assets/AppIcon.icns
-Ready4Balfolk.UI/Assets/.icon-hash
+# Portable ImageMagick (downloaded by install-portable-imagemagick scripts)
+scripts/imagemagick/
 
 # Installer build artifacts
 installer-output/

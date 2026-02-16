@@ -41,43 +41,27 @@ if [[ "$ALL_EXIST" == "true" ]] && [[ -f "$HASH_FILE" ]]; then
 fi
 
 # --- Tool detection ---
-SVG_CMD=""
-ICO_CMD=""
-
-if command -v rsvg-convert &>/dev/null; then
-  SVG_CMD="rsvg"
-elif command -v magick &>/dev/null; then
-  SVG_CMD="magick"
-elif command -v convert &>/dev/null; then
-  SVG_CMD="convert"
+PORTABLE_MAGICK="$SCRIPT_DIR/imagemagick/magick"
+if ! command -v magick &>/dev/null && [[ -x "$PORTABLE_MAGICK" ]]; then
+  export PATH="$(dirname "$PORTABLE_MAGICK"):$PATH"
 fi
 
-if command -v icotool &>/dev/null; then
-  ICO_CMD="icotool"
-elif command -v magick &>/dev/null; then
-  ICO_CMD="magick"
-elif command -v convert &>/dev/null; then
-  ICO_CMD="convert"
-fi
-
-if [[ -z "$SVG_CMD" ]] || [[ -z "$ICO_CMD" ]]; then
-  echo "ERROR: Missing required tools for icon generation."
-  echo "  Install one of:"
-  echo "    Linux:   sudo apt install librsvg2-bin icoutils"
-  echo "    Any OS:  ImageMagick (provides 'magick' command)"
+if ! command -v magick &>/dev/null; then
+  echo "ERROR: ImageMagick not found."
+  echo "  Install it with:"
+  echo "    Linux:  sudo apt install imagemagick"
+  echo "    macOS:  brew install imagemagick"
+  echo "  Or install a portable copy:"
+  echo "    bash scripts/install-portable-imagemagick.sh"
   exit 1
 fi
 
-echo "Generating icons (svg=$SVG_CMD, ico=$ICO_CMD)..."
+echo "Generating icons (magick)..."
 
 # --- Generate PNGs ---
 for size in "${SIZES[@]}"; do
   out_file="$OUT/icon-${size}.png"
-  case "$SVG_CMD" in
-    rsvg)    rsvg-convert -w "$size" -h "$size" "$SVG" -o "$out_file" ;;
-    magick)  magick "$SVG" -resize "${size}x${size}" "$out_file" ;;
-    convert) convert "$SVG" -resize "${size}x${size}" "$out_file" ;;
-  esac
+  magick -background none -density 1200 "$SVG" -resize "${size}x${size}" "$out_file"
   echo "  ${size}x${size}"
 done
 
@@ -87,11 +71,7 @@ for size in "${ICO_SIZES[@]}"; do
   ICO_INPUTS+=("$OUT/icon-${size}.png")
 done
 
-case "$ICO_CMD" in
-  icotool) icotool -c "${ICO_INPUTS[@]}" -o "$OUT/icon.ico" ;;
-  magick)  magick "${ICO_INPUTS[@]}" "$OUT/icon.ico" ;;
-  convert) convert "${ICO_INPUTS[@]}" "$OUT/icon.ico" ;;
-esac
+magick "${ICO_INPUTS[@]}" "$OUT/icon.ico"
 echo "  icon.ico"
 
 # --- Generate ICNS (macOS only) ---

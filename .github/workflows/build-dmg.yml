@@ -20,12 +20,6 @@ jobs:
           name: Ready4Balfolk-osx-arm64
           path: download
 
-      - name: Download generated icons
-        uses: actions/download-artifact@v4
-        with:
-          name: generated-icons
-          path: icons
-
       - name: Extract archive
         run: |
           mkdir -p publish
@@ -33,19 +27,20 @@ jobs:
 
       - name: Generate .icns
         run: |
+          ICONS="Ready4Balfolk.UI/Assets"
           ICONSET_DIR="AppIcon.iconset"
           mkdir -p "$ICONSET_DIR"
 
-          cp icons/icon-16.png   "$ICONSET_DIR/icon_16x16.png"
-          cp icons/icon-32.png   "$ICONSET_DIR/icon_16x16@2x.png"
-          cp icons/icon-32.png   "$ICONSET_DIR/icon_32x32.png"
-          cp icons/icon-64.png   "$ICONSET_DIR/icon_32x32@2x.png"
-          cp icons/icon-128.png  "$ICONSET_DIR/icon_128x128.png"
-          cp icons/icon-256.png  "$ICONSET_DIR/icon_128x128@2x.png"
-          cp icons/icon-256.png  "$ICONSET_DIR/icon_256x256.png"
-          cp icons/icon-512.png  "$ICONSET_DIR/icon_256x256@2x.png"
-          cp icons/icon-512.png  "$ICONSET_DIR/icon_512x512.png"
-          cp icons/icon-1024.png "$ICONSET_DIR/icon_512x512@2x.png"
+          cp "$ICONS/icon-16.png"   "$ICONSET_DIR/icon_16x16.png"
+          cp "$ICONS/icon-32.png"   "$ICONSET_DIR/icon_16x16@2x.png"
+          cp "$ICONS/icon-32.png"   "$ICONSET_DIR/icon_32x32.png"
+          cp "$ICONS/icon-64.png"   "$ICONSET_DIR/icon_32x32@2x.png"
+          cp "$ICONS/icon-128.png"  "$ICONSET_DIR/icon_128x128.png"
+          cp "$ICONS/icon-256.png"  "$ICONSET_DIR/icon_128x128@2x.png"
+          cp "$ICONS/icon-256.png"  "$ICONSET_DIR/icon_256x256.png"
+          cp "$ICONS/icon-512.png"  "$ICONSET_DIR/icon_256x256@2x.png"
+          cp "$ICONS/icon-512.png"  "$ICONSET_DIR/icon_512x512.png"
+          cp "$ICONS/icon-1024.png" "$ICONSET_DIR/icon_512x512@2x.png"
 
           iconutil -c icns "$ICONSET_DIR" -o AppIcon.icns
 

@@ -19,9 +19,6 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install icon tools
-        run: sudo apt-get install -y librsvg2-bin icoutils
-
       - name: Restore
         run: dotnet restore Ready4Balfolk.sln
 
