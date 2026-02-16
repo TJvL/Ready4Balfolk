@@ -1,5 +1,5 @@
 #define MyAppName "Ready4Balfolk"
-#define MyAppPublisher "tjvl"
+#define MyAppPublisher "tjvl.dev"
 #define MyAppURL "https://github.com/tjvl/Ready4Balfolk"
 #define MyAppExeName "Ready4Balfolk.UI.exe"
 #define MyAppVersion GetEnv('APP_VERSION')
@@ -16,7 +16,7 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}/issues
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
-PrivilegesRequired=lowest
+PrivilegesRequired=admin
 OutputDir=..\..\installer-output
 OutputBaseFilename=Ready4Balfolk-{#MyAppVersion}-setup
 SetupIconFile=..\..\publish\icon.ico
@@ -39,6 +39,9 @@ Source: "..\..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{localappdata}\{#MyAppName}"
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
