@@ -30,6 +30,7 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     [Reactive] public partial IReadOnlyList<DanceSynonymEntryViewModel> Entries { get; set; }
     [Reactive] public partial bool IsLocked { get; private set; }
 
+    [ObservableAsProperty] public partial bool IsLoading { get; }
     [ObservableAsProperty] public partial bool HasEntries { get; }
     [ObservableAsProperty] public partial string? UndoTooltip { get; }
     [ObservableAsProperty] public partial string? RedoTooltip { get; }
@@ -47,7 +48,10 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     private void AddLine()
     {
         if (IsLocked)
+        {
             return;
+        }
+
         _pendingNewEntryEditMode = true;
         CommitTracked(DanceSynonymAction.AddMainName(_store));
     }
@@ -61,6 +65,11 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
         _editorHistory = editorHistory;
         _notifications = notifications;
         Entries = [];
+
+        _isLoadingHelper = store.IsLoading
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .ToProperty(this, x => x.IsLoading);
+        _isLoadingHelper.DisposeWith(_disposables);
 
         _hasEntriesHelper = this.WhenAnyValue(x => x.Entries)
             .Select(e => e.Count > 0)
@@ -90,14 +99,18 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     {
         IsLocked = true;
         for (var i = 0; i < Entries.Count; i++)
+        {
             Entries[i].IsInteractionDisabled = i != activeIndex;
+        }
     }
 
     private void ClearLock()
     {
         IsLocked = false;
         foreach (var entry in Entries)
+        {
             entry.IsInteractionDisabled = false;
+        }
     }
 
     // --- Name editing ---
@@ -105,9 +118,15 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     private void HandleStartEdit(int index)
     {
         if (IsLocked)
+        {
             return;
+        }
+
         if (index < 0 || index >= Entries.Count)
+        {
             return;
+        }
+
         Entries[index].IsEditing = true;
         SetLocked(index);
     }
@@ -115,7 +134,10 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     private void HandleConfirmEdit(int index)
     {
         if (index < 0 || index >= Entries.Count)
+        {
             return;
+        }
+
         var entry = Entries[index];
         var name = entry.Name.Trim();
 
@@ -136,13 +158,18 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
         ClearLock();
 
         if (name != entry.OriginalName)
+        {
             CommitNameDirect(index, name);
+        }
     }
 
     private void HandleCancelEdit(int index)
     {
         if (index < 0 || index >= Entries.Count)
+        {
             return;
+        }
+
         var entry = Entries[index];
 
         if (entry.IsNewlyAdded)
@@ -163,7 +190,10 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     private void HandleRemoveLine(int index)
     {
         if (IsLocked)
+        {
             return;
+        }
+
         CommitTracked(DanceSynonymAction.DeleteMainName(_store, index));
     }
 
@@ -172,16 +202,25 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     private void HandleRemoveSynonym(int index, int synIndex)
     {
         if (IsLocked)
+        {
             return;
+        }
+
         CommitTracked(DanceSynonymAction.DeleteSynonym(_store, index, synIndex));
     }
 
     private void HandleStartAddSynonym(int index)
     {
         if (IsLocked)
+        {
             return;
+        }
+
         if (index < 0 || index >= Entries.Count)
+        {
             return;
+        }
+
         var entry = Entries[index];
         entry.NewSynonymText = "";
         entry.IsAddingSynonym = true;
@@ -191,20 +230,28 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     private void HandleConfirmAddSynonym(int index, string text)
     {
         if (index < 0 || index >= Entries.Count)
+        {
             return;
+        }
+
         var entry = Entries[index];
         entry.IsAddingSynonym = false;
         entry.NewSynonymText = "";
         ClearLock();
 
         if (!string.IsNullOrWhiteSpace(text))
+        {
             CommitTracked(DanceSynonymAction.AddSynonymWithName(_store, index, text));
+        }
     }
 
     private void HandleCancelAddSynonym(int index)
     {
         if (index < 0 || index >= Entries.Count)
+        {
             return;
+        }
+
         var entry = Entries[index];
         entry.IsAddingSynonym = false;
         entry.NewSynonymText = "";
@@ -267,7 +314,9 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     private void RebuildEntries(IReadOnlyList<DanceMainName> data)
     {
         foreach (var entry in Entries)
+        {
             entry.Dispose();
+        }
 
         var context = new DanceSynonymEntryContext(
             HandleStartEdit,
@@ -304,6 +353,8 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     {
         _disposables.Dispose();
         foreach (var entry in Entries)
+        {
             entry.Dispose();
+        }
     }
 }

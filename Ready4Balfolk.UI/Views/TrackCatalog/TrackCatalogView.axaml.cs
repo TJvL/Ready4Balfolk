@@ -19,7 +19,9 @@ public partial class TrackCatalogView : ReactiveUserControl<TrackCatalogViewMode
     private void DataGridSorting(object? sender, DataGridColumnEventArgs e)
     {
         if (sender is not DataGrid dataGrid)
+        {
             return;
+        }
 
         var columnHeader = e.Column.Header?.ToString();
 
@@ -46,9 +48,13 @@ public partial class TrackCatalogView : ReactiveUserControl<TrackCatalogViewMode
     private void DataGridDoubleTapped(object? sender, TappedEventArgs e)
     {
         if (e.Source is Control control && control.FindAncestorOfType<DataGridColumnHeader>() != null)
+        {
             return;
+        }
 
         if (TracksDataGrid.SelectedItem is TrackViewModel track)
+        {
             ViewModel?.EnqueueTrackCommand.Execute(track).Subscribe();
+        }
     }
 }

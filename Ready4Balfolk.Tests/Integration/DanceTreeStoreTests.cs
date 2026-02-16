@@ -8,7 +8,10 @@ namespace Ready4Balfolk.Tests.Integration;
 
 public sealed class DanceTreeStoreTests : IDisposable
 {
-    private static readonly JsonSerializerOptions SJsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions SJsonOptions = new()
+    {
+        WriteIndented = true
+    };
 
     private readonly DirectoryInfo _tempDir;
     private readonly DanceTreeStore _sut;
@@ -76,7 +79,9 @@ public sealed class DanceTreeStoreTests : IDisposable
         var importFile = new FileInfo(Path.Combine(_tempDir.FullName, "import.json"));
         var branches = TestData.CreateSimpleTree();
         await using (var stream = File.Create(importFile.FullName))
+        {
             await JsonSerializer.SerializeAsync(stream, branches, SJsonOptions, TestContext.Current.CancellationToken);
+        }
 
         await _sut.ImportAsync(importFile);
 

@@ -42,7 +42,10 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         _history.Current.Returns(new QueueHistory(null, []));
 
         var settingsStore = Substitute.For<ISettingsStore>();
-        var settings = new ApplicationSettings() with { MaxQueueItems = 100 };
+        var settings = new ApplicationSettings() with
+        {
+            MaxQueueItems = 100
+        };
         settingsStore.Current.Returns(settings);
         settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
 

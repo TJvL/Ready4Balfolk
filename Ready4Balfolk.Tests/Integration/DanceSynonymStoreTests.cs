@@ -8,7 +8,10 @@ namespace Ready4Balfolk.Tests.Integration;
 
 public sealed class DanceSynonymStoreTests : IDisposable
 {
-    private static readonly JsonSerializerOptions SJsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions SJsonOptions = new()
+    {
+        WriteIndented = true
+    };
 
     private readonly DirectoryInfo _tempDir;
     private readonly DanceSynonymStore _sut;
@@ -57,7 +60,9 @@ public sealed class DanceSynonymStoreTests : IDisposable
         var importFile = new FileInfo(Path.Combine(_tempDir.FullName, "import.json"));
         var data = TestData.CreateSimpleSynonyms();
         await using (var stream = File.Create(importFile.FullName))
+        {
             await JsonSerializer.SerializeAsync(stream, data, SJsonOptions, TestContext.Current.CancellationToken);
+        }
 
         await _sut.ImportAsync(importFile);
 
@@ -68,9 +73,14 @@ public sealed class DanceSynonymStoreTests : IDisposable
     public async Task ImportAsync_DuplicateNames_Throws()
     {
         var importFile = new FileInfo(Path.Combine(_tempDir.FullName, "dup.json"));
-        var data = new List<DanceMainName> { TestData.CreateMainName("Mazurka"), TestData.CreateMainName("Mazurka") };
+        var data = new List<DanceMainName>
+        {
+            TestData.CreateMainName("Mazurka"), TestData.CreateMainName("Mazurka")
+        };
         await using (var stream = File.Create(importFile.FullName))
+        {
             await JsonSerializer.SerializeAsync(stream, data, SJsonOptions, TestContext.Current.CancellationToken);
+        }
 
         await Assert.ThrowsAsync<InvalidDataException>(() => _sut.ImportAsync(importFile));
     }
@@ -88,9 +98,14 @@ public sealed class DanceSynonymStoreTests : IDisposable
     public async Task ImportAsync_EmptyNames_Throws()
     {
         var importFile = new FileInfo(Path.Combine(_tempDir.FullName, "empty.json"));
-        var data = new List<DanceMainName> { new("", []) };
+        var data = new List<DanceMainName>
+        {
+            new("", [])
+        };
         await using (var stream = File.Create(importFile.FullName))
+        {
             await JsonSerializer.SerializeAsync(stream, data, SJsonOptions, TestContext.Current.CancellationToken);
+        }
 
         await Assert.ThrowsAsync<InvalidDataException>(() => _sut.ImportAsync(importFile));
     }

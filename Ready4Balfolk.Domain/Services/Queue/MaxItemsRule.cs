@@ -17,11 +17,16 @@ public sealed class MaxItemsRule(int maxItems) : IQueueRule
     public IReadOnlyList<int> GetEvictionIndices(IReadOnlyList<IQueueItem> currentItems)
     {
         if (currentItems.Count <= maxItems)
+        {
             return [];
+        }
 
         var indices = new List<int>();
         for (var i = maxItems; i < currentItems.Count; i++)
+        {
             indices.Add(i);
+        }
+
         return indices;
     }
 

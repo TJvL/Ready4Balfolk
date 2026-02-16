@@ -5,6 +5,7 @@
              xmlns:conv="using:Avalonia.Data.Converters"
              xmlns:local="using:Ready4Balfolk.UI.Views.DanceSynonyms"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ready4Balfolk.UI.Views.DanceSynonyms.DanceSynonymsView"
              x:DataType="local:DanceSynonymsViewModel">
@@ -85,7 +86,8 @@
         </StackPanel>
 
         <!-- Entries List (multi-column) -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <controls:LoadingContainer Grid.Row="1" IsLoading="{Binding IsLoading}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Entries}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -301,5 +303,6 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
+        </controls:LoadingContainer>
     </Grid>
 </UserControl>

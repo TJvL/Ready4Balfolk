@@ -24,7 +24,9 @@ public class NotificationService : INotificationService, IDisposable
     {
         const int maxNotifications = 5;
         while (_notifications.Count >= maxNotifications)
+        {
             _notifications.RemoveAt(0);
+        }
 
         var item = new NotificationItem(message, severity);
         _notifications.Add(item);

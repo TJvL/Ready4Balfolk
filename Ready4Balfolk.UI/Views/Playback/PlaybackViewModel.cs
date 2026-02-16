@@ -63,19 +63,27 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             if (_queueService.Count > 0)
             {
                 if (!await _confirmationService.ConfirmAsync(UiStrings.Playback_SkipTitle, UiStrings.Playback_SkipMessage, UiStrings.Playback_SkipButton, UiStrings.Playback_CancelButton))
+                {
                     return;
+                }
             }
             else
             {
                 if (!await _confirmationService.ConfirmAsync(UiStrings.Playback_ClearTitle, UiStrings.Playback_ClearMessage, UiStrings.Playback_ClearButton, UiStrings.Playback_CancelButton))
+                {
                     return;
+                }
             }
         }
 
         if (_queueService.Count > 0)
+        {
             await _consumptionService.AdvanceAsync();
+        }
         else
+        {
             await _consumptionService.ClearAsync();
+        }
     }
 
     public PlaybackViewModel(IQueueConsumptionService consumptionService, IQueueService queueService, IConfirmationService confirmationService, ISettingsStore settingsStore)

@@ -31,31 +31,31 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void EvaluateAdd_TrackAlreadyInQueue_Denies()
     {
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         var item = new TrackQueueItem(track, false);
         var existing = new TrackQueueItem(track, false);
 
         var verdict = _sut.EvaluateAdd(item, [existing]);
         Assert.NotNull(verdict);
-        Assert.False(verdict!.Allowed);
+        Assert.False(verdict.Allowed);
     }
 
     [Fact]
     public void EvaluateAdd_TrackCurrentlyPlaying_Denies()
     {
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         var item = new TrackQueueItem(track, false);
         _currentItem = new TrackQueueItem(track, false);
 
         var verdict = _sut.EvaluateAdd(item, []);
         Assert.NotNull(verdict);
-        Assert.False(verdict!.Allowed);
+        Assert.False(verdict.Allowed);
     }
 
     [Fact]
     public void EvaluateAdd_TrackFinishedInHistory_Denies()
     {
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         var item = new TrackQueueItem(track, false);
         _historyStore.Current.Returns(new QueueHistory(null,
         [
@@ -65,13 +65,13 @@ public sealed class DuplicateTrackRuleTests
 
         var verdict = _sut.EvaluateAdd(item, []);
         Assert.NotNull(verdict);
-        Assert.False(verdict!.Allowed);
+        Assert.False(verdict.Allowed);
     }
 
     [Fact]
     public void EvaluateAdd_TrackSkippedInHistory_NoOpinion()
     {
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         var item = new TrackQueueItem(track, false);
         _historyStore.Current.Returns(new QueueHistory(null,
         [
@@ -86,7 +86,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void EvaluateAdd_UniqueTrack_NoOpinion()
     {
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         var item = new TrackQueueItem(track, false);
 
         var verdict = _sut.EvaluateAdd(item, []);
@@ -116,7 +116,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void GetEvictionIndices_IntraQueueDuplicate_EvictsLater()
     {
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         IReadOnlyList<IQueueItem> items =
         [
             new TrackQueueItem(track, false),
@@ -130,7 +130,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void GetEvictionIndices_MatchesHistory_Evicts()
     {
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         _historyStore.Current.Returns(new QueueHistory(null,
         [
             new TrackHistoryEntry(track.FileInfo.FullName, "Mazurka", "Artist", "Title",
@@ -149,7 +149,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void GetEvictionIndices_MatchesPlaying_Evicts()
     {
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         _currentItem = new TrackQueueItem(track, false);
 
         IReadOnlyList<IQueueItem> items =

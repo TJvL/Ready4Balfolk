@@ -25,7 +25,9 @@ public sealed class RandomTrackService(
         var weightedLeaves = CollectWeightedLeaves(roots, scope);
 
         if (weightedLeaves.Count == 0)
+        {
             return null;
+        }
 
         var tracks = trackStore.Current;
         var tracksByDance = tracks
@@ -37,14 +39,18 @@ public sealed class RandomTrackService(
         {
             var normalizedName = StringNormalizer.Normalize(leaf.Name);
             if (!tracksByDance.TryGetValue(normalizedName, out var matchingTracks))
+            {
                 continue;
+            }
 
             var weightPerTrack = leaf.EffectiveWeight / matchingTracks.Count;
             candidates.AddRange(matchingTracks.Select(track => (track, weightPerTrack)));
         }
 
         if (candidates.Count == 0)
+        {
             return null;
+        }
 
         if (!allowDuplicates)
         {
@@ -53,11 +59,15 @@ public sealed class RandomTrackService(
         }
 
         if (candidates.Count == 0)
+        {
             return null;
+        }
 
         var totalWeight = candidates.Sum(c => c.Weight);
         if (totalWeight <= 0)
+        {
             return null;
+        }
 
         var roll = _random.NextDouble() * totalWeight;
         var cumulative = 0.0;
@@ -65,7 +75,9 @@ public sealed class RandomTrackService(
         {
             cumulative += weight;
             if (roll < cumulative)
+            {
                 return track;
+            }
         }
 
         return candidates[^1].Track;
@@ -91,13 +103,17 @@ public sealed class RandomTrackService(
         {
             var branchWeight = parentWeight * branch.Weight;
             if (branchWeight <= 0)
+            {
                 continue;
+            }
 
             foreach (var leaf in branch.Leafs)
             {
                 var leafWeight = branchWeight * leaf.Weight;
                 if (leafWeight > 0)
+                {
                     result.Add(new WeightedLeaf(leaf.Name, leafWeight));
+                }
             }
 
             result.AddRange(CollectFromBranches(branch.Branches.ToList(), branchWeight));
@@ -111,7 +127,9 @@ public sealed class RandomTrackService(
     {
         var branch = ResolveBranch(roots, branchPath);
         if (branch is null)
+        {
             return [];
+        }
 
         var result = (from leaf in branch.Leafs where leaf.Weight > 0 select new WeightedLeaf(leaf.Name, leaf.Weight)).ToList();
 
@@ -124,11 +142,15 @@ public sealed class RandomTrackService(
     {
         var branch = ResolveBranch(roots, parentPath);
         if (branch is null)
+        {
             return [];
+        }
 
         var leafs = branch.Leafs.ToList();
         if (leafIndex < 0 || leafIndex >= leafs.Count)
+        {
             return [];
+        }
 
         var leaf = leafs[leafIndex];
         return leaf.Weight > 0
@@ -142,9 +164,15 @@ public sealed class RandomTrackService(
         for (var i = 0; i < path.Count; i++)
         {
             if (path[i] < 0 || path[i] >= level.Count)
+            {
                 return null;
+            }
+
             if (i == path.Count - 1)
+            {
                 return level[path[i]];
+            }
+
             level = level[path[i]].Branches.ToList();
         }
 
@@ -159,7 +187,9 @@ public sealed class RandomTrackService(
         foreach (var entry in queueHistoryStore.Current.Entries)
         {
             if (entry is TrackHistoryEntry { CompletionStatus: CompletionStatus.Finished } track)
+            {
                 excluded.Add(track.FilePath);
+            }
         }
 
         // Exclude tracks currently in queue
@@ -172,7 +202,9 @@ public sealed class RandomTrackService(
                 _ => null
             };
             if (track is not null)
+            {
                 excluded.Add(track.FileInfo.FullName);
+            }
         }
 
         // Exclude currently playing track
@@ -184,7 +216,9 @@ public sealed class RandomTrackService(
             _ => null
         };
         if (currentTrack is not null)
+        {
             excluded.Add(currentTrack.FileInfo.FullName);
+        }
 
         return excluded;
     }

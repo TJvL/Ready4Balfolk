@@ -21,7 +21,9 @@ public static class DanceTreeTransforms
             }
 
             if (StringNormalizer.Normalize(leafName) == normalized)
+            {
                 return false;
+            }
         }
 
         return true;
@@ -38,12 +40,20 @@ public static class DanceTreeTransforms
     {
         baseName ??= DomainStrings.DanceTreeTransforms_NewDance;
         if (IsLeafNameUnique(roots, baseName))
+        {
             return baseName;
-        for (var i = 2; ; i++)
+        }
+
+        var i = 2;
+        while (true)
         {
             var candidate = $"{baseName} {i}";
             if (IsLeafNameUnique(roots, candidate))
+            {
                 return candidate;
+            }
+
+            i++;
         }
     }
 
@@ -51,12 +61,20 @@ public static class DanceTreeTransforms
     {
         baseName ??= DomainStrings.DanceTreeTransforms_NewCategory;
         if (IsBranchNameUnique(roots, baseName))
+        {
             return baseName;
-        for (var i = 2; ; i++)
+        }
+
+        var i = 2;
+        while (true)
         {
             var candidate = $"{baseName} {i}";
             if (IsBranchNameUnique(roots, candidate))
+            {
                 return candidate;
+            }
+
+            i++;
         }
     }
 
@@ -70,9 +88,14 @@ public static class DanceTreeTransforms
             int[] branchPath = [.. currentPath, i];
             var leafs = branch.Leafs.ToList();
             for (var j = 0; j < leafs.Count; j++)
+            {
                 yield return (leafs[j].Name, branchPath, j);
+            }
+
             foreach (var child in CollectAllLeafNames(branch.Branches.ToList(), branchPath))
+            {
                 yield return child;
+            }
         }
     }
 
@@ -85,7 +108,9 @@ public static class DanceTreeTransforms
             int[] path = [.. currentPath, i];
             yield return (branches[i].Name, path);
             foreach (var child in CollectAllBranchNames(branches[i].Branches.ToList(), path))
+            {
                 yield return child;
+            }
         }
     }
 
@@ -112,7 +137,10 @@ public static class DanceTreeTransforms
                 var branch = siblings[i];
                 var newChildren = ReplaceBranchAtDepth(
                     branch.Branches.ToList(), path, depth + 1, transform);
-                result[i] = branch with { Branches = newChildren };
+                result[i] = branch with
+                {
+                    Branches = newChildren
+                };
             }
         }
 
@@ -121,16 +149,26 @@ public static class DanceTreeTransforms
 
     public static IReadOnlyList<DanceBranch> RenameBranch(
         IReadOnlyList<DanceBranch> roots, int[] path, string newName)
-        => ReplaceBranchAtDepth(roots, path, 0, b => b with { Name = newName });
+        => ReplaceBranchAtDepth(roots, path, 0, b => b with
+        {
+            Name = newName
+        });
 
     public static IReadOnlyList<DanceBranch> ReweightBranch(
         IReadOnlyList<DanceBranch> roots, int[] path, int newWeight)
-        => ReplaceBranchAtDepth(roots, path, 0, b => b with { Weight = newWeight });
+        => ReplaceBranchAtDepth(roots, path, 0, b => b with
+        {
+            Weight = newWeight
+        });
 
     public static IReadOnlyList<DanceBranch> AddBranch(
         IReadOnlyList<DanceBranch> roots, int[] parentPath, string? name = null)
     {
-        var newBranch = new DanceBranch { Name = name ?? GenerateUniqueBranchName(roots), Weight = 1 };
+        var newBranch = new DanceBranch
+        {
+            Name = name ?? GenerateUniqueBranchName(roots),
+            Weight = 1
+        };
         return parentPath.Length == 0
             ? [.. roots, newBranch]
             : ReplaceBranchAtDepth(roots, parentPath, 0, b => b with
@@ -164,21 +202,33 @@ public static class DanceTreeTransforms
         IReadOnlyList<DanceBranch> roots, int[] parentPath, int leafIndex, string newName)
         => ReplaceBranchAtDepth(roots, parentPath, 0, b => b with
         {
-            Leafs = b.Leafs.Select((l, i) => i == leafIndex ? l with { Name = newName } : l).ToList()
+            Leafs = b.Leafs.Select((l, i) => i == leafIndex
+                ? l with
+                {
+                    Name = newName
+                }
+                : l).ToList()
         });
 
     public static IReadOnlyList<DanceBranch> ReweightLeaf(
         IReadOnlyList<DanceBranch> roots, int[] parentPath, int leafIndex, int newWeight)
         => ReplaceBranchAtDepth(roots, parentPath, 0, b => b with
         {
-            Leafs = b.Leafs.Select((l, i) => i == leafIndex ? l with { Weight = newWeight } : l).ToList()
+            Leafs = b.Leafs.Select((l, i) => i == leafIndex
+                ? l with
+                {
+                    Weight = newWeight
+                }
+                : l).ToList()
         });
 
     public static IReadOnlyList<DanceBranch> AddLeaf(
         IReadOnlyList<DanceBranch> roots, int[] parentPath, string? name = null)
     {
         if (parentPath.Length == 0)
+        {
             return roots;
+        }
 
         var newLeaf = new DanceLeaf(name ?? GenerateUniqueLeafName(roots), 1);
         return ReplaceBranchAtDepth(roots, parentPath, 0, b => b with

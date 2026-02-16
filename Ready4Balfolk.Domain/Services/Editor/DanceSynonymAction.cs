@@ -34,7 +34,9 @@ public sealed class DanceSynonymAction : IEditorAction
         {
             var validation = _validate(current);
             if (!validation.Success)
+            {
                 return validation;
+            }
         }
 
         _before = current;

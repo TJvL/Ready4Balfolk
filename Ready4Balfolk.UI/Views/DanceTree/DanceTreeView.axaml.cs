@@ -17,7 +17,9 @@ public partial class DanceTreeView : ReactiveUserControl<DanceTreeViewModel>
         TreeViewItem.IsExpandedProperty.Changed.AddClassHandler<TreeViewItem>((tvi, _) =>
         {
             if (tvi.DataContext is DanceCategoryNode node)
+            {
                 node.IsExpanded = tvi.IsExpanded;
+            }
         });
     }
 
@@ -35,14 +37,20 @@ public partial class DanceTreeView : ReactiveUserControl<DanceTreeViewModel>
     {
         var source = e.Source as Control;
         while (source is not null and not TreeViewItem)
+        {
             source = source.Parent as Control;
+        }
 
         if (source is not TreeViewItem { DataContext: DanceCategoryNode or DanceItem } tvi)
+        {
             return;
+        }
 
         // Revert the expand/collapse that TreeViewItem just performed
         if (tvi.DataContext is DanceCategoryNode)
+        {
             tvi.SetCurrentValue(TreeViewItem.IsExpandedProperty, !tvi.IsExpanded);
+        }
 
         ViewModel?.QuickRandomPick(tvi.DataContext!);
     }
@@ -50,7 +58,9 @@ public partial class DanceTreeView : ReactiveUserControl<DanceTreeViewModel>
     private void OnEditTextBoxAttached(object? sender, VisualTreeAttachmentEventArgs e)
     {
         if (sender is not TextBox textBox)
+        {
             return;
+        }
 
         textBox.GetObservable(IsVisibleProperty)
             .Where(static visible => visible)
@@ -64,7 +74,9 @@ public partial class DanceTreeView : ReactiveUserControl<DanceTreeViewModel>
     private void OnEditKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key is not (Key.Enter or Key.Escape))
+        {
             return;
+        }
 
         var dataContext = (sender as Control)?.DataContext;
 

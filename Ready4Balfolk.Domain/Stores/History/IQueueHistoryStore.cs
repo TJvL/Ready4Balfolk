@@ -2,7 +2,7 @@ using Ready4Balfolk.Domain.Models.History;
 
 namespace Ready4Balfolk.Domain.Stores.History;
 
-public interface IQueueHistoryStore : IDisposable
+public interface IQueueHistoryStore : ILoadableStore, IDisposable
 {
     QueueHistory Current { get; }
     IObservable<QueueHistory> Observe();

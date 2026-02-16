@@ -10,7 +10,10 @@ public sealed class QueueHistoryStoreTests : IDisposable
     private static readonly JsonSerializerOptions SJsonOptions = new()
     {
         WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
+        Converters =
+        {
+            new JsonStringEnumConverter()
+        }
     };
 
     private readonly DirectoryInfo _tempDir;

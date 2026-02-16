@@ -36,7 +36,9 @@ public partial class DanceTreeToolbarView : ReactiveUserControl<DanceTreeViewMod
 
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is null)
+        {
             return;
+        }
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -46,14 +48,18 @@ public partial class DanceTreeToolbarView : ReactiveUserControl<DanceTreeViewMod
         });
 
         if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
+        {
             await ViewModel!.ImportAsync(new FileInfo(path));
+        }
     }
 
     private async void OnExportClick(object? sender, RoutedEventArgs e)
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is null)
+        {
             return;
+        }
 
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -63,7 +69,9 @@ public partial class DanceTreeToolbarView : ReactiveUserControl<DanceTreeViewMod
         });
 
         if (file?.TryGetLocalPath() is { } path)
+        {
             await ViewModel!.ExportAsync(new FileInfo(path));
+        }
     }
 
     private void OnToggleClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().IsTreeViewMode = false;

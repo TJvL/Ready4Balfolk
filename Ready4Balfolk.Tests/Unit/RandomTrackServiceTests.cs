@@ -33,7 +33,10 @@ public sealed class RandomTrackServiceTests
     {
         var tree = TestData.CreateSimpleTree();
         _treeStore.Current.Returns(tree);
-        _trackStore.Current.Returns(new List<Track> { TestData.CreateTrack() });
+        _trackStore.Current.Returns(new List<Track>
+        {
+            TestData.CreateTrack()
+        });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
 
@@ -48,8 +51,7 @@ public sealed class RandomTrackServiceTests
         _treeStore.Current.Returns(tree);
         _trackStore.Current.Returns(new List<Track>
         {
-            TestData.CreateTrack(),
-            TestData.CreateTrack("Bourree")
+            TestData.CreateTrack(), TestData.CreateTrack("Bourree")
         });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.Subtree([0]), true);
@@ -65,8 +67,7 @@ public sealed class RandomTrackServiceTests
         _treeStore.Current.Returns(tree);
         _trackStore.Current.Returns(new List<Track>
         {
-            TestData.CreateTrack(),
-            TestData.CreateTrack("Bourree")
+            TestData.CreateTrack(), TestData.CreateTrack("Bourree")
         });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.SingleDance([0], 0), true);
@@ -80,7 +81,10 @@ public sealed class RandomTrackServiceTests
     {
         var tree = TestData.CreateSimpleTree();
         _treeStore.Current.Returns(tree);
-        _trackStore.Current.Returns(new List<Track> { TestData.CreateTrack("Polka") });
+        _trackStore.Current.Returns(new List<Track>
+        {
+            TestData.CreateTrack("Polka")
+        });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
 
@@ -95,7 +99,10 @@ public sealed class RandomTrackServiceTests
             TestData.CreateBranch("Folk", 0, leaves: [TestData.CreateLeaf("Mazurka", 0)])
         };
         _treeStore.Current.Returns(tree);
-        _trackStore.Current.Returns(new List<Track> { TestData.CreateTrack() });
+        _trackStore.Current.Returns(new List<Track>
+        {
+            TestData.CreateTrack()
+        });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
 
@@ -109,7 +116,10 @@ public sealed class RandomTrackServiceTests
         _treeStore.Current.Returns(tree);
 
         var mazurkaTrack = TestData.CreateTrack();
-        _trackStore.Current.Returns(new List<Track> { mazurkaTrack });
+        _trackStore.Current.Returns(new List<Track>
+        {
+            mazurkaTrack
+        });
 
         // Mazurka is in queue
         _queueService.Items.Returns(new List<IQueueItem>
@@ -129,7 +139,10 @@ public sealed class RandomTrackServiceTests
         _treeStore.Current.Returns(tree);
 
         var mazurkaTrack = TestData.CreateTrack();
-        _trackStore.Current.Returns(new List<Track> { mazurkaTrack });
+        _trackStore.Current.Returns(new List<Track>
+        {
+            mazurkaTrack
+        });
 
         _queueService.Items.Returns(new List<IQueueItem>
         {
@@ -145,7 +158,10 @@ public sealed class RandomTrackServiceTests
     public void EmptyTree_ReturnsNull()
     {
         _treeStore.Current.Returns(new List<Domain.Models.Tree.DanceBranch>());
-        _trackStore.Current.Returns(new List<Track> { TestData.CreateTrack() });
+        _trackStore.Current.Returns(new List<Track>
+        {
+            TestData.CreateTrack()
+        });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
 
@@ -159,7 +175,10 @@ public sealed class RandomTrackServiceTests
         _treeStore.Current.Returns(tree);
 
         var mazurkaTrack = TestData.CreateTrack();
-        _trackStore.Current.Returns(new List<Track> { mazurkaTrack });
+        _trackStore.Current.Returns(new List<Track>
+        {
+            mazurkaTrack
+        });
 
         _consumptionService.CurrentItem.Returns(new TrackQueueItem(mazurkaTrack, false));
 
@@ -175,7 +194,10 @@ public sealed class RandomTrackServiceTests
         _treeStore.Current.Returns(tree);
 
         var mazurkaTrack = TestData.CreateTrack();
-        _trackStore.Current.Returns(new List<Track> { mazurkaTrack });
+        _trackStore.Current.Returns(new List<Track>
+        {
+            mazurkaTrack
+        });
 
         _historyStore.Current.Returns(new QueueHistory(DateTime.Now, [
             new TrackHistoryEntry(mazurkaTrack.FileInfo.FullName, "Mazurka", "Artist", "Title",

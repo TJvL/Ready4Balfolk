@@ -53,7 +53,10 @@ public sealed class SynonymResolutionServiceTests : IDisposable
         var emitted = false;
         using var sub = _sut.Changed.Subscribe(_ => emitted = true);
 
-        var updated = new List<DanceMainName> { TestData.CreateMainName("Polka", "Polkka") };
+        var updated = new List<DanceMainName>
+        {
+            TestData.CreateMainName("Polka", "Polkka")
+        };
         _synonymSubject.OnNext(updated);
 
         // Give the TaskPoolScheduler a moment to process
@@ -65,7 +68,10 @@ public sealed class SynonymResolutionServiceTests : IDisposable
     [Fact]
     public void Resolve_UsesUpdatedLookupAfterChange()
     {
-        var updated = new List<DanceMainName> { TestData.CreateMainName("Polka", "Polkka") };
+        var updated = new List<DanceMainName>
+        {
+            TestData.CreateMainName("Polka", "Polkka")
+        };
         _synonymSubject.OnNext(updated);
 
         Thread.Sleep(100);

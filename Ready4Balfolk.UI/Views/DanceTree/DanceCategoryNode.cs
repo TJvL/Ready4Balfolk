@@ -41,9 +41,13 @@ public sealed partial class DanceCategoryNode : ReactiveObject, IDisposable
     private void ToggleEditing()
     {
         if (IsEditing)
+        {
             _context.ConfirmEdit(this);
+        }
         else
+        {
             IsEditing = true;
+        }
     }
 
     [ReactiveCommand]
@@ -62,9 +66,13 @@ public sealed partial class DanceCategoryNode : ReactiveObject, IDisposable
     private void DeleteOrCancel()
     {
         if (IsEditing)
+        {
             _context.CancelEdit(this);
+        }
         else
+        {
             _context.CommitTracked(store => DanceTreeAction.DeleteBranch(store, Path));
+        }
     }
 
     public void ConfirmEdit() => _context.ConfirmEdit(this);
@@ -108,7 +116,9 @@ public sealed partial class DanceCategoryNode : ReactiveObject, IDisposable
 
         var items = new List<object>();
         for (var i = 0; i < topLevelBranches.Count; i++)
+        {
             items.Add(new DanceCategoryNode(topLevelBranches[i], [i], context));
+        }
 
         Items = items;
 
@@ -126,14 +136,22 @@ public sealed partial class DanceCategoryNode : ReactiveObject, IDisposable
         for (var i = 0; i < path.Length; i++)
         {
             if (path[i] < 0 || path[i] >= current.Items.Count)
+            {
                 return null;
+            }
+
             if (current.Items[path[i]] is not DanceCategoryNode branch)
+            {
                 return null;
+            }
+
             current = branch;
         }
 
         if (leafIndex is null)
+        {
             return current;
+        }
 
         var leaves = current.Items.OfType<DanceItem>().ToList();
         return leafIndex.Value < leaves.Count ? leaves[leafIndex.Value] : null;
@@ -157,7 +175,9 @@ public sealed partial class DanceCategoryNode : ReactiveObject, IDisposable
                 foreach (var name in leafNames)
                 {
                     if (counts.TryGetValue(name, out var count))
+                    {
                         total += count;
+                    }
                 }
 
                 return total;
@@ -244,7 +264,9 @@ public sealed partial class DanceCategoryNode : ReactiveObject, IDisposable
         foreach (var item in Items)
         {
             if (item is IDisposable disposable)
+            {
                 disposable.Dispose();
+            }
         }
     }
 }

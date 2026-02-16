@@ -3,7 +3,7 @@ using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Stores.Tracks;
 
-public interface ITrackStore
+public interface ITrackStore : ILoadableStore
 {
     IReadOnlyList<Track> Current { get; }
     DirectoryInfo? MusicDirectory { set; }

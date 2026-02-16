@@ -97,7 +97,10 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
             try
             {
                 if (_channel == 0)
+                {
                     return;
+                }
+
                 Bass.ChannelPlay(_channel);
                 _playbackStarted.OnNext(Unit.Default);
             }
@@ -116,7 +119,10 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
             try
             {
                 if (_channel == 0)
+                {
                     return;
+                }
+
                 Bass.ChannelPause(_channel);
                 _playbackPaused.OnNext(Unit.Default);
             }
@@ -135,7 +141,10 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
             try
             {
                 if (_channel == 0)
+                {
                     return;
+                }
+
                 Bass.ChannelSetPosition(_channel, 0);
                 Bass.ChannelPlay(_channel, true);
                 _playbackRestarted.OnNext(Unit.Default);
@@ -240,7 +249,10 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private void Dispose(bool disposing)
     {
         if (_disposed)
+        {
             return;
+        }
+
         _disposed = true;
 
         if (disposing)
@@ -253,16 +265,22 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         FreePreloadedChannel();
 
         if (_bassInitialized)
+        {
             Bass.Free();
+        }
     }
 
     private void EnsureBassInitialized()
     {
         if (_bassInitialized)
+        {
             return;
+        }
 
         if (!Bass.Init())
+        {
             throw new InvalidOperationException($"Failed to initialize BASS: {Bass.LastError}");
+        }
 
         _bassInitialized = true;
     }
@@ -270,7 +288,9 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private void FreeChannel()
     {
         if (_channel == 0)
+        {
             return;
+        }
 
         if (_endSyncHandle != 0)
         {
@@ -286,7 +306,10 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private void FreePreloadedChannel()
     {
         if (_preloadedChannel == 0)
+        {
             return;
+        }
+
         Bass.StreamFree(_preloadedChannel);
         _preloadedChannel = 0;
         _preloadedUri = null;
@@ -295,7 +318,9 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private void SetupEndSync()
     {
         if (_channel == 0)
+        {
             return;
+        }
 
         _endSyncHandle = Bass.ChannelSetSync(_channel, SyncFlags.End, 0, OnPlaybackEnded);
     }
@@ -324,7 +349,9 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private void AdvanceToPreloaded()
     {
         if (_preloadedChannel == 0)
+        {
             return;
+        }
 
         FreeChannel();
 
@@ -348,7 +375,10 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private TimeSpan GetPosition()
     {
         if (_channel == 0)
+        {
             return TimeSpan.Zero;
+        }
+
         var posBytes = Bass.ChannelGetPosition(_channel);
         var posSecs = Bass.ChannelBytes2Seconds(_channel, posBytes);
         return TimeSpan.FromSeconds(posSecs);

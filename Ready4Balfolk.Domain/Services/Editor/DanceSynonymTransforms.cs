@@ -23,13 +23,9 @@ public static class DanceSynonymTransforms
             }
 
             var synonyms = main.Synonyms.ToList();
-            for (var j = 0; j < synonyms.Count; j++)
+            if (synonyms.Where((_, j) => excludeMainIndex != i || excludeSynonymIndex != j).Any(t => StringNormalizer.Normalize(t.Name).Equals(normalized, StringComparison.Ordinal)))
             {
-                if (excludeMainIndex == i && excludeSynonymIndex == j)
-                    continue;
-
-                if (StringNormalizer.Normalize(synonyms[j].Name).Equals(normalized, StringComparison.Ordinal))
-                    return false;
+                return false;
             }
         }
 
@@ -44,24 +40,38 @@ public static class DanceSynonymTransforms
 
     public static IReadOnlyList<DanceMainName> RenameMainName(
         IEnumerable<DanceMainName> list, int index, string newName)
-        => list.Select((m, i) => i == index ? m with { Name = newName } : m).ToList();
+        => list.Select((m, i) => i == index
+            ? m with
+            {
+                Name = newName
+            }
+            : m).ToList();
 
     public static IReadOnlyList<DanceMainName> AddSynonym(
         IEnumerable<DanceMainName> list, int mainNameIndex)
         => list.Select((m, i) => i == mainNameIndex
-            ? m with { Synonyms = [.. m.Synonyms, new DanceSynonym(DomainStrings.DanceSynonymTransforms_NewSynonym)] }
+            ? m with
+            {
+                Synonyms = [.. m.Synonyms, new DanceSynonym(DomainStrings.DanceSynonymTransforms_NewSynonym)]
+            }
             : m).ToList();
 
     public static IReadOnlyList<DanceMainName> AddSynonymWithName(
         IEnumerable<DanceMainName> list, int mainNameIndex, string name)
         => list.Select((m, i) => i == mainNameIndex
-            ? m with { Synonyms = [.. m.Synonyms, new DanceSynonym(name)] }
+            ? m with
+            {
+                Synonyms = [.. m.Synonyms, new DanceSynonym(name)]
+            }
             : m).ToList();
 
     public static IReadOnlyList<DanceMainName> DeleteSynonym(
         IEnumerable<DanceMainName> list, int mainNameIndex, int synonymIndex)
         => list.Select((m, i) => i == mainNameIndex
-            ? m with { Synonyms = m.Synonyms.Where((_, si) => si != synonymIndex).ToList() }
+            ? m with
+            {
+                Synonyms = m.Synonyms.Where((_, si) => si != synonymIndex).ToList()
+            }
             : m).ToList();
 
     public static IReadOnlyList<DanceMainName> RenameSynonym(

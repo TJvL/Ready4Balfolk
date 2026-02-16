@@ -37,9 +37,13 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
     private void ToggleEditing()
     {
         if (IsEditing)
+        {
             _context.ConfirmEdit(this);
+        }
         else
+        {
             IsEditing = true;
+        }
     }
 
     [ReactiveCommand]
@@ -50,9 +54,13 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
     private void DeleteOrCancel()
     {
         if (IsEditing)
+        {
             _context.CancelEdit(this);
+        }
         else
+        {
             _context.CommitTracked(store => DanceTreeAction.DeleteLeaf(store, ParentPath, LeafIndex));
+        }
     }
 
     public void ConfirmEdit() => _context.ConfirmEdit(this);

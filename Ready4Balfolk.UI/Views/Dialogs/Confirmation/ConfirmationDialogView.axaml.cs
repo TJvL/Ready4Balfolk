@@ -15,8 +15,8 @@ public partial class ConfirmationDialogView : ReactiveWindow<ConfirmationDialogV
         Opened += (_, _) => ConfirmButton.Focus();
 
         this.WhenActivated(d => this.WhenAnyValue(x => x.ViewModel!.DialogResult)
-                .Where(r => r.HasValue)
-                .Subscribe(_ => Close())
-                .DisposeWith(d));
+            .Where(r => r.HasValue)
+            .Subscribe(_ => Close())
+            .DisposeWith(d));
     }
 }

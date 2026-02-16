@@ -11,9 +11,15 @@ public static class QueueGuardBuilder
         Func<IQueueItem?> currentItemProvider,
         IQueueHistoryStore historyStore)
     {
-        var rules = new List<IQueueRule> { new AutoTrackRule(settings.AutoQueueRandomTrack) };
+        var rules = new List<IQueueRule>
+        {
+            new AutoTrackRule(settings.AutoQueueRandomTrack)
+        };
         if (!settings.AllowDuplicateTracksInQueue)
+        {
             rules.Add(new DuplicateTrackRule(currentItemProvider, historyStore));
+        }
+
         rules.Add(new MaxItemsRule(settings.MaxQueueItems));
         return new QueueGuard(rules);
     }

@@ -37,29 +37,39 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
     private static void OnContainerPrepared(object? sender, ContainerPreparedEventArgs e)
     {
         if (e.Container is ListBoxItem item && item.DataContext is AutoTrackQueueItem)
+        {
             item.Classes.Add("autoTrack");
+        }
     }
 
     private static void OnContainerClearing(object? sender, ContainerClearingEventArgs e)
     {
         if (e.Container is ListBoxItem item)
+        {
             item.Classes.Remove("autoTrack");
+        }
     }
 
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (QueueListBox.SelectedItem is AutoTrackQueueItem)
+        {
             QueueListBox.SelectedItem = null;
+        }
     }
 
     private void OnQueuePointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(QueueListBox).Properties.IsLeftButtonPressed)
+        {
             return;
+        }
 
         var listBoxItem = FindParent<ListBoxItem>(e.Source as Control);
         if (listBoxItem?.DataContext is AutoTrackQueueItem or null)
+        {
             return;
+        }
 
         _dragStartIndex = QueueListBox.IndexFromContainer(listBoxItem);
         _dragStartPoint = e.GetPosition(QueueListBox);
@@ -68,13 +78,17 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
     private async void OnQueuePointerMoved(object? sender, PointerEventArgs e)
     {
         if (_dragStartPoint == null || _dragStartIndex < 0)
+        {
             return;
+        }
 
         var currentPoint = e.GetPosition(QueueListBox);
         var diff = currentPoint - _dragStartPoint.Value;
 
         if (Math.Abs(diff.Y) < 8)
+        {
             return;
+        }
 
         var index = _dragStartIndex;
         _dragStartPoint = null;
@@ -135,16 +149,23 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
 
         var indexStr = e.DataTransfer.TryGetValue(QueueDragFormat);
         if (indexStr is null || e.Source is not Control source)
+        {
             return;
+        }
+
         var oldIndex = int.Parse(indexStr, System.Globalization.CultureInfo.InvariantCulture);
 
         var targetItem = FindParent<ListBoxItem>(source);
         if (targetItem == null)
+        {
             return;
+        }
 
         var newIndex = QueueListBox.IndexFromContainer(targetItem);
         if (newIndex >= 0)
+        {
             ViewModel?.MoveItem(oldIndex, newIndex);
+        }
     }
 
 #pragma warning disable CA1822 // Avalonia source-generator field not visible to analyzer
@@ -165,7 +186,9 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
     private void OnPinAutoQueuedClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (sender is Button { DataContext: AutoTrackQueueItem item })
+        {
             ViewModel?.PinAutoTrack(item);
+        }
     }
 
     private static T? FindParent<T>(Control? control) where T : Control
@@ -173,7 +196,10 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         while (control != null)
         {
             if (control is T found)
+            {
                 return found;
+            }
+
             control = control.Parent as Control;
         }
 

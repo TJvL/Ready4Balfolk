@@ -25,7 +25,7 @@ public sealed class AutoTrackRuleTests
         var existing = new TrackQueueItem(TestData.CreateTrack("A"), false);
         var verdict = sut.EvaluateAdd(auto, [existing]);
         Assert.NotNull(verdict);
-        Assert.False(verdict!.Allowed);
+        Assert.False(verdict.Allowed);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class AutoTrackRuleTests
         var predicate = sut.GetPreAddRemovalPredicate(track, [auto]);
 
         Assert.NotNull(predicate);
-        Assert.True(predicate!(auto));
+        Assert.True(predicate(auto));
         Assert.False(predicate(track));
     }
 
@@ -105,8 +105,7 @@ public sealed class AutoTrackRuleTests
         var sut = new AutoTrackRule(true);
         var items = new List<IQueueItem>
         {
-            new TrackQueueItem(TestData.CreateTrack("A"), false),
-            new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true))
+            new TrackQueueItem(TestData.CreateTrack("A"), false), new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true))
         };
         Assert.Empty(sut.GetEvictionIndices(items));
     }
@@ -117,8 +116,7 @@ public sealed class AutoTrackRuleTests
         var sut = new AutoTrackRule(false);
         var items = new List<IQueueItem>
         {
-            new TrackQueueItem(TestData.CreateTrack("A"), false),
-            new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true))
+            new TrackQueueItem(TestData.CreateTrack("A"), false), new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true))
         };
         Assert.Equal([1], sut.GetEvictionIndices(items));
     }

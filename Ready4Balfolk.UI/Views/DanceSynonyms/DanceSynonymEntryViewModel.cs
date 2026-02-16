@@ -41,18 +41,26 @@ public sealed partial class DanceSynonymEntryViewModel : ReactiveObject, IDispos
     private void ToggleEditing()
     {
         if (IsEditing)
+        {
             _context.ConfirmEdit(_index);
+        }
         else
+        {
             _context.StartEdit(_index);
+        }
     }
 
     [ReactiveCommand]
     private void DeleteOrCancel()
     {
         if (IsEditing)
+        {
             _context.CancelEdit(_index);
+        }
         else
+        {
             _context.RemoveLine(_index);
+        }
     }
 
     [ReactiveCommand]
@@ -60,7 +68,9 @@ public sealed partial class DanceSynonymEntryViewModel : ReactiveObject, IDispos
     {
         var synIndex = Synonyms.ToList().IndexOf(synonym);
         if (synIndex >= 0)
+        {
             _context.RemoveSynonym(_index, synIndex);
+        }
     }
 
     [ReactiveCommand]

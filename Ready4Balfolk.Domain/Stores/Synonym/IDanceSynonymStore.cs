@@ -2,7 +2,7 @@ using Ready4Balfolk.Domain.Models.Synonyms;
 
 namespace Ready4Balfolk.Domain.Stores.Synonym;
 
-public interface IDanceSynonymStore : IDisposable
+public interface IDanceSynonymStore : ILoadableStore
 {
     IReadOnlyList<DanceMainName> Current { get; }
     IObservable<IReadOnlyList<DanceMainName>> Observe();

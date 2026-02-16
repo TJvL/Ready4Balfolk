@@ -15,8 +15,8 @@ public partial class RequestMessageDialogView : ReactiveWindow<RequestMessageDia
         Opened += (_, _) => OkButton.Focus();
 
         this.WhenActivated(d => this.WhenAnyValue(x => x.ViewModel!.DialogResult)
-                .Where(r => r.HasValue)
-                .Subscribe(_ => Close())
-                .DisposeWith(d));
+            .Where(r => r.HasValue)
+            .Subscribe(_ => Close())
+            .DisposeWith(d));
     }
 }

@@ -13,9 +13,15 @@ public sealed class QueueGuardTests
     {
         var historyStore = Substitute.For<IQueueHistoryStore>();
         historyStore.Current.Returns(new QueueHistory(null, []));
-        var rules = new List<IQueueRule> { new AutoTrackRule(true) };
+        var rules = new List<IQueueRule>
+        {
+            new AutoTrackRule(true)
+        };
         if (!allowDuplicates)
+        {
             rules.Add(new DuplicateTrackRule(() => null, historyStore));
+        }
+
         rules.Add(new MaxItemsRule(maxItems));
         return new QueueGuard(rules);
     }
@@ -101,7 +107,7 @@ public sealed class QueueGuardTests
     {
         // max=2, no duplicates, queue has 3 items with a duplicate
         var guard = CreateGuard(maxItems: 2, allowDuplicates: false);
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         IReadOnlyList<IQueueItem> items =
         [
             new TrackQueueItem(track, false),

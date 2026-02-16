@@ -28,7 +28,7 @@ public sealed class MaxItemsRuleTests
         ];
         var verdict = _sut.EvaluateAdd(track, items);
         Assert.NotNull(verdict);
-        Assert.False(verdict!.Allowed);
+        Assert.False(verdict.Allowed);
         Assert.Contains("3", verdict.Reason!);
     }
 

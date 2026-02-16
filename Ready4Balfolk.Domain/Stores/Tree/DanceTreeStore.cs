@@ -6,7 +6,7 @@ using Ready4Balfolk.Domain.Resources;
 
 namespace Ready4Balfolk.Domain.Stores.Tree;
 
-public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanceTreeStore, IDisposable
+public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanceTreeStore
 {
     private const string DanceTreeFileName = "dance_tree.json";
 
@@ -17,8 +17,11 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanc
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly BehaviorSubject<IReadOnlyList<DanceBranch>> _branches = new([]);
+    private readonly BehaviorSubject<bool> _isLoading = new(false);
 
     private string DanceTreeFilePath => Path.Combine(danceTreeDirectoryInfo.FullName, DanceTreeFileName);
+
+    public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
     public IReadOnlyList<DanceBranch> Current => _branches.Value;
 
@@ -26,13 +29,25 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanc
 
     public async Task LoadAsync()
     {
-        if (!File.Exists(DanceTreeFilePath))
-            return;
+        _isLoading.OnNext(true);
+        try
+        {
+            if (!File.Exists(DanceTreeFilePath))
+            {
+                return;
+            }
 
-        await using var stream = File.OpenRead(DanceTreeFilePath);
-        var branches = await JsonSerializer.DeserializeAsync<List<DanceBranch>>(stream, JsonOptions);
-        if (branches != null)
-            _branches.OnNext(branches);
+            await using var stream = File.OpenRead(DanceTreeFilePath);
+            var branches = await JsonSerializer.DeserializeAsync<List<DanceBranch>>(stream, JsonOptions);
+            if (branches != null)
+            {
+                _branches.OnNext(branches);
+            }
+        }
+        finally
+        {
+            _isLoading.OnNext(false);
+        }
     }
 
     public async Task UpdateAsync(Func<IReadOnlyList<DanceBranch>, IReadOnlyList<DanceBranch>> transform)
@@ -68,7 +83,9 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanc
     public async Task ImportAsync(FileInfo sourceFileInfo)
     {
         if (!sourceFileInfo.Exists)
+        {
             throw new FileNotFoundException(DomainStrings.ImportFileNotFound, sourceFileInfo.FullName);
+        }
 
         List<DanceBranch> branches;
         try
@@ -83,7 +100,9 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanc
         }
 
         if (branches.Any(b => string.IsNullOrWhiteSpace(b.Name)))
+        {
             throw new InvalidDataException(DomainStrings.DanceTreeStore_MissingNames);
+        }
 
         await _gate.WaitAsync();
         try
@@ -101,6 +120,7 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanc
     {
         _gate.Dispose();
         _branches.Dispose();
+        _isLoading.Dispose();
     }
 
     private async Task SaveAsync(IReadOnlyList<DanceBranch> branches)
