@@ -13,19 +13,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install ImageMagick
-        run: sudo apt-get install -y imagemagick
-
-      - name: Regenerate icons
-        run: bash scripts/generate-icons.sh
-
-      - name: Check for differences
+      - name: Check icon hash
         run: |
-          if ! git diff --quiet Ready4Balfolk.UI/Assets/; then
-            echo "ERROR: Committed icons are out of date with icon.svg."
-            echo ""
-            echo "The following files differ:"
-            git diff --name-only Ready4Balfolk.UI/Assets/
+          CURRENT_HASH=$(sha256sum Ready4Balfolk.UI/Assets/icon.svg | cut -d' ' -f1)
+          STORED_HASH=$(cat Ready4Balfolk.UI/Assets/.icon-hash)
+          if [[ "$CURRENT_HASH" != "$STORED_HASH" ]]; then
+            echo "ERROR: icon.svg has changed but icons have not been regenerated."
+            echo "  SVG hash:    $CURRENT_HASH"
+            echo "  Stored hash: $STORED_HASH"
             echo ""
             echo "Please regenerate icons locally and commit the results:"
             echo "  bash scripts/generate-icons.sh"

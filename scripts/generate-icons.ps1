@@ -12,7 +12,7 @@ $Sizes = @(16, 24, 32, 48, 64, 128, 256, 512, 1024)
 $IcoSizes = @(16, 24, 32, 48, 256)
 
 # --- Hash check ---
-$CurrentHash = (Get-FileHash -Algorithm SHA256 $Svg).Hash
+$CurrentHash = (Get-FileHash -Algorithm SHA256 $Svg).Hash.ToLower()
 
 $AllExist = (Test-Path (Join-Path $Out 'icon.ico'))
 if ($AllExist) {
