@@ -10,6 +10,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Microsoft.Extensions.DependencyInjection;
+using ReactiveUI;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
@@ -18,6 +19,7 @@ using Ready4Balfolk.Domain.Stores.Synonym;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 using Ready4Balfolk.UI.Views.Presentation;
 using AvaloniaWindowState = Avalonia.Controls.WindowState;
@@ -44,16 +46,53 @@ public sealed class App : Application
             var mainWindow = new MainWindow();
             desktop.MainWindow = mainWindow;
 
-            Services.GetRequiredService<Services.ConfirmationService>().SetOwner(mainWindow);
+            Services.GetRequiredService<ConfirmationService>().SetOwner(mainWindow);
 
             mainWindow.Opened += (_, _) =>
             {
                 var logger = Services.GetRequiredService<ILoggerService>();
                 _ = logger.InfoAsync($"Window opened in {Program.StartupStopwatch.ElapsedMilliseconds} ms");
 
-                _ = Task.Run(() => Services.GetRequiredService<IDanceTreeStore>().LoadAsync());
-                _ = Task.Run(() => Services.GetRequiredService<IDanceSynonymStore>().LoadAsync());
-                _ = Task.Run(() => Services.GetRequiredService<IQueueHistoryStore>().LoadAsync());
+                var notificationService = Services.GetRequiredService<INotificationService>();
+                logger.WhenErrorLogged
+                    .GroupBy(e => e.Message)
+                    .SelectMany(group => group.Throttle(TimeSpan.FromSeconds(2)))
+                    .ObserveOn(RxApp.MainThreadScheduler)
+                    .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error));
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Services.GetRequiredService<IDanceTreeStore>().LoadAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        _ = logger.ErrorAsync("Failed to load dance tree", ex);
+                    }
+                });
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Services.GetRequiredService<IDanceSynonymStore>().LoadAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        _ = logger.ErrorAsync("Failed to load dance synonyms", ex);
+                    }
+                });
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Services.GetRequiredService<IQueueHistoryStore>().LoadAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        _ = logger.ErrorAsync("Failed to load queue history", ex);
+                    }
+                });
 
                 ApplyTheme(settingsStore.Current.ApplicationTheme);
                 settingsStore.Observe()

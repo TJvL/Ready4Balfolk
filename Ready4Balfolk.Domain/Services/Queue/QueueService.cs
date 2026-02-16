@@ -1,6 +1,7 @@
 using System.Reactive.Linq;
 using DynamicData;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 
@@ -11,13 +12,16 @@ public sealed class QueueService : IQueueService, IDisposable
     private readonly SourceList<IQueueItem> _sourceList = new();
     private readonly IDisposable _settingsSubscription;
     private readonly IDisposable _historySubscription;
+    private readonly ILoggerService _loggerService;
     private IQueueGuard _guard;
 
     public QueueService(
         ISettingsStore settingsStore,
         IQueueHistoryStore historyStore,
-        Func<IQueueItem?> currentItemProvider)
+        Func<IQueueItem?> currentItemProvider,
+        ILoggerService loggerService)
     {
+        _loggerService = loggerService;
         _guard = QueueGuardBuilder.FromSettings(settingsStore.Current, currentItemProvider, historyStore);
         _settingsSubscription = settingsStore.Observe()
             .Subscribe(settings =>
@@ -62,6 +66,7 @@ public sealed class QueueService : IQueueService, IDisposable
 
             list.Add(item);
         });
+        _ = _loggerService.DebugAsync($"Enqueue: {item.GetType().Name}, allowed={result.Allowed}");
         return result;
     }
 
@@ -74,6 +79,7 @@ public sealed class QueueService : IQueueService, IDisposable
 
         var item = _sourceList.Items[0];
         _sourceList.RemoveAt(0);
+        _ = _loggerService.DebugAsync($"Dequeue: {item.GetType().Name}");
         return item;
     }
 
@@ -139,6 +145,7 @@ public sealed class QueueService : IQueueService, IDisposable
         }
 
         _sourceList.Clear();
+        _ = _loggerService.DebugAsync("Queue cleared");
         return true;
     }
 

@@ -151,7 +151,14 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        await _settingsStore.UpdateAsync(transform);
+        try
+        {
+            await _settingsStore.UpdateAsync(transform);
+        }
+        catch (Exception ex)
+        {
+            _ = _loggerService.ErrorAsync("Failed to save settings", ex);
+        }
     }
 
     public async Task ExportLogAsync(FileInfo file) => await _loggerService.ExportAsync(file);
@@ -169,25 +176,32 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        var confirmed = await _confirmationService.ConfirmAsync(
-            UiStrings.Settings_LanguageRestartTitle,
-            UiStrings.Settings_LanguageRestartMessage,
-            UiStrings.Dialog_Restart,
-            UiStrings.Dialog_Cancel);
-
-        if (!confirmed)
+        try
         {
-            _syncing = true;
-            SelectedLanguage = currentLanguage;
-            _syncing = false;
-            return;
+            var confirmed = await _confirmationService.ConfirmAsync(
+                UiStrings.Settings_LanguageRestartTitle,
+                UiStrings.Settings_LanguageRestartMessage,
+                UiStrings.Dialog_Restart,
+                UiStrings.Dialog_Cancel);
+
+            if (!confirmed)
+            {
+                _syncing = true;
+                SelectedLanguage = currentLanguage;
+                _syncing = false;
+                return;
+            }
+
+            await _settingsStore.UpdateAsync(s => s with
+            {
+                ApplicationLanguage = newLanguage
+            });
+            RestartApplication();
         }
-
-        await _settingsStore.UpdateAsync(s => s with
+        catch (Exception ex)
         {
-            ApplicationLanguage = newLanguage
-        });
-        RestartApplication();
+            _ = _loggerService.ErrorAsync("Failed to change language", ex);
+        }
     }
 
     private static void RestartApplication()

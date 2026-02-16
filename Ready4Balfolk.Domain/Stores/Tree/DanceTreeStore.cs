@@ -3,10 +3,11 @@ using System.Reactive.Subjects;
 using System.Text.Json;
 using Ready4Balfolk.Domain.Models.Tree;
 using Ready4Balfolk.Domain.Resources;
+using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.Tree;
 
-public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanceTreeStore
+public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo, ILoggerService loggerService) : IDanceTreeStore
 {
     private const string DanceTreeFileName = "dance_tree.json";
 
@@ -42,7 +43,12 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanc
             if (branches != null)
             {
                 _branches.OnNext(branches);
+                _ = loggerService.InfoAsync($"Loaded dance tree ({branches.Count} branches)");
             }
+        }
+        catch (Exception ex) when (ex is JsonException or IOException)
+        {
+            _ = loggerService.ErrorAsync("Failed to load dance tree", ex);
         }
         finally
         {
@@ -73,6 +79,7 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanc
             destinationFileInfo.Directory?.Create();
             await using var stream = File.Create(destinationFileInfo.FullName);
             await JsonSerializer.SerializeAsync(stream, Current, JsonOptions);
+            _ = loggerService.InfoAsync($"Exported dance tree to {destinationFileInfo.FullName}");
         }
         finally
         {
@@ -109,6 +116,7 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanc
         {
             _branches.OnNext(branches);
             await SaveAsync(branches);
+            _ = loggerService.InfoAsync($"Imported dance tree from {sourceFileInfo.FullName}");
         }
         finally
         {
@@ -125,8 +133,15 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo) : IDanc
 
     private async Task SaveAsync(IReadOnlyList<DanceBranch> branches)
     {
-        danceTreeDirectoryInfo.Create();
-        await using var stream = File.Create(DanceTreeFilePath);
-        await JsonSerializer.SerializeAsync(stream, branches, JsonOptions);
+        try
+        {
+            danceTreeDirectoryInfo.Create();
+            await using var stream = File.Create(DanceTreeFilePath);
+            await JsonSerializer.SerializeAsync(stream, branches, JsonOptions);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _ = loggerService.ErrorAsync("Failed to save dance tree", ex);
+        }
     }
 }

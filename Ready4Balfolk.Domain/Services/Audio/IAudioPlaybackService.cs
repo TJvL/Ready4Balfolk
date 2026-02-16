@@ -27,4 +27,5 @@ public interface IAudioPlaybackService
     IObservable<Unit> WhenPlaybackEnded { get; }
     IObservable<TimeSpan> WhenProgressChanged { get; }
     IObservable<TimeSpan> WhenDurationChanged { get; }
+    IObservable<bool> WhenAvailabilityChanged { get; }
 }

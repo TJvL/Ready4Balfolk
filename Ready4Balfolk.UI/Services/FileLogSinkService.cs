@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Avalonia.Logging;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -7,8 +9,20 @@ namespace Ready4Balfolk.UI.Services;
 
 internal sealed partial class FileLogSinkService(ILoggerService loggerService) : ILogSink
 {
+    private static readonly Dictionary<string, LogEventLevel> AreaMinimumLevels = new(StringComparer.Ordinal)
+    {
+        ["Layout"] = LogEventLevel.Warning,
+        ["Binding"] = LogEventLevel.Error,
+        ["IME"] = LogEventLevel.Fatal,
+        ["Property"] = LogEventLevel.Warning,
+        ["Visual"] = LogEventLevel.Warning,
+        ["Animations"] = LogEventLevel.Warning,
+    };
+
+    private const LogEventLevel DefaultMinimumLevel = LogEventLevel.Warning;
+
     public bool IsEnabled(LogEventLevel level, string area) =>
-        level >= LogEventLevel.Debug;
+        level >= AreaMinimumLevels.GetValueOrDefault(area, DefaultMinimumLevel);
 
     public void Log(LogEventLevel level, string area, object? source, string messageTemplate)
     {

@@ -382,6 +382,9 @@
   <data name="Playback_ClearButton" xml:space="preserve">
     <value>Clear</value>
   </data>
+  <data name="Playback_AudioUnavailable" xml:space="preserve">
+    <value>Audio unavailable</value>
+  </data>
 
   <!-- Track Catalog -->
   <data name="TrackCatalog_ColumnDance" xml:space="preserve">

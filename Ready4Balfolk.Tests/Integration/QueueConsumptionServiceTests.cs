@@ -4,6 +4,7 @@ using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -49,9 +50,9 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         settingsStore.Current.Returns(settings);
         settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
 
-        _queue = new QueueService(settingsStore, _history, () => null);
+        _queue = new QueueService(settingsStore, _history, () => null, new NoOpLoggerService());
 
-        _sut = new QueueConsumptionService(_audio, _queue, _history);
+        _sut = new QueueConsumptionService(_audio, _queue, _history, new NoOpLoggerService());
     }
 
     [Fact]

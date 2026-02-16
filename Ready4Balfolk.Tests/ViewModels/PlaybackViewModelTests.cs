@@ -3,6 +3,7 @@ using DynamicData;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
@@ -40,7 +41,7 @@ public sealed class PlaybackViewModelTests : IDisposable
         var settingsStore = Substitute.For<ISettingsStore>();
         settingsStore.Current.Returns(new ApplicationSettings());
 
-        _sut = new PlaybackViewModel(consumption, queue, confirmation, settingsStore);
+        _sut = new PlaybackViewModel(consumption, queue, confirmation, settingsStore, Substitute.For<IAudioPlaybackService>());
     }
 
     // --- Current item display ---

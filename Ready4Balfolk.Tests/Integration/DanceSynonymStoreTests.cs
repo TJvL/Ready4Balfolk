@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Ready4Balfolk.Domain.Models.Synonyms;
 using Ready4Balfolk.Domain.Services.Editor;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Synonym;
 using Ready4Balfolk.Tests.Helpers;
 
@@ -20,7 +21,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
     {
         _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
-        _sut = new DanceSynonymStore(_tempDir);
+        _sut = new DanceSynonymStore(_tempDir, new NoOpLoggerService());
     }
 
     [Fact]
@@ -49,7 +50,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
 
         Assert.Single(_sut.Current);
 
-        using var store2 = new DanceSynonymStore(_tempDir);
+        using var store2 = new DanceSynonymStore(_tempDir, new NoOpLoggerService());
         await store2.LoadAsync();
         Assert.Single(store2.Current);
     }
