@@ -47,13 +47,18 @@ if ! command -v magick &>/dev/null && [[ -x "$PORTABLE_MAGICK" ]]; then
 fi
 
 if ! command -v magick &>/dev/null; then
-  echo "ERROR: ImageMagick not found."
-  echo "  Install it with:"
-  echo "    Linux:  sudo apt install imagemagick"
-  echo "    macOS:  brew install imagemagick"
-  echo "  Or install a portable copy:"
-  echo "    bash scripts/install-portable-imagemagick.sh"
-  exit 1
+  # Fall back to convert if it is ImageMagick (v6 uses convert instead of magick)
+  if command -v convert &>/dev/null && convert -version 2>&1 | grep -q "ImageMagick"; then
+    magick() { convert "$@"; }
+  else
+    echo "ERROR: ImageMagick not found."
+    echo "  Install it with:"
+    echo "    Linux:  sudo apt install imagemagick"
+    echo "    macOS:  brew install imagemagick"
+    echo "  Or install a portable copy:"
+    echo "    bash scripts/install-portable-imagemagick.sh"
+    exit 1
+  fi
 fi
 
 echo "Generating icons (magick)..."

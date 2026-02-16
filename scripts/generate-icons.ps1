@@ -41,6 +41,15 @@ if (-not $magick -and (Test-Path $portableMagick)) {
     $magick = Get-Command 'magick' -ErrorAction SilentlyContinue
 }
 
+# Fall back to convert if it is ImageMagick (v6 uses convert instead of magick)
+if (-not $magick) {
+    $convert = Get-Command 'convert' -ErrorAction SilentlyContinue
+    if ($convert -and (& $convert.Source -version 2>&1 | Select-String 'ImageMagick')) {
+        Set-Alias -Name magick -Value $convert.Source -Scope Script
+        $magick = $convert
+    }
+}
+
 if (-not $magick) {
     Write-Host 'ERROR: ImageMagick not found.'
     Write-Host '  Install it with:'
