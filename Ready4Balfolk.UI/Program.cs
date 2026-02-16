@@ -160,11 +160,11 @@ public static class Program
         services.AddSingleton<DanceSynonymsViewModel>();
 
         // Lazy wrappers — defers ViewModel creation until first navigation/toggle
-        services.AddSingleton<Lazy<HistoryViewModel>>(sp => new Lazy<HistoryViewModel>(sp.GetRequiredService<HistoryViewModel>));
-        services.AddSingleton<Lazy<DanceTreeViewModel>>(sp => new Lazy<DanceTreeViewModel>(sp.GetRequiredService<DanceTreeViewModel>));
-        services.AddSingleton<Lazy<SettingsViewModel>>(sp => new Lazy<SettingsViewModel>(sp.GetRequiredService<SettingsViewModel>));
-        services.AddSingleton<Lazy<HelpViewModel>>(sp => new Lazy<HelpViewModel>(sp.GetRequiredService<HelpViewModel>));
-        services.AddSingleton<Lazy<DanceSynonymsViewModel>>(sp => new Lazy<DanceSynonymsViewModel>(sp.GetRequiredService<DanceSynonymsViewModel>));
+        services.AddSingleton<Lazy<HistoryViewModel>>(sp => new(sp.GetRequiredService<HistoryViewModel>));
+        services.AddSingleton<Lazy<DanceTreeViewModel>>(sp => new(sp.GetRequiredService<DanceTreeViewModel>));
+        services.AddSingleton<Lazy<SettingsViewModel>>(sp => new(sp.GetRequiredService<SettingsViewModel>));
+        services.AddSingleton<Lazy<HelpViewModel>>(sp => new(sp.GetRequiredService<HelpViewModel>));
+        services.AddSingleton<Lazy<DanceSynonymsViewModel>>(sp => new(sp.GetRequiredService<DanceSynonymsViewModel>));
         // View registrations for ViewModelViewHost resolution
         services.AddTransient<IViewFor<SettingsViewModel>, SettingsView>();
         services.AddTransient<IViewFor<HelpViewModel>, HelpView>();
