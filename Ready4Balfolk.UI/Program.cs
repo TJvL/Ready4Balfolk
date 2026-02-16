@@ -158,6 +158,18 @@ public static class Program
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<HelpViewModel>();
         services.AddSingleton<DanceSynonymsViewModel>();
+
+        // Lazy wrappers — defers ViewModel creation until first navigation/toggle
+        services.AddSingleton<Lazy<HistoryViewModel>>(sp => new Lazy<HistoryViewModel>(sp.GetRequiredService<HistoryViewModel>));
+        services.AddSingleton<Lazy<DanceTreeViewModel>>(sp => new Lazy<DanceTreeViewModel>(sp.GetRequiredService<DanceTreeViewModel>));
+        services.AddSingleton<Lazy<SettingsViewModel>>(sp => new Lazy<SettingsViewModel>(sp.GetRequiredService<SettingsViewModel>));
+        services.AddSingleton<Lazy<HelpViewModel>>(sp => new Lazy<HelpViewModel>(sp.GetRequiredService<HelpViewModel>));
+        services.AddSingleton<Lazy<DanceSynonymsViewModel>>(sp => new Lazy<DanceSynonymsViewModel>(sp.GetRequiredService<DanceSynonymsViewModel>));
+        // View registrations for ViewModelViewHost resolution
+        services.AddTransient<IViewFor<SettingsViewModel>, SettingsView>();
+        services.AddTransient<IViewFor<HelpViewModel>, HelpView>();
+        services.AddTransient<IViewFor<DanceSynonymsViewModel>, DanceSynonymsView>();
+
         services.AddSingleton<PresentationDisplayViewModel>();
 
         // MainWindowViewModel
