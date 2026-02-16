@@ -13,7 +13,10 @@ public sealed class SettingsStore(DirectoryInfo settingsDirectoryInfo) : ISettin
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
+        Converters =
+        {
+            new JsonStringEnumConverter()
+        }
     };
 
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -25,11 +28,13 @@ public sealed class SettingsStore(DirectoryInfo settingsDirectoryInfo) : ISettin
 
     public IObservable<ApplicationSettings> Observe() => _settings.AsObservable();
 
-    private static ApplicationSettings LoadInitial(DirectoryInfo directory)
+    private static ApplicationSettings LoadInitial(FileSystemInfo directory)
     {
         var path = Path.Combine(directory.FullName, SettingsFileName);
         if (!File.Exists(path))
+        {
             return new ApplicationSettings();
+        }
 
         try
         {

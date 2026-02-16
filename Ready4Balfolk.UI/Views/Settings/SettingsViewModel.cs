@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -71,14 +70,38 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         SelectedTheme = current.ApplicationTheme;
         SelectedLanguage = current.ApplicationLanguage;
 
-        ThrottledSave(x => x.MusicDirectoryPath, v => s => s with { MusicDirectoryPath = v });
-        ThrottledSave(x => x.MaxQueueItems, v => s => s with { MaxQueueItems = v });
-        ThrottledSave(x => x.DelaySeconds, v => s => s with { DelaySeconds = v });
-        ThrottledSave(x => x.PresentationDisplayCount, v => s => s with { PresentationDisplayCount = v });
-        ThrottledSave(x => x.AutoQueueRandomTrack, v => s => s with { AutoQueueRandomTrack = v });
-        ThrottledSave(x => x.AllowDuplicateTracksInQueue, v => s => s with { AllowDuplicateTracksInQueue = v });
-        ThrottledSave(x => x.RequirePlaybackConfirmation, v => s => s with { RequirePlaybackConfirmation = v });
-        ThrottledSave(x => x.SelectedTheme, v => s => s with { ApplicationTheme = v });
+        ThrottledSave(x => x.MusicDirectoryPath, v => s => s with
+        {
+            MusicDirectoryPath = v
+        });
+        ThrottledSave(x => x.MaxQueueItems, v => s => s with
+        {
+            MaxQueueItems = v
+        });
+        ThrottledSave(x => x.DelaySeconds, v => s => s with
+        {
+            DelaySeconds = v
+        });
+        ThrottledSave(x => x.PresentationDisplayCount, v => s => s with
+        {
+            PresentationDisplayCount = v
+        });
+        ThrottledSave(x => x.AutoQueueRandomTrack, v => s => s with
+        {
+            AutoQueueRandomTrack = v
+        });
+        ThrottledSave(x => x.AllowDuplicateTracksInQueue, v => s => s with
+        {
+            AllowDuplicateTracksInQueue = v
+        });
+        ThrottledSave(x => x.RequirePlaybackConfirmation, v => s => s with
+        {
+            RequirePlaybackConfirmation = v
+        });
+        ThrottledSave(x => x.SelectedTheme, v => s => s with
+        {
+            ApplicationTheme = v
+        });
 
         this.WhenAnyValue(x => x.SelectedLanguage)
             .Skip(1)
@@ -124,7 +147,10 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     private async void CommitDirect(Func<ApplicationSettings, ApplicationSettings> transform)
     {
         if (_syncing)
+        {
             return;
+        }
+
         await _settingsStore.UpdateAsync(transform);
     }
 
@@ -133,11 +159,15 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     private async void OnLanguageChanged(ApplicationLanguage newLanguage)
     {
         if (_syncing)
+        {
             return;
+        }
 
         var currentLanguage = _settingsStore.Current.ApplicationLanguage;
         if (newLanguage == currentLanguage)
+        {
             return;
+        }
 
         var confirmed = await _confirmationService.ConfirmAsync(
             UiStrings.Settings_LanguageRestartTitle,
@@ -153,7 +183,10 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        await _settingsStore.UpdateAsync(s => s with { ApplicationLanguage = newLanguage });
+        await _settingsStore.UpdateAsync(s => s with
+        {
+            ApplicationLanguage = newLanguage
+        });
         RestartApplication();
     }
 

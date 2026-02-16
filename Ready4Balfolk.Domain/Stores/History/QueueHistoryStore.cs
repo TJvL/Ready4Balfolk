@@ -6,21 +6,27 @@ using Ready4Balfolk.Domain.Models.History;
 
 namespace Ready4Balfolk.Domain.Stores.History;
 
-public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo) : IQueueHistoryStore, IDisposable
+public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo) : IQueueHistoryStore
 {
     private const string QueueHistoryFileName = "queue_history.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
+        Converters =
+        {
+            new JsonStringEnumConverter()
+        }
     };
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly BehaviorSubject<QueueHistory> _history = new(new QueueHistory(null, []));
+    private readonly BehaviorSubject<bool> _isLoading = new(false);
 
     private string QueueHistoryFilePath =>
         Path.Combine(queueHistoryDirectoryInfo.FullName, QueueHistoryFileName);
+
+    public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
     public QueueHistory Current => _history.Value;
 
@@ -28,13 +34,25 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo) :
 
     public async Task LoadAsync()
     {
-        if (!File.Exists(QueueHistoryFilePath))
-            return;
+        _isLoading.OnNext(true);
+        try
+        {
+            if (!File.Exists(QueueHistoryFilePath))
+            {
+                return;
+            }
 
-        await using var stream = File.OpenRead(QueueHistoryFilePath);
-        var history = await JsonSerializer.DeserializeAsync<QueueHistory>(stream, JsonOptions);
-        if (history != null)
-            _history.OnNext(history);
+            await using var stream = File.OpenRead(QueueHistoryFilePath);
+            var history = await JsonSerializer.DeserializeAsync<QueueHistory>(stream, JsonOptions);
+            if (history != null)
+            {
+                _history.OnNext(history);
+            }
+        }
+        finally
+        {
+            _isLoading.OnNext(false);
+        }
     }
 
     public async Task AddAsync(QueueHistoryEntry entry)
@@ -43,7 +61,10 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo) :
         try
         {
             var current = Current;
-            var entries = new List<QueueHistoryEntry>(current.Entries) { entry };
+            var entries = new List<QueueHistoryEntry>(current.Entries)
+            {
+                entry
+            };
             var startedAt = current.StartedAt ?? DateTime.Now;
             var updated = new QueueHistory(startedAt, entries);
             _history.OnNext(updated);
@@ -89,6 +110,7 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo) :
     {
         _gate.Dispose();
         _history.Dispose();
+        _isLoading.Dispose();
     }
 
     private async Task SaveAsync(QueueHistory history)

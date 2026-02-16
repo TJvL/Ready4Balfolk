@@ -48,7 +48,9 @@ public sealed class DuplicateTrackRule(
         {
             var playingPath = GetFilePath(currentPlaying);
             if (playingPath is not null)
+            {
                 seenPaths.Add(playingPath);
+            }
         }
 
         // Seed with finished history entries
@@ -56,7 +58,9 @@ public sealed class DuplicateTrackRule(
         foreach (var entry in history.Entries.OfType<TrackHistoryEntry>())
         {
             if (entry.CompletionStatus == CompletionStatus.Finished)
+            {
                 seenPaths.Add(entry.FilePath);
+            }
         }
 
         // Iterate queue items — first occurrence kept, duplicates evicted
@@ -65,7 +69,9 @@ public sealed class DuplicateTrackRule(
         {
             var filePath = GetFilePath(currentItems[i]);
             if (filePath is not null && !seenPaths.Add(filePath))
+            {
                 indices.Add(i);
+            }
         }
 
         return indices;

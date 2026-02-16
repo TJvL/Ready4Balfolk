@@ -14,6 +14,7 @@ using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.TrackCatalog;
 
+#pragma warning disable CS8618 // ObservableAsProperty fields set by helpers in constructor
 public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
 {
     private readonly IQueueService _queueService;
@@ -22,6 +23,8 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
     private readonly ReadOnlyObservableCollection<TrackViewModel> _tracks;
 
     public ReadOnlyObservableCollection<TrackViewModel> Tracks => _tracks;
+
+    [ObservableAsProperty] public partial bool IsLoading { get; }
 
     [Reactive] public partial string SearchText { get; set; }
 
@@ -33,7 +36,9 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
     {
         var result = _queueService.Enqueue(new TrackQueueItem(track.Track, RandomlyAdded: false));
         if (!result.Allowed)
+        {
             _notificationService.Show(result.RejectionReason!, NotificationSeverity.Warning);
+        }
     }
 
     public TrackCatalogViewModel(ITrackStore trackStore, IQueueService queueService,
@@ -42,6 +47,11 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
         _queueService = queueService;
         _notificationService = notificationService;
         SearchText = "";
+
+        _isLoadingHelper = trackStore.IsLoading
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .ToProperty(this, x => x.IsLoading);
+        _isLoadingHelper.DisposeWith(_disposables);
 
         var searchObservable = this.WhenAnyValue(x => x.SearchText)
             .Throttle(TimeSpan.FromMilliseconds(300))

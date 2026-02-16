@@ -17,11 +17,13 @@ public sealed class QueueServiceTests : IDisposable
     private readonly QueueService _sut;
     private readonly BehaviorSubject<ApplicationSettings> _settingsSubject;
     private readonly BehaviorSubject<QueueHistory> _historySubject;
-    private readonly IQueueHistoryStore _historyStore;
 
     public QueueServiceTests()
     {
-        var settings = new ApplicationSettings() with { MaxQueueItems = 100 };
+        var settings = new ApplicationSettings() with
+        {
+            MaxQueueItems = 100
+        };
         _settingsSubject = new BehaviorSubject<ApplicationSettings>(settings);
 
         var settingsStore = Substitute.For<ISettingsStore>();
@@ -29,11 +31,11 @@ public sealed class QueueServiceTests : IDisposable
         settingsStore.Observe().Returns(_settingsSubject);
 
         _historySubject = new BehaviorSubject<QueueHistory>(new QueueHistory(null, []));
-        _historyStore = Substitute.For<IQueueHistoryStore>();
-        _historyStore.Current.Returns(_ => _historySubject.Value);
-        _historyStore.Observe().Returns(_historySubject);
+        var historyStore = Substitute.For<IQueueHistoryStore>();
+        historyStore.Current.Returns(_ => _historySubject.Value);
+        historyStore.Observe().Returns(_historySubject);
 
-        _sut = new QueueService(settingsStore, _historyStore, () => null);
+        _sut = new QueueService(settingsStore, historyStore, () => null);
     }
 
     // --- Basic ops ---
@@ -221,7 +223,10 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Enqueue_QueueFull_ReturnsDenied()
     {
-        _settingsSubject.OnNext(new ApplicationSettings() with { MaxQueueItems = 2 });
+        _settingsSubject.OnNext(new ApplicationSettings() with
+        {
+            MaxQueueItems = 2
+        });
 
         _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
         _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
@@ -234,7 +239,10 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void InsertAt_QueueFull_ReturnsDenied()
     {
-        _settingsSubject.OnNext(new ApplicationSettings() with { MaxQueueItems = 2 });
+        _settingsSubject.OnNext(new ApplicationSettings() with
+        {
+            MaxQueueItems = 2
+        });
 
         _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
         _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
@@ -270,7 +278,10 @@ public sealed class QueueServiceTests : IDisposable
         _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("C"), false));
         Assert.Equal(3, _sut.Count);
 
-        _settingsSubject.OnNext(new ApplicationSettings() with { MaxQueueItems = 2 });
+        _settingsSubject.OnNext(new ApplicationSettings() with
+        {
+            MaxQueueItems = 2
+        });
         Assert.Equal(2, _sut.Count);
     }
 
@@ -284,7 +295,7 @@ public sealed class QueueServiceTests : IDisposable
             AllowDuplicateTracksInQueue = true
         });
 
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         _sut.Enqueue(new TrackQueueItem(track, false));
         _sut.Enqueue(new TrackQueueItem(track, false));
         Assert.Equal(2, _sut.Count);
@@ -308,7 +319,7 @@ public sealed class QueueServiceTests : IDisposable
             AllowDuplicateTracksInQueue = false
         });
 
-        var track = TestData.CreateTrack("Mazurka");
+        var track = TestData.CreateTrack();
         _sut.Enqueue(new TrackQueueItem(track, false));
         Assert.Equal(1, _sut.Count);
 

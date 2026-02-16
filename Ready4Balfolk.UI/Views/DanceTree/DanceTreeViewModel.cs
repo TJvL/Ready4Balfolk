@@ -47,6 +47,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
     [Reactive] public partial object? SelectedTreeItem { get; set; }
     [Reactive] public partial MarkedSelection Marked { get; set; }
 
+    [ObservableAsProperty] public partial bool IsLoading { get; }
     [ObservableAsProperty] public partial bool HasEntries { get; }
     [ObservableAsProperty] public partial string? UndoTooltip { get; }
     [ObservableAsProperty] public partial string? RedoTooltip { get; }
@@ -79,7 +80,9 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         {
             var result = _queueService.Enqueue(new TrackQueueItem(track, RandomlyAdded: true));
             if (!result.Allowed)
+            {
                 _notificationService.Show(result.RejectionReason!, NotificationSeverity.Warning);
+            }
         }
         else
         {
@@ -107,6 +110,11 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         Marked = new MarkedSelection.Root();
 
         WhenMarkedChanged = this.WhenAnyValue(x => x.Marked);
+
+        _isLoadingHelper = danceTreeStore.IsLoading
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .ToProperty(this, x => x.IsLoading);
+        _isLoadingHelper.DisposeWith(_disposables);
 
         _trackCounts = trackStore.Connect()
             .ToCollection()
@@ -172,31 +180,46 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
     private void CancelEditInline(bool isNewlyAdded, Action revertAction)
     {
         if (isNewlyAdded)
+        {
             UndoRedoAsync(_editorHistoryService.UndoAsync);
+        }
         else
+        {
             revertAction();
+        }
     }
 
     private void RebuildDisplayTree(IReadOnlyList<DanceBranch> branches)
     {
         if (_collapsedBranches is not null)
+        {
             CaptureExpansionState();
+        }
         else if (branches.Count > 0)
+        {
             _collapsedBranches = [.. _settingsStore.Current.CollapsedBranches];
+        }
 
         foreach (var node in DanceTreeDisplayRoot)
+        {
             node.Dispose();
+        }
 
         // Validate marked selection still exists; reset to Root if invalid
         if (!IsMarkedPathValid(branches, Marked))
+        {
             Marked = new MarkedSelection.Root();
+        }
 
         var context = new DanceTreeContext(
             CommitDirect, CommitTracked, _trackCounts, WhenMarkedChanged, m => Marked = m,
             HandleRequestAddBranch, HandleRequestAddLeaf, HandleConfirmEdit, HandleCancelEdit,
             _collapsedBranches ?? []);
         var root = new DanceCategoryNode(UiStrings.DanceTree_RootName, branches, context);
-        DanceTreeDisplayRoot = new List<DanceCategoryNode> { root };
+        DanceTreeDisplayRoot = new List<DanceCategoryNode>
+        {
+            root
+        };
 
         if (_pendingSelection is { } pending)
         {
@@ -259,7 +282,9 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         var parentPath = parent.Path;
 
         if (parentPath.Length == 0)
+        {
             return;
+        }
 
         var branch = ResolveBranch(roots, parentPath);
         var newLeafIndex = branch?.Leafs.Count() ?? 0;
@@ -377,9 +402,15 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         for (var i = 0; i < path.Length; i++)
         {
             if (path[i] < 0 || path[i] >= level.Count)
+            {
                 return null;
+            }
+
             if (i == path.Length - 1)
+            {
                 return level[path[i]];
+            }
+
             level = level[path[i]].Branches.ToList();
         }
 
@@ -403,9 +434,14 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         for (var i = 0; i < path.Length; i++)
         {
             if (path[i] < 0 || path[i] >= level.Count)
+            {
                 return false;
+            }
+
             if (i < path.Length - 1)
+            {
                 level = level[path[i]].Branches.ToList();
+            }
         }
 
         return true;
@@ -418,7 +454,10 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         for (var i = 0; i < parentPath.Length; i++)
         {
             if (parentPath[i] < 0 || parentPath[i] >= level.Count)
+            {
                 return false;
+            }
+
             if (i == parentPath.Length - 1)
             {
                 var leafs = level[parentPath[i]].Leafs.ToList();
@@ -505,7 +544,10 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
     {
         var collapsed = new HashSet<string>();
         foreach (var root in DanceTreeDisplayRoot)
+        {
             CollectCollapsedRecursive(root, collapsed);
+        }
+
         return collapsed;
     }
 
@@ -514,16 +556,22 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
     private static void CollectCollapsedRecursive(DanceCategoryNode node, HashSet<string> collapsed)
     {
         if (!node.IsRoot && !node.IsExpanded)
+        {
             collapsed.Add(node.Name);
+        }
 
         foreach (var child in node.Items.OfType<DanceCategoryNode>())
+        {
             CollectCollapsedRecursive(child, collapsed);
+        }
     }
 
     public void Dispose()
     {
         _disposables.Dispose();
         foreach (var node in DanceTreeDisplayRoot)
+        {
             node.Dispose();
+        }
     }
 }

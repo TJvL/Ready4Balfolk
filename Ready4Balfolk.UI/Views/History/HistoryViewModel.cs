@@ -17,6 +17,7 @@ using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.History;
 
+#pragma warning disable CS8618 // ObservableAsProperty fields set by helpers in constructor
 public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
 {
     private readonly IQueueHistoryStore _historyStore;
@@ -26,6 +27,8 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
     private readonly ReadOnlyObservableCollection<HistoryItemViewModel> _items;
 
     public ReadOnlyObservableCollection<HistoryItemViewModel> Items => _items;
+
+    [ObservableAsProperty] public partial bool IsLoading { get; }
 
     [Reactive] public partial string ItemCountText { get; set; }
     [Reactive] public partial string TotalDurationText { get; set; }
@@ -39,7 +42,9 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
     private async Task ClearHistory()
     {
         if (!await _confirmationService.ConfirmAsync(UiStrings.HistoryToolbar_ClearHistoryTitle, UiStrings.HistoryToolbar_ClearHistoryMessage, UiStrings.HistoryToolbar_ClearButton, UiStrings.HistoryToolbar_CancelButton))
+        {
             return;
+        }
 
         await _historyStore.ClearAsync();
     }
@@ -52,6 +57,11 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
         _confirmationService = confirmationService;
         ItemCountText = UiStrings.History_NoHistory;
         TotalDurationText = "";
+
+        _isLoadingHelper = historyStore.IsLoading
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .ToProperty(this, x => x.IsLoading);
+        _isLoadingHelper.DisposeWith(_disposables);
 
         _sourceList.Connect()
             .Bind(out _items)

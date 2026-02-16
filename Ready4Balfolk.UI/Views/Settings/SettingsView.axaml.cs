@@ -25,7 +25,9 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is null)
+        {
             return;
+        }
 
         var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
@@ -34,14 +36,18 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
         });
 
         if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } path)
+        {
             ViewModel!.MusicDirectoryPath = path;
+        }
     }
 
     private async void OnExportLogClick(object? sender, RoutedEventArgs e)
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is null)
+        {
             return;
+        }
 
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -51,6 +57,8 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
         });
 
         if (file?.TryGetLocalPath() is { } path)
+        {
             await ViewModel!.ExportLogAsync(new FileInfo(path));
+        }
     }
 }

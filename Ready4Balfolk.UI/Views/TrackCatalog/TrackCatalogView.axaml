@@ -4,9 +4,11 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.TrackCatalog"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ready4Balfolk.UI.Views.TrackCatalog.TrackCatalogView"
              x:DataType="local:TrackCatalogViewModel">
+    <controls:LoadingContainer IsLoading="{Binding IsLoading}">
     <DataGrid
         x:Name="TracksDataGrid"
         ItemsSource="{Binding Tracks}"
@@ -57,4 +59,5 @@
                                 Width="100" />
         </DataGrid.Columns>
     </DataGrid>
+    </controls:LoadingContainer>
 </UserControl>

@@ -19,10 +19,15 @@ public partial class QueueToolbarView : ReactiveUserControl<QueueViewModel>
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is not Window owner)
+        {
             return;
+        }
 
         var dialogVm = new RequestMessageDialogViewModel();
-        var dialog = new RequestMessageDialogView { DataContext = dialogVm };
+        var dialog = new RequestMessageDialogView
+        {
+            DataContext = dialogVm
+        };
         await dialog.ShowDialog(owner);
 
         if (dialogVm.DialogResult == true)

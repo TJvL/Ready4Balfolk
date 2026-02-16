@@ -31,7 +31,9 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
         var panelWidth = TrackInfoPanel.Bounds.Width;
 
         if (canvasWidth <= 0 || panelWidth <= 0)
+        {
             return;
+        }
 
         if (panelWidth <= canvasWidth)
         {
@@ -57,10 +59,10 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
                 var left = t < pauseSec
                     ? 0
                     : t < pauseSec + scrollSec
-                    ? -overflow * ((t - pauseSec) / scrollSec)
-                    : t < pauseSec + scrollSec + pauseSec
-                    ? -overflow
-                    : -overflow * (1 - ((t - pauseSec - scrollSec - pauseSec) / scrollSec));
+                        ? -overflow * ((t - pauseSec) / scrollSec)
+                        : t < pauseSec + scrollSec + pauseSec
+                            ? -overflow
+                            : -overflow * (1 - ((t - pauseSec - scrollSec - pauseSec) / scrollSec));
 
                 Canvas.SetLeft(TrackInfoPanel, left);
             });

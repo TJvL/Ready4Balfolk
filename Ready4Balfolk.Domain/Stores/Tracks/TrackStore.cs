@@ -1,5 +1,7 @@
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Threading.Channels;
 using DynamicData;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
@@ -15,6 +17,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly ITrackDiscoveryService _discoveryService;
     private readonly ISynonymResolutionService _synonymService;
     private readonly SourceList<Track> _tracks = new();
+    private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly IDisposable _synonymSubscription;
     private FileSystemWatcher? _watcher;
     private bool _disposed;
@@ -33,7 +36,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
             .Subscribe(_ => ReResolveAllTracks());
     }
 
-    ~TrackStore() => Dispose(false);
+    ~TrackStore()
+    {
+        Dispose(false);
+    }
+
+    public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
     public IReadOnlyList<Track> Current => _tracks.Items.ToList();
 
@@ -42,11 +50,17 @@ public sealed class TrackStore : ITrackStore, IDisposable
         set
         {
             if (value is null)
+            {
                 return;
+            }
+
             if (string.Equals(field?.FullName, value.FullName, StringComparison.Ordinal))
+            {
                 return;
+            }
+
             field = value;
-            _ = LoadDirectoryAsync(value);
+            _ = Task.Run(() => LoadDirectoryAsync(value));
         }
     }
 
@@ -65,13 +79,16 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private void Dispose(bool disposing)
     {
         if (_disposed)
+        {
             return;
+        }
 
         if (disposing)
         {
             _synonymSubscription.Dispose();
             _watcher?.Dispose();
             _tracks.Dispose();
+            _isLoading.Dispose();
         }
 
         _disposed = true;
@@ -82,19 +99,25 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _tracks.Edit(list =>
         {
             for (var i = 0; i < list.Count; i++)
+            {
                 list[i] = ResolveTrackDance(list[i]);
+            }
         });
     }
 
     private Track ResolveTrackDance(Track track)
     {
         var resolved = _synonymService.Resolve(track.OriginalDance);
-        return track with { Dance = resolved, OriginalDance = track.OriginalDance };
+        return track with
+        {
+            Dance = resolved,
+            OriginalDance = track.OriginalDance
+        };
     }
 
     private async Task LoadDirectoryAsync(DirectoryInfo directory)
     {
-        await _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
+        _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
 
         _watcher?.Dispose();
         _watcher = null;
@@ -102,36 +125,77 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         if (!directory.Exists)
         {
-            await _loggerService.WarningAsync(
+            _ = _loggerService.WarningAsync(
                 $"Music directory '{directory.FullName}' does not exist.");
             return;
         }
 
+        _isLoading.OnNext(true);
         try
         {
-            var mp3Files = directory.EnumerateFiles("*.mp3", SearchOption.AllDirectories);
-            var tasks = mp3Files.Select(_discoveryService.LoadTrackAsync).ToArray();
-            await _loggerService.DebugAsync($"Found {tasks.Length} mp3 files to load");
+            var channel = Channel.CreateUnbounded<Track>();
 
-            await foreach (var completedTask in Task.WhenEach(tasks))
+            var producerTask = Task.Run(async () =>
             {
-                try
+                var mp3Files = directory
+                    .EnumerateFiles("*.mp3", SearchOption.AllDirectories)
+                    .ToArray();
+                _ = _loggerService.DebugAsync($"Found {mp3Files.Length} mp3 files to load");
+
+                await Parallel.ForEachAsync(mp3Files,
+                    new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = 8
+                    },
+                    async (file, ct) =>
+                    {
+                        try
+                        {
+                            var track = ResolveTrackDance(
+                                await _discoveryService.LoadTrackAsync(file));
+                            await channel.Writer.WriteAsync(track, ct);
+                        }
+                        catch (Exception ex) when (ex is FormatException or IOException)
+                        {
+                            _ = _loggerService.ErrorAsync(ex.Message, ex);
+                        }
+                    });
+
+                channel.Writer.Complete();
+            });
+
+            var batch = new List<Track>();
+            var lastFlush = DateTime.UtcNow;
+
+            await foreach (var track in channel.Reader.ReadAllAsync())
+            {
+                batch.Add(track);
+                if (batch.Count >= 50 || DateTime.UtcNow - lastFlush >= TimeSpan.FromMilliseconds(200))
                 {
-                    _tracks.Add(ResolveTrackDance(await completedTask));
-                }
-                catch (Exception ex) when (ex is FormatException or IOException)
-                {
-                    await _loggerService.ErrorAsync(ex.Message, ex);
+                    _tracks.AddRange(batch);
+                    batch.Clear();
+                    lastFlush = DateTime.UtcNow;
                 }
             }
 
-            await _loggerService.DebugAsync($"Loaded {_tracks.Count} tracks successfully");
+            if (batch.Count > 0)
+            {
+                _tracks.AddRange(batch);
+            }
+
+            await producerTask;
+
+            _ = _loggerService.DebugAsync($"Loaded {_tracks.Count} tracks successfully");
             StartWatching(directory);
         }
         catch (Exception ex)
         {
             await _loggerService.ErrorAsync(
                 $"Failed to load tracks from '{directory.FullName}'", ex);
+        }
+        finally
+        {
+            _isLoading.OnNext(false);
         }
     }
 
@@ -168,7 +232,9 @@ public sealed class TrackStore : ITrackStore, IDisposable
         var track = _tracks.Items.FirstOrDefault(t =>
             string.Equals(t.FileInfo.FullName, fileSystemEventArgs.FullPath, StringComparison.Ordinal));
         if (track != null)
+        {
             _tracks.Remove(track);
+        }
     }
 
     private async void OnFileRenamed(object sender, RenamedEventArgs renamedEventArgs)
@@ -176,10 +242,14 @@ public sealed class TrackStore : ITrackStore, IDisposable
         var oldTrack = _tracks.Items.FirstOrDefault(t =>
             string.Equals(t.FileInfo.FullName, renamedEventArgs.OldFullPath, StringComparison.Ordinal));
         if (oldTrack != null)
+        {
             _tracks.Remove(oldTrack);
+        }
 
         if (!Path.GetExtension(renamedEventArgs.FullPath).Equals(".mp3", StringComparison.OrdinalIgnoreCase))
+        {
             return;
+        }
 
         try
         {
@@ -196,11 +266,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
     {
         var normalized = StringNormalizer.Normalize(search);
         return string.IsNullOrEmpty(normalized)
-            ? (_ => true)
-            : (track =>
-            StringNormalizer.Normalize(track.Dance).Contains(normalized, StringComparison.Ordinal) ||
-            StringNormalizer.Normalize(track.OriginalDance).Contains(normalized, StringComparison.Ordinal) ||
-            StringNormalizer.Normalize(track.Artist).Contains(normalized, StringComparison.Ordinal) ||
-            StringNormalizer.Normalize(track.Title).Contains(normalized, StringComparison.Ordinal));
+            ? _ => true
+            : track =>
+                StringNormalizer.Normalize(track.Dance).Contains(normalized, StringComparison.Ordinal) ||
+                StringNormalizer.Normalize(track.OriginalDance).Contains(normalized, StringComparison.Ordinal) ||
+                StringNormalizer.Normalize(track.Artist).Contains(normalized, StringComparison.Ordinal) ||
+                StringNormalizer.Normalize(track.Title).Contains(normalized, StringComparison.Ordinal);
     }
 }

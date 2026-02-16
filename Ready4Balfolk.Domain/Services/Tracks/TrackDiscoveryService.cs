@@ -20,7 +20,7 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
         return parts.Length != 3
             ? throw new FormatException(
                 $"Invalid filename format for '{mp3FileInfo.Name}', expected '{{Dance}} - {{Artist}} - {{Title}}.mp3'.")
-            : ((string Dance, string Artist, string Title))(parts[0].Trim(), parts[1].Trim(), parts[2].Trim());
+            : (parts[0].Trim(), parts[1].Trim(), parts[2].Trim());
     }
 
     private static async Task<TimeSpan> GetTrackDurationAsync(FileInfo mp3FileInfo)

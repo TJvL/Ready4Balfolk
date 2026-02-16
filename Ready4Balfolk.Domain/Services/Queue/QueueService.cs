@@ -45,14 +45,18 @@ public sealed class QueueService : IQueueService, IDisposable
         {
             result = _guard.EvaluateAdd(item, list.ToList());
             if (!result.Allowed)
+            {
                 return;
+            }
 
             if (result.RemovalPredicate is { } predicate)
             {
                 for (var i = list.Count - 1; i >= 0; i--)
                 {
                     if (predicate(list[i]))
+                    {
                         list.RemoveAt(i);
+                    }
                 }
             }
 
@@ -64,7 +68,9 @@ public sealed class QueueService : IQueueService, IDisposable
     public IQueueItem? Dequeue()
     {
         if (_sourceList.Count == 0)
+        {
             return null;
+        }
 
         var item = _sourceList.Items[0];
         _sourceList.RemoveAt(0);
@@ -78,7 +84,9 @@ public sealed class QueueService : IQueueService, IDisposable
         {
             result = _guard.EvaluateAdd(item, list.ToList());
             if (!result.Allowed)
+            {
                 return;
+            }
 
             var removed = 0;
             if (result.RemovalPredicate is { } predicate)
@@ -89,7 +97,9 @@ public sealed class QueueService : IQueueService, IDisposable
                     {
                         list.RemoveAt(i);
                         if (i < index)
+                        {
                             removed++;
+                        }
                     }
                 }
             }
@@ -102,7 +112,9 @@ public sealed class QueueService : IQueueService, IDisposable
     public bool Move(int oldIndex, int newIndex)
     {
         if (!_guard.CanMove(_sourceList.Items[oldIndex]))
+        {
             return false;
+        }
 
         _sourceList.Move(oldIndex, newIndex);
         return true;
@@ -111,7 +123,9 @@ public sealed class QueueService : IQueueService, IDisposable
     public bool RemoveAt(int index)
     {
         if (!_guard.CanRemove(_sourceList.Items[index]))
+        {
             return false;
+        }
 
         _sourceList.RemoveAt(index);
         return true;
@@ -120,7 +134,9 @@ public sealed class QueueService : IQueueService, IDisposable
     public bool Clear()
     {
         if (!_guard.CanClear(_sourceList.Items.ToList()))
+        {
             return false;
+        }
 
         _sourceList.Clear();
         return true;
@@ -147,16 +163,22 @@ public sealed class QueueService : IQueueService, IDisposable
     {
         var items = _sourceList.Items.ToList();
         if (items.Count == 0)
+        {
             return;
+        }
 
         var indices = _guard.GetEvictionIndices(items);
         if (indices.Count == 0)
+        {
             return;
+        }
 
         _sourceList.Edit(list =>
         {
             foreach (var i in indices)
+            {
                 list.RemoveAt(i);
+            }
         });
     }
 

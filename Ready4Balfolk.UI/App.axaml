@@ -1,5 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              x:Class="Ready4Balfolk.UI.App"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
@@ -67,6 +68,57 @@
         <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
         <Style Selector="Button:disabled">
             <Setter Property="Opacity" Value="0.35" />
+        </Style>
+
+        <!-- LoadingContainer template and animations -->
+        <Style Selector="controls|LoadingContainer">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Panel>
+                        <ContentPresenter x:Name="PART_ContentPresenter"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Opacity="0"
+                                          IsHitTestVisible="False">
+                            <ContentPresenter.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="CubicEaseOut" />
+                                </Transitions>
+                            </ContentPresenter.Transitions>
+                        </ContentPresenter>
+                        <Border x:Name="PART_LoadingBorder"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Opacity="1"
+                                IsHitTestVisible="True">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                                </Transitions>
+                            </Border.Transitions>
+                            <ProgressBar IsIndeterminate="True"
+                                         Width="200"
+                                         HorizontalAlignment="Center" />
+                        </Border>
+                    </Panel>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="controls|LoadingContainer:not(:loading) /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="IsHitTestVisible" Value="True" />
+        </Style>
+        <Style Selector="controls|LoadingContainer:not(:loading) /template/ Border#PART_LoadingBorder">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+        <Style Selector="controls|LoadingContainer:loading /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+        <Style Selector="controls|LoadingContainer:loading /template/ Border#PART_LoadingBorder">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="IsHitTestVisible" Value="True" />
         </Style>
     </Application.Styles>
 </Application>

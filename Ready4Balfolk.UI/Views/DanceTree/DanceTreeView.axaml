@@ -5,6 +5,7 @@
              xmlns:conv="using:Avalonia.Data.Converters"
              xmlns:local="using:Ready4Balfolk.UI.Views.DanceTree"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ready4Balfolk.UI.Views.DanceTree.DanceTreeView"
              x:DataType="local:DanceTreeViewModel">
@@ -17,6 +18,7 @@
         <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
         <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
     </UserControl.KeyBindings>
+    <controls:LoadingContainer IsLoading="{Binding IsLoading}">
     <TreeView x:Name="DanceTreeControl"
               ItemsSource="{Binding DanceTreeDisplayRoot}"
               SelectedItem="{Binding SelectedTreeItem}">
@@ -203,4 +205,5 @@
             </DataTemplate>
         </TreeView.DataTemplates>
     </TreeView>
+    </controls:LoadingContainer>
 </UserControl>

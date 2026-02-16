@@ -26,7 +26,9 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is null)
+        {
             return;
+        }
 
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -36,7 +38,9 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
         });
 
         if (file?.TryGetLocalPath() is { } path)
+        {
             await ViewModel!.ExportAsync(new FileInfo(path));
+        }
     }
 
     private void OnToggleClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().IsHistoryMode = false;

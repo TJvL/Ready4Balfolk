@@ -2,7 +2,7 @@ using Ready4Balfolk.Domain.Models.Tree;
 
 namespace Ready4Balfolk.Domain.Stores.Tree;
 
-public interface IDanceTreeStore : IDisposable
+public interface IDanceTreeStore : ILoadableStore, IDisposable
 {
     IReadOnlyList<DanceBranch> Current { get; }
     IObservable<IReadOnlyList<DanceBranch>> Observe();

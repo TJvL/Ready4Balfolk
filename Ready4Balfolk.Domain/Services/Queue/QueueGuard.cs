@@ -3,7 +3,7 @@ using Ready4Balfolk.Domain.Resources;
 
 namespace Ready4Balfolk.Domain.Services.Queue;
 
-public sealed class QueueGuard(IReadOnlyList<IQueueRule> rules) : IQueueGuard
+public sealed class QueueGuard(IEnumerable<IQueueRule> rules) : IQueueGuard
 {
     public QueueAddResult EvaluateAdd(IQueueItem item, IReadOnlyList<IQueueItem> currentItems)
     {
@@ -13,7 +13,9 @@ public sealed class QueueGuard(IReadOnlyList<IQueueRule> rules) : IQueueGuard
         {
             var predicate = rule.GetPreAddRemovalPredicate(item, currentItems);
             if (predicate is not null)
+            {
                 predicates.Add(predicate);
+            }
         }
 
         // Compute adjusted list
@@ -34,7 +36,9 @@ public sealed class QueueGuard(IReadOnlyList<IQueueRule> rules) : IQueueGuard
         {
             var verdict = rule.EvaluateAdd(item, adjustedItems);
             if (verdict is { Allowed: false })
+            {
                 return QueueAddResult.Deny(verdict.Reason ?? DomainStrings.QueueGuard_DeniedByRule);
+            }
         }
 
         return QueueAddResult.Allow(combinedPredicate);
@@ -46,7 +50,9 @@ public sealed class QueueGuard(IReadOnlyList<IQueueRule> rules) : IQueueGuard
         foreach (var rule in rules)
         {
             foreach (var index in rule.GetEvictionIndices(currentItems))
+            {
                 allIndices.Add(index);
+            }
         }
 
         var sorted = allIndices.ToList();
@@ -61,7 +67,9 @@ public sealed class QueueGuard(IReadOnlyList<IQueueRule> rules) : IQueueGuard
         {
             var result = rule.CanRemove(item);
             if (result.HasValue)
+            {
                 return result.Value;
+            }
         }
 
         return true;
@@ -73,7 +81,9 @@ public sealed class QueueGuard(IReadOnlyList<IQueueRule> rules) : IQueueGuard
         {
             var result = rule.CanMove(item);
             if (result.HasValue)
+            {
                 return result.Value;
+            }
         }
 
         return true;
@@ -85,7 +95,9 @@ public sealed class QueueGuard(IReadOnlyList<IQueueRule> rules) : IQueueGuard
         {
             var result = rule.CanClear(currentItems);
             if (result.HasValue)
+            {
                 return result.Value;
+            }
         }
 
         return true;

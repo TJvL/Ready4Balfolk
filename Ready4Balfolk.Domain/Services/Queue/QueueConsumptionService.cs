@@ -68,9 +68,13 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
             var item = _queue.Dequeue();
             if (item != null)
+            {
                 await StartItemAsync(item);
+            }
             else
+            {
                 _currentItem.OnNext(null);
+            }
         }
         finally
         {
@@ -81,9 +85,13 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     public async Task PlayPauseAsync()
     {
         if (_audio.IsPlaying)
+        {
             await _audio.PauseAsync();
+        }
         else
+        {
             await _audio.PlayAsync();
+        }
     }
 
     public async Task RestartAsync() => await _audio.RestartAsync();
@@ -130,9 +138,14 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 await _audio.ClearAsync();
                 _currentItem.OnNext(item);
                 if (message.Duration is { } duration)
+                {
                     StartCountdown(duration);
+                }
                 else
+                {
                     _totalDuration.OnNext(TimeSpan.Zero);
+                }
+
                 break;
             case StopQueueItem:
                 await _audio.ClearAsync();
@@ -210,7 +223,9 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     {
         var item = _currentItem.Value;
         if (item == null)
+        {
             return;
+        }
 
         QueueHistoryEntry entry = item switch
         {

@@ -2,7 +2,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 
 namespace Ready4Balfolk.Domain.Stores.Settings;
 
-public interface ISettingsStore : IDisposable
+public interface ISettingsStore
 {
     ApplicationSettings Current { get; }
     IObservable<ApplicationSettings> Observe();

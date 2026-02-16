@@ -19,9 +19,12 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly BehaviorSubject<IReadOnlyList<DanceMainName>> _synonyms = new([]);
+    private readonly BehaviorSubject<bool> _isLoading = new(false);
 
     private string DanceSynonymsFilePath =>
         Path.Combine(danceSynonymDirectoryInfo.FullName, DanceSynonymsFileName);
+
+    public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
     public IReadOnlyList<DanceMainName> Current => _synonyms.Value;
 
@@ -29,13 +32,25 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
 
     public async Task LoadAsync()
     {
-        if (!File.Exists(DanceSynonymsFilePath))
-            return;
+        _isLoading.OnNext(true);
+        try
+        {
+            if (!File.Exists(DanceSynonymsFilePath))
+            {
+                return;
+            }
 
-        await using var stream = File.OpenRead(DanceSynonymsFilePath);
-        var synonyms = await JsonSerializer.DeserializeAsync<List<DanceMainName>>(stream, JsonOptions);
-        if (synonyms != null)
-            _synonyms.OnNext(synonyms);
+            await using var stream = File.OpenRead(DanceSynonymsFilePath);
+            var synonyms = await JsonSerializer.DeserializeAsync<List<DanceMainName>>(stream, JsonOptions);
+            if (synonyms != null)
+            {
+                _synonyms.OnNext(synonyms);
+            }
+        }
+        finally
+        {
+            _isLoading.OnNext(false);
+        }
     }
 
     public async Task UpdateAsync(Func<IReadOnlyList<DanceMainName>, IReadOnlyList<DanceMainName>> transform)
@@ -71,7 +86,9 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
     public async Task ImportAsync(FileInfo sourceFileInfo)
     {
         if (!sourceFileInfo.Exists)
+        {
             throw new FileNotFoundException(DomainStrings.ImportFileNotFound, sourceFileInfo.FullName);
+        }
 
         List<DanceMainName> synonyms;
         try
@@ -86,10 +103,15 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
         }
 
         if (synonyms.Any(s => string.IsNullOrWhiteSpace(s.Name)))
+        {
             throw new InvalidDataException(DomainStrings.DanceSynonymStore_MissingNames);
+        }
 
         var allNames = synonyms
-            .SelectMany(m => new[] { m.Name }.Concat(m.Synonyms.Select(s => s.Name)))
+            .SelectMany(m => new[]
+            {
+                m.Name
+            }.Concat(m.Synonyms.Select(s => s.Name)))
             .Select(StringNormalizer.Normalize)
             .ToList();
         var duplicates = allNames
@@ -119,6 +141,7 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
     {
         _gate.Dispose();
         _synonyms.Dispose();
+        _isLoading.Dispose();
     }
 
     private async Task SaveAsync(IReadOnlyList<DanceMainName> synonyms)

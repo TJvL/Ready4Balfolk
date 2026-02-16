@@ -14,7 +14,9 @@ public class ConfirmationService : IConfirmationService
         string confirmText = "Yes", string cancelText = "No")
     {
         if (_owner is null)
+        {
             return true;
+        }
 
         var vm = new ConfirmationDialogViewModel
         {
@@ -23,7 +25,10 @@ public class ConfirmationService : IConfirmationService
             ConfirmText = confirmText,
             CancelText = cancelText
         };
-        var dialog = new ConfirmationDialogView { DataContext = vm };
+        var dialog = new ConfirmationDialogView
+        {
+            DataContext = vm
+        };
         await dialog.ShowDialog(_owner);
         return vm.DialogResult == true;
     }

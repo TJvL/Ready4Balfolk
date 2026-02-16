@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -45,11 +46,11 @@ public sealed class App : Application
 
             Services.GetRequiredService<Services.ConfirmationService>().SetOwner(mainWindow);
 
-            mainWindow.Opened += async (_, _) =>
+            mainWindow.Opened += (_, _) =>
             {
-                await Services.GetRequiredService<IDanceTreeStore>().LoadAsync();
-                await Services.GetRequiredService<IDanceSynonymStore>().LoadAsync();
-                await Services.GetRequiredService<IQueueHistoryStore>().LoadAsync();
+                _ = Task.Run(() => Services.GetRequiredService<IDanceTreeStore>().LoadAsync());
+                _ = Task.Run(() => Services.GetRequiredService<IDanceSynonymStore>().LoadAsync());
+                _ = Task.Run(() => Services.GetRequiredService<IQueueHistoryStore>().LoadAsync());
 
                 ApplyTheme(settingsStore.Current.ApplicationTheme);
                 settingsStore.Observe()
@@ -65,7 +66,10 @@ public sealed class App : Application
 
                 var windowState = settingsStore.Current.MainWindowState;
                 if (windowState is { X: not null, Y: not null })
+                {
                     mainWindow.Position = new PixelPoint((int)windowState.X.Value, (int)windowState.Y.Value);
+                }
+
                 if (windowState is { Width: not null, Height: not null })
                 {
                     mainWindow.Width = windowState.Width.Value;
@@ -73,7 +77,9 @@ public sealed class App : Application
                 }
 
                 if (windowState.IsMaximized)
+                {
                     mainWindow.WindowState = AvaloniaWindowState.Maximized;
+                }
 
                 // Open initial presentation windows and subscribe to count changes
                 SyncPresentationWindows(settingsStore.Current.PresentationDisplayCount, settingsStore);
@@ -87,7 +93,9 @@ public sealed class App : Application
             mainWindow.Closing += async (_, e) =>
             {
                 if (closeConfirmed)
+                {
                     return;
+                }
 
                 e.Cancel = true;
 
@@ -96,11 +104,16 @@ public sealed class App : Application
                     Title = UiStrings.App_ExitTitle,
                     Message = UiStrings.App_ExitMessage
                 };
-                var dialog = new ConfirmationDialogView { DataContext = dialogVm };
+                var dialog = new ConfirmationDialogView
+                {
+                    DataContext = dialogVm
+                };
                 await dialog.ShowDialog(mainWindow);
 
                 if (dialogVm.DialogResult != true)
+                {
                     return;
+                }
 
                 // Save all window states while everything is still open
                 var isMaximized = mainWindow.WindowState == AvaloniaWindowState.Maximized;
@@ -195,7 +208,10 @@ public sealed class App : Application
                 window.Opened += (_, _) =>
                 {
                     if (ws is { X: not null, Y: not null })
+                    {
                         window.Position = new PixelPoint((int)ws.X.Value, (int)ws.Y.Value);
+                    }
+
                     if (ws is { Width: not null, Height: not null })
                     {
                         window.Width = ws.Width.Value;
@@ -203,9 +219,13 @@ public sealed class App : Application
                     }
 
                     if (ws.IsBorderless)
+                    {
                         window.IsBorderless = true;
+                    }
                     else if (ws.IsMaximized)
+                    {
                         window.WindowState = AvaloniaWindowState.Maximized;
+                    }
                 };
             }
 

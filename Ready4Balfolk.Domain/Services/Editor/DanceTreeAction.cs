@@ -34,7 +34,9 @@ public sealed class DanceTreeAction : IEditorAction
         {
             var validation = _validate(current);
             if (!validation.Success)
+            {
                 return validation;
+            }
         }
 
         _before = current;
@@ -62,12 +64,12 @@ public sealed class DanceTreeAction : IEditorAction
         => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_AddDanceWithName, name),
             roots => DanceTreeTransforms.AddLeaf(roots, path, name),
             roots => path.Length == 0
-                    ? EditorActionResult.Error(DomainStrings.DanceTreeAction_CannotAddDanceToRoot)
-                    : string.IsNullOrWhiteSpace(name)
+                ? EditorActionResult.Error(DomainStrings.DanceTreeAction_CannotAddDanceToRoot)
+                : string.IsNullOrWhiteSpace(name)
                     ? EditorActionResult.Error(DomainStrings.DanceTreeAction_DanceNameEmpty)
                     : DanceTreeTransforms.IsLeafNameUnique(roots, name)
-                    ? EditorActionResult.Ok()
-                    : EditorActionResult.Error(string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_DanceNameExists, name)));
+                        ? EditorActionResult.Ok()
+                        : EditorActionResult.Error(string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_DanceNameExists, name)));
 
     public static DanceTreeAction DeleteBranch(IDanceTreeStore store, int[] path)
     {
@@ -87,8 +89,8 @@ public sealed class DanceTreeAction : IEditorAction
         => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_RenameCategory, newName),
             roots => DanceTreeTransforms.RenameBranch(roots, path, newName),
             roots => string.IsNullOrWhiteSpace(newName)
-                    ? EditorActionResult.Error(DomainStrings.DanceTreeAction_CategoryNameEmpty)
-                    : DanceTreeTransforms.IsBranchNameUnique(roots, newName, excludePath: path)
+                ? EditorActionResult.Error(DomainStrings.DanceTreeAction_CategoryNameEmpty)
+                : DanceTreeTransforms.IsBranchNameUnique(roots, newName, excludePath: path)
                     ? EditorActionResult.Ok()
                     : EditorActionResult.Error(string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_CategoryNameExists, newName)));
 
@@ -103,8 +105,8 @@ public sealed class DanceTreeAction : IEditorAction
         => new(store, string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_RenameDance, newName),
             roots => DanceTreeTransforms.RenameLeaf(roots, parentPath, leafIndex, newName),
             roots => string.IsNullOrWhiteSpace(newName)
-                    ? EditorActionResult.Error(DomainStrings.DanceTreeAction_DanceNameEmpty)
-                    : DanceTreeTransforms.IsLeafNameUnique(roots, newName, excludeParentPath: parentPath, excludeLeafIndex: leafIndex)
+                ? EditorActionResult.Error(DomainStrings.DanceTreeAction_DanceNameEmpty)
+                : DanceTreeTransforms.IsLeafNameUnique(roots, newName, excludeParentPath: parentPath, excludeLeafIndex: leafIndex)
                     ? EditorActionResult.Ok()
                     : EditorActionResult.Error(string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceTreeAction_DanceNameExists, newName)));
 
@@ -121,9 +123,15 @@ public sealed class DanceTreeAction : IEditorAction
         for (var i = 0; i < path.Length; i++)
         {
             if (path[i] >= level.Count)
+            {
                 return "?";
+            }
+
             if (i == path.Length - 1)
+            {
                 return level[path[i]].Name;
+            }
+
             level = level[path[i]].Branches.ToList();
         }
 
@@ -137,7 +145,10 @@ public sealed class DanceTreeAction : IEditorAction
         for (var i = 0; i < parentPath.Length; i++)
         {
             if (parentPath[i] >= level.Count)
+            {
                 return "?";
+            }
+
             if (i == parentPath.Length - 1)
             {
                 var leafs = level[parentPath[i]].Leafs.ToList();

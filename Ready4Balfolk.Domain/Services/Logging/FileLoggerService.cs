@@ -19,7 +19,9 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
     public Task LogAsync(LogLevel logLevel, string message)
     {
         if (logLevel < MinimumLevel)
+        {
             return Task.CompletedTask;
+        }
 
         var line = FormatLine(logLevel, message);
         return Task.Run(() => WriteLineAsync(line));
@@ -48,7 +50,9 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
             {
                 _logFile.Refresh();
                 if (_logFile.Exists)
+                {
                     _logFile.CopyTo(fileInfo.FullName, overwrite: true);
+                }
             }
             finally
             {
@@ -64,7 +68,9 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
         {
             _logFile.Refresh();
             if (_logFile is { Exists: true, Length: >= MaxFileSizeBytes })
+            {
                 _logFile.Delete();
+            }
 
             await File.AppendAllTextAsync(_logFile.FullName, line);
         }

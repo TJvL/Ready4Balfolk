@@ -56,7 +56,9 @@ file static class Program
         isDebug = true;
 #endif
         if (isDebug)
+        {
             LoggerService.MinimumLevel = LogLevel.Debug;
+        }
 
         var culture = SettingsStore.Current.ApplicationLanguage switch
         {
@@ -69,7 +71,9 @@ file static class Program
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
             if (e.ExceptionObject is Exception ex)
+            {
                 LoggerService.CriticalAsync("Unhandled exception", ex);
+            }
         };
 
         TaskScheduler.UnobservedTaskException += (_, e) =>

@@ -60,7 +60,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         {
             var result = _queueService.Enqueue(new TrackQueueItem(track, RandomlyAdded: true));
             if (!result.Allowed)
+            {
                 _notificationService.Show(result.RejectionReason!, NotificationSeverity.Warning);
+            }
         }
         else
         {
@@ -80,7 +82,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     {
         var result = _queueService.Enqueue(new StopQueueItem());
         if (!result.Allowed)
+        {
             _notificationService.Show(result.RejectionReason!, NotificationSeverity.Warning);
+        }
     }
 
     [ReactiveCommand]
@@ -88,7 +92,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     {
         var result = _queueService.Enqueue(new DelayQueueItem(TimeSpan.FromSeconds(_settingsStore.Current.DelaySeconds)));
         if (!result.Allowed)
+        {
             _notificationService.Show(result.RejectionReason!, NotificationSeverity.Warning);
+        }
     }
 
     [ReactiveCommand(CanExecute = nameof(CanRemoveSelected))]
@@ -110,7 +116,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     {
         var result = _queueService.Enqueue(new MessageQueueItem(message, duration));
         if (!result.Allowed)
+        {
             _notificationService.Show(result.RejectionReason!, NotificationSeverity.Warning);
+        }
     }
 
     public QueueViewModel(
@@ -141,7 +149,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
                 UpdateItemCountText();
 
                 if (_queuedItems.Count == 0 && !_suppressAutoEnqueue)
+                {
                     TryAutoEnqueue();
+                }
             })
             .DisposeWith(_disposables);
 
@@ -158,9 +168,13 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             .Subscribe(item =>
             {
                 if (item is null)
+                {
                     _queueService.RemoveWhere(i => i is AutoTrackQueueItem);
+                }
                 else
+                {
                     TryAutoEnqueue();
+                }
             })
             .DisposeWith(_disposables);
 
@@ -189,20 +203,34 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     public void DeleteSelectedItem()
     {
         if (SelectedItem is null)
+        {
             return;
+        }
+
         var index = _queuedItems.IndexOf(SelectedItem);
         if (index >= 0)
+        {
             _queueService.RemoveAt(index);
+        }
     }
 
     public void MoveItem(int oldIndex, int newIndex)
     {
         if (oldIndex < 0 || oldIndex >= _queuedItems.Count)
+        {
             return;
+        }
+
         if (newIndex < 0 || newIndex >= _queuedItems.Count)
+        {
             return;
+        }
+
         if (oldIndex == newIndex)
+        {
             return;
+        }
+
         _queueService.Move(oldIndex, newIndex);
     }
 
@@ -210,27 +238,42 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     {
         var index = _queuedItems.IndexOf(item);
         if (index < 0)
+        {
             return;
+        }
 
         _suppressAutoEnqueue = true;
         _queueService.RemoveWhere(i => i is AutoTrackQueueItem);
-        _queueService.InsertAt(index, item.TrackQueueItem with { RandomlyAdded = true });
+        _queueService.InsertAt(index, item.TrackQueueItem with
+        {
+            RandomlyAdded = true
+        });
         _suppressAutoEnqueue = false;
     }
 
     private void TryAutoEnqueue()
     {
         if (!_settingsStore.Current.AutoQueueRandomTrack)
+        {
             return;
+        }
+
         if (_queueService.Count > 0)
+        {
             return;
+        }
+
         if (_consumptionService.CurrentItem is null)
+        {
             return;
+        }
 
         var scope = GetMarkedScope();
         var track = _randomTrackService.PickRandomTrack(scope, _settingsStore.Current.AllowDuplicateTracksInQueue);
         if (track is null)
+        {
             return;
+        }
 
         _queueService.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(track, RandomlyAdded: true)));
     }
@@ -240,7 +283,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         var currentFile = _queuedItems.OfType<AutoTrackQueueItem>().FirstOrDefault()?.TrackQueueItem.Track.FileInfo
             .FullName;
         if (currentFile is null)
+        {
             return;
+        }
 
         _suppressAutoEnqueue = true;
         _queueService.RemoveWhere(i => i is AutoTrackQueueItem);
@@ -252,10 +297,14 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 
         // If we got the same track, retry once
         if (track is not null && track.FileInfo.FullName == currentFile)
+        {
             track = _randomTrackService.PickRandomTrack(scope, allowDuplicates) ?? track;
+        }
 
         if (track is not null)
+        {
             _queueService.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(track, RandomlyAdded: true)));
+        }
     }
 
     private void UpdateItemCountText()
