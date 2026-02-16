@@ -23,12 +23,6 @@ jobs:
           name: linux-x64-flatpak-publish
           path: flatpak-publish
 
-      - name: Download generated icons
-        uses: actions/download-artifact@v4
-        with:
-          name: generated-icons
-          path: icons
-
       - name: Stage Flatpak content
         run: |
           STAGE=packaging/linux/flatpak-stage
@@ -42,9 +36,9 @@ jobs:
           cp packaging/linux/io.github.tjvl.Ready4Balfolk.desktop \
             $STAGE/stage/share/applications/
 
-          # Icons from generated PNGs
+          # Icons from committed PNGs
           for size in 16 24 32 48 64 128 256 512; do
-            icon="icons/icon-${size}.png"
+            icon="Ready4Balfolk.UI/Assets/icon-${size}.png"
             if [ -f "$icon" ]; then
               dest="$STAGE/stage/share/icons/hicolor/${size}x${size}/apps"
               mkdir -p "$dest"

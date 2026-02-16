@@ -50,11 +50,8 @@
       <AvaloniaResource Include="..\documentation\help.nl.md" Link="Views\Help\help.nl.md" />
     </ItemGroup>
 
-    <Target Name="GenerateIcons" BeforeTargets="PrepareForBuild">
-        <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../scripts/generate-icons.sh&quot;" />
-        <ItemGroup>
-            <AvaloniaResource Include="Assets\icon.ico" />
-        </ItemGroup>
-    </Target>
+    <ItemGroup>
+        <AvaloniaResource Include="Assets\icon.ico" />
+    </ItemGroup>
 
 </Project>
