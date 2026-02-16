@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reactive;
@@ -36,8 +37,10 @@ using FileLogSinkService = Ready4Balfolk.UI.Services.FileLogSinkService;
 
 namespace Ready4Balfolk.UI;
 
-file static class Program
+public static class Program
 {
+    internal static readonly Stopwatch StartupStopwatch = new();
+
     private static readonly DirectoryInfo DataDirectory =
         new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ready4Balfolk"));
 
@@ -50,6 +53,8 @@ file static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        StartupStopwatch.Start();
+
         // ReSharper disable once RedundantAssignment
         var isDebug = args.Contains("--debug", StringComparer.OrdinalIgnoreCase);
 #if DEBUG
@@ -124,6 +129,7 @@ file static class Program
         });
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
         services.AddTransient<IEditorHistoryService, EditorHistoryService>();
+        services.AddSingleton<ITrackDurationCache>(_ => new TrackDurationCache(DataDirectory));
         services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<ISynonymResolutionService, SynonymResolutionService>();
@@ -152,6 +158,18 @@ file static class Program
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<HelpViewModel>();
         services.AddSingleton<DanceSynonymsViewModel>();
+
+        // Lazy wrappers — defers ViewModel creation until first navigation/toggle
+        services.AddSingleton<Lazy<HistoryViewModel>>(sp => new(sp.GetRequiredService<HistoryViewModel>));
+        services.AddSingleton<Lazy<DanceTreeViewModel>>(sp => new(sp.GetRequiredService<DanceTreeViewModel>));
+        services.AddSingleton<Lazy<SettingsViewModel>>(sp => new(sp.GetRequiredService<SettingsViewModel>));
+        services.AddSingleton<Lazy<HelpViewModel>>(sp => new(sp.GetRequiredService<HelpViewModel>));
+        services.AddSingleton<Lazy<DanceSynonymsViewModel>>(sp => new(sp.GetRequiredService<DanceSynonymsViewModel>));
+        // View registrations for ViewModelViewHost resolution
+        services.AddTransient<IViewFor<SettingsViewModel>, SettingsView>();
+        services.AddTransient<IViewFor<HelpViewModel>, HelpView>();
+        services.AddTransient<IViewFor<DanceSynonymsViewModel>, DanceSynonymsView>();
+
         services.AddSingleton<PresentationDisplayViewModel>();
 
         // MainWindowViewModel

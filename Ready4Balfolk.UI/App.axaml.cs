@@ -11,13 +11,13 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Microsoft.Extensions.DependencyInjection;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Synonym;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.UI.Resources;
-using Ready4Balfolk.UI.Views.DanceTree;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 using Ready4Balfolk.UI.Views.Presentation;
 using AvaloniaWindowState = Avalonia.Controls.WindowState;
@@ -48,6 +48,9 @@ public sealed class App : Application
 
             mainWindow.Opened += (_, _) =>
             {
+                var logger = Services.GetRequiredService<ILoggerService>();
+                _ = logger.InfoAsync($"Window opened in {Program.StartupStopwatch.ElapsedMilliseconds} ms");
+
                 _ = Task.Run(() => Services.GetRequiredService<IDanceTreeStore>().LoadAsync());
                 _ = Task.Run(() => Services.GetRequiredService<IDanceSynonymStore>().LoadAsync());
                 _ = Task.Run(() => Services.GetRequiredService<IQueueHistoryStore>().LoadAsync());
@@ -133,8 +136,9 @@ public sealed class App : Application
                         w.IsBorderless);
                 }).ToList();
 
-                var collapsedBranches = Services.GetRequiredService<DanceTreeViewModel>()
-                    .GetCollapsedBranches();
+                var mainVm = Services.GetRequiredService<MainWindowViewModel>();
+                var collapsedBranches = mainVm.DanceTree?.GetCollapsedBranches()
+                    ?? settingsStore.Current.CollapsedBranches;
 
                 await settingsStore.UpdateAsync(s => s with
                 {

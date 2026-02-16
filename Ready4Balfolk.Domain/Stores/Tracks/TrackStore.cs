@@ -13,9 +13,11 @@ namespace Ready4Balfolk.Domain.Stores.Tracks;
 
 public sealed class TrackStore : ITrackStore, IDisposable
 {
+    private const int MaxAmountOfFileReaderThreads = 32;
     private readonly ILoggerService _loggerService;
     private readonly ITrackDiscoveryService _discoveryService;
     private readonly ISynonymResolutionService _synonymService;
+    private readonly ITrackDurationCache _durationCache;
     private readonly SourceList<Track> _tracks = new();
     private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly IDisposable _synonymSubscription;
@@ -25,11 +27,13 @@ public sealed class TrackStore : ITrackStore, IDisposable
     public TrackStore(
         ILoggerService loggerService,
         ITrackDiscoveryService discoveryService,
-        ISynonymResolutionService synonymService)
+        ISynonymResolutionService synonymService,
+        ITrackDurationCache durationCache)
     {
         _loggerService = loggerService;
         _discoveryService = discoveryService;
         _synonymService = synonymService;
+        _durationCache = durationCache;
 
         _synonymSubscription = synonymService.Changed
             .ObserveOn(TaskPoolScheduler.Default)
@@ -133,7 +137,10 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _isLoading.OnNext(true);
         try
         {
+            await _durationCache.LoadAsync();
+
             var channel = Channel.CreateUnbounded<Track>();
+            var loadedPaths = new HashSet<string>(StringComparer.Ordinal);
 
             var producerTask = Task.Run(async () =>
             {
@@ -145,15 +152,34 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 await Parallel.ForEachAsync(mp3Files,
                     new ParallelOptions
                     {
-                        MaxDegreeOfParallelism = 8
+                        MaxDegreeOfParallelism = MaxAmountOfFileReaderThreads
                     },
                     async (file, ct) =>
                     {
                         try
                         {
-                            var track = ResolveTrackDance(
-                                await _discoveryService.LoadTrackAsync(file));
-                            await channel.Writer.WriteAsync(track, ct);
+                            Track track;
+                            var cachedDuration = _durationCache.TryGetDuration(
+                                file.FullName, file.LastWriteTimeUtc);
+                            if (cachedDuration.HasValue)
+                            {
+                                track = _discoveryService.LoadTrackWithDuration(
+                                    file, cachedDuration.Value);
+                            }
+                            else
+                            {
+                                track = await _discoveryService.LoadTrackAsync(file);
+                                _durationCache.SetDuration(
+                                    file.FullName, file.LastWriteTimeUtc, track.Length);
+                            }
+
+                            lock (loadedPaths)
+                            {
+                                loadedPaths.Add(file.FullName);
+                            }
+
+                            await channel.Writer.WriteAsync(
+                                ResolveTrackDance(track), ct);
                         }
                         catch (Exception ex) when (ex is FormatException or IOException)
                         {
@@ -186,6 +212,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             await producerTask;
 
             _ = _loggerService.DebugAsync($"Loaded {_tracks.Count} tracks successfully");
+            _ = _durationCache.SaveAsync(loadedPaths);
             StartWatching(directory);
         }
         catch (Exception ex)
@@ -218,7 +245,9 @@ public sealed class TrackStore : ITrackStore, IDisposable
     {
         try
         {
-            var track = await _discoveryService.LoadTrackAsync(new FileInfo(fileSystemEventArgs.FullPath));
+            var fileInfo = new FileInfo(fileSystemEventArgs.FullPath);
+            var track = await _discoveryService.LoadTrackAsync(fileInfo);
+            _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
             _tracks.Add(ResolveTrackDance(track));
         }
         catch (Exception ex) when (ex is FormatException or IOException)
@@ -253,7 +282,9 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         try
         {
-            var track = await _discoveryService.LoadTrackAsync(new FileInfo(renamedEventArgs.FullPath));
+            var fileInfo = new FileInfo(renamedEventArgs.FullPath);
+            var track = await _discoveryService.LoadTrackAsync(fileInfo);
+            _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
             _tracks.Add(ResolveTrackDance(track));
         }
         catch (Exception ex) when (ex is FormatException or IOException)
