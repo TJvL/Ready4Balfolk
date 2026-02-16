@@ -5,10 +5,12 @@ using System.Text.Json;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Synonyms;
 using Ready4Balfolk.Domain.Resources;
+using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.Synonym;
 
-public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) : IDanceSynonymStore, IDisposable
+public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo, ILoggerService loggerService)
+    : IDanceSynonymStore, IDisposable
 {
     private const string DanceSynonymsFileName = "dance_synonyms.json";
 
@@ -45,7 +47,12 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
             if (synonyms != null)
             {
                 _synonyms.OnNext(synonyms);
+                _ = loggerService.InfoAsync($"Loaded {synonyms.Count} dance synonyms");
             }
+        }
+        catch (Exception ex) when (ex is JsonException or IOException)
+        {
+            _ = loggerService.ErrorAsync("Failed to load dance synonyms", ex);
         }
         finally
         {
@@ -76,6 +83,7 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
             destinationFileInfo.Directory?.Create();
             await using var stream = File.Create(destinationFileInfo.FullName);
             await JsonSerializer.SerializeAsync(stream, Current, JsonOptions);
+            _ = loggerService.InfoAsync($"Exported dance synonyms to {destinationFileInfo.FullName}");
         }
         finally
         {
@@ -130,6 +138,7 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
         {
             _synonyms.OnNext(synonyms);
             await SaveAsync(synonyms);
+            _ = loggerService.InfoAsync($"Imported dance synonyms from {sourceFileInfo.FullName}");
         }
         finally
         {
@@ -146,8 +155,15 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo) :
 
     private async Task SaveAsync(IReadOnlyList<DanceMainName> synonyms)
     {
-        danceSynonymDirectoryInfo.Create();
-        await using var stream = File.Create(DanceSynonymsFilePath);
-        await JsonSerializer.SerializeAsync(stream, synonyms, JsonOptions);
+        try
+        {
+            danceSynonymDirectoryInfo.Create();
+            await using var stream = File.Create(DanceSynonymsFilePath);
+            await JsonSerializer.SerializeAsync(stream, synonyms, JsonOptions);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _ = loggerService.ErrorAsync("Failed to save dance synonyms", ex);
+        }
     }
 }

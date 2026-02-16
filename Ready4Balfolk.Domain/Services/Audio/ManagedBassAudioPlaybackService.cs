@@ -3,6 +3,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using ManagedBass;
+using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Services.Audio;
 
@@ -15,6 +16,8 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private readonly Subject<Unit> _playbackCleared = new();
     private readonly Subject<Unit> _playbackEnded = new();
     private readonly Subject<TimeSpan> _durationChanged = new();
+    private readonly BehaviorSubject<bool> _isAvailable = new(true);
+    private readonly ILoggerService _loggerService;
 
     private readonly CompositeDisposable _disposables = [];
     private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -24,10 +27,13 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private int _preloadedChannel;
     private Uri? _preloadedUri;
     private bool _bassInitialized;
+    private bool _bassFailed;
     private bool _disposed;
 
-    public ManagedBassAudioPlaybackService()
+    public ManagedBassAudioPlaybackService(ILoggerService loggerService)
     {
+        _loggerService = loggerService;
+
         WhenProgressChanged = Observable.Interval(TimeSpan.FromMilliseconds(100))
             .Where(_ => IsPlaying)
             .Select(_ => GetPosition())
@@ -40,6 +46,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         _disposables.Add(_playbackCleared);
         _disposables.Add(_playbackEnded);
         _disposables.Add(_durationChanged);
+        _disposables.Add(_isAvailable);
     }
 
     public bool IsPlaying => _channel != 0 && Bass.ChannelIsActive(_channel) == PlaybackState.Playing;
@@ -55,15 +62,23 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     public IObservable<Unit> WhenPlaybackEnded => _playbackEnded.AsObservable();
     public IObservable<TimeSpan> WhenProgressChanged { get; }
     public IObservable<TimeSpan> WhenDurationChanged => _durationChanged.AsObservable();
+    public IObservable<bool> WhenAvailabilityChanged => _isAvailable.AsObservable();
 
     public Task SelectAsync(Uri source)
     {
-        return Task.Run(async () =>
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
         {
             await _semaphore.WaitAsync();
             try
             {
                 EnsureBassInitialized();
+                if (_bassFailed)
+                {
+                    return;
+                }
+
                 FreeChannel();
 
                 var path = source.LocalPath;
@@ -91,7 +106,9 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
     public Task PlayAsync()
     {
-        return Task.Run(async () =>
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
         {
             await _semaphore.WaitAsync();
             try
@@ -113,7 +130,9 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
     public Task PauseAsync()
     {
-        return Task.Run(async () =>
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
         {
             await _semaphore.WaitAsync();
             try
@@ -135,7 +154,9 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
     public Task RestartAsync()
     {
-        return Task.Run(async () =>
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
         {
             await _semaphore.WaitAsync();
             try
@@ -177,12 +198,19 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
     public Task PreloadNextAsync(Uri source)
     {
-        return Task.Run(async () =>
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
         {
             await _semaphore.WaitAsync();
             try
             {
                 EnsureBassInitialized();
+                if (_bassFailed)
+                {
+                    return;
+                }
+
                 FreePreloadedChannel();
 
                 var path = source.LocalPath;
@@ -272,17 +300,32 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
     private void EnsureBassInitialized()
     {
-        if (_bassInitialized)
+        if (_bassInitialized || _bassFailed)
         {
             return;
         }
 
-        if (!Bass.Init())
+        try
         {
-            throw new InvalidOperationException($"Failed to initialize BASS: {Bass.LastError}");
+            if (!Bass.Init())
+            {
+                _bassFailed = true;
+                _isAvailable.OnNext(false);
+                _ = _loggerService.CriticalAsync("Failed to initialize BASS audio",
+                    new InvalidOperationException($"Bass.Init failed: {Bass.LastError}"));
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _bassFailed = true;
+            _isAvailable.OnNext(false);
+            _ = _loggerService.CriticalAsync("Failed to initialize BASS audio", ex);
+            return;
         }
 
         _bassInitialized = true;
+        _ = _loggerService.DebugAsync("BASS audio initialized");
     }
 
     private void FreeChannel()

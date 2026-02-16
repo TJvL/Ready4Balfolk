@@ -1,9 +1,11 @@
+using System;
 using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
@@ -39,7 +41,15 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
 
         if (file?.TryGetLocalPath() is { } path)
         {
-            await ViewModel!.ExportAsync(new FileInfo(path));
+            try
+            {
+                await ViewModel!.ExportAsync(new FileInfo(path));
+            }
+            catch (Exception ex)
+            {
+                _ = App.Services.GetRequiredService<ILoggerService>()
+                    .ErrorAsync("Failed to export queue history", ex);
+            }
         }
     }
 

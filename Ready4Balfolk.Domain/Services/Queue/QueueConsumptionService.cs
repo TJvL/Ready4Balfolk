@@ -5,6 +5,7 @@ using System.Reactive.Subjects;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Audio;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
 
 namespace Ready4Balfolk.Domain.Services.Queue;
@@ -14,6 +15,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly IAudioPlaybackService _audio;
     private readonly IQueueService _queue;
     private readonly IQueueHistoryStore _history;
+    private readonly ILoggerService _loggerService;
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly CompositeDisposable _globalDisposables = [];
@@ -37,11 +39,13 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     public QueueConsumptionService(
         IAudioPlaybackService audio,
         IQueueService queue,
-        IQueueHistoryStore history)
+        IQueueHistoryStore history,
+        ILoggerService loggerService)
     {
         _audio = audio;
         _queue = queue;
         _history = history;
+        _loggerService = loggerService;
 
         // The consumption service manages all advancement — disable auto-advance on audio
         _audio.AutoAdvance = false;
@@ -69,6 +73,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             var item = _queue.Dequeue();
             if (item != null)
             {
+                _ = _loggerService.DebugAsync($"Advancing to: {item.GetType().Name}");
                 await StartItemAsync(item);
             }
             else
@@ -105,6 +110,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             CleanupCurrentItem();
             await _audio.ClearAsync();
             _currentItem.OnNext(null);
+            _ = _loggerService.DebugAsync("Playback cleared");
         }
         finally
         {

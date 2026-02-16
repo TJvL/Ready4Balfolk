@@ -1,3 +1,4 @@
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Tracks;
 
 namespace Ready4Balfolk.Tests.Integration;
@@ -11,7 +12,7 @@ public sealed class TrackDurationCacheTests : IDisposable
     {
         _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
-        _sut = new TrackDurationCache(_tempDir);
+        _sut = new TrackDurationCache(_tempDir, new NoOpLoggerService());
     }
 
     [Fact]
@@ -88,7 +89,7 @@ public sealed class TrackDurationCacheTests : IDisposable
         _sut.SetDuration(filePath, lastWrite, duration);
         await _sut.SaveAsync(new HashSet<string> { filePath });
 
-        var sut2 = new TrackDurationCache(_tempDir);
+        var sut2 = new TrackDurationCache(_tempDir, new NoOpLoggerService());
         await sut2.LoadAsync();
 
         var result = sut2.TryGetDuration(filePath, lastWrite);
@@ -109,7 +110,7 @@ public sealed class TrackDurationCacheTests : IDisposable
 
         await _sut.SaveAsync(new HashSet<string> { keepPath });
 
-        var sut2 = new TrackDurationCache(_tempDir);
+        var sut2 = new TrackDurationCache(_tempDir, new NoOpLoggerService());
         await sut2.LoadAsync();
 
         Assert.NotNull(sut2.TryGetDuration(keepPath, lastWrite));

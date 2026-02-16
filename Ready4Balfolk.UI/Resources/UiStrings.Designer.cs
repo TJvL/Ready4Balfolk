@@ -285,6 +285,9 @@ public static class UiStrings
     public static string Playback_ClearButton =>
         ResourceManager.GetString("Playback_ClearButton", Culture)!;
 
+    public static string Playback_AudioUnavailable =>
+        ResourceManager.GetString("Playback_AudioUnavailable", Culture)!;
+
     // Track Catalog
     public static string TrackCatalog_ColumnDance =>
         ResourceManager.GetString("TrackCatalog_ColumnDance", Culture)!;

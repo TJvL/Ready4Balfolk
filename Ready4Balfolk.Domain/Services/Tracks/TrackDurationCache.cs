@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Services.Tracks;
 
-public sealed class TrackDurationCache(DirectoryInfo dataDirectory) : ITrackDurationCache
+public sealed class TrackDurationCache(DirectoryInfo dataDirectory, ILoggerService loggerService) : ITrackDurationCache
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -37,12 +38,11 @@ public sealed class TrackDurationCache(DirectoryInfo dataDirectory) : ITrackDura
 
             _entries = dict;
         }
-        catch (Exception) when (IsCorruptFileException())
+        catch (Exception ex) when (ex is JsonException or IOException)
         {
+            _ = loggerService.WarningAsync($"Corrupt duration cache, rebuilding: {ex.Message}");
             _entries = new ConcurrentDictionary<string, CacheEntry>(StringComparer.Ordinal);
         }
-
-        static bool IsCorruptFileException() => true;
     }
 
     public TimeSpan? TryGetDuration(string filePath, DateTime lastWriteTimeUtc) =>
@@ -61,14 +61,22 @@ public sealed class TrackDurationCache(DirectoryInfo dataDirectory) : ITrackDura
             _entries.TryRemove(key, out _);
         }
 
-        var directory = Path.GetDirectoryName(_filePath);
-        if (directory is not null)
+        try
         {
-            Directory.CreateDirectory(directory);
-        }
+            var directory = Path.GetDirectoryName(_filePath);
+            if (directory is not null)
+            {
+                Directory.CreateDirectory(directory);
+            }
 
-        await using var stream = File.Create(_filePath);
-        await JsonSerializer.SerializeAsync(stream, _entries.Values.ToList(), JsonOptions);
+            await using var stream = File.Create(_filePath);
+            await JsonSerializer.SerializeAsync(stream, _entries.Values.ToList(), JsonOptions);
+            _ = loggerService.DebugAsync($"Duration cache saved ({_entries.Count} entries)");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _ = loggerService.ErrorAsync("Failed to save duration cache", ex);
+        }
     }
 
     private sealed record CacheEntry(string FilePath, DateTime LastWriteTimeUtc, TimeSpan Duration);

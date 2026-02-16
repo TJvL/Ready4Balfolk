@@ -10,4 +10,5 @@ public interface ILoggerService
     Task ErrorAsync(string message, Exception exception);
     Task CriticalAsync(string message, Exception exception);
     Task ExportAsync(FileInfo fileInfo);
+    IObservable<LogEntry> WhenErrorLogged { get; }
 }
