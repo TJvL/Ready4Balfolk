@@ -8,7 +8,7 @@
         <_BassArch>$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)</_BassArch>
     </PropertyGroup>
 
-    <!-- Windows -->
+    <!-- BASS: Windows -->
     <PropertyGroup Condition="'$(_BassIsWindows)' == 'true'">
         <_BassZipUrl>https://www.un4seen.com/files/bass24.zip</_BassZipUrl>
         <_BassZipFile>bass24.zip</_BassZipFile>
@@ -24,7 +24,7 @@
         <_BassNativeFile>bass.dll</_BassNativeFile>
     </PropertyGroup>
 
-    <!-- Linux -->
+    <!-- BASS: Linux -->
     <PropertyGroup Condition="'$(_BassIsLinux)' == 'true'">
         <_BassZipUrl>https://www.un4seen.com/files/bass24-linux.zip</_BassZipUrl>
         <_BassZipFile>bass24-linux.zip</_BassZipFile>
@@ -40,7 +40,7 @@
         <_BassNativeFile>libs/aarch64/libbass.so</_BassNativeFile>
     </PropertyGroup>
 
-    <!-- macOS -->
+    <!-- BASS: macOS -->
     <PropertyGroup Condition="'$(_BassIsMacOS)' == 'true'">
         <_BassZipUrl>https://www.un4seen.com/files/bass24-osx.zip</_BassZipUrl>
         <_BassZipFile>bass24-osx.zip</_BassZipFile>
@@ -69,6 +69,70 @@
                   CopyToOutputDirectory="PreserveNewest"
                   CopyToPublishDirectory="Always"
                   Link="$(_BassOutputFile)" />
+        </ItemGroup>
+    </Target>
+
+    <!-- BASSFLAC: Windows -->
+    <PropertyGroup Condition="'$(_BassIsWindows)' == 'true'">
+        <_BassFlacZipUrl>https://www.un4seen.com/files/bassflac24.zip</_BassFlacZipUrl>
+        <_BassFlacZipFile>bassflac24.zip</_BassFlacZipFile>
+        <_BassFlacExtractDir>win-flac/</_BassFlacExtractDir>
+        <_BassFlacOutputFile>bassflac.dll</_BassFlacOutputFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsWindows)' == 'true' AND '$(_BassArch)' == 'X64'">
+        <_BassFlacNativeFile>x64/bassflac.dll</_BassFlacNativeFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsWindows)' == 'true' AND '$(_BassArch)' == 'X86'">
+        <_BassFlacNativeFile>bassflac.dll</_BassFlacNativeFile>
+    </PropertyGroup>
+
+    <!-- BASSFLAC: Linux -->
+    <PropertyGroup Condition="'$(_BassIsLinux)' == 'true'">
+        <_BassFlacZipUrl>https://www.un4seen.com/files/bassflac24-linux.zip</_BassFlacZipUrl>
+        <_BassFlacZipFile>bassflac24-linux.zip</_BassFlacZipFile>
+        <_BassFlacExtractDir>linux-flac/</_BassFlacExtractDir>
+        <_BassFlacOutputFile>libbassflac.so</_BassFlacOutputFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsLinux)' == 'true' AND '$(_BassArch)' == 'X64'">
+        <_BassFlacNativeFile>libs/x86_64/libbassflac.so</_BassFlacNativeFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsLinux)' == 'true' AND '$(_BassArch)' == 'Arm64'">
+        <_BassFlacNativeFile>libs/aarch64/libbassflac.so</_BassFlacNativeFile>
+    </PropertyGroup>
+
+    <!-- BASSFLAC: macOS -->
+    <PropertyGroup Condition="'$(_BassIsMacOS)' == 'true'">
+        <_BassFlacZipUrl>https://www.un4seen.com/files/bassflac24-osx.zip</_BassFlacZipUrl>
+        <_BassFlacZipFile>bassflac24-osx.zip</_BassFlacZipFile>
+        <_BassFlacExtractDir>osx-flac/</_BassFlacExtractDir>
+        <_BassFlacOutputFile>libbassflac.dylib</_BassFlacOutputFile>
+        <_BassFlacNativeFile>libbassflac.dylib</_BassFlacNativeFile>
+    </PropertyGroup>
+
+    <Target Name="DownloadBassFlacNative"
+            BeforeTargets="PrepareForBuild"
+            Condition="'$(_BassFlacZipUrl)' != '' AND '$(_BassFlacNativeFile)' != ''">
+        <MakeDir Directories="$(BassNativeDir)"/>
+
+        <DownloadFile SourceUrl="$(_BassFlacZipUrl)"
+                      DestinationFolder="$(BassNativeDir)"
+                      SkipUnchangedFiles="true"
+                      Condition="!Exists('$(BassNativeDir)$(_BassFlacZipFile)')"/>
+
+        <Unzip SourceFiles="$(BassNativeDir)$(_BassFlacZipFile)"
+               DestinationFolder="$(BassNativeDir)$(_BassFlacExtractDir)"
+               OverwriteReadOnlyFiles="true"
+               Condition="!Exists('$(BassNativeDir)$(_BassFlacExtractDir)$(_BassFlacNativeFile)')"/>
+
+        <ItemGroup>
+            <None Include="$(BassNativeDir)$(_BassFlacExtractDir)$(_BassFlacNativeFile)"
+                  CopyToOutputDirectory="PreserveNewest"
+                  CopyToPublishDirectory="Always"
+                  Link="$(_BassFlacOutputFile)" />
         </ItemGroup>
     </Target>
 

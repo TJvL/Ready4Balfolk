@@ -14,11 +14,11 @@ Before using Ready4Balfolk, you need to configure a music directory. Go to **Set
 
 Tracks are discovered automatically from your music directory. Files should follow this naming pattern:
 
-**Dance - Artist - Title.mp3**
+**Dance - Artist - Title.ext**
 
 For example: `Mazurka - Duo Absynthe - La Java Bleue.mp3`
 
-The application splits the file name on dashes to extract the dance name, artist, and title. Supported audio formats include MP3, FLAC, WAV, OGG, and other formats supported by the BASS audio library.
+The application splits the file name on dashes to extract the dance name, artist, and title. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
 
 ### Main Screen Layout
 
