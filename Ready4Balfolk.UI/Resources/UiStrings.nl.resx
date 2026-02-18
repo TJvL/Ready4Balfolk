@@ -109,10 +109,10 @@
     <value>Wanneer uitgeschakeld kunnen nummers die momenteel afspelen, in de wachtrij staan, of al zijn afgespeeld niet opnieuw worden toegevoegd.</value>
   </data>
   <data name="Settings_ConfirmPlayback" xml:space="preserve">
-    <value>Bevestiging vragen voor overslaan, wissen en herstarten</value>
+    <value>Bevestiging vragen voor overslaan, wissen, herstarten en spoelen</value>
   </data>
   <data name="Settings_ConfirmPlaybackDescription" xml:space="preserve">
-    <value>Toon een bevestigingsdialoog voor het overslaan naar het volgende item, het wissen van het huidige nummer of het herstarten van het afspelen</value>
+    <value>Toon een bevestigingsdialoog voor het overslaan naar het volgende item, het wissen van het huidige nummer, het herstarten van het afspelen of het spoelen naar een andere positie</value>
   </data>
   <data name="Settings_Theme" xml:space="preserve">
     <value>Thema</value>
@@ -306,6 +306,15 @@
   </data>
   <data name="Playback_ClearButton" xml:space="preserve">
     <value>Wissen</value>
+  </data>
+  <data name="Playback_SeekTitle" xml:space="preserve">
+    <value>Spoelen</value>
+  </data>
+  <data name="Playback_SeekMessage" xml:space="preserve">
+    <value>Naar een andere positie in het nummer springen?</value>
+  </data>
+  <data name="Playback_SeekButton" xml:space="preserve">
+    <value>Spoelen</value>
   </data>
   <data name="Playback_AudioUnavailable" xml:space="preserve">
     <value>Audio niet beschikbaar</value>

@@ -97,7 +97,8 @@
                                MinWidth="38"
                                TextAlignment="Right"
                                Margin="0,0,8,0" />
-                    <ProgressBar Grid.Column="1"
+                    <ProgressBar x:Name="ProgressBar"
+                                 Grid.Column="1"
                                  Minimum="0"
                                  Maximum="{Binding Duration}"
                                  Value="{Binding Progress}"

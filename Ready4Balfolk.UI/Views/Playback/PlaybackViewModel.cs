@@ -212,5 +212,21 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     private static string FormatTime(TimeSpan time)
         => $"{(int)time.TotalMinutes}:{time.Seconds:D2}";
 
+    public async Task SeekAsync(TimeSpan position)
+    {
+        if (!HasTrack)
+        {
+            return;
+        }
+
+        if (HasCurrentItem && _settingsStore.Current.RequirePlaybackConfirmation &&
+            !await _confirmationService.ConfirmAsync(UiStrings.Playback_SeekTitle, UiStrings.Playback_SeekMessage, UiStrings.Playback_SeekButton, UiStrings.Playback_CancelButton))
+        {
+            return;
+        }
+
+        await _consumptionService.SeekAsync(position);
+    }
+
     public void Dispose() => _disposables.Dispose();
 }
