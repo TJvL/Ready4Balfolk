@@ -101,6 +101,12 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
     public async Task RestartAsync() => await _audio.RestartAsync();
 
+    public async Task SeekAsync(TimeSpan position)
+    {
+        await _audio.SeekAsync(position);
+        _elapsed.OnNext(position);
+    }
+
     public async Task ClearAsync()
     {
         await _gate.WaitAsync();

@@ -13,6 +13,7 @@ public interface IAudioPlaybackService
     Task PlayAsync();
     Task PauseAsync();
     Task RestartAsync();
+    Task SeekAsync(TimeSpan position);
     Task ClearAsync();
 
     Task PreloadNextAsync(Uri source);

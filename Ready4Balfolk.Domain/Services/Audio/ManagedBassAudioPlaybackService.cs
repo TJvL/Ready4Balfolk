@@ -173,6 +173,30 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
             });
     }
 
+    public Task SeekAsync(TimeSpan position)
+    {
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
+        {
+            await _semaphore.WaitAsync();
+            try
+            {
+                if (_channel == 0)
+                {
+                    return;
+                }
+
+                var bytes = Bass.ChannelSeconds2Bytes(_channel, position.TotalSeconds);
+                Bass.ChannelSetPosition(_channel, bytes);
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        });
+    }
+
     public Task ClearAsync()
     {
         return Task.Run(async () =>
