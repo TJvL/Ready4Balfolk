@@ -177,7 +177,7 @@ public sealed class App : Application
 
                 var mainVm = Services.GetRequiredService<MainWindowViewModel>();
                 var collapsedBranches = mainVm.DanceTree?.GetCollapsedBranches()
-                    ?? settingsStore.Current.CollapsedBranches;
+                                        ?? settingsStore.Current.CollapsedBranches;
 
                 await settingsStore.UpdateAsync(s => s with
                 {

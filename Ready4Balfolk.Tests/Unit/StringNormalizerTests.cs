@@ -4,13 +4,21 @@ namespace Ready4Balfolk.Tests.Unit;
 
 public sealed class StringNormalizerTests
 {
-    [Theory]
-    [InlineData(null, "")]
-    [InlineData("", "")]
-    [InlineData("   ", "")]
-    [InlineData("\t\n", "")]
-    public void Normalize_NullOrWhitespace_ReturnsEmpty(string? input, string expected) =>
-        Assert.Equal(expected, StringNormalizer.Normalize(input!));
+    [Fact]
+    public void Normalize_Null_ReturnsEmpty() =>
+        Assert.Equal("", StringNormalizer.Normalize(null!));
+
+    [Fact]
+    public void Normalize_Empty_ReturnsEmpty() =>
+        Assert.Equal("", StringNormalizer.Normalize(""));
+
+    [Fact]
+    public void Normalize_Spaces_ReturnsEmpty() =>
+        Assert.Equal("", StringNormalizer.Normalize("   "));
+
+    [Fact]
+    public void Normalize_TabNewline_ReturnsEmpty() =>
+        Assert.Equal("", StringNormalizer.Normalize("\t\n"));
 
     [Fact]
     public void Normalize_RemovesAccents() => Assert.Equal("cafe", StringNormalizer.Normalize("café"));

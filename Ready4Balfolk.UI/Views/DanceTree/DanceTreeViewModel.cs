@@ -485,7 +485,6 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         catch (Exception ex)
         {
             _ = _loggerService.ErrorAsync("Failed to save dance tree changes", ex);
-            return;
         }
         finally
         {
