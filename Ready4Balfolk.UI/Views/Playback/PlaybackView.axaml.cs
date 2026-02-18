@@ -16,7 +16,7 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
     {
         InitializeComponent();
 
-        ProgressBar.PointerPressed += OnProgressBarPointerPressed;
+        PlaybackProgressBar.PointerPressed += OnProgressBarPointerPressed;
 
         TrackInfoCanvas.GetObservable(BoundsProperty)
             .CombineLatest(TrackInfoPanel.GetObservable(BoundsProperty))
@@ -32,8 +32,8 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
             return;
         }
 
-        var x = e.GetPosition(ProgressBar).X;
-        var ratio = Math.Clamp(x / ProgressBar.Bounds.Width, 0, 1);
+        var x = e.GetPosition(PlaybackProgressBar).X;
+        var ratio = Math.Clamp(x / PlaybackProgressBar.Bounds.Width, 0, 1);
         var target = TimeSpan.FromSeconds(ratio * vm.Duration);
         _ = vm.SeekAsync(target);
     }
