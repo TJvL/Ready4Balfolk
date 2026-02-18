@@ -22,11 +22,11 @@ jobs:
       - name: Restore
         run: dotnet restore Ready4Balfolk.sln
 
-      - name: Check formatting
-        run: dotnet format Ready4Balfolk.sln --verify-no-changes --verbosity normal --no-restore
-
       - name: Build Release
         run: dotnet build Ready4Balfolk.sln -c Release --no-restore
+
+      - name: Check formatting
+        run: dotnet format Ready4Balfolk.sln --verify-no-changes --verbosity normal --no-restore
 
       - name: Run tests
         run: dotnet test Ready4Balfolk.Tests/ -c Release --no-build --verbosity normal
