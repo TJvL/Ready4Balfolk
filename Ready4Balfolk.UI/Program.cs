@@ -117,7 +117,8 @@ public static class Program
     {
         // Services
         services.AddSingleton<ILoggerService>(LoggerService);
-        services.AddSingleton<IAudioPlaybackService, ManagedBassAudioPlaybackService>();
+        var audioService = new ManagedBassAudioPlaybackService(LoggerService);
+        services.AddSingleton<IAudioPlaybackService>(audioService);
         services.AddSingleton<IQueueService>(sp =>
         {
             var consumption =

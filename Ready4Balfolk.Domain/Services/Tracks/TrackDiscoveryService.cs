@@ -1,41 +1,63 @@
 using Ready4Balfolk.Domain.Models.Tracks;
-using TagLibSharp2.Mpeg;
 
 namespace Ready4Balfolk.Domain.Services.Tracks;
 
 public sealed class TrackDiscoveryService : ITrackDiscoveryService
 {
-    public async Task<Track> LoadTrackAsync(FileInfo mp3FileInfo)
+    public Track LoadTrack(FileInfo fileInfo)
     {
-        var (dance, artist, title) = ParseFileName(mp3FileInfo);
-        var duration = await GetTrackDurationAsync(mp3FileInfo);
-        return new Track(dance, artist, title, mp3FileInfo, duration);
+        var (dance, artist, title) = ParseFileName(fileInfo);
+        var duration = GetTrackDuration(fileInfo);
+        var format = ParseAudioFormat(fileInfo);
+        return new Track(dance, artist, title, fileInfo, duration, format);
     }
 
-    public Track LoadTrackWithDuration(FileInfo mp3FileInfo, TimeSpan duration)
+    public Track LoadTrackWithDuration(FileInfo fileInfo, TimeSpan duration)
     {
-        var (dance, artist, title) = ParseFileName(mp3FileInfo);
-        return new Track(dance, artist, title, mp3FileInfo, duration);
+        var (dance, artist, title) = ParseFileName(fileInfo);
+        var format = ParseAudioFormat(fileInfo);
+        return new Track(dance, artist, title, fileInfo, duration, format);
     }
 
-    private static (string Dance, string Artist, string Title) ParseFileName(FileInfo mp3FileInfo)
+    private static (string Dance, string Artist, string Title) ParseFileName(FileInfo fileInfo)
     {
-        var nameWithoutExtension = Path.GetFileNameWithoutExtension(mp3FileInfo.Name);
+        var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileInfo.Name);
         var parts = nameWithoutExtension.Split(" - ", 3);
 
         return parts.Length != 3
             ? throw new FormatException(
-                $"Invalid filename format for '{mp3FileInfo.Name}', expected '{{Dance}} - {{Artist}} - {{Title}}.mp3'.")
+                $"Invalid filename format for '{fileInfo.Name}', expected '{{Dance}} - {{Artist}} - {{Title}}.ext'.")
             : (parts[0].Trim(), parts[1].Trim(), parts[2].Trim());
     }
 
-    private static async Task<TimeSpan> GetTrackDurationAsync(FileInfo mp3FileInfo)
+    private static AudioFormat ParseAudioFormat(FileInfo fileInfo)
+    {
+        var ext = fileInfo.Extension;
+        return ext.Equals(".mp3", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".mp2", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".mp1", StringComparison.OrdinalIgnoreCase)
+            ? AudioFormat.Mp3
+            : ext.Equals(".wav", StringComparison.OrdinalIgnoreCase)
+            ? AudioFormat.Wav
+            : ext.Equals(".flac", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".fla", StringComparison.OrdinalIgnoreCase)
+            ? AudioFormat.Flac
+            : ext.Equals(".ogg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".oga", StringComparison.OrdinalIgnoreCase)
+            ? AudioFormat.Ogg
+            : ext.Equals(".aif", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".aiff", StringComparison.OrdinalIgnoreCase)
+            ? AudioFormat.Aif
+            : throw new ArgumentOutOfRangeException(nameof(fileInfo), ext,
+                $"Unsupported audio format for '{fileInfo.Name}'.");
+    }
+
+    private static TimeSpan GetTrackDuration(FileInfo fileInfo)
     {
         try
         {
-            using var mp3File = (await Mp3File.ReadFromFileAsync(mp3FileInfo.FullName)).File ?? throw new IOException($"Unable to read mp3 file '{mp3FileInfo.Name}'.");
-
-            return mp3File.Duration ?? TimeSpan.Zero;
+            using var file = TagLib.File.Create(fileInfo.FullName);
+            return file.Properties.Duration;
         }
         catch (IOException)
         {
@@ -44,7 +66,7 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
         catch (Exception exception)
         {
             throw new IOException(
-                $"Unable to load track duration for '{mp3FileInfo.Name}'.", exception);
+                $"Unable to load track duration for '{fileInfo.Name}'.", exception);
         }
     }
 }

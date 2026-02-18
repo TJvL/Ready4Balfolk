@@ -43,7 +43,7 @@ public sealed class TrackDurationCacheTests : IDisposable
     {
         await _sut.LoadAsync();
 
-        var filePath = "/music/Dance - Artist - Title.mp3";
+        const string filePath = "/music/Dance - Artist - Title.mp3";
         var lastWrite = new DateTime(2025, 1, 15, 10, 30, 0, DateTimeKind.Utc);
         var duration = TimeSpan.FromMinutes(3.5);
 
@@ -58,7 +58,7 @@ public sealed class TrackDurationCacheTests : IDisposable
     {
         await _sut.LoadAsync();
 
-        var filePath = "/music/Dance - Artist - Title.mp3";
+        const string filePath = "/music/Dance - Artist - Title.mp3";
         var lastWrite = new DateTime(2025, 1, 15, 10, 30, 0, DateTimeKind.Utc);
         var differentLastWrite = new DateTime(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
 
@@ -82,12 +82,15 @@ public sealed class TrackDurationCacheTests : IDisposable
     {
         await _sut.LoadAsync();
 
-        var filePath = "/music/Dance - Artist - Title.mp3";
+        const string filePath = "/music/Dance - Artist - Title.mp3";
         var lastWrite = new DateTime(2025, 1, 15, 10, 30, 0, DateTimeKind.Utc);
         var duration = TimeSpan.FromMinutes(4.2);
 
         _sut.SetDuration(filePath, lastWrite, duration);
-        await _sut.SaveAsync(new HashSet<string> { filePath });
+        await _sut.SaveAsync(new HashSet<string>
+        {
+            filePath
+        });
 
         var sut2 = new TrackDurationCache(_tempDir, new NoOpLoggerService());
         await sut2.LoadAsync();
@@ -101,14 +104,17 @@ public sealed class TrackDurationCacheTests : IDisposable
     {
         await _sut.LoadAsync();
 
-        var keepPath = "/music/keep.mp3";
-        var deletedPath = "/music/deleted.mp3";
+        const string keepPath = "/music/keep.mp3";
+        const string deletedPath = "/music/deleted.mp3";
         var lastWrite = new DateTime(2025, 1, 15, 10, 30, 0, DateTimeKind.Utc);
 
         _sut.SetDuration(keepPath, lastWrite, TimeSpan.FromMinutes(3));
         _sut.SetDuration(deletedPath, lastWrite, TimeSpan.FromMinutes(4));
 
-        await _sut.SaveAsync(new HashSet<string> { keepPath });
+        await _sut.SaveAsync(new HashSet<string>
+        {
+            keepPath
+        });
 
         var sut2 = new TrackDurationCache(_tempDir, new NoOpLoggerService());
         await sut2.LoadAsync();

@@ -14,11 +14,11 @@ Voordat u Ready4Balfolk gebruikt, moet u een muziekmap configureren. Ga naar **I
 
 Nummers worden automatisch gevonden in uw muziekmap. Bestanden moeten dit naampatroon volgen:
 
-**Dans - Artiest - Titel.mp3**
+**Dans - Artiest - Titel.ext**
 
 Bijvoorbeeld: `Mazurka - Duo Absynthe - La Java Bleue.mp3`
 
-De applicatie splitst de bestandsnaam op koppeltekens om de dansnaam, artiest en titel te extraheren. Ondersteunde audioformaten zijn onder andere MP3, FLAC, WAV, OGG en andere formaten die worden ondersteund door de BASS-audiobibliotheek.
+De applicatie splitst de bestandsnaam op koppeltekens om de dansnaam, artiest en titel te extraheren. Ondersteunde audioformaten: MP3, MP2, MP1, WAV, OGG, AIFF en FLAC.
 
 ### Indeling van het hoofdscherm
 

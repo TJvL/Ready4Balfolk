@@ -34,6 +34,12 @@
                     <SolidColorBrush x:Key="NotificationWarningBrush" Color="#FFA726" />
                     <SolidColorBrush x:Key="NotificationInfoBrush" Color="#42A5F5" />
                     <SolidColorBrush x:Key="NotificationTextBrush" Color="White" />
+                    <!-- Audio format indicators -->
+                    <SolidColorBrush x:Key="FormatMp3Brush" Color="#42A5F5" />
+                    <SolidColorBrush x:Key="FormatWavBrush" Color="#AB47BC" />
+                    <SolidColorBrush x:Key="FormatFlacBrush" Color="#66BB6A" />
+                    <SolidColorBrush x:Key="FormatOggBrush" Color="#FFA726" />
+                    <SolidColorBrush x:Key="FormatAifBrush" Color="#26A69A" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
                     <!-- Stop marker: deeper orange for light backgrounds -->
@@ -58,6 +64,12 @@
                     <SolidColorBrush x:Key="NotificationWarningBrush" Color="#F57C00" />
                     <SolidColorBrush x:Key="NotificationInfoBrush" Color="#1976D2" />
                     <SolidColorBrush x:Key="NotificationTextBrush" Color="White" />
+                    <!-- Audio format indicators -->
+                    <SolidColorBrush x:Key="FormatMp3Brush" Color="#1976D2" />
+                    <SolidColorBrush x:Key="FormatWavBrush" Color="#7B1FA2" />
+                    <SolidColorBrush x:Key="FormatFlacBrush" Color="#388E3C" />
+                    <SolidColorBrush x:Key="FormatOggBrush" Color="#F57C00" />
+                    <SolidColorBrush x:Key="FormatAifBrush" Color="#00796B" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
