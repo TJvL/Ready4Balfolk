@@ -9,6 +9,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
@@ -54,7 +55,20 @@ public partial class DanceSynonymsView : ReactiveUserControl<DanceSynonymsViewMo
 
         if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
         {
-            await ViewModel!.ImportAsync(new FileInfo(path));
+            try
+            {
+                await ViewModel!.ImportAsync(new FileInfo(path));
+            }
+            catch (InvalidDataException ex)
+            {
+                App.Services.GetRequiredService<INotificationService>()
+                    .Show(ex.Message, NotificationSeverity.Warning);
+            }
+            catch (Exception ex)
+            {
+                _ = App.Services.GetRequiredService<ILoggerService>()
+                    .ErrorAsync("Failed to import dance synonyms", ex);
+            }
         }
     }
 
@@ -75,7 +89,15 @@ public partial class DanceSynonymsView : ReactiveUserControl<DanceSynonymsViewMo
 
         if (file?.TryGetLocalPath() is { } path)
         {
-            await ViewModel!.ExportAsync(new FileInfo(path));
+            try
+            {
+                await ViewModel!.ExportAsync(new FileInfo(path));
+            }
+            catch (Exception ex)
+            {
+                _ = App.Services.GetRequiredService<ILoggerService>()
+                    .ErrorAsync("Failed to export dance synonyms", ex);
+            }
         }
     }
 

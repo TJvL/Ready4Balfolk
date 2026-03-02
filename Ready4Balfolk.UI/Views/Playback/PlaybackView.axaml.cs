@@ -2,6 +2,7 @@ using System;
 using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using ReactiveUI;
 using ReactiveUI.Avalonia;
 
@@ -15,11 +16,26 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
     {
         InitializeComponent();
 
+        PlaybackProgressBar.PointerPressed += OnProgressBarPointerPressed;
+
         TrackInfoCanvas.GetObservable(BoundsProperty)
             .CombineLatest(TrackInfoPanel.GetObservable(BoundsProperty))
             .Throttle(TimeSpan.FromMilliseconds(50))
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => UpdateTrackInfoScroll());
+    }
+
+    private void OnProgressBarPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (ViewModel is not { HasTrack: true, Duration: > 0 } vm)
+        {
+            return;
+        }
+
+        var x = e.GetPosition(PlaybackProgressBar).X;
+        var ratio = Math.Clamp(x / PlaybackProgressBar.Bounds.Width, 0, 1);
+        var target = TimeSpan.FromSeconds(ratio * vm.Duration);
+        _ = vm.SeekAsync(target);
     }
 
     private void UpdateTrackInfoScroll()

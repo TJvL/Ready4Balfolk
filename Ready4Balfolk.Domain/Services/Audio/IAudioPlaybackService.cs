@@ -13,6 +13,7 @@ public interface IAudioPlaybackService
     Task PlayAsync();
     Task PauseAsync();
     Task RestartAsync();
+    Task SeekAsync(TimeSpan position);
     Task ClearAsync();
 
     Task PreloadNextAsync(Uri source);
@@ -27,4 +28,5 @@ public interface IAudioPlaybackService
     IObservable<Unit> WhenPlaybackEnded { get; }
     IObservable<TimeSpan> WhenProgressChanged { get; }
     IObservable<TimeSpan> WhenDurationChanged { get; }
+    IObservable<bool> WhenAvailabilityChanged { get; }
 }

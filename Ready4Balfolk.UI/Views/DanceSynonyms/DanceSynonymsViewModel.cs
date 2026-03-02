@@ -11,6 +11,7 @@ using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Synonyms;
 using Ready4Balfolk.Domain.Services.Editor;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Synonym;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
@@ -23,6 +24,7 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     private readonly IDanceSynonymStore _store;
     private readonly IEditorHistoryService _editorHistory;
     private readonly INotificationService _notifications;
+    private readonly ILoggerService _loggerService;
     private readonly CompositeDisposable _disposables = [];
     private int _pendingCommits;
     private bool _pendingNewEntryEditMode;
@@ -59,11 +61,13 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
     public DanceSynonymsViewModel(
         IDanceSynonymStore store,
         IEditorHistoryService editorHistory,
-        INotificationService notifications)
+        INotificationService notifications,
+        ILoggerService loggerService)
     {
         _store = store;
         _editorHistory = editorHistory;
         _notifications = notifications;
+        _loggerService = loggerService;
         Entries = [];
 
         _isLoadingHelper = store.IsLoading
@@ -268,6 +272,10 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
             await _store.UpdateAsync(list =>
                 DanceSynonymTransforms.RenameMainName(list, index, name));
         }
+        catch (Exception ex)
+        {
+            _ = _loggerService.ErrorAsync("Failed to save dance synonym changes", ex);
+        }
         finally
         {
             _pendingCommits--;
@@ -281,6 +289,11 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
         try
         {
             result = await _editorHistory.DoActionAsync(action);
+        }
+        catch (Exception ex)
+        {
+            _ = _loggerService.ErrorAsync("Failed to save dance synonym changes", ex);
+            return;
         }
         finally
         {
@@ -302,6 +315,11 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
         try
         {
             await op();
+        }
+        catch (Exception ex)
+        {
+            _ = _loggerService.ErrorAsync("Failed to undo/redo dance synonym changes", ex);
+            return;
         }
         finally
         {

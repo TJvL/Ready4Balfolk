@@ -7,10 +7,10 @@ namespace Ready4Balfolk.Tests.Helpers;
 public static class TestData
 {
     public static Track CreateTrack(string dance = "Mazurka", string artist = "Artist",
-        string title = "Title", int lengthSeconds = 180)
+        string title = "Title", int lengthSeconds = 180, AudioFormat format = AudioFormat.Mp3)
         => new(dance, artist, title,
             new FileInfo($"/tmp/test/{dance}_{artist}_{title}.mp3".Replace(' ', '_')),
-            TimeSpan.FromSeconds(lengthSeconds));
+            TimeSpan.FromSeconds(lengthSeconds), format);
 
     public static DanceBranch CreateBranch(string name, int weight = 1,
         IEnumerable<DanceBranch>? children = null, IEnumerable<DanceLeaf>? leaves = null)

@@ -1,3 +1,6 @@
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+
 namespace Ready4Balfolk.Domain.Services.Logging;
 
 public sealed class FileLoggerService : ILoggerService, IDisposable
@@ -7,8 +10,11 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
 
     private readonly FileInfo _logFile;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private readonly ReplaySubject<LogEntry> _errorSubject = new(bufferSize: 10);
 
     public LogLevel MinimumLevel { get; set; } = LogLevel.Info;
+
+    public IObservable<LogEntry> WhenErrorLogged => _errorSubject.AsObservable();
 
     public FileLoggerService(DirectoryInfo logDirectory)
     {
@@ -33,13 +39,23 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
 
     public Task WarningAsync(string message) => LogAsync(LogLevel.Warning, message);
 
-    public Task ErrorAsync(string message) => LogAsync(LogLevel.Error, message);
+    public Task ErrorAsync(string message)
+    {
+        _errorSubject.OnNext(new LogEntry(LogLevel.Error, message));
+        return LogAsync(LogLevel.Error, message);
+    }
 
-    public Task ErrorAsync(string message, Exception exception) =>
-        LogAsync(LogLevel.Error, $"{message}{Environment.NewLine}{exception}");
+    public Task ErrorAsync(string message, Exception exception)
+    {
+        _errorSubject.OnNext(new LogEntry(LogLevel.Error, message, exception));
+        return LogAsync(LogLevel.Error, $"{message}{Environment.NewLine}{exception}");
+    }
 
-    public Task CriticalAsync(string message, Exception exception) =>
-        LogAsync(LogLevel.Critical, $"{message}{Environment.NewLine}{exception}");
+    public Task CriticalAsync(string message, Exception exception)
+    {
+        _errorSubject.OnNext(new LogEntry(LogLevel.Critical, message, exception));
+        return LogAsync(LogLevel.Critical, $"{message}{Environment.NewLine}{exception}");
+    }
 
     public Task ExportAsync(FileInfo fileInfo)
     {
@@ -80,7 +96,11 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
         }
     }
 
-    public void Dispose() => _semaphore.Dispose();
+    public void Dispose()
+    {
+        _errorSubject.Dispose();
+        _semaphore.Dispose();
+    }
 
     private static string FormatLine(LogLevel logLevel, string message) =>
         $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{logLevel.ToString().ToUpperInvariant()}] {message}{Environment.NewLine}";

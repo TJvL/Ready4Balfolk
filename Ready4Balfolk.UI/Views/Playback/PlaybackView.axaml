@@ -8,12 +8,27 @@
              x:Class="Ready4Balfolk.UI.Views.Playback.PlaybackView"
              x:DataType="local:PlaybackViewModel">
     <Grid RowDefinitions="Auto">
+        <!-- Audio unavailable message -->
+        <Border Grid.Row="0"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16"
+                IsVisible="{Binding IsAudioUnavailable}">
+            <TextBlock Text="{x:Static res:UiStrings.Playback_AudioUnavailable}"
+                       FontSize="16"
+                       Opacity="0.6"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+        </Border>
+
         <!-- Playback Panel at the top -->
         <Border Grid.Row="0"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                 BorderThickness="1"
                 CornerRadius="8"
-                Padding="16">
+                Padding="16"
+                IsVisible="{Binding !IsAudioUnavailable}">
             <Grid RowDefinitions="Auto,Auto,Auto,Auto">
                 <!-- Dance Name (normal mode - not message) -->
                 <TextBlock Grid.Row="0"
@@ -82,7 +97,8 @@
                                MinWidth="38"
                                TextAlignment="Right"
                                Margin="0,0,8,0" />
-                    <ProgressBar Grid.Column="1"
+                    <ProgressBar x:Name="PlaybackProgressBar"
+                                 Grid.Column="1"
                                  Minimum="0"
                                  Maximum="{Binding Duration}"
                                  Value="{Binding Progress}"

@@ -15,5 +15,6 @@ public interface IQueueConsumptionService
     Task AdvanceAsync();
     Task PlayPauseAsync();
     Task RestartAsync();
+    Task SeekAsync(TimeSpan position);
     Task ClearAsync();
 }

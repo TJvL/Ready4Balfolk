@@ -3,6 +3,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using ManagedBass;
+using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Services.Audio;
 
@@ -15,6 +16,8 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private readonly Subject<Unit> _playbackCleared = new();
     private readonly Subject<Unit> _playbackEnded = new();
     private readonly Subject<TimeSpan> _durationChanged = new();
+    private readonly BehaviorSubject<bool> _isAvailable = new(true);
+    private readonly ILoggerService _loggerService;
 
     private readonly CompositeDisposable _disposables = [];
     private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -24,10 +27,13 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private int _preloadedChannel;
     private Uri? _preloadedUri;
     private bool _bassInitialized;
+    private bool _bassFailed;
     private bool _disposed;
 
-    public ManagedBassAudioPlaybackService()
+    public ManagedBassAudioPlaybackService(ILoggerService loggerService)
     {
+        _loggerService = loggerService;
+
         WhenProgressChanged = Observable.Interval(TimeSpan.FromMilliseconds(100))
             .Where(_ => IsPlaying)
             .Select(_ => GetPosition())
@@ -40,6 +46,9 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         _disposables.Add(_playbackCleared);
         _disposables.Add(_playbackEnded);
         _disposables.Add(_durationChanged);
+        _disposables.Add(_isAvailable);
+
+        InitializeBass();
     }
 
     public bool IsPlaying => _channel != 0 && Bass.ChannelIsActive(_channel) == PlaybackState.Playing;
@@ -55,87 +64,120 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     public IObservable<Unit> WhenPlaybackEnded => _playbackEnded.AsObservable();
     public IObservable<TimeSpan> WhenProgressChanged { get; }
     public IObservable<TimeSpan> WhenDurationChanged => _durationChanged.AsObservable();
+    public IObservable<bool> WhenAvailabilityChanged => _isAvailable.AsObservable();
 
     public Task SelectAsync(Uri source)
     {
-        return Task.Run(async () =>
-        {
-            await _semaphore.WaitAsync();
-            try
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
             {
-                EnsureBassInitialized();
-                FreeChannel();
-
-                var path = source.LocalPath;
-                _channel = Bass.CreateStream(path);
-
-                if (_channel == 0)
+                await _semaphore.WaitAsync();
+                try
                 {
-                    throw new InvalidOperationException(
-                        $"Failed to create stream for '{path}': {Bass.LastError}");
+                    FreeChannel();
+
+                    var path = source.LocalPath;
+                    _channel = Bass.CreateStream(path);
+
+                    if (_channel == 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"Failed to create stream for '{path}': {Bass.LastError}");
+                    }
+
+                    SetupEndSync();
+                    _selectedChanged.OnNext(source);
+
+                    var lengthInBytes = Bass.ChannelGetLength(_channel);
+                    var lengthInSeconds = Bass.ChannelBytes2Seconds(_channel, lengthInBytes);
+                    _durationChanged.OnNext(TimeSpan.FromSeconds(lengthInSeconds));
                 }
-
-                SetupEndSync();
-                _selectedChanged.OnNext(source);
-
-                var lengthInBytes = Bass.ChannelGetLength(_channel);
-                var lengthInSeconds = Bass.ChannelBytes2Seconds(_channel, lengthInBytes);
-                _durationChanged.OnNext(TimeSpan.FromSeconds(lengthInSeconds));
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
-        });
+                finally
+                {
+                    _semaphore.Release();
+                }
+            });
     }
 
     public Task PlayAsync()
     {
-        return Task.Run(async () =>
-        {
-            await _semaphore.WaitAsync();
-            try
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
             {
-                if (_channel == 0)
+                await _semaphore.WaitAsync();
+                try
                 {
-                    return;
-                }
+                    if (_channel == 0)
+                    {
+                        return;
+                    }
 
-                Bass.ChannelPlay(_channel);
-                _playbackStarted.OnNext(Unit.Default);
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
-        });
+                    Bass.ChannelPlay(_channel);
+                    _playbackStarted.OnNext(Unit.Default);
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
+            });
     }
 
     public Task PauseAsync()
     {
-        return Task.Run(async () =>
-        {
-            await _semaphore.WaitAsync();
-            try
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
             {
-                if (_channel == 0)
+                await _semaphore.WaitAsync();
+                try
                 {
-                    return;
-                }
+                    if (_channel == 0)
+                    {
+                        return;
+                    }
 
-                Bass.ChannelPause(_channel);
-                _playbackPaused.OnNext(Unit.Default);
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
-        });
+                    Bass.ChannelPause(_channel);
+                    _playbackPaused.OnNext(Unit.Default);
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
+            });
     }
 
     public Task RestartAsync()
     {
-        return Task.Run(async () =>
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
+            {
+                await _semaphore.WaitAsync();
+                try
+                {
+                    if (_channel == 0)
+                    {
+                        return;
+                    }
+
+                    Bass.ChannelSetPosition(_channel, 0);
+                    Bass.ChannelPlay(_channel, true);
+                    _playbackRestarted.OnNext(Unit.Default);
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
+            });
+    }
+
+    public Task SeekAsync(TimeSpan position)
+    {
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
         {
             await _semaphore.WaitAsync();
             try
@@ -145,9 +187,8 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                     return;
                 }
 
-                Bass.ChannelSetPosition(_channel, 0);
-                Bass.ChannelPlay(_channel, true);
-                _playbackRestarted.OnNext(Unit.Default);
+                var bytes = Bass.ChannelSeconds2Bytes(_channel, position.TotalSeconds);
+                Bass.ChannelSetPosition(_channel, bytes);
             }
             finally
             {
@@ -177,30 +218,31 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
     public Task PreloadNextAsync(Uri source)
     {
-        return Task.Run(async () =>
-        {
-            await _semaphore.WaitAsync();
-            try
+        return _bassFailed
+            ? Task.CompletedTask
+            : Task.Run(async () =>
             {
-                EnsureBassInitialized();
-                FreePreloadedChannel();
-
-                var path = source.LocalPath;
-                _preloadedChannel = Bass.CreateStream(path);
-
-                if (_preloadedChannel == 0)
+                await _semaphore.WaitAsync();
+                try
                 {
-                    throw new InvalidOperationException(
-                        $"Failed to create preload stream for '{path}': {Bass.LastError}");
-                }
+                    FreePreloadedChannel();
 
-                _preloadedUri = source;
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
-        });
+                    var path = source.LocalPath;
+                    _preloadedChannel = Bass.CreateStream(path);
+
+                    if (_preloadedChannel == 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"Failed to create preload stream for '{path}': {Bass.LastError}");
+                    }
+
+                    _preloadedUri = source;
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
+            });
     }
 
     public Task ClearPreloadAsync()
@@ -270,19 +312,75 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         }
     }
 
-    private void EnsureBassInitialized()
+    private void InitializeBass()
     {
-        if (_bassInitialized)
+        try
         {
+            if (!Bass.Init())
+            {
+                _bassFailed = true;
+                _isAvailable.OnNext(false);
+                _ = _loggerService.CriticalAsync("Failed to initialize BASS audio",
+                    new InvalidOperationException($"Bass.Init failed: {Bass.LastError}"));
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _bassFailed = true;
+            _isAvailable.OnNext(false);
+            _ = _loggerService.CriticalAsync("Failed to initialize BASS audio", ex);
             return;
         }
 
-        if (!Bass.Init())
+        _bassInitialized = true;
+        _ = _loggerService.DebugAsync("BASS audio initialized");
+
+        var flacPluginHandle = Bass.PluginLoad("bassflac");
+        _ = flacPluginHandle == 0
+            ? _loggerService.WarningAsync($"Failed to load BASSFLAC plugin: {Bass.LastError}")
+            : _loggerService.DebugAsync("BASSFLAC plugin loaded");
+
+        DiscoverSupportedExtensions(flacPluginHandle);
+    }
+
+    private void DiscoverSupportedExtensions(int flacPluginHandle)
+    {
+        // Built-in BASS formats (not queryable on BASS)
+        var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            throw new InvalidOperationException($"Failed to initialize BASS: {Bass.LastError}");
+            ".mp3",
+            ".mp2",
+            ".mp1",
+            ".wav",
+            ".aif",
+            ".aiff",
+            ".ogg"
+        };
+
+        if (flacPluginHandle != 0)
+        {
+            CollectPluginExtensions(Bass.PluginGetInfo(flacPluginHandle), extensions);
         }
 
-        _bassInitialized = true;
+        SupportedAudioFormats.Initialize(extensions);
+        _ = _loggerService.InfoAsync(
+            $"Supported audio extensions: {string.Join(", ", extensions.Order())}");
+    }
+
+    private static void CollectPluginExtensions(PluginInfo info, HashSet<string> extensions)
+    {
+        foreach (var format in info.Formats)
+        {
+            foreach (var part in format.FileExtensions.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var dotIndex = part.IndexOf('.');
+                if (dotIndex >= 0)
+                {
+                    extensions.Add(part[dotIndex..]);
+                }
+            }
+        }
     }
 
     private void FreeChannel()

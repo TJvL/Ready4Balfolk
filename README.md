@@ -2,7 +2,7 @@
 
 A desktop application for managing a balfolk dance night with recorded music. Build a queue of tracks, organise dances into categories, and display what's playing to your dancers on a presentation screen.
 
-Tracks are discovered from a music directory using the naming convention `Dance - Artist - Title.mp3`. Only MP3 files are supported.
+Tracks are discovered from a music directory using the naming convention `Dance - Artist - Title`. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
 
 ## Audio Backend
 

@@ -4,6 +4,7 @@ using NSubstitute;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -136,7 +137,7 @@ public sealed class QueueViewModelTests : IDisposable
         queueService.Connect().Returns(new SourceList<IQueueItem>().Connect());
 
         return new DanceTreeViewModel(treeStore, editorHistory, trackStore,
-            settingsStore, randomTrack, queueService, _notification);
+            settingsStore, randomTrack, queueService, _notification, new NoOpLoggerService());
     }
 
     // --- QueueRandomTrack ---

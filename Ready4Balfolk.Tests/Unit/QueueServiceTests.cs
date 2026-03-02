@@ -5,6 +5,7 @@ using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Resources;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -35,7 +36,7 @@ public sealed class QueueServiceTests : IDisposable
         historyStore.Current.Returns(_ => _historySubject.Value);
         historyStore.Observe().Returns(_historySubject);
 
-        _sut = new QueueService(settingsStore, historyStore, () => null);
+        _sut = new QueueService(settingsStore, historyStore, () => null, new NoOpLoggerService());
     }
 
     // --- Basic ops ---

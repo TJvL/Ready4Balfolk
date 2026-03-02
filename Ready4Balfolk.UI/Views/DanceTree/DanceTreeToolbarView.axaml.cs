@@ -1,9 +1,11 @@
+using System;
 using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
@@ -49,7 +51,20 @@ public partial class DanceTreeToolbarView : ReactiveUserControl<DanceTreeViewMod
 
         if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
         {
-            await ViewModel!.ImportAsync(new FileInfo(path));
+            try
+            {
+                await ViewModel!.ImportAsync(new FileInfo(path));
+            }
+            catch (InvalidDataException ex)
+            {
+                App.Services.GetRequiredService<INotificationService>()
+                    .Show(ex.Message, NotificationSeverity.Warning);
+            }
+            catch (Exception ex)
+            {
+                _ = App.Services.GetRequiredService<ILoggerService>()
+                    .ErrorAsync("Failed to import dance tree", ex);
+            }
         }
     }
 
@@ -70,7 +85,15 @@ public partial class DanceTreeToolbarView : ReactiveUserControl<DanceTreeViewMod
 
         if (file?.TryGetLocalPath() is { } path)
         {
-            await ViewModel!.ExportAsync(new FileInfo(path));
+            try
+            {
+                await ViewModel!.ExportAsync(new FileInfo(path));
+            }
+            catch (Exception ex)
+            {
+                _ = App.Services.GetRequiredService<ILoggerService>()
+                    .ErrorAsync("Failed to export dance tree", ex);
+            }
         }
     }
 

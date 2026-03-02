@@ -184,10 +184,10 @@
     <value>When disabled, tracks that are currently playing, in the queue, or have already played this session cannot be added again.</value>
   </data>
   <data name="Settings_ConfirmPlayback" xml:space="preserve">
-    <value>Confirm before skip, clear, and restart</value>
+    <value>Confirm before skip, clear, restart, and seek</value>
   </data>
   <data name="Settings_ConfirmPlaybackDescription" xml:space="preserve">
-    <value>Show a confirmation dialog before skipping to the next item, clearing the current track, or restarting playback</value>
+    <value>Show a confirmation dialog before skipping to the next item, clearing the current track, restarting playback, or seeking to a different position</value>
   </data>
   <data name="Settings_Theme" xml:space="preserve">
     <value>Theme</value>
@@ -381,6 +381,18 @@
   </data>
   <data name="Playback_ClearButton" xml:space="preserve">
     <value>Clear</value>
+  </data>
+  <data name="Playback_SeekTitle" xml:space="preserve">
+    <value>Seek</value>
+  </data>
+  <data name="Playback_SeekMessage" xml:space="preserve">
+    <value>Jump to a different position in the track?</value>
+  </data>
+  <data name="Playback_SeekButton" xml:space="preserve">
+    <value>Seek</value>
+  </data>
+  <data name="Playback_AudioUnavailable" xml:space="preserve">
+    <value>Audio unavailable</value>
   </data>
 
   <!-- Track Catalog -->

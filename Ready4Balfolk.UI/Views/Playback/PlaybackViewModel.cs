@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
@@ -33,9 +34,13 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool IsPlaying { get; set; }
     [Reactive] public partial bool ShowNextIcon { get; set; }
     [Reactive] public partial bool HasCurrentItem { get; set; }
+    [Reactive] public partial bool IsAudioUnavailable { get; set; }
 
-    private IObservable<bool> CanPlayPause => this.WhenAnyValue(x => x.HasTrack);
-    private IObservable<bool> CanRestart => this.WhenAnyValue(x => x.HasTrack);
+    private IObservable<bool> CanPlayPause =>
+        this.WhenAnyValue(x => x.HasTrack, x => x.IsAudioUnavailable, (has, unavailable) => has && !unavailable);
+
+    private IObservable<bool> CanRestart =>
+        this.WhenAnyValue(x => x.HasTrack, x => x.IsAudioUnavailable, (has, unavailable) => has && !unavailable);
 
     private IObservable<bool> CanNextOrClear =>
         this.WhenAnyValue(x => x.ShowNextIcon, x => x.HasCurrentItem, (next, current) => next || current);
@@ -86,7 +91,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public PlaybackViewModel(IQueueConsumptionService consumptionService, IQueueService queueService, IConfirmationService confirmationService, ISettingsStore settingsStore)
+    public PlaybackViewModel(IQueueConsumptionService consumptionService, IQueueService queueService, IConfirmationService confirmationService, ISettingsStore settingsStore, IAudioPlaybackService audioPlaybackService)
     {
         _consumptionService = consumptionService;
         _queueService = queueService;
@@ -97,6 +102,11 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         TrackTitle = "";
         CurrentTime = "0:00";
         TotalTime = "0:00";
+
+        audioPlaybackService.WhenAvailabilityChanged
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(available => IsAudioUnavailable = !available)
+            .DisposeWith(_disposables);
 
         consumptionService.WhenCurrentItemChanged
             .ObserveOn(RxApp.MainThreadScheduler)
@@ -201,6 +211,22 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
 
     private static string FormatTime(TimeSpan time)
         => $"{(int)time.TotalMinutes}:{time.Seconds:D2}";
+
+    public async Task SeekAsync(TimeSpan position)
+    {
+        if (!HasTrack)
+        {
+            return;
+        }
+
+        if (HasCurrentItem && _settingsStore.Current.RequirePlaybackConfirmation &&
+            !await _confirmationService.ConfirmAsync(UiStrings.Playback_SeekTitle, UiStrings.Playback_SeekMessage, UiStrings.Playback_SeekButton, UiStrings.Playback_CancelButton))
+        {
+            return;
+        }
+
+        await _consumptionService.SeekAsync(position);
+    }
 
     public void Dispose() => _disposables.Dispose();
 }

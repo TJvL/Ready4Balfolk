@@ -3,10 +3,12 @@ using System.Reactive.Subjects;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ready4Balfolk.Domain.Models.History;
+using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.History;
 
-public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo) : IQueueHistoryStore
+public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo, ILoggerService loggerService)
+    : IQueueHistoryStore
 {
     private const string QueueHistoryFileName = "queue_history.json";
 
@@ -47,7 +49,12 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo) :
             if (history != null)
             {
                 _history.OnNext(history);
+                _ = loggerService.InfoAsync($"Loaded queue history ({history.Entries.Count} entries)");
             }
+        }
+        catch (Exception ex) when (ex is JsonException or IOException)
+        {
+            _ = loggerService.ErrorAsync("Failed to load queue history", ex);
         }
         finally
         {
@@ -99,6 +106,7 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo) :
             destinationFileInfo.Directory?.Create();
             await using var stream = File.Create(destinationFileInfo.FullName);
             await JsonSerializer.SerializeAsync(stream, Current, JsonOptions);
+            _ = loggerService.InfoAsync($"Exported queue history to {destinationFileInfo.FullName}");
         }
         finally
         {
@@ -115,8 +123,15 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo) :
 
     private async Task SaveAsync(QueueHistory history)
     {
-        queueHistoryDirectoryInfo.Create();
-        await using var stream = File.Create(QueueHistoryFilePath);
-        await JsonSerializer.SerializeAsync(stream, history, JsonOptions);
+        try
+        {
+            queueHistoryDirectoryInfo.Create();
+            await using var stream = File.Create(QueueHistoryFilePath);
+            await JsonSerializer.SerializeAsync(stream, history, JsonOptions);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _ = loggerService.ErrorAsync("Failed to save queue history", ex);
+        }
     }
 }

@@ -14,6 +14,7 @@ using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Tree;
 using Ready4Balfolk.Domain.Services.Editor;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -33,6 +34,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
     private readonly IRandomTrackService _randomTrackService;
     private readonly IQueueService _queueService;
     private readonly INotificationService _notificationService;
+    private readonly ILoggerService _loggerService;
     private readonly CompositeDisposable _disposables = [];
     private readonly IObservable<IReadOnlyDictionary<string, int>> _trackCounts;
     private HashSet<string>? _collapsedBranches;
@@ -98,7 +100,8 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         ISettingsStore settingsStore,
         IRandomTrackService randomTrackService,
         IQueueService queueService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        ILoggerService loggerService)
     {
         _danceTreeStore = danceTreeStore;
         _editorHistoryService = editorHistoryService;
@@ -106,6 +109,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         _randomTrackService = randomTrackService;
         _queueService = queueService;
         _notificationService = notificationService;
+        _loggerService = loggerService;
         DanceTreeDisplayRoot = new List<DanceCategoryNode>();
         Marked = new MarkedSelection.Root();
 
@@ -478,6 +482,10 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         {
             await _danceTreeStore.UpdateAsync(transform);
         }
+        catch (Exception ex)
+        {
+            _ = _loggerService.ErrorAsync("Failed to save dance tree changes", ex);
+        }
         finally
         {
             _pendingCommits--;
@@ -491,6 +499,11 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         try
         {
             await _danceTreeStore.UpdateAsync(transform);
+        }
+        catch (Exception ex)
+        {
+            _ = _loggerService.ErrorAsync("Failed to save dance tree changes", ex);
+            return;
         }
         finally
         {
@@ -508,6 +521,11 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         {
             await _editorHistoryService.DoActionAsync(action);
         }
+        catch (Exception ex)
+        {
+            _ = _loggerService.ErrorAsync("Failed to save dance tree changes", ex);
+            return;
+        }
         finally
         {
             _pendingCommits--;
@@ -522,6 +540,11 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         try
         {
             await op();
+        }
+        catch (Exception ex)
+        {
+            _ = _loggerService.ErrorAsync("Failed to undo/redo dance tree changes", ex);
+            return;
         }
         finally
         {

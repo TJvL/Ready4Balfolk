@@ -9,10 +9,8 @@
         xmlns:history="using:Ready4Balfolk.UI.Views.History"
         xmlns:trackCatalog="using:Ready4Balfolk.UI.Views.TrackCatalog"
         xmlns:danceTree="using:Ready4Balfolk.UI.Views.DanceTree"
-        xmlns:settings="using:Ready4Balfolk.UI.Views.Settings"
-        xmlns:help="using:Ready4Balfolk.UI.Views.Help"
-        xmlns:danceSynonyms="using:Ready4Balfolk.UI.Views.DanceSynonyms"
         xmlns:notifications="using:Ready4Balfolk.UI.Views.Notifications"
+        xmlns:rxui="http://reactiveui.net"
         xmlns:res="using:Ready4Balfolk.UI.Resources"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
         x:Class="Ready4Balfolk.UI.MainWindow"
@@ -81,7 +79,7 @@
                 </Button>
                 <TextBlock Text="{x:Static res:UiStrings.MainWindow_Settings}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
             </StackPanel>
-            <settings:SettingsView DataContext="{Binding Settings}" />
+            <rxui:ViewModelViewHost ViewModel="{Binding Settings}" />
         </DockPanel>
 
         <!-- Help Screen -->
@@ -94,13 +92,13 @@
                 </Button>
                 <TextBlock Text="{x:Static res:UiStrings.MainWindow_Help}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
             </StackPanel>
-            <help:HelpView />
+            <rxui:ViewModelViewHost ViewModel="{Binding Help}" />
         </DockPanel>
 
         <!-- Synonyms Screen -->
         <Panel IsVisible="{Binding Navigation.IsSynonymsScreen}"
                Margin="16">
-            <danceSynonyms:DanceSynonymsView DataContext="{Binding DanceSynonyms}" />
+            <rxui:ViewModelViewHost ViewModel="{Binding DanceSynonyms}" />
         </Panel>
 
         <!-- Notification Overlay -->

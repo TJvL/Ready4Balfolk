@@ -70,10 +70,10 @@ Services hold **ephemeral runtime state** and operational logic — queue manage
 |---------|---------------|
 | `QueueService` | In-memory queue backed by `SourceList<IQueueItem>`. Delegates all validation to a `QueueGuard` (see below). |
 | `QueueConsumptionService` | Dequeues items, drives playback, tracks elapsed time, records history. |
-| `AudioPlaybackService` | ManagedBass wrapper for MP3 playback (play, pause, seek, volume). |
+| `AudioPlaybackService` | ManagedBass wrapper for audio playback (play, pause, seek, volume). |
 | `RandomTrackService` | Weighted random selection from the dance tree, with deduplication against queue + history + currently playing. |
 | `SynonymResolutionService` | Maintains an in-memory `Dictionary<string, string>` (normalised name → canonical name). Rebuilds atomically via `Interlocked.Exchange` when synonyms change. |
-| `TrackDiscoveryService` | Reads MP3 metadata (TagLib) to produce `Track` records. |
+| `TrackDiscoveryService` | Reads audio metadata (TagLib) to produce `Track` records. |
 
 **To add a new service:**
 
