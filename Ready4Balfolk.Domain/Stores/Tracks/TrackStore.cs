@@ -177,6 +177,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
                                     file.FullName, file.LastWriteTimeUtc, track.Length);
                             }
 
+                            if (!track.IsValid())
+                            {
+                                return;
+                            }
+
                             lock (loadedPaths)
                             {
                                 loadedPaths.Add(file.FullName);

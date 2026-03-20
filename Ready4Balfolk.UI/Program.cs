@@ -12,12 +12,14 @@ using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 using ReactiveUI.Avalonia.Splat;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Editor;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Synonym;
 using Ready4Balfolk.Domain.Services.Tracks;
+using Ready4Balfolk.Domain.Services.Tracks.Discovery;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Synonym;
@@ -133,7 +135,9 @@ public static class Program
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
         services.AddTransient<IEditorHistoryService, EditorHistoryService>();
         services.AddSingleton<ITrackDurationCache>(sp => new TrackDurationCache(DataDirectory, sp.GetRequiredService<ILoggerService>()));
-        services.AddSingleton<ITrackDiscoveryService, SimpleTrackDiscoveryService>();
+        services.AddSingleton<ITrackDiscoveryService, PatternTrackDiscoveryService>(sp => new PatternTrackDiscoveryService(DiscoveryPattern.DefaultDefault, sp.GetService<DanceFileDiscoveryService>()));
+        services.AddSingleton<IDanceFileDiscoveryService, DanceFileDiscoveryService>();
+        services.AddSingleton<DanceFileService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<ISynonymResolutionService, SynonymResolutionService>();
 

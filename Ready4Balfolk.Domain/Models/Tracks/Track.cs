@@ -9,13 +9,21 @@ public sealed record Track(string Dance, string Artist, string Title, IFileInfo 
 
     public static Track FromSegments(Dictionary<PatternSegment, string> segments, IFileInfo fileInfo, TimeSpan length, AudioFormat format)
     {
-        string GetOrDefault(PatternSegment key) =>
-            segments.GetValueOrDefault(key, "");
-
-        var dance = GetOrDefault(PatternSegment.Dance);
-        var artist = GetOrDefault(PatternSegment.Artist);
-        var title = GetOrDefault(PatternSegment.Title);
+        var dance = segments.GetValueOrDefault(PatternSegment.Dance, "");
+        var artist = segments.GetValueOrDefault(PatternSegment.Artist, "");
+        var title = segments.GetValueOrDefault(PatternSegment.Title, "");
 
         return new Track(dance, artist, title, fileInfo, length, format);
+    }
+
+    public bool IsValid()
+    {
+        var validDance = !string.IsNullOrWhiteSpace(Dance);
+        var validTitle = !string.IsNullOrWhiteSpace(Title);
+        var validArtist = !string.IsNullOrWhiteSpace(Artist);
+        var validDuration = Length >= TimeSpan.Zero;
+        var fileInfo = FileInfo.Exists;
+
+        return validDance && validTitle && validArtist && validDuration && fileInfo;
     }
 }
