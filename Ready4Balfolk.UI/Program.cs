@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.IO.Abstractions;
 using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
@@ -132,11 +133,12 @@ public static class Program
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
         services.AddTransient<IEditorHistoryService, EditorHistoryService>();
         services.AddSingleton<ITrackDurationCache>(sp => new TrackDurationCache(DataDirectory, sp.GetRequiredService<ILoggerService>()));
-        services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
+        services.AddSingleton<ITrackDiscoveryService, SimpleTrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<ISynonymResolutionService, SynonymResolutionService>();
 
         // Stores
+        services.AddSingleton<IFileSystem>(new FileSystem());
         services.AddSingleton<IDanceTreeStore>(sp => new DanceTreeStore(DataDirectory, sp.GetRequiredService<ILoggerService>()));
         services.AddSingleton<IDanceSynonymStore>(sp => new DanceSynonymStore(DataDirectory, sp.GetRequiredService<ILoggerService>()));
         services.AddSingleton<ISettingsStore>(SettingsStore);

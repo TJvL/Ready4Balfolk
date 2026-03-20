@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -23,17 +24,20 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly IDisposable _synonymSubscription;
     private FileSystemWatcher? _watcher;
     private bool _disposed;
+    private readonly IFileSystem _fileSystem;
 
     public TrackStore(
         ILoggerService loggerService,
         ITrackDiscoveryService discoveryService,
         ISynonymResolutionService synonymService,
-        ITrackDurationCache durationCache)
+        ITrackDurationCache durationCache,
+        IFileSystem fileSystem)
     {
         _loggerService = loggerService;
         _discoveryService = discoveryService;
         _synonymService = synonymService;
         _durationCache = durationCache;
+        _fileSystem = fileSystem;
 
         _synonymSubscription = synonymService.Changed
             .ObserveOn(TaskPoolScheduler.Default)
@@ -49,7 +53,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
     public IReadOnlyList<Track> Current => _tracks.Items.ToList();
 
-    public DirectoryInfo? MusicDirectory
+    public IDirectoryInfo? MusicDirectory
     {
         set
         {
@@ -119,7 +123,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         };
     }
 
-    private async Task LoadDirectoryAsync(DirectoryInfo directory)
+    private async Task LoadDirectoryAsync(IDirectoryInfo directory)
     {
         _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
 
@@ -226,7 +230,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private void StartWatching(FileSystemInfo directory)
+    private void StartWatching(IFileSystemInfo directory)
     {
         _watcher = new FileSystemWatcher(directory.FullName)
         {
@@ -250,7 +254,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         try
         {
-            var fileInfo = new FileInfo(fileSystemEventArgs.FullPath);
+            var fileInfo = _fileSystem.FileInfo.New(fileSystemEventArgs.FullPath);
             var track = _discoveryService.LoadTrack(fileInfo);
             _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
             _tracks.Add(ResolveTrackDance(track));
@@ -292,7 +296,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         try
         {
-            var fileInfo = new FileInfo(renamedEventArgs.FullPath);
+            var fileInfo = _fileSystem.FileInfo.New(renamedEventArgs.FullPath);
             var track = _discoveryService.LoadTrack(fileInfo);
             _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
             _tracks.Add(ResolveTrackDance(track));

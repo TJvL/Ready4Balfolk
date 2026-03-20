@@ -1,3 +1,4 @@
+using System.IO.Abstractions.TestingHelpers;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
@@ -58,7 +59,9 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     [Fact]
     public async Task AdvanceAsync_DequeuesAndStartsTrack()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         _queue.Enqueue(track);
 
         await _sut.AdvanceAsync();
@@ -79,7 +82,9 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     [Fact]
     public async Task AdvanceAsync_RecordsHistoryEntry()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         _queue.Enqueue(track);
         await _sut.AdvanceAsync();
 
@@ -112,7 +117,9 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     [Fact]
     public async Task ClearAsync_ClearsCurrentItemAndAudio()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         _queue.Enqueue(track);
         await _sut.AdvanceAsync();
 
@@ -128,10 +135,12 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     [Fact]
     public async Task WhenCurrentItemChanged_Emits()
     {
+        var mockFileSystem = new MockFileSystem();
+
         IQueueItem? lastItem = null;
         using var sub = _sut.WhenCurrentItemChanged.Subscribe(item => lastItem = item);
 
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         _queue.Enqueue(track);
         await _sut.AdvanceAsync();
 
@@ -189,7 +198,9 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     [Fact]
     public async Task AutoTrackItem_PlaysUnderlyingTrack()
     {
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         _queue.Enqueue(auto);
 
         await _sut.AdvanceAsync();

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -34,6 +35,7 @@ public sealed class App : Application
     private readonly List<PresentationWindow> _presentationWindows = [];
     private IDisposable? _presentationCountSubscription;
 
+
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
     public override void OnFrameworkInitializationCompleted()
@@ -41,6 +43,7 @@ public sealed class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var settingsStore = Services.GetRequiredService<ISettingsStore>();
+            var fileSystem = Services.GetRequiredService<IFileSystem>();
             var closeConfirmed = false;
 
             var mainWindow = new MainWindow();
@@ -104,7 +107,7 @@ public sealed class App : Application
                 settingsStore.Observe()
                     .Select(s => s.MusicDirectoryPath)
                     .Where(path => !string.IsNullOrEmpty(path))
-                    .Subscribe(path => trackStore.MusicDirectory = new DirectoryInfo(path));
+                    .Subscribe(path => trackStore.MusicDirectory = fileSystem.DirectoryInfo.New(path));
 
                 var windowState = settingsStore.Current.MainWindowState;
                 if (windowState is { X: not null, Y: not null })

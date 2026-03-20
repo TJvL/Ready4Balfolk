@@ -1,3 +1,4 @@
+using System.IO.Abstractions.TestingHelpers;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Tests.Helpers;
@@ -11,20 +12,24 @@ public sealed class MaxItemsRuleTests
     [Fact]
     public void EvaluateAdd_UnderLimit_NoOpinion()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
-        var verdict = _sut.EvaluateAdd(track, [new TrackQueueItem(TestData.CreateTrack("A"), false)]);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
+        var verdict = _sut.EvaluateAdd(track, [new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false)]);
         Assert.Null(verdict);
     }
 
     [Fact]
     public void EvaluateAdd_AtLimit_Denies()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         IReadOnlyList<IQueueItem> items =
         [
-            new TrackQueueItem(TestData.CreateTrack("A"), false),
-            new TrackQueueItem(TestData.CreateTrack("B"), false),
-            new TrackQueueItem(TestData.CreateTrack("C"), false)
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "C"), false)
         ];
         var verdict = _sut.EvaluateAdd(track, items);
         Assert.NotNull(verdict);
@@ -35,14 +40,18 @@ public sealed class MaxItemsRuleTests
     [Fact]
     public void GetPreAddRemovalPredicate_AlwaysNull()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         Assert.Null(_sut.GetPreAddRemovalPredicate(track, []));
     }
 
     [Fact]
     public void CanRemove_AlwaysNull()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         Assert.Null(_sut.CanRemove(track));
     }
 
@@ -51,10 +60,12 @@ public sealed class MaxItemsRuleTests
     [Fact]
     public void GetEvictionIndices_UnderLimit_ReturnsEmpty()
     {
+        var mockFileSystem = new MockFileSystem();
+
         IReadOnlyList<IQueueItem> items =
         [
-            new TrackQueueItem(TestData.CreateTrack("A"), false),
-            new TrackQueueItem(TestData.CreateTrack("B"), false)
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false)
         ];
         Assert.Empty(_sut.GetEvictionIndices(items));
     }
@@ -62,13 +73,15 @@ public sealed class MaxItemsRuleTests
     [Fact]
     public void GetEvictionIndices_OverLimit_ReturnsTailIndices()
     {
+        var mockFileSystem = new MockFileSystem();
+
         IReadOnlyList<IQueueItem> items =
         [
-            new TrackQueueItem(TestData.CreateTrack("A"), false),
-            new TrackQueueItem(TestData.CreateTrack("B"), false),
-            new TrackQueueItem(TestData.CreateTrack("C"), false),
-            new TrackQueueItem(TestData.CreateTrack("D"), false),
-            new TrackQueueItem(TestData.CreateTrack("E"), false)
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "C"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "D"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "E"), false)
         ];
         var indices = _sut.GetEvictionIndices(items);
         Assert.Equal([3, 4], indices);

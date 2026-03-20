@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using Ready4Balfolk.Domain.Models.Synonyms;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Models.Tree;
@@ -6,11 +7,18 @@ namespace Ready4Balfolk.Tests.Helpers;
 
 public static class TestData
 {
-    public static Track CreateTrack(string dance = "Mazurka", string artist = "Artist",
+    public static Track CreateTrack(IFileSystem fileSystem, string dance = "Mazurka", string artist = "Artist",
         string title = "Title", int lengthSeconds = 180, AudioFormat format = AudioFormat.Mp3)
-        => new(dance, artist, title,
-            new FileInfo($"/tmp/test/{dance}_{artist}_{title}.mp3".Replace(' ', '_')),
+    {
+        var filename = $"/tmp/test/{dance}_{artist}_{title}.mp3".Replace(' ', '_');
+
+        var fileInfo = fileSystem.FileInfo.New(filename);
+        fileInfo.Directory?.Create();
+        using var stream = fileInfo.Create();
+
+        return new(dance, artist, title, fileInfo,
             TimeSpan.FromSeconds(lengthSeconds), format);
+    }
 
     public static DanceBranch CreateBranch(string name, int weight = 1,
         IEnumerable<DanceBranch>? children = null, IEnumerable<DanceLeaf>? leaves = null)

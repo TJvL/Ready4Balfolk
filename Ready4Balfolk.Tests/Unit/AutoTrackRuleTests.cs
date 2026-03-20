@@ -1,3 +1,4 @@
+using System.IO.Abstractions.TestingHelpers;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Tests.Helpers;
@@ -11,8 +12,10 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void EvaluateAdd_AutoTrack_EmptyQueue_NoOpinion()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         var verdict = sut.EvaluateAdd(auto, []);
         Assert.Null(verdict);
     }
@@ -20,9 +23,11 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void EvaluateAdd_AutoTrack_NonEmpty_Denies()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
-        var existing = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
+        var existing = new TrackQueueItem(TestData.CreateTrack(mockFileSystem,"A"), false);
         var verdict = sut.EvaluateAdd(auto, [existing]);
         Assert.NotNull(verdict);
         Assert.False(verdict.Allowed);
@@ -31,8 +36,10 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void EvaluateAdd_Regular_NoOpinion()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         var verdict = sut.EvaluateAdd(track, []);
         Assert.Null(verdict);
     }
@@ -42,9 +49,11 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void GetPreAddRemovalPredicate_Regular_ReturnsAutoTrackPredicate()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("X"), true));
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "X"), true));
         var predicate = sut.GetPreAddRemovalPredicate(track, [auto]);
 
         Assert.NotNull(predicate);
@@ -55,8 +64,10 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void GetPreAddRemovalPredicate_AutoTrack_ReturnsNull()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         var predicate = sut.GetPreAddRemovalPredicate(auto, []);
         Assert.Null(predicate);
     }
@@ -66,16 +77,20 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void CanRemove_AutoTrack_False()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         Assert.False(sut.CanRemove(auto));
     }
 
     [Fact]
     public void CanRemove_Regular_Null()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         Assert.Null(sut.CanRemove(track));
     }
 
@@ -84,16 +99,20 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void CanClear_OnlyAutoTracks_False()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         Assert.False(sut.CanClear([auto]));
     }
 
     [Fact]
     public void CanClear_HasRegular_Null()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         Assert.Null(sut.CanClear([track]));
     }
 
@@ -102,10 +121,12 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void GetEvictionIndices_Enabled_ReturnsEmpty()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
         var items = new List<IQueueItem>
         {
-            new TrackQueueItem(TestData.CreateTrack("A"), false), new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true))
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false), new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), true))
         };
         Assert.Empty(sut.GetEvictionIndices(items));
     }
@@ -113,10 +134,12 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void GetEvictionIndices_Disabled_ReturnsAutoTrackIndices()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(false);
         var items = new List<IQueueItem>
         {
-            new TrackQueueItem(TestData.CreateTrack("A"), false), new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true))
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false), new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), true))
         };
         Assert.Equal([1], sut.GetEvictionIndices(items));
     }
@@ -124,10 +147,12 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void GetEvictionIndices_Disabled_NoAutoTracks_ReturnsEmpty()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(false);
         var items = new List<IQueueItem>
         {
-            new TrackQueueItem(TestData.CreateTrack("A"), false)
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false)
         };
         Assert.Empty(sut.GetEvictionIndices(items));
     }

@@ -9,6 +9,8 @@
     <ItemGroup>
       <PackageReference Include="DynamicData" Version="9.4.1" />
       <PackageReference Include="ManagedBass" Version="4.0.2" />
+      <PackageReference Include="morelinq" Version="4.4.0" />
+      <PackageReference Include="System.IO.Abstractions" Version="22.1.0" />
       <PackageReference Include="TagLibSharp" Version="2.3.0" />
     </ItemGroup>
 

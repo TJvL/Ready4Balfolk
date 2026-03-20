@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO.Abstractions.TestingHelpers;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
@@ -44,7 +45,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Enqueue_AddsItem()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         Assert.True(_sut.Enqueue(track).Allowed);
         Assert.Equal(1, _sut.Count);
     }
@@ -52,7 +55,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Dequeue_ReturnsFirstItem()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         _sut.Enqueue(track);
         var result = _sut.Dequeue();
         Assert.Equal(track, result);
@@ -65,7 +70,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Peek_ReturnsFirstWithoutRemoving()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         _sut.Enqueue(track);
         Assert.Equal(track, _sut.Peek());
         Assert.Equal(1, _sut.Count);
@@ -77,9 +84,11 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void InsertAt_InsertsAtPosition()
     {
-        var track1 = new TrackQueueItem(TestData.CreateTrack("A"), false);
-        var track2 = new TrackQueueItem(TestData.CreateTrack("B"), false);
-        var track3 = new TrackQueueItem(TestData.CreateTrack("C"), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track1 = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false);
+        var track2 = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false);
+        var track3 = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "C"), false);
         _sut.Enqueue(track1);
         _sut.Enqueue(track2);
         _sut.InsertAt(1, track3);
@@ -89,8 +98,10 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Move_ChangesPosition()
     {
-        var track1 = new TrackQueueItem(TestData.CreateTrack("A"), false);
-        var track2 = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track1 = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false);
+        var track2 = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false);
         _sut.Enqueue(track1);
         _sut.Enqueue(track2);
         Assert.True(_sut.Move(0, 1));
@@ -101,7 +112,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void RemoveAt_RemovesItem()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         _sut.Enqueue(track);
         Assert.True(_sut.RemoveAt(0));
         Assert.Equal(0, _sut.Count);
@@ -110,8 +123,10 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Clear_RemovesAllItems()
     {
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
+        var mockFileSystem = new MockFileSystem();
+
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false));
         Assert.True(_sut.Clear());
         Assert.Equal(0, _sut.Count);
     }
@@ -119,8 +134,10 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Items_ReturnsAllItems()
     {
-        var track1 = new TrackQueueItem(TestData.CreateTrack("A"), false);
-        var track2 = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track1 = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false);
+        var track2 = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false);
         _sut.Enqueue(track1);
         _sut.Enqueue(track2);
         Assert.Equal(2, _sut.Items.Count);
@@ -131,7 +148,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Enqueue_AutoTrack_EmptyQueue_Succeeds()
     {
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         Assert.True(_sut.Enqueue(auto).Allowed);
         Assert.Equal(1, _sut.Count);
     }
@@ -139,8 +158,10 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Enqueue_AutoTrack_NonEmptyQueue_Fails()
     {
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         Assert.False(_sut.Enqueue(auto).Allowed);
         Assert.Equal(1, _sut.Count);
     }
@@ -148,9 +169,11 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Enqueue_Regular_RemovesAutoTrack()
     {
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         _sut.Enqueue(auto);
-        var track = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false);
         _sut.Enqueue(track);
         Assert.Equal(1, _sut.Count);
         Assert.IsType<TrackQueueItem>(_sut.Peek());
@@ -159,24 +182,30 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void InsertAt_AutoTrack_EmptyQueue_Succeeds()
     {
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         Assert.True(_sut.InsertAt(0, auto).Allowed);
     }
 
     [Fact]
     public void InsertAt_AutoTrack_NonEmptyQueue_Fails()
     {
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         Assert.False(_sut.InsertAt(0, auto).Allowed);
     }
 
     [Fact]
     public void InsertAt_Regular_RemovesAutoTrack_AdjustsIndex()
     {
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         _sut.Enqueue(auto);
-        var track = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false);
         _sut.InsertAt(1, track);
         Assert.Equal(1, _sut.Count);
         Assert.IsType<TrackQueueItem>(_sut.Peek());
@@ -185,7 +214,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Move_AutoTrack_ReturnsFalse()
     {
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         _sut.Enqueue(auto);
         Assert.False(_sut.Move(0, 0));
     }
@@ -193,7 +224,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void RemoveAt_AutoTrack_ReturnsFalse()
     {
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         _sut.Enqueue(auto);
         Assert.False(_sut.RemoveAt(0));
     }
@@ -201,7 +234,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Clear_OnlyAutoTrack_ReturnsFalse()
     {
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         _sut.Enqueue(auto);
         Assert.False(_sut.Clear());
     }
@@ -209,7 +244,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void RemoveWhere_RemovesMatchingItems()
     {
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         _sut.Enqueue(auto);
         Assert.True(_sut.RemoveWhere(i => i is AutoTrackQueueItem));
         Assert.Equal(0, _sut.Count);
@@ -224,15 +261,17 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Enqueue_QueueFull_ReturnsDenied()
     {
+        var mockFileSystem = new MockFileSystem();
+
         _settingsSubject.OnNext(new ApplicationSettings() with
         {
             MaxQueueItems = 2
         });
 
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false));
 
-        var result = _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("C"), false));
+        var result = _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "C"), false));
         Assert.False(result.Allowed);
         Assert.Contains(string.Format(CultureInfo.CurrentCulture, DomainStrings.MaxItemsRule_QueueFull, 2), result.RejectionReason!);
     }
@@ -240,15 +279,17 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void InsertAt_QueueFull_ReturnsDenied()
     {
+        var mockFileSystem = new MockFileSystem();
+
         _settingsSubject.OnNext(new ApplicationSettings() with
         {
             MaxQueueItems = 2
         });
 
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false));
 
-        var result = _sut.InsertAt(0, new TrackQueueItem(TestData.CreateTrack("C"), false));
+        var result = _sut.InsertAt(0, new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "C"), false));
         Assert.False(result.Allowed);
         Assert.Contains(string.Format(CultureInfo.CurrentCulture, DomainStrings.MaxItemsRule_QueueFull, 2), result.RejectionReason!);
     }
@@ -258,10 +299,12 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Connect_EmitsChangeSets()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var changeSetCount = 0;
         using var sub = _sut.Connect().Subscribe(_ => changeSetCount++);
 
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
         Assert.True(changeSetCount >= 1);
 
         var before = changeSetCount;
@@ -274,9 +317,11 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void SettingsChange_MaxReduced_EvictsExcess()
     {
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("C"), false));
+        var mockFileSystem = new MockFileSystem();
+
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "C"), false));
         Assert.Equal(3, _sut.Count);
 
         _settingsSubject.OnNext(new ApplicationSettings() with
@@ -289,6 +334,8 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void SettingsChange_DuplicatesDisabled_EvictsDuplicates()
     {
+        var mockFileSystem = new MockFileSystem();
+
         // Start with duplicates allowed
         _settingsSubject.OnNext(new ApplicationSettings() with
         {
@@ -296,7 +343,7 @@ public sealed class QueueServiceTests : IDisposable
             AllowDuplicateTracksInQueue = true
         });
 
-        var track = TestData.CreateTrack();
+        var track = TestData.CreateTrack(mockFileSystem);
         _sut.Enqueue(new TrackQueueItem(track, false));
         _sut.Enqueue(new TrackQueueItem(track, false));
         Assert.Equal(2, _sut.Count);
@@ -313,6 +360,8 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void HistoryChange_EvictsDuplicates()
     {
+        var mockFileSystem = new MockFileSystem();
+
         // Disable duplicates from the start
         _settingsSubject.OnNext(new ApplicationSettings() with
         {
@@ -320,7 +369,7 @@ public sealed class QueueServiceTests : IDisposable
             AllowDuplicateTracksInQueue = false
         });
 
-        var track = TestData.CreateTrack();
+        var track = TestData.CreateTrack(mockFileSystem);
         _sut.Enqueue(new TrackQueueItem(track, false));
         Assert.Equal(1, _sut.Count);
 
