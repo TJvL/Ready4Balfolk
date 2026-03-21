@@ -4,7 +4,7 @@ namespace Ready4Balfolk.Domain.Services.Tracks.Discovery;
 
 public static class AudioFormatInformation
 {
-    private static readonly Dictionary<string, AudioFormat> SupportedFormatLookup = new Dictionary<string, AudioFormat>()
+    private static readonly Dictionary<string, AudioFormat> SupportedFormatLookup = new()
     {
         { ".mp1", AudioFormat.Mp3 },
         { ".mp2", AudioFormat.Mp3 },
@@ -22,11 +22,8 @@ public static class AudioFormatInformation
 
     public static AudioFormat ParseAudioFormat(string extension)
     {
-        if (!SupportedFormatLookup.TryGetValue(extension.ToLowerInvariant(), out var format))
-        {
-            throw new ArgumentOutOfRangeException(nameof(extension), extension, $"Unsupported audio format for '{extension}'.");
-        }
-
-        return format;
+        return SupportedFormatLookup.TryGetValue(extension.ToLowerInvariant(), out var format)
+            ? format
+            : throw new ArgumentOutOfRangeException(nameof(extension), extension, $"Unsupported audio format for '{extension}'.");
     }
 }

@@ -34,7 +34,7 @@ public class PatternMatcher
         return Match(fileSegments, patternSegments);
     }
 
-    static Dictionary<PatternSegment, string> Match(ICollection<string> fileSegments, ICollection<string> patternSegments)
+    private static Dictionary<PatternSegment, string> Match(ICollection<string> fileSegments, ICollection<string> patternSegments)
     {
         // It doesn't matter what order we test this, as long as we go from the latest path
         var zipped = fileSegments.Reverse().ZipShortest(patternSegments.Reverse(), (fileSegment, patternSegment) => (fileSegment, patternSegment));

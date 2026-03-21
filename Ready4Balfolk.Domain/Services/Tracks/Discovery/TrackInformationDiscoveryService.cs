@@ -1,17 +1,12 @@
 using System.IO.Abstractions;
+using Ready4Balfolk.Domain.Exceptions;
 using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Services.Tracks.Discovery;
 
-public sealed class TrackInformationDiscoveryService : ITrackDiscoveryService
+public sealed class TrackInformationDiscoveryService(OrderedSegmentDiscovery patternSegmentDiscoveries)
+    : ITrackDiscoveryService
 {
-    private readonly OrderedSegmentDiscovery _patternSegmentDiscoveries;
-
-    public TrackInformationDiscoveryService(OrderedSegmentDiscovery patternSegmentDiscoveries)
-    {
-        _patternSegmentDiscoveries = patternSegmentDiscoveries;
-    }
-
     public Track LoadTrack(IFileInfo fileInfo) => LoadTrackWithDuration(fileInfo, GetTrackDuration(fileInfo));
 
     public Track LoadTrackWithDuration(IFileInfo fileInfo, TimeSpan duration)
@@ -25,7 +20,7 @@ public sealed class TrackInformationDiscoveryService : ITrackDiscoveryService
     {
         HashSet<PatternSegment> minimalSet = [PatternSegment.Dance, PatternSegment.Title, PatternSegment.Artist];
         Dictionary<PatternSegment, string> patterns = [];
-        foreach (var patternSegmentDiscovery in _patternSegmentDiscoveries.PatternSegmentDiscoveries)
+        foreach (var patternSegmentDiscovery in patternSegmentDiscoveries.PatternSegmentDiscoveries)
         {
             var discoveredPatterns = patternSegmentDiscovery.Scan(fileInfo);
             foreach (var (segment, value) in discoveredPatterns)
@@ -41,12 +36,9 @@ public sealed class TrackInformationDiscoveryService : ITrackDiscoveryService
 
         // Last effort
         patterns.TryAdd(PatternSegment.Dance, "Not-Found");
-        if (minimalSet.All(patterns.ContainsKey))
-        {
-            return patterns;
-        }
-
-        throw new Exception($"Minimal set of information not found for song: {fileInfo.FullName}");
+        return minimalSet.All(patterns.ContainsKey)
+            ? patterns
+            : throw new TrackInformationDiscoveryException($"Minimal set of information not found for song: {fileInfo.FullName}");
     }
 
     private static TimeSpan GetTrackDuration(IFileInfo fileInfo)

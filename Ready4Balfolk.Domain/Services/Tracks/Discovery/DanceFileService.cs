@@ -5,19 +5,13 @@ using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Services.Tracks.Discovery;
 
-public class DanceFileService
+public class DanceFileService(IFileSystem fileSystem)
 {
-    private readonly IFileSystem _fileSystem;
-    private readonly JsonSerializerOptions _serializationOption = new JsonSerializerOptions
+    private readonly JsonSerializerOptions _serializationOption = new()
     {
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
     };
-
-    public DanceFileService(IFileSystem fileSystem)
-    {
-        _fileSystem = fileSystem;
-    }
 
     public bool Exists(IDirectoryInfo directoryInfo) => FileInfo(directoryInfo).Exists;
 
@@ -42,7 +36,7 @@ public class DanceFileService
         return entries?.ToDictionary(r => r.FileName, r => r.Dance) ?? [];
     }
 
-    void WriteEmptyTemplate(IDirectoryInfo directoryInfo)
+    private void WriteEmptyTemplate(IDirectoryInfo directoryInfo)
     {
         var supportedFormats = AudioFormatInformation.SupportedFormats;
 
@@ -60,9 +54,9 @@ public class DanceFileService
             throw new DirectoryNotFoundException($"Directory '{directoryInfo.FullName}' does not exist");
         }
 
-        var filePath = _fileSystem.Path.Combine(directoryInfo.FullName, "dances.json");
+        var filePath = fileSystem.Path.Combine(directoryInfo.FullName, "dances.json");
 
-        return _fileSystem.FileInfo.New(filePath);
+        return fileSystem.FileInfo.New(filePath);
     }
 
     public void Write(IDirectoryInfo directoryInfo, IEnumerable<DanceFileEntry> danceEntries)

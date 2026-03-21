@@ -9,7 +9,7 @@ public class PatternMatcherTests
     [Fact]
     public void EvaluateMatcherDefault()
     {
-        var filename = Path.Combine("Dance - Artist - Title.mp3");;
+        var filename = Path.Combine("Dance - Artist - Title.mp3");
         var mockFileSystem = new MockFileSystem();
 
         mockFileSystem.AddFile(filename, new MockFileData(new byte[1]));
@@ -28,7 +28,7 @@ public class PatternMatcherTests
     [Fact]
     public void EvaluateMatcherExtended()
     {
-        var filename = Path.Combine("Rootfolder", "Test Musician", "Test Album", "01 - Test Track.mp3");;
+        var filename = Path.Combine("Rootfolder", "Test Musician", "Test Album", "01 - Test Track.mp3");
         var mockFileSystem = new MockFileSystem();
 
         mockFileSystem.AddFile(filename, new MockFileData(new byte[1]));

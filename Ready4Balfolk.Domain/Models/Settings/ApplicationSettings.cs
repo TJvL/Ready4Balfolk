@@ -18,7 +18,7 @@ public sealed record ApplicationSettings(
     IEnumerable<WindowState> PresentationWindowStates,
     IEnumerable<string> CollapsedBranches)
 {
-    public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, true, Tracks.DiscoveryPattern.DefaultDefault, ApplicationTheme.Automatic,
+    public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, true, DiscoveryPattern.DefaultDefault, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [], [])
     {
     }

@@ -27,7 +27,7 @@ public sealed class AutoTrackRuleTests
 
         var sut = new AutoTrackRule(true);
         var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
-        var existing = new TrackQueueItem(TestData.CreateTrack(mockFileSystem,"A"), false);
+        var existing = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false);
         var verdict = sut.EvaluateAdd(auto, [existing]);
         Assert.NotNull(verdict);
         Assert.False(verdict.Allowed);

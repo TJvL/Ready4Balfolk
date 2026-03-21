@@ -1,17 +1,11 @@
 using System.IO.Abstractions;
 using Ready4Balfolk.Domain.Models.Tracks;
 
-namespace Ready4Balfolk.Domain.Services.Tracks.Discovery;
+namespace Ready4Balfolk.Domain.Services.Tracks.Discovery.Services;
 
-public class DanceFileDiscovery : IPatternSegmentDiscovery, IDiscoveryOrder
+public class DanceFileDiscovery(IDanceFileDiscoveryService danceFileDiscovery)
+    : IPatternSegmentDiscovery, IDiscoveryOrder
 {
-    private readonly IDanceFileDiscoveryService _danceFileDiscovery;
-
-    public DanceFileDiscovery(IDanceFileDiscoveryService danceFileDiscovery)
-    {
-        _danceFileDiscovery = danceFileDiscovery;
-    }
-
     public int Order => 2;
 
     public IEnumerable<KeyValuePair<PatternSegment, string>> Scan(IFileInfo fileInfo)
@@ -21,7 +15,7 @@ public class DanceFileDiscovery : IPatternSegmentDiscovery, IDiscoveryOrder
             yield break;
         }
 
-        var fileMatches = _danceFileDiscovery.Matches(fileInfo.Directory);
+        var fileMatches = danceFileDiscovery.Matches(fileInfo.Directory);
         if (!fileMatches.TryGetValue(fileInfo.Name, out var dance))
         {
             yield break;
