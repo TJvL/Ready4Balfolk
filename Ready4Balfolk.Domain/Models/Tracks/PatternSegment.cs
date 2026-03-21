@@ -8,6 +8,5 @@ public enum PatternSegment
     TrackNumber,
     Year,
     Genre,
-    Dance,
-    Extension
+    Dance
 }

@@ -1,6 +1,5 @@
 using System.IO.Abstractions.TestingHelpers;
 using Ready4Balfolk.Domain.Models.Tracks;
-using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Services.Tracks.Discovery.Matching;
 
 namespace Ready4Balfolk.Tests.Unit;
@@ -22,8 +21,7 @@ public class PatternMatcherTests
         Assert.Multiple(
             () => Assert.Equal("Artist", track.GetValueOrDefault(PatternSegment.Artist)),
             () => Assert.Equal("Dance", track.GetValueOrDefault(PatternSegment.Dance)),
-            () => Assert.Equal("Title", track.GetValueOrDefault(PatternSegment.Title)),
-            () => Assert.Equal("mp3", track.GetValueOrDefault(PatternSegment.Extension))
+            () => Assert.Equal("Title", track.GetValueOrDefault(PatternSegment.Title))
         );
     }
 
@@ -43,8 +41,7 @@ public class PatternMatcherTests
             () => Assert.Equal("Test Musician", track.GetValueOrDefault(PatternSegment.Artist)),
             () => Assert.Equal("Test Album", track.GetValueOrDefault(PatternSegment.Album)),
             () => Assert.Equal("01", track.GetValueOrDefault(PatternSegment.TrackNumber)),
-            () => Assert.Equal("Test Track", track.GetValueOrDefault(PatternSegment.Title)),
-            () => Assert.Equal("mp3", track.GetValueOrDefault(PatternSegment.Extension))
+            () => Assert.Equal("Test Track", track.GetValueOrDefault(PatternSegment.Title))
         );
     }
 }

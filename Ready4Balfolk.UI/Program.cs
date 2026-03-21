@@ -135,11 +135,17 @@ public static class Program
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
         services.AddTransient<IEditorHistoryService, EditorHistoryService>();
         services.AddSingleton<ITrackDurationCache>(sp => new TrackDurationCache(DataDirectory, sp.GetRequiredService<ILoggerService>()));
-        services.AddSingleton<ITrackDiscoveryService, PatternTrackDiscoveryService>(sp => new PatternTrackDiscoveryService(DiscoveryPattern.DefaultDefault, sp.GetService<DanceFileDiscoveryService>()));
-        services.AddSingleton<IDanceFileDiscoveryService, DanceFileDiscoveryService>();
-        services.AddSingleton<DanceFileService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<ISynonymResolutionService, SynonymResolutionService>();
+
+        // Discovery Files
+        services.AddSingleton<ITrackDiscoveryService, TrackInformationDiscoveryService>();
+        services.AddSingleton<OrderedSegmentDiscovery>();
+        services.AddSingleton<IPatternSegmentDiscovery, TagSegmentDiscovery>();
+        services.AddSingleton<IPatternSegmentDiscovery, DanceFileDiscovery>();
+        services.AddSingleton<IPatternSegmentDiscovery, FilenameSegmentDiscovery>(sp => new FilenameSegmentDiscovery(sp.GetRequiredService<ISettingsStore>().Current.DiscoveryPattern));
+        services.AddSingleton<IDanceFileDiscoveryService, DanceFileDiscoveryService>();
+        services.AddSingleton<DanceFileService>();
 
         // Stores
         services.AddSingleton<IFileSystem>(new FileSystem());
