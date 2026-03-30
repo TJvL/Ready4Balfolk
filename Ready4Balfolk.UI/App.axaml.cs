@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
+using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -60,39 +60,12 @@ public sealed class App : Application
                     .ObserveOn(RxApp.MainThreadScheduler)
                     .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error));
 
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Services.GetRequiredService<IDanceTreeStore>().LoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = logger.ErrorAsync("Failed to load dance tree", ex);
-                    }
-                });
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Services.GetRequiredService<IDanceSynonymStore>().LoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = logger.ErrorAsync("Failed to load dance synonyms", ex);
-                    }
-                });
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Services.GetRequiredService<IQueueHistoryStore>().LoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = logger.ErrorAsync("Failed to load queue history", ex);
-                    }
-                });
+                Services.GetRequiredService<IDanceTreeStore>().LoadAsync()
+                    .SafeFireAndForget(ex => logger.ErrorAsync("Failed to load dance tree", ex));
+                Services.GetRequiredService<IDanceSynonymStore>().LoadAsync()
+                    .SafeFireAndForget(ex => logger.ErrorAsync("Failed to load dance synonyms", ex));
+                Services.GetRequiredService<IQueueHistoryStore>().LoadAsync()
+                    .SafeFireAndForget(ex => logger.ErrorAsync("Failed to load queue history", ex));
 
                 ApplyTheme(settingsStore.Current.ApplicationTheme);
                 settingsStore.Observe()

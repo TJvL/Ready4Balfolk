@@ -2,6 +2,7 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using AsyncAwaitBestPractices;
 using ManagedBass;
 using Ready4Balfolk.Domain.Services.Logging;
 
@@ -440,7 +441,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                 {
                     _semaphore.Release();
                 }
-            });
+            }).SafeFireAndForget(exception => _loggerService.ErrorAsync("AdvanceToPreloaded", exception));
         }
     }
 

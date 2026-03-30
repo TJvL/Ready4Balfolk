@@ -2,6 +2,7 @@ using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading.Channels;
+using AsyncAwaitBestPractices;
 using DynamicData;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
@@ -64,7 +65,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             }
 
             field = value;
-            _ = Task.Run(() => LoadDirectoryAsync(value));
+            LoadDirectoryAsync(value).SafeFireAndForget(exception => _loggerService.ErrorAsync("Loading directory failed", exception));
         }
     }
 
@@ -190,23 +191,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 channel.Writer.Complete();
             });
 
-            var batch = new List<Track>();
-            var lastFlush = DateTime.UtcNow;
+            var trackStream = channel.Reader.ReadAllAsync().ToObservable().Buffer(TimeSpan.FromMilliseconds(200), 50);
 
-            await foreach (var track in channel.Reader.ReadAllAsync())
+            await foreach (var tracks in trackStream.ToAsyncEnumerable())
             {
-                batch.Add(track);
-                if (batch.Count >= 50 || DateTime.UtcNow - lastFlush >= TimeSpan.FromMilliseconds(200))
-                {
-                    _tracks.AddRange(batch);
-                    batch.Clear();
-                    lastFlush = DateTime.UtcNow;
-                }
-            }
-
-            if (batch.Count > 0)
-            {
-                _tracks.AddRange(batch);
+                _tracks.AddRange(tracks);
             }
 
             await producerTask;
