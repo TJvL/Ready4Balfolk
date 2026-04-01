@@ -53,7 +53,7 @@ public sealed class TrackDurationCache(DirectoryInfo dataDirectory, ILoggerServi
     public void SetDuration(string filePath, DateTime lastWriteTimeUtc, TimeSpan duration) =>
         _entries[filePath] = new CacheEntry(filePath, lastWriteTimeUtc, duration);
 
-    public async Task SaveAsync(IReadOnlySet<string> existingFilePaths)
+    public async Task SaveAsync(HashSet<string> existingFilePaths)
     {
         var keysToRemove = _entries.Keys.Where(k => !existingFilePaths.Contains(k)).ToList();
         foreach (var key in keysToRemove)

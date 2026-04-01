@@ -1,7 +1,6 @@
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Threading.Channels;
 using AsyncAwaitBestPractices;
 using DynamicData;
 using Ready4Balfolk.Domain.Helpers;
@@ -120,6 +119,14 @@ public sealed class TrackStore : ITrackStore, IDisposable
         };
     }
 
+    private static ICollection<FileInfo> DiscoverFiles(DirectoryInfo directory)
+    {
+        return [
+            ..SupportedAudioFormats.Extensions
+                .SelectMany(ext => directory.EnumerateFiles($"*{ext}", SearchOption.AllDirectories))
+        ];
+    }
+
     private async Task LoadDirectoryAsync(DirectoryInfo directory)
     {
         _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
@@ -136,83 +143,44 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
 
         _isLoading.OnNext(true);
-        try
-        {
-            await _durationCache.LoadAsync();
+        await _durationCache.LoadAsync();
 
-            var channel = Channel.CreateUnbounded<Track>();
-            var loadedPaths = new HashSet<string>(StringComparer.Ordinal);
+        var audioFiles = DiscoverFiles(directory);
+        _ = _loggerService.DebugAsync($"Found {audioFiles.Count} audio files to load");
 
-            var producerTask = Task.Run(async () =>
-            {
-                var audioFiles = SupportedAudioFormats.Extensions
-                    .SelectMany(ext => directory.EnumerateFiles($"*{ext}", SearchOption.AllDirectories))
-                    .ToArray();
-                _ = _loggerService.DebugAsync($"Found {audioFiles.Length} audio files to load");
-
-                await Parallel.ForEachAsync(audioFiles,
-                    new ParallelOptions
+        var trackLoaded = audioFiles.ToObservable()
+            .Select(file => Observable.Start(() =>
+                {
+                    var cachedDuration = _durationCache.TryGetDuration(
+                        file.FullName, file.LastWriteTimeUtc);
+                    if (cachedDuration.HasValue)
                     {
-                        MaxDegreeOfParallelism = MaxAmountOfFileReaderThreads
-                    },
-                    async (file, ct) =>
-                    {
-                        try
-                        {
-                            Track track;
-                            var cachedDuration = _durationCache.TryGetDuration(
-                                file.FullName, file.LastWriteTimeUtc);
-                            if (cachedDuration.HasValue)
-                            {
-                                track = _discoveryService.LoadTrackWithDuration(
-                                    file, cachedDuration.Value);
-                            }
-                            else
-                            {
-                                track = _discoveryService.LoadTrack(file);
-                                _durationCache.SetDuration(
-                                    file.FullName, file.LastWriteTimeUtc, track.Length);
-                            }
+                        return _discoveryService.LoadTrackWithDuration(file, cachedDuration.Value);
+                    }
 
-                            lock (loadedPaths)
-                            {
-                                loadedPaths.Add(file.FullName);
-                            }
+                    var track = _discoveryService.LoadTrack(file);
+                    _durationCache.SetDuration(file.FullName, file.LastWriteTimeUtc, track.Length);
+                    return track;
+                }, TaskPoolScheduler.Default)
+                .Catch<Track, Exception>((ex) =>
+                {
+                    _ = _loggerService.WarningAsync($"Error loading {file.FullName}: {ex.Message}");
+                    return Observable.Empty<Track>();
+                }))
+            .Merge(MaxAmountOfFileReaderThreads)
+            .Buffer(TimeSpan.FromMilliseconds(200), 50);
 
-                            await channel.Writer.WriteAsync(
-                                ResolveTrackDance(track), ct);
-                        }
-                        catch (Exception ex) when (ex is FormatException or IOException)
-                        {
-                            _ = _loggerService.ErrorAsync(ex.Message, ex);
-                        }
-                    });
-
-                channel.Writer.Complete();
-            });
-
-            var trackStream = channel.Reader.ReadAllAsync().ToObservable().Buffer(TimeSpan.FromMilliseconds(200), 50);
-
-            await foreach (var tracks in trackStream.ToAsyncEnumerable())
-            {
-                _tracks.AddRange(tracks);
-            }
-
-            await producerTask;
-
-            _ = _loggerService.DebugAsync($"Loaded {_tracks.Count} tracks successfully");
-            _ = _durationCache.SaveAsync(loadedPaths);
-            StartWatching(directory);
-        }
-        catch (Exception ex)
+        await trackLoaded.ForEachAsync(tracksBatch =>
         {
-            await _loggerService.ErrorAsync(
-                $"Failed to load tracks from '{directory.FullName}'", ex);
-        }
-        finally
-        {
-            _isLoading.OnNext(false);
-        }
+            _tracks.Edit(innerList => innerList.AddRange(tracksBatch));
+
+            _ = _loggerService.DebugAsync($"Added batch of {tracksBatch.Count} tracks");
+        });
+
+        await _loggerService.DebugAsync($"Loaded {_tracks.Count} tracks successfully");
+        await _durationCache.SaveAsync([.. audioFiles.Select(r => r.FullName)]);
+        StartWatching(directory);
+        _isLoading.OnNext(false);
     }
 
     private void StartWatching(FileSystemInfo directory)

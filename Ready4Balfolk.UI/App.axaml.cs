@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Linq;
-using AsyncAwaitBestPractices;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -60,13 +61,6 @@ public sealed class App : Application
                     .ObserveOn(RxApp.MainThreadScheduler)
                     .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error));
 
-                Services.GetRequiredService<IDanceTreeStore>().LoadAsync()
-                    .SafeFireAndForget(ex => logger.ErrorAsync("Failed to load dance tree", ex));
-                Services.GetRequiredService<IDanceSynonymStore>().LoadAsync()
-                    .SafeFireAndForget(ex => logger.ErrorAsync("Failed to load dance synonyms", ex));
-                Services.GetRequiredService<IQueueHistoryStore>().LoadAsync()
-                    .SafeFireAndForget(ex => logger.ErrorAsync("Failed to load queue history", ex));
-
                 ApplyTheme(settingsStore.Current.ApplicationTheme);
                 settingsStore.Observe()
                     .Select(s => s.ApplicationTheme)
@@ -104,6 +98,19 @@ public sealed class App : Application
                     .DistinctUntilChanged()
                     .Subscribe(count => SyncPresentationWindows(count, settingsStore));
             };
+
+            Observable.FromEventPattern(
+                    h => mainWindow.Opened += h,
+                    h => mainWindow.Opened -= h)
+                .Take(1)
+                .SelectMany(_ =>
+                    Observable.Merge(
+                        RunLoad<IDanceTreeStore>(s => s.LoadAsync(), "Failed to load dance tree"),
+                        RunLoad<IDanceSynonymStore>(s => s.LoadAsync(), "Failed to load dance synonyms"),
+                        RunLoad<IQueueHistoryStore>(s => s.LoadAsync(), "Failed to load queue history")
+                    )
+                )
+                .Subscribe();
 
             mainWindow.Closing += async (_, e) =>
             {
@@ -181,6 +188,27 @@ public sealed class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static IObservable<Unit> RunLoad<T>(Func<T, Task> loader, string errorMessage) where T : notnull
+    {
+        return Observable.Defer(() =>
+        {
+            var logger = Services.GetRequiredService<ILoggerService>();
+            var service = Services.GetRequiredService<T>();
+
+            return Observable.FromAsync(() => loader(service))
+                .TimeInterval()
+                .Do(ti => logger.InfoAsync($"{typeof(T).Name} completed | Duration: {ti.Interval:g}"))
+                .Select(ti => ti.Value)
+                .SubscribeOn(RxApp.TaskpoolScheduler)
+                .Catch<Unit, Exception>(ex =>
+                {
+                    logger.ErrorAsync(errorMessage, ex);
+                    // Just continue
+                    return Observable.Empty<Unit>();
+                });
+        });
     }
 
     private void ApplyTheme(ApplicationTheme theme)

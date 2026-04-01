@@ -87,10 +87,7 @@ public sealed class TrackDurationCacheTests : IDisposable
         var duration = TimeSpan.FromMinutes(4.2);
 
         _sut.SetDuration(filePath, lastWrite, duration);
-        await _sut.SaveAsync(new HashSet<string>
-        {
-            filePath
-        });
+        await _sut.SaveAsync([filePath]);
 
         var sut2 = new TrackDurationCache(_tempDir, new NoOpLoggerService());
         await sut2.LoadAsync();
@@ -111,10 +108,7 @@ public sealed class TrackDurationCacheTests : IDisposable
         _sut.SetDuration(keepPath, lastWrite, TimeSpan.FromMinutes(3));
         _sut.SetDuration(deletedPath, lastWrite, TimeSpan.FromMinutes(4));
 
-        await _sut.SaveAsync(new HashSet<string>
-        {
-            keepPath
-        });
+        await _sut.SaveAsync([keepPath]);
 
         var sut2 = new TrackDurationCache(_tempDir, new NoOpLoggerService());
         await sut2.LoadAsync();
