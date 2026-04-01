@@ -44,9 +44,17 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     // ReSharper disable once MemberCanBePrivate.Global
     [Reactive] public partial bool HasItems { get; set; }
 
+    // ReSharper disable once MemberCanBePrivate.Global
+    [Reactive] public partial bool IsSelectedMovableUp { get; set; }
+    // ReSharper disable once MemberCanBePrivate.Global
+    [Reactive] public partial bool IsSelectedMovableDown { get; set; }
+
     private IObservable<bool> CanRemoveSelected =>
         this.WhenAnyValue(x => x.SelectedItem)
             .Select(item => item is not null and not AutoTrackQueueItem);
+
+    private IObservable<bool> CanMoveSelectedUp => this.WhenAnyValue(x => x.IsSelectedMovableUp);
+    private IObservable<bool> CanMoveSelectedDown => this.WhenAnyValue(x => x.IsSelectedMovableDown);
 
     private IObservable<bool> CanClearQueue => this.WhenAnyValue(x => x.HasItems);
 
@@ -100,6 +108,40 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     [ReactiveCommand(CanExecute = nameof(CanRemoveSelected))]
     private void RemoveSelected() => DeleteSelectedItem();
 
+    [ReactiveCommand(CanExecute = nameof(CanMoveSelectedUp))]
+    public void MoveSelectedUp()
+    {
+        if (SelectedItem is null)
+        {
+            return;
+        }
+
+        var item = SelectedItem;
+        var index = _queuedItems.IndexOf(item);
+        if (index > 0)
+        {
+            MoveItem(index, index - 1);
+            RxApp.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
+        }
+    }
+
+    [ReactiveCommand(CanExecute = nameof(CanMoveSelectedDown))]
+    public void MoveSelectedDown()
+    {
+        if (SelectedItem is null)
+        {
+            return;
+        }
+
+        var item = SelectedItem;
+        var index = _queuedItems.IndexOf(item);
+        if (index >= 0 && index < _queuedItems.Count - 1)
+        {
+            MoveItem(index, index + 1);
+            RxApp.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
+        }
+    }
+
     [ReactiveCommand(CanExecute = nameof(CanClearQueue))]
     private async Task ClearQueue()
     {
@@ -147,12 +189,17 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             {
                 HasItems = _queuedItems.Any(i => i is not AutoTrackQueueItem);
                 UpdateItemCountText();
+                UpdateMoveStates();
 
                 if (_queuedItems.Count == 0 && !_suppressAutoEnqueue)
                 {
                     TryAutoEnqueue();
                 }
             })
+            .DisposeWith(_disposables);
+
+        this.WhenAnyValue(x => x.SelectedItem)
+            .Subscribe(_ => UpdateMoveStates())
             .DisposeWith(_disposables);
 
         settingsStore.Observe()
@@ -198,6 +245,20 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => UpdateFinishTimeText())
             .DisposeWith(_disposables);
+    }
+
+    private void UpdateMoveStates()
+    {
+        if (SelectedItem is null or AutoTrackQueueItem)
+        {
+            IsSelectedMovableUp = false;
+            IsSelectedMovableDown = false;
+            return;
+        }
+
+        var index = _queuedItems.IndexOf(SelectedItem);
+        IsSelectedMovableUp = index > 0;
+        IsSelectedMovableDown = index >= 0 && index < _queuedItems.Count - 1;
     }
 
     public void DeleteSelectedItem()

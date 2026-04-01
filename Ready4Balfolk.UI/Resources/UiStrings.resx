@@ -236,6 +236,12 @@
   <data name="Queue_KeepTrack" xml:space="preserve">
     <value>Keep this track</value>
   </data>
+  <data name="Queue_MoveUp" xml:space="preserve">
+    <value>Move up</value>
+  </data>
+  <data name="Queue_MoveDown" xml:space="preserve">
+    <value>Move down</value>
+  </data>
   <data name="Queue_Empty" xml:space="preserve">
     <value>Queue empty</value>
   </data>

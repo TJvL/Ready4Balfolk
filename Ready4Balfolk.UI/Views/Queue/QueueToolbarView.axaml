@@ -67,5 +67,22 @@
                       Width="16" Height="16" />
         </Button>
 
+        <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
+
+        <Button Command="{Binding MoveSelectedUpCommand}"
+                ToolTip.Tip="{x:Static res:UiStrings.Queue_MoveUp}"
+                Padding="8"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconArrowUp}"
+                      Width="16" Height="16" />
+        </Button>
+        <Button Command="{Binding MoveSelectedDownCommand}"
+                ToolTip.Tip="{x:Static res:UiStrings.Queue_MoveDown}"
+                Padding="8"
+                Focusable="False">
+            <PathIcon Data="{StaticResource IconArrowDown}"
+                      Width="16" Height="16" />
+        </Button>
+
     </StackPanel>
 </UserControl>
