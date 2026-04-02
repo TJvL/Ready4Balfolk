@@ -9,7 +9,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.Synonym;
 
-public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo, ILoggerService loggerService)
+public sealed class DanceSynonymStore(IApplicationSettingsDirectory danceSynonymDirectoryInfo, ILoggerService loggerService)
     : IDanceSynonymStore, IDisposable
 {
     private const string DanceSynonymsFileName = "dance_synonyms.json";
@@ -24,7 +24,7 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo, I
     private readonly BehaviorSubject<bool> _isLoading = new(false);
 
     private string DanceSynonymsFilePath =>
-        Path.Combine(danceSynonymDirectoryInfo.FullName, DanceSynonymsFileName);
+        Path.Combine(danceSynonymDirectoryInfo.DirectoryInfoRoot.FullName, DanceSynonymsFileName);
 
     public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
@@ -157,7 +157,7 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo, I
     {
         try
         {
-            danceSynonymDirectoryInfo.Create();
+            danceSynonymDirectoryInfo.DirectoryInfoRoot.Create();
             await using var stream = File.Create(DanceSynonymsFilePath);
             await JsonSerializer.SerializeAsync(stream, synonyms, JsonOptions);
         }

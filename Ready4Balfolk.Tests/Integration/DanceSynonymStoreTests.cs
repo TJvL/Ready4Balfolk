@@ -1,7 +1,9 @@
 using System.Text.Json;
+using NSubstitute;
 using Ready4Balfolk.Domain.Models.Synonyms;
 using Ready4Balfolk.Domain.Services.Editor;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.Synonym;
 using Ready4Balfolk.Tests.Helpers;
 
@@ -14,14 +16,22 @@ public sealed class DanceSynonymStoreTests : IDisposable
         WriteIndented = true
     };
 
-    private readonly DirectoryInfo _tempDir;
     private readonly DanceSynonymStore _sut;
+    private readonly IApplicationSettingsDirectory _appDir;
 
     public DanceSynonymStoreTests()
     {
-        _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
-        _tempDir.Create();
-        _sut = new DanceSynonymStore(_tempDir, new NoOpLoggerService());
+        _appDir = Generate();
+        _sut = new DanceSynonymStore(_appDir, new NoOpLoggerService());
+    }
+
+    private static IApplicationSettingsDirectory Generate()
+    {
+        var tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
+        tempDir.Create();
+        var sub = Substitute.For<IApplicationSettingsDirectory>();
+        sub.DirectoryInfoRoot.Returns(_ => tempDir);
+        return sub;
     }
 
     [Fact]
@@ -50,7 +60,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
 
         Assert.Single(_sut.Current);
 
-        using var store2 = new DanceSynonymStore(_tempDir, new NoOpLoggerService());
+        using var store2 = new DanceSynonymStore(_appDir, new NoOpLoggerService());
         await store2.LoadAsync();
         Assert.Single(store2.Current);
     }
@@ -58,7 +68,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
     [Fact]
     public async Task ImportAsync_ValidFile_Imports()
     {
-        var importFile = new FileInfo(Path.Combine(_tempDir.FullName, "import.json"));
+        var importFile = new FileInfo(Path.Combine(_appDir.DirectoryInfoRoot.FullName, "import.json"));
         var data = TestData.CreateSimpleSynonyms();
         await using (var stream = File.Create(importFile.FullName))
         {
@@ -73,7 +83,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
     [Fact]
     public async Task ImportAsync_DuplicateNames_Throws()
     {
-        var importFile = new FileInfo(Path.Combine(_tempDir.FullName, "dup.json"));
+        var importFile = new FileInfo(Path.Combine(_appDir.DirectoryInfoRoot.FullName, "dup.json"));
         var data = new List<DanceMainName>
         {
             TestData.CreateMainName("Mazurka"), TestData.CreateMainName("Mazurka")
@@ -89,7 +99,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
     [Fact]
     public async Task ImportAsync_InvalidJson_Throws()
     {
-        var importFile = new FileInfo(Path.Combine(_tempDir.FullName, "bad.json"));
+        var importFile = new FileInfo(Path.Combine(_appDir.DirectoryInfoRoot.FullName, "bad.json"));
         await File.WriteAllTextAsync(importFile.FullName, "not json", TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<InvalidDataException>(() => _sut.ImportAsync(importFile));
@@ -98,7 +108,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
     [Fact]
     public async Task ImportAsync_EmptyNames_Throws()
     {
-        var importFile = new FileInfo(Path.Combine(_tempDir.FullName, "empty.json"));
+        var importFile = new FileInfo(Path.Combine(_appDir.DirectoryInfoRoot.FullName, "empty.json"));
         var data = new List<DanceMainName>
         {
             new("", [])
@@ -113,7 +123,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
 
     private async Task WriteSynonymFile(IReadOnlyList<DanceMainName> data)
     {
-        var filePath = Path.Combine(_tempDir.FullName, "dance_synonyms.json");
+        var filePath = Path.Combine(_appDir.DirectoryInfoRoot.FullName, "dance_synonyms.json");
         await using var stream = File.Create(filePath);
         await JsonSerializer.SerializeAsync(stream, data, SJsonOptions, TestContext.Current.CancellationToken);
     }
@@ -123,7 +133,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
         _sut.Dispose();
         try
         {
-            _tempDir.Delete(true);
+            _appDir.DirectoryInfoRoot.Delete(true);
         }
         catch
         {

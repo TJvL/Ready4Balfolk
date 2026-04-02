@@ -1,5 +1,7 @@
+using NSubstitute;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Tracks;
+using Ready4Balfolk.Domain.Stores;
 
 namespace Ready4Balfolk.Tests.Integration;
 
@@ -7,12 +9,16 @@ public sealed class TrackDurationCacheTests : IDisposable
 {
     private readonly DirectoryInfo _tempDir;
     private readonly TrackDurationCache _sut;
+    private readonly IApplicationSettingsDirectory _settingsDirectory;
 
     public TrackDurationCacheTests()
     {
         _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
-        _sut = new TrackDurationCache(_tempDir, new NoOpLoggerService());
+
+        _settingsDirectory = Substitute.For<IApplicationSettingsDirectory>();
+        _settingsDirectory.DirectoryInfoRoot.Returns(_ => _tempDir);
+        _sut = new TrackDurationCache(_settingsDirectory, new NoOpLoggerService());
     }
 
     [Fact]
@@ -89,7 +95,7 @@ public sealed class TrackDurationCacheTests : IDisposable
         _sut.SetDuration(filePath, lastWrite, duration);
         await _sut.SaveAsync([filePath]);
 
-        var sut2 = new TrackDurationCache(_tempDir, new NoOpLoggerService());
+        var sut2 = new TrackDurationCache(_settingsDirectory, new NoOpLoggerService());
         await sut2.LoadAsync();
 
         var result = sut2.TryGetDuration(filePath, lastWrite);
@@ -110,7 +116,7 @@ public sealed class TrackDurationCacheTests : IDisposable
 
         await _sut.SaveAsync([keepPath]);
 
-        var sut2 = new TrackDurationCache(_tempDir, new NoOpLoggerService());
+        var sut2 = new TrackDurationCache(_settingsDirectory, new NoOpLoggerService());
         await sut2.LoadAsync();
 
         Assert.NotNull(sut2.TryGetDuration(keepPath, lastWrite));

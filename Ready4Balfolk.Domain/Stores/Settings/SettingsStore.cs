@@ -27,11 +27,11 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
 
     private string SettingsFilePath => Path.Combine(_settingsDirectoryInfo.FullName, SettingsFileName);
 
-    public SettingsStore(DirectoryInfo settingsDirectoryInfo, ILoggerService? loggerService = null)
+    public SettingsStore(IApplicationSettingsDirectory settingsDirectoryInfo, ILoggerService? loggerService = null)
     {
-        _settingsDirectoryInfo = settingsDirectoryInfo;
+        _settingsDirectoryInfo = settingsDirectoryInfo.DirectoryInfoRoot;
         _loggerService = loggerService ?? new NoOpLoggerService();
-        _settings = new BehaviorSubject<ApplicationSettings>(LoadInitial(settingsDirectoryInfo, _loggerService));
+        _settings = new BehaviorSubject<ApplicationSettings>(LoadInitial(settingsDirectoryInfo.DirectoryInfoRoot, _loggerService));
     }
 
     public ApplicationSettings Current => _settings.Value;
@@ -76,6 +76,7 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
 
     public void Dispose()
     {
+        Console.WriteLine("Disposing SettingsStore");
         _gate.Dispose();
         _settings.Dispose();
     }

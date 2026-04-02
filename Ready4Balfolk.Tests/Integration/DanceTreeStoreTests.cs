@@ -1,7 +1,9 @@
 using System.Text.Json;
+using NSubstitute;
 using Ready4Balfolk.Domain.Models.Tree;
 using Ready4Balfolk.Domain.Services.Editor;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.Tests.Helpers;
 
@@ -16,12 +18,15 @@ public sealed class DanceTreeStoreTests : IDisposable
 
     private readonly DirectoryInfo _tempDir;
     private readonly DanceTreeStore _sut;
+    private readonly IApplicationSettingsDirectory _settingsDirectory;
 
     public DanceTreeStoreTests()
     {
         _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
-        _sut = new DanceTreeStore(_tempDir, new NoOpLoggerService());
+        _settingsDirectory = Substitute.For<IApplicationSettingsDirectory>();
+        _settingsDirectory.DirectoryInfoRoot.Returns(_ => _tempDir);
+        _sut = new DanceTreeStore(_settingsDirectory, new NoOpLoggerService());
     }
 
     [Fact]
@@ -56,7 +61,7 @@ public sealed class DanceTreeStoreTests : IDisposable
         Assert.True(File.Exists(filePath));
 
         // New store should load the same data
-        using var store2 = new DanceTreeStore(_tempDir, new NoOpLoggerService());
+        using var store2 = new DanceTreeStore(_settingsDirectory, new NoOpLoggerService());
         await store2.LoadAsync();
         Assert.Single(store2.Current);
     }

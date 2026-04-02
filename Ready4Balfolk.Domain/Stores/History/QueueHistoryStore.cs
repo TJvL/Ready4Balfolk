@@ -7,7 +7,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.History;
 
-public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo, ILoggerService loggerService)
+public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistoryDirectoryInfo, ILoggerService loggerService)
     : IQueueHistoryStore
 {
     private const string QueueHistoryFileName = "queue_history.json";
@@ -26,7 +26,7 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo, I
     private readonly BehaviorSubject<bool> _isLoading = new(false);
 
     private string QueueHistoryFilePath =>
-        Path.Combine(queueHistoryDirectoryInfo.FullName, QueueHistoryFileName);
+        Path.Combine(queueHistoryDirectoryInfo.DirectoryInfoRoot.FullName, QueueHistoryFileName);
 
     public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
@@ -125,7 +125,7 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo, I
     {
         try
         {
-            queueHistoryDirectoryInfo.Create();
+            queueHistoryDirectoryInfo.DirectoryInfoRoot.Create();
             await using var stream = File.Create(QueueHistoryFilePath);
             await JsonSerializer.SerializeAsync(stream, history, JsonOptions);
         }

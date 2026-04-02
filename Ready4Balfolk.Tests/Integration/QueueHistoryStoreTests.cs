@@ -1,7 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.History;
 
 namespace Ready4Balfolk.Tests.Integration;
@@ -24,7 +26,10 @@ public sealed class QueueHistoryStoreTests : IDisposable
     {
         _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
-        _sut = new QueueHistoryStore(_tempDir, new NoOpLoggerService());
+
+        var sub = Substitute.For<IApplicationSettingsDirectory>();
+        sub.DirectoryInfoRoot.Returns(_ => _tempDir);
+        _sut = new QueueHistoryStore(sub, new NoOpLoggerService());
     }
 
     [Fact]
