@@ -106,13 +106,13 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         this.WhenAnyValue(x => x.SelectedLanguage)
             .Skip(1)
             .DistinctUntilChanged()
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(OnLanguageChanged)
             .DisposeWith(_disposables);
 
         settingsStore.Observe()
             .Skip(1)
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(SyncFromStore)
             .DisposeWith(_disposables);
     }
@@ -139,7 +139,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         this.WhenAnyValue(property)
             .Skip(1)
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(value => CommitDirect(transform(value)))
             .DisposeWith(_disposables);
     }

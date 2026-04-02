@@ -116,7 +116,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         WhenMarkedChanged = this.WhenAnyValue(x => x.Marked);
 
         _isLoadingHelper = danceTreeStore.IsLoading
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .ToProperty(this, x => x.IsLoading);
         _isLoadingHelper.DisposeWith(_disposables);
 
@@ -176,7 +176,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
 
         danceTreeStore.Observe()
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Where(_ => _pendingCommits == 0)
             .Subscribe(RebuildDisplayTree)
             .DisposeWith(_disposables);

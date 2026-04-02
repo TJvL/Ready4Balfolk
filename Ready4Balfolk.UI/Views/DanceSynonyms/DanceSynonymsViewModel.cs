@@ -71,7 +71,7 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
         Entries = [];
 
         _isLoadingHelper = store.IsLoading
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .ToProperty(this, x => x.IsLoading);
         _isLoadingHelper.DisposeWith(_disposables);
 
@@ -91,7 +91,7 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
         _redoTooltipHelper.DisposeWith(_disposables);
 
         store.Observe()
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Where(_ => _pendingCommits == 0)
             .Subscribe(RebuildEntries)
             .DisposeWith(_disposables);

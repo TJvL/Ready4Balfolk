@@ -141,7 +141,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         FinishTimeText = "";
 
         queueService.Connect()
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Bind(out _queuedItems)
             .Subscribe(_ =>
             {
@@ -159,12 +159,12 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             .Select(s => s.AutoQueueRandomTrack)
             .DistinctUntilChanged()
             .Where(enabled => enabled)
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => TryAutoEnqueue())
             .DisposeWith(_disposables);
 
         consumptionService.WhenCurrentItemChanged
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(item =>
             {
                 if (item is null)
@@ -195,7 +195,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             .Select(_ => Unit.Default);
 
         Observable.Merge(queueChanged, currentItemChanged, totalDurationChanged, elapsedTick, minuteTimer)
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => UpdateFinishTimeText())
             .DisposeWith(_disposables);
     }

@@ -77,7 +77,7 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
         var normalizedName = StringNormalizer.Normalize(leaf.Name);
         _trackCountHelper = context.TrackCounts
             .Select(counts => counts.GetValueOrDefault(normalizedName, 0))
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .ToProperty(this, x => x.TrackCount);
         _trackCountHelper.DisposeWith(_disposables);
 
@@ -85,7 +85,7 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
             .Select(m => m is MarkedSelection.Leaf l
                          && l.ParentPath.SequenceEqual(parentPath)
                          && l.LeafIndex == leafIndex)
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .ToProperty(this, x => x.IsMarked);
         _isMarkedHelper.DisposeWith(_disposables);
 
@@ -103,7 +103,7 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
             .Skip(1)
             .Where(_ => !IsEditing)
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(name => _context.CommitDirect(roots =>
                 DanceTreeTransforms.RenameLeaf(roots, ParentPath, LeafIndex, name)))
             .DisposeWith(_disposables);
@@ -111,7 +111,7 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
         this.WhenAnyValue(x => x.Weight)
             .Skip(1)
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(weight => _context.CommitDirect(roots =>
                 DanceTreeTransforms.ReweightLeaf(roots, ParentPath, LeafIndex, weight)))
             .DisposeWith(_disposables);

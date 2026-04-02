@@ -104,17 +104,17 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         TotalTime = "0:00";
 
         audioPlaybackService.WhenAvailabilityChanged
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(available => IsAudioUnavailable = !available)
             .DisposeWith(_disposables);
 
         consumptionService.WhenCurrentItemChanged
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(OnCurrentItemChanged)
             .DisposeWith(_disposables);
 
         consumptionService.WhenElapsedChanged
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(elapsed =>
             {
                 Progress = elapsed.TotalSeconds;
@@ -123,7 +123,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
 
         consumptionService.WhenTotalDurationChanged
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(dur =>
             {
                 Duration = dur.TotalSeconds;
@@ -132,12 +132,12 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
 
         consumptionService.WhenIsPlayingChanged
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(playing => IsPlaying = playing)
             .DisposeWith(_disposables);
 
         queueService.Connect()
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => ShowNextIcon = _queueService.Count > 0)
             .DisposeWith(_disposables);
     }
