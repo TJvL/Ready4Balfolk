@@ -35,7 +35,7 @@ public sealed class DanceTreeStoreTests : IDisposable
         var branches = TestData.CreateSimpleTree();
         await WriteTreeFile(branches);
 
-        await _sut.LoadAsync();
+        await _sut.LoadAsync(CancellationToken.None);
 
         Assert.Equal(2, _sut.Current.Count);
         Assert.Equal("Folk", _sut.Current[0].Name);
@@ -44,7 +44,7 @@ public sealed class DanceTreeStoreTests : IDisposable
     [Fact]
     public async Task LoadAsync_NoFile_KeepsEmpty()
     {
-        await _sut.LoadAsync();
+        await _sut.LoadAsync(CancellationToken.None);
         Assert.Empty(_sut.Current);
     }
 
@@ -62,7 +62,7 @@ public sealed class DanceTreeStoreTests : IDisposable
 
         // New store should load the same data
         using var store2 = new DanceTreeStore(_settingsDirectory, new NoOpLoggerService());
-        await store2.LoadAsync();
+        await store2.LoadAsync(CancellationToken.None);
         Assert.Single(store2.Current);
     }
 

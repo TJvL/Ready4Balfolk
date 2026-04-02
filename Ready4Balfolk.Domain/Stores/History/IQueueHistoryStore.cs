@@ -6,7 +6,7 @@ public interface IQueueHistoryStore : ILoadableStore, IDisposable
 {
     QueueHistory Current { get; }
     IObservable<QueueHistory> Observe();
-    Task LoadAsync();
+    Task LoadAsync(CancellationToken token);
     Task AddAsync(QueueHistoryEntry entry);
     Task ClearAsync();
     Task ExportAsync(FileInfo destinationFileInfo);

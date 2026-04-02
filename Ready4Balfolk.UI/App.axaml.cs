@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -41,6 +42,7 @@ public sealed class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        var cts = new CancellationTokenSource();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var settingsStore = Services.GetRequiredService<ISettingsStore>();
@@ -106,9 +108,9 @@ public sealed class App : Application
                 .Take(1)
                 .SelectMany(_ =>
                     Observable.Merge(
-                        RunLoad<IDanceTreeStore>(s => s.LoadAsync(), "Failed to load dance tree"),
-                        RunLoad<IDanceSynonymStore>(s => s.LoadAsync(), "Failed to load dance synonyms"),
-                        RunLoad<IQueueHistoryStore>(s => s.LoadAsync(), "Failed to load queue history")
+                        RunLoad<IDanceTreeStore>((s, token) => s.LoadAsync(token), "Failed to load dance tree"),
+                        RunLoad<IDanceSynonymStore>((s, token) => s.LoadAsync(token), "Failed to load dance synonyms"),
+                        RunLoad<IQueueHistoryStore>((s, token) => s.LoadAsync(token), "Failed to load queue history")
                     )
                 )
                 .Subscribe());
@@ -214,14 +216,14 @@ public sealed class App : Application
         mainWindow.Close();
     }
 
-    private static IObservable<Unit> RunLoad<T>(Func<T, Task> loader, string errorMessage) where T : notnull
+    private static IObservable<Unit> RunLoad<T>(Func<T, CancellationToken, Task> loader, string errorMessage) where T : notnull
     {
         return Observable.Defer(() =>
         {
             var logger = Services.GetRequiredService<ILoggerService>();
             var service = Services.GetRequiredService<T>();
 
-            return Observable.FromAsync(() => loader(service))
+            return Observable.FromAsync(token => loader(service, token))
                 .TimeInterval()
                 .Do(ti => logger.InfoAsync($"{typeof(T).Name} completed | Duration: {ti.Interval:g}"))
                 .Select(ti => ti.Value)

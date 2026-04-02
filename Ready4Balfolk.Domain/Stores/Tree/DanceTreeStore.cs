@@ -28,7 +28,7 @@ public sealed class DanceTreeStore(IApplicationSettingsDirectory danceTreeDirect
 
     public IObservable<IReadOnlyList<DanceBranch>> Observe() => _branches.AsObservable();
 
-    public async Task LoadAsync()
+    public async Task LoadAsync(CancellationToken token)
     {
         _isLoading.OnNext(true);
         try
@@ -38,8 +38,8 @@ public sealed class DanceTreeStore(IApplicationSettingsDirectory danceTreeDirect
                 return;
             }
 
-            await using var stream = File.OpenRead(DanceTreeFilePath);
-            var branches = await JsonSerializer.DeserializeAsync<List<DanceBranch>>(stream, JsonOptions);
+            await using var stream = new FileStream(DanceTreeFilePath, FileMode.Open, FileAccess.Read);
+            var branches = await JsonSerializer.DeserializeAsync<List<DanceBranch>>(stream, JsonOptions, token);
             if (branches != null)
             {
                 _branches.OnNext(branches);

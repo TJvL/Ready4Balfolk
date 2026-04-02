@@ -6,7 +6,7 @@ public interface IDanceSynonymStore : ILoadableStore
 {
     IReadOnlyList<DanceMainName> Current { get; }
     IObservable<IReadOnlyList<DanceMainName>> Observe();
-    Task LoadAsync();
+    Task LoadAsync(CancellationToken token);
     Task UpdateAsync(Func<IReadOnlyList<DanceMainName>, IReadOnlyList<DanceMainName>> transform);
     Task ExportAsync(FileInfo destinationFileInfo);
     Task ImportAsync(FileInfo sourceFileInfo);

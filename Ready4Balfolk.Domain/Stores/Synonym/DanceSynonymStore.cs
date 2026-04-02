@@ -32,7 +32,7 @@ public sealed class DanceSynonymStore(IApplicationSettingsDirectory danceSynonym
 
     public IObservable<IReadOnlyList<DanceMainName>> Observe() => _synonyms.AsObservable();
 
-    public async Task LoadAsync()
+    public async Task LoadAsync(CancellationToken token)
     {
         _isLoading.OnNext(true);
         try
@@ -42,8 +42,8 @@ public sealed class DanceSynonymStore(IApplicationSettingsDirectory danceSynonym
                 return;
             }
 
-            await using var stream = File.OpenRead(DanceSynonymsFilePath);
-            var synonyms = await JsonSerializer.DeserializeAsync<List<DanceMainName>>(stream, JsonOptions);
+            await using var stream = new FileStream(DanceSynonymsFilePath, FileMode.Open, FileAccess.Read);
+            var synonyms = await JsonSerializer.DeserializeAsync<List<DanceMainName>>(stream, JsonOptions, token);
             if (synonyms != null)
             {
                 _synonyms.OnNext(synonyms);

@@ -40,7 +40,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
         var data = TestData.CreateSimpleSynonyms();
         await WriteSynonymFile(data);
 
-        await _sut.LoadAsync();
+        await _sut.LoadAsync(CancellationToken.None);
 
         Assert.Equal(2, _sut.Current.Count);
         Assert.Equal("Mazurka", _sut.Current[0].Name);
@@ -49,7 +49,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
     [Fact]
     public async Task LoadAsync_NoFile_KeepsEmpty()
     {
-        await _sut.LoadAsync();
+        await _sut.LoadAsync(CancellationToken.None);
         Assert.Empty(_sut.Current);
     }
 
@@ -61,7 +61,7 @@ public sealed class DanceSynonymStoreTests : IDisposable
         Assert.Single(_sut.Current);
 
         using var store2 = new DanceSynonymStore(_appDir, new NoOpLoggerService());
-        await store2.LoadAsync();
+        await store2.LoadAsync(CancellationToken.None);
         Assert.Single(store2.Current);
     }
 

@@ -22,7 +22,7 @@ public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistory
     };
 
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly BehaviorSubject<QueueHistory> _history = new(new QueueHistory(null, []));
+    private readonly BehaviorSubject<QueueHistory> _history = new(QueueHistory.Empty);
     private readonly BehaviorSubject<bool> _isLoading = new(false);
 
     private string QueueHistoryFilePath =>
@@ -34,7 +34,7 @@ public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistory
 
     public IObservable<QueueHistory> Observe() => _history.AsObservable();
 
-    public async Task LoadAsync()
+    public async Task LoadAsync(CancellationToken token)
     {
         _isLoading.OnNext(true);
         try
@@ -45,7 +45,7 @@ public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistory
             }
 
             await using var stream = File.OpenRead(QueueHistoryFilePath);
-            var history = await JsonSerializer.DeserializeAsync<QueueHistory>(stream, JsonOptions);
+            var history = await JsonSerializer.DeserializeAsync<QueueHistory>(stream, JsonOptions, token);
             if (history != null)
             {
                 _history.OnNext(history);

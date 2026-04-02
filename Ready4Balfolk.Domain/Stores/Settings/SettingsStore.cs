@@ -48,8 +48,8 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
 
         try
         {
-            var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<ApplicationSettings>(json, JsonOptions) ?? new ApplicationSettings();
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read);
+            return JsonSerializer.Deserialize<ApplicationSettings>(stream, JsonOptions) ?? new ApplicationSettings();
         }
         catch (JsonException ex)
         {
@@ -76,7 +76,6 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
 
     public void Dispose()
     {
-        Console.WriteLine("Disposing SettingsStore");
         _gate.Dispose();
         _settings.Dispose();
     }

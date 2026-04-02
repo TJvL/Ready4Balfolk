@@ -42,7 +42,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
         ]);
         await WriteHistoryFile(history);
 
-        await _sut.LoadAsync();
+        await _sut.LoadAsync(CancellationToken.None);
 
         Assert.Single(_sut.Current.Entries);
         Assert.NotNull(_sut.Current.StartedAt);
@@ -51,7 +51,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
     [Fact]
     public async Task LoadAsync_NoFile_KeepsEmpty()
     {
-        await _sut.LoadAsync();
+        await _sut.LoadAsync(CancellationToken.None);
         Assert.Empty(_sut.Current.Entries);
         Assert.Null(_sut.Current.StartedAt);
     }
