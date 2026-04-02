@@ -73,8 +73,10 @@ public sealed class App : Application
                 var trackStore = Services.GetRequiredService<ITrackStore>();
                 _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.MusicDirectoryPath)
-                    .Where(path => !string.IsNullOrEmpty(path))
-                    .Subscribe(path => trackStore.MusicDirectory = new DirectoryInfo(path)));
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Select(r => new DirectoryInfo(r))
+                    .Where(r => r.Exists)
+                    .Subscribe(directory => trackStore.MusicDirectory = directory));
 
                 var windowState = settingsStore.Current.MainWindowState;
                 if (windowState is { X: not null, Y: not null })

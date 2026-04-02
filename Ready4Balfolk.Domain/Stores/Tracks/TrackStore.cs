@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
@@ -21,6 +22,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly SourceList<Track> _tracks = new();
     private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly IDisposable _synonymSubscription;
+    private readonly CompositeDisposable _fileWatcherSubscriptions = [];
     private FileSystemWatcher? _watcher;
     private bool _disposed;
 
@@ -55,16 +57,19 @@ public sealed class TrackStore : ITrackStore, IDisposable
         {
             if (value is null)
             {
+                _ = _loggerService.DebugAsync("Set null value");
                 return;
             }
 
             if (string.Equals(field?.FullName, value.FullName, StringComparison.Ordinal))
             {
+                _ = _loggerService.DebugAsync("Same field name, don't do rediscover");
                 return;
             }
 
             field = value;
-            LoadDirectoryAsync(value).SafeFireAndForget(exception => _loggerService.ErrorAsync("Loading directory failed", exception));
+            // TODO: Accept a global CancellationToken so that this can be interrupted
+            Task.Run(() => LoadDirectoryAsync(value, CancellationToken.None)).SafeFireAndForget(exception => _loggerService.ErrorAsync("Loading directory failed", exception));
         }
     }
 
@@ -90,6 +95,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         if (disposing)
         {
             _synonymSubscription.Dispose();
+            _fileWatcherSubscriptions.Dispose();
             _watcher?.Dispose();
             _tracks.Dispose();
             _isLoading.Dispose();
@@ -121,13 +127,14 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
     private static ICollection<FileInfo> DiscoverFiles(DirectoryInfo directory)
     {
-        return [
+        return
+        [
             ..SupportedAudioFormats.Extensions
                 .SelectMany(ext => directory.EnumerateFiles($"*{ext}", SearchOption.AllDirectories))
         ];
     }
 
-    private async Task LoadDirectoryAsync(DirectoryInfo directory)
+    private async Task LoadDirectoryAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
         _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
 
@@ -149,60 +156,90 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _ = _loggerService.DebugAsync($"Found {audioFiles.Count} audio files to load");
 
         var trackLoaded = audioFiles.ToObservable()
-            .Select(file => Observable.Start(() =>
-                {
-                    var cachedDuration = _durationCache.TryGetDuration(
-                        file.FullName, file.LastWriteTimeUtc);
-                    if (cachedDuration.HasValue)
-                    {
-                        return _discoveryService.LoadTrackWithDuration(file, cachedDuration.Value);
-                    }
-
-                    var track = _discoveryService.LoadTrack(file);
-                    _durationCache.SetDuration(file.FullName, file.LastWriteTimeUtc, track.Length);
-                    return track;
-                }, TaskPoolScheduler.Default)
-                .Catch<Track, Exception>((ex) =>
-                {
-                    _ = _loggerService.WarningAsync($"Error loading {file.FullName}: {ex.Message}");
-                    return Observable.Empty<Track>();
-                }))
+            .TakeUntil(_ => cancellationToken.IsCancellationRequested)
+            .Select(LoadTrackObservable)
             .Merge(MaxAmountOfFileReaderThreads)
             .Buffer(TimeSpan.FromMilliseconds(200), 50);
 
-        await trackLoaded.ForEachAsync(tracksBatch =>
+        await trackLoaded.Where(r => r.Any()).ForEachAsync(tracksBatch =>
         {
             _tracks.Edit(innerList => innerList.AddRange(tracksBatch));
 
-            _ = _loggerService.DebugAsync($"Added batch of {tracksBatch.Count} tracks");
-        });
+            _ = _loggerService.DebugAsync($"Added batch of '{tracksBatch.Count:N0}' tracks");
+        }, cancellationToken);
 
-        await _loggerService.DebugAsync($"Loaded {_tracks.Count} tracks successfully");
+        await _loggerService.DebugAsync($"Loaded '{_tracks.Count:N0}' tracks successfully");
         await _durationCache.SaveAsync([.. audioFiles.Select(r => r.FullName)]);
         StartWatching(directory);
         _isLoading.OnNext(false);
     }
 
+    private IObservable<Track> LoadTrackObservable(FileInfo file)
+    {
+        return Observable
+            .Start(() => LoadTrack(file), TaskPoolScheduler.Default)
+            .Catch<Track, Exception>((ex) =>
+            {
+                _ = _loggerService.WarningAsync($"Error loading {file.FullName}: {ex.Message}");
+                return Observable.Empty<Track>();
+            });
+    }
+
+    private Track LoadTrack(FileInfo file)
+    {
+        var cachedDuration = _durationCache.TryGetDuration(file.FullName, file.LastWriteTimeUtc);
+        if (cachedDuration.HasValue)
+        {
+            return _discoveryService.LoadTrackWithDuration(file, cachedDuration.Value);
+        }
+
+        var track = _discoveryService.LoadTrack(file);
+        _durationCache.SetDuration(file.FullName, file.LastWriteTimeUtc, track.Length);
+        return track;
+    }
+
     private void StartWatching(FileSystemInfo directory)
     {
+        _fileWatcherSubscriptions.Clear();
         _watcher = new FileSystemWatcher(directory.FullName)
         {
             IncludeSubdirectories = true,
             NotifyFilter = NotifyFilters.FileName
         };
 
-        _watcher.Created += OnFileCreated;
-        _watcher.Deleted += OnFileDeleted;
-        _watcher.Renamed += OnFileRenamed;
+        var createdObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
+                h => _watcher.Created += h,
+                h => _watcher.Created -= h
+            )
+                .Select(fromEvent => OnFileCreated(fromEvent.EventArgs))
+                .Where(r => r != null)
+                .Subscribe(track => _tracks.Edit(e => e.Add(track!)));
+        _fileWatcherSubscriptions.Add(createdObs);
+
+        var deletedObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
+                h => _watcher.Deleted += h,
+                h => _watcher.Deleted -= h
+            )
+            .Subscribe(fromEvent => OnFileDeleted(fromEvent.EventArgs));
+        _fileWatcherSubscriptions.Add(deletedObs);
+
+        var renamedObs = Observable.FromEventPattern<RenamedEventHandler, RenamedEventArgs>(
+                    h => _watcher.Renamed += h,
+                    h => _watcher.Renamed -= h
+                )
+                .Select(evt => OnFileRenamed(evt.EventArgs))
+                .Where(r => r != null)
+                .Subscribe(track => _tracks.Edit(e => e.Add(track!)));
+        _fileWatcherSubscriptions.Add(renamedObs);
 
         _watcher.EnableRaisingEvents = true;
     }
 
-    private async void OnFileCreated(object sender, FileSystemEventArgs fileSystemEventArgs)
+    private Track? OnFileCreated(FileSystemEventArgs fileSystemEventArgs)
     {
         if (!SupportedAudioFormats.IsSupported(fileSystemEventArgs.FullPath))
         {
-            return;
+            return null;
         }
 
         try
@@ -210,15 +247,17 @@ public sealed class TrackStore : ITrackStore, IDisposable
             var fileInfo = new FileInfo(fileSystemEventArgs.FullPath);
             var track = _discoveryService.LoadTrack(fileInfo);
             _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
-            _tracks.Add(ResolveTrackDance(track));
+            return ResolveTrackDance(track);
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
-            await _loggerService.ErrorAsync(ex.Message, ex);
+            _ = _loggerService.ErrorAsync(ex.Message, ex);
         }
+
+        return null;
     }
 
-    private void OnFileDeleted(object sender, FileSystemEventArgs fileSystemEventArgs)
+    private void OnFileDeleted(FileSystemEventArgs fileSystemEventArgs)
     {
         if (!SupportedAudioFormats.IsSupported(fileSystemEventArgs.FullPath))
         {
@@ -233,7 +272,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private async void OnFileRenamed(object sender, RenamedEventArgs renamedEventArgs)
+    private Track? OnFileRenamed(RenamedEventArgs renamedEventArgs)
     {
         var oldTrack = _tracks.Items.FirstOrDefault(t =>
             string.Equals(t.FileInfo.FullName, renamedEventArgs.OldFullPath, StringComparison.Ordinal));
@@ -244,7 +283,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         if (!SupportedAudioFormats.IsSupported(renamedEventArgs.FullPath))
         {
-            return;
+            return null;
         }
 
         try
@@ -252,12 +291,14 @@ public sealed class TrackStore : ITrackStore, IDisposable
             var fileInfo = new FileInfo(renamedEventArgs.FullPath);
             var track = _discoveryService.LoadTrack(fileInfo);
             _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
-            _tracks.Add(ResolveTrackDance(track));
+            return ResolveTrackDance(track);
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
-            await _loggerService.ErrorAsync(ex.Message, ex);
+            _ = _loggerService.ErrorAsync(ex.Message, ex);
         }
+
+        return null;
     }
 
     private static Func<Track, bool> CreateSearchFilter(string search)
