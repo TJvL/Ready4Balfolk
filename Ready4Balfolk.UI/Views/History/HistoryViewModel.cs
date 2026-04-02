@@ -59,7 +59,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
         TotalDurationText = "";
 
         _isLoadingHelper = historyStore.IsLoading
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .ToProperty(this, x => x.IsLoading);
         _isLoadingHelper.DisposeWith(_disposables);
 
@@ -69,7 +69,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
 
         historyStore.Observe()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(OnHistoryChanged)
             .DisposeWith(_disposables);
 

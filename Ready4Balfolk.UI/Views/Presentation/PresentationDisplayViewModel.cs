@@ -39,22 +39,22 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         NextTitle = "";
 
         consumptionService.WhenCurrentItemChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(OnCurrentItemChanged)
             .DisposeWith(_disposables);
 
         consumptionService.WhenElapsedChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(elapsed => Progress = elapsed.TotalSeconds)
             .DisposeWith(_disposables);
 
         consumptionService.WhenTotalDurationChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(dur => Duration = dur.TotalSeconds)
             .DisposeWith(_disposables);
 
         queueService.Connect()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateNextItem(queueService))
             .DisposeWith(_disposables);
     }

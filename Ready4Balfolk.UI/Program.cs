@@ -1,8 +1,5 @@
 using System;
-using System.Diagnostics;
 using System.Globalization;
-using System.IO;
-using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -17,6 +14,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Synonym;
 using Ready4Balfolk.Domain.Services.Tracks;
+using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Synonym;
@@ -39,22 +37,12 @@ namespace Ready4Balfolk.UI;
 
 public static class Program
 {
-    internal static readonly Stopwatch StartupStopwatch = new();
-
-    private static readonly DirectoryInfo DataDirectory =
-        new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ready4Balfolk"));
-
-    private static readonly FileLoggerService LoggerService = new(DataDirectory);
-    private static readonly SettingsStore SettingsStore = new(DataDirectory, LoggerService);
-
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
     public static void Main(string[] args)
     {
-        StartupStopwatch.Start();
-
         // ReSharper disable once RedundantAssignment
         var isDebug = args.Contains("--debug", StringComparer.OrdinalIgnoreCase);
 #if DEBUG
@@ -62,35 +50,10 @@ public static class Program
 #endif
         if (isDebug)
         {
-            LoggerService.MinimumLevel = LogLevel.Debug;
+            //LoggerService.MinimumLevel = LogLevel.Debug;
         }
 
-        var culture = SettingsStore.Current.ApplicationLanguage switch
-        {
-            ApplicationLanguage.Dutch => new CultureInfo("nl"),
-            _ => new CultureInfo("en")
-        };
-        Thread.CurrentThread.CurrentUICulture = culture;
-        CultureInfo.DefaultThreadCurrentUICulture = culture;
-
-        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
-        {
-            if (e.ExceptionObject is Exception ex)
-            {
-                LoggerService.CriticalAsync("Unhandled exception", ex);
-            }
-        };
-
-        TaskScheduler.UnobservedTaskException += (_, e) =>
-        {
-            LoggerService.ErrorAsync("Unobserved task exception", e.Exception);
-            e.SetObserved();
-        };
-
-        RxApp.DefaultExceptionHandler = Observer.Create<Exception>(ex =>
-            LoggerService.ErrorAsync("Unhandled RxApp exception", ex));
-
-        LoggerService.InfoAsync("Application starting");
+        //LoggerService.InfoAsync("Application starting");
 
         try
         {
@@ -98,8 +61,10 @@ public static class Program
         }
         catch (Exception ex)
         {
-            LoggerService.CriticalAsync("Fatal startup exception", ex);
-            throw;
+            //LoggerService.CriticalAsync("Fatal startup exception", ex);
+#pragma warning disable CA2201
+            throw new Exception("Critical", ex);
+#pragma warning restore CA2201
         }
     }
 
@@ -111,14 +76,40 @@ public static class Program
                 ConfigureServices,
                 withResolver: sp => App.Services = sp!)
             .WithInterFont()
-            .AfterSetup(_ => Logger.Sink = new FileLogSinkService(LoggerService));
+            .AfterSetup(_ =>
+            {
+                var settingsStore = App.Services.GetRequiredService<ISettingsStore>();
+                var loggerService = App.Services.GetRequiredService<ILoggerService>();
+
+                Logger.Sink = new FileLogSinkService(loggerService);
+                var culture = settingsStore.Current.ApplicationLanguage switch
+                {
+                    ApplicationLanguage.Dutch => new CultureInfo("nl"),
+                    _ => new CultureInfo("en")
+                };
+                Thread.CurrentThread.CurrentUICulture = culture;
+                CultureInfo.DefaultThreadCurrentUICulture = culture;
+
+                AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+                {
+                    if (e.ExceptionObject is Exception ex)
+                    {
+                        loggerService.CriticalAsync("Unhandled exception", ex);
+                    }
+                };
+
+                TaskScheduler.UnobservedTaskException += (_, e) =>
+                {
+                    loggerService.ErrorAsync("Unobserved task exception", e.Exception);
+                    e.SetObserved();
+                };
+            });
 
     private static void ConfigureServices(IServiceCollection services)
     {
         // Services
-        services.AddSingleton<ILoggerService>(LoggerService);
-        var audioService = new ManagedBassAudioPlaybackService(LoggerService);
-        services.AddSingleton<IAudioPlaybackService>(audioService);
+        services.AddSingleton<ILoggerService, ConsoleLoggerService>();
+        services.AddSingleton<IAudioPlaybackService, ManagedBassAudioPlaybackService>();
         services.AddSingleton<IQueueService>(sp =>
         {
             var consumption =
@@ -130,25 +121,26 @@ public static class Program
                 sp.GetRequiredService<ILoggerService>());
         });
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
+        services.AddSingleton<IApplicationSettingsDirectory, ApplicationSettingsDirectory>();
         services.AddTransient<IEditorHistoryService, EditorHistoryService>();
-        services.AddSingleton<ITrackDurationCache>(sp => new TrackDurationCache(DataDirectory, sp.GetRequiredService<ILoggerService>()));
+        services.AddSingleton<ITrackDurationCache, TrackDurationCache>();
         services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<ISynonymResolutionService, SynonymResolutionService>();
 
         // Stores
-        services.AddSingleton<IDanceTreeStore>(sp => new DanceTreeStore(DataDirectory, sp.GetRequiredService<ILoggerService>()));
-        services.AddSingleton<IDanceSynonymStore>(sp => new DanceSynonymStore(DataDirectory, sp.GetRequiredService<ILoggerService>()));
-        services.AddSingleton<ISettingsStore>(SettingsStore);
-        services.AddSingleton<IQueueHistoryStore>(sp => new QueueHistoryStore(DataDirectory, sp.GetRequiredService<ILoggerService>()));
+        services.AddSingleton<IDanceTreeStore, DanceTreeStore>();
+        services.AddSingleton<IDanceSynonymStore, DanceSynonymStore>();
+        services.AddSingleton<ISettingsStore, SettingsStore>();
+        services.AddSingleton<IQueueHistoryStore, QueueHistoryStore>();
         services.AddSingleton<ITrackStore, TrackStore>();
 
         // UI layer services
         services.AddSingleton<NavigationService>();
         services.AddSingleton<NotificationService>();
-        services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
+        services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<ConfirmationService>();
-        services.AddSingleton<IConfirmationService>(sp => sp.GetRequiredService<ConfirmationService>());
+        services.AddSingleton<IConfirmationService, ConfirmationService>();
 
         // ViewModels
         services.AddSingleton<ToolbarViewModel>();
