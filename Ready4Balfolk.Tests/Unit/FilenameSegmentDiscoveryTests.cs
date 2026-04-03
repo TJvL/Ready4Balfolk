@@ -48,10 +48,7 @@ public sealed class FilenameSegmentDiscoveryTests
 
         ICollection<string> filenames = ["test", "with spaces", "with - dashes - here"];
 
-        return filenames
-            .Cartesian<string, (string pattern, PatternSegment Segment),
-                TheoryDataRow<string, string?, PatternSegment, string>>(stringTags,
-                (filename, tag) => new TheoryDataRow<string, string?, PatternSegment, string>($"{filename}.mp3", filename, tag.Segment, $"{tag.pattern}.%x"));
+        return filenames.Cartesian(stringTags, (filename, tag) => new TheoryDataRow<string, string?, PatternSegment, string>($"{filename}.mp3", filename, tag.Segment, $"{tag.pattern}.%x"));
     }
 
     [Theory]
