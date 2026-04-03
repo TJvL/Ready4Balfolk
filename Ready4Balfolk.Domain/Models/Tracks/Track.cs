@@ -21,8 +21,7 @@ public sealed record Track(string Dance, string Artist, string Title, IFileInfo 
         var validTitle = !string.IsNullOrWhiteSpace(Title);
         var validArtist = !string.IsNullOrWhiteSpace(Artist);
         var validDuration = Length >= TimeSpan.Zero;
-        var fileInfo = FileInfo.Exists;
 
-        return validDance && validTitle && validArtist && validDuration && fileInfo;
+        return validDance && validTitle && validArtist && validDuration;
     }
 }

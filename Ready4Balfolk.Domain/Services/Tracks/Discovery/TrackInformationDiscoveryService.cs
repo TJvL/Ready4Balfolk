@@ -18,7 +18,7 @@ public sealed class TrackInformationDiscoveryService(OrderedSegmentDiscovery pat
 
     public Dictionary<PatternSegment, string> LoadMinimalSet(IFileInfo fileInfo)
     {
-        HashSet<PatternSegment> minimalSet = [PatternSegment.Dance, PatternSegment.Title, PatternSegment.Artist];
+        HashSet<PatternSegment> minimalSet = [PatternSegment.Title, PatternSegment.Artist];
         Dictionary<PatternSegment, string> patterns = [];
         foreach (var patternSegmentDiscovery in patternSegmentDiscoveries.PatternSegmentDiscoveries)
         {
@@ -34,11 +34,7 @@ public sealed class TrackInformationDiscoveryService(OrderedSegmentDiscovery pat
             }
         }
 
-        // Last effort
-        patterns.TryAdd(PatternSegment.Dance, "Not-Found");
-        return minimalSet.All(patterns.ContainsKey)
-            ? patterns
-            : throw new TrackInformationDiscoveryException($"Minimal set of information not found for song: {fileInfo.FullName}");
+        throw new TrackInformationDiscoveryException($"Minimal set of information not found for song: {fileInfo.FullName}");
     }
 
     private static TimeSpan GetTrackDuration(IFileInfo fileInfo)
@@ -48,14 +44,9 @@ public sealed class TrackInformationDiscoveryService(OrderedSegmentDiscovery pat
             using var file = TagLib.File.Create(fileInfo.FullName);
             return file.Properties.Duration;
         }
-        catch (IOException)
+        catch (Exception exception) when (exception is not IOException and not FormatException)
         {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            throw new IOException(
-                $"Unable to load track duration for '{fileInfo.Name}'.", exception);
+            throw new IOException($"Unable to load track duration for '{fileInfo.FullName}'", exception);
         }
     }
 }

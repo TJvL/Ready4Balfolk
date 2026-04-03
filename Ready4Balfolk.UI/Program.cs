@@ -141,6 +141,7 @@ public static class Program
         // Discovery Files
         services.AddSingleton<ITrackDiscoveryService, TrackInformationDiscoveryService>();
         services.AddSingleton<OrderedSegmentDiscovery>();
+        services.AddSingleton<ITagFileFactory, TagFileFactory>();
         services.AddSingleton<IPatternSegmentDiscovery, TagSegmentDiscovery>();
         services.AddSingleton<IPatternSegmentDiscovery, DanceFileDiscovery>();
         services.AddSingleton<IPatternSegmentDiscovery, FilenameSegmentDiscovery>(sp => new FilenameSegmentDiscovery(sp.GetRequiredService<ISettingsStore>().Current.DiscoveryPattern));
