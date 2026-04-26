@@ -12,6 +12,8 @@ namespace Ready4Balfolk.UI.Views.Presentation;
 
 public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisposable
 {
+    private static string FormatTime(TimeSpan time)
+        => $"{(int)time.TotalMinutes}:{time.Seconds:D2}";
     private readonly CompositeDisposable _disposables = [];
 
     // Current item properties
@@ -20,8 +22,10 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
     [Reactive] public partial string CurrentTitle { get; set; }
     [Reactive] public partial bool HasCurrentItem { get; set; }
     [Reactive] public partial bool IsMessageMode { get; set; }
-    [Reactive] public partial double Duration { get; set; }
-    [Reactive] public partial double Progress { get; set; }
+    [Reactive] public partial TimeSpan Duration { get; set; }
+    [Reactive] public partial TimeSpan Progress { get; set; }
+    [Reactive] public partial string CurrentTimeLeft { get; set; }
+
 
     // Next item properties
     [Reactive] public partial string NextDance { get; set; }
@@ -45,12 +49,16 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
 
         consumptionService.WhenElapsedChanged
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(elapsed => Progress = elapsed.TotalSeconds)
+            .Subscribe(elapsed =>
+            {
+                Progress = elapsed;
+                CurrentTimeLeft = FormatTime(Duration - elapsed);
+            })
             .DisposeWith(_disposables);
 
         consumptionService.WhenTotalDurationChanged
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(dur => Duration = dur.TotalSeconds)
+            .Subscribe(dur => Duration = dur)
             .DisposeWith(_disposables);
 
         queueService.Connect()
@@ -114,8 +122,8 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         CurrentDance = "";
         CurrentArtist = "";
         CurrentTitle = "";
-        Progress = 0;
-        Duration = 0;
+        Progress = new TimeSpan();
+        Duration = new TimeSpan();
     }
 
     private void UpdateNextItem(IQueueService queueService)
