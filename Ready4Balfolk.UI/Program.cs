@@ -41,8 +41,12 @@ public static class Program
 {
     internal static readonly Stopwatch StartupStopwatch = new();
 
-    private static readonly DirectoryInfo DataDirectory =
-        new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ready4Balfolk"));
+    private static readonly DirectoryInfo DataDirectory = new(
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Ready4Balfolk"
+        )
+    );
 
     private static readonly FileLoggerService LoggerService = new(DataDirectory);
     private static readonly SettingsStore SettingsStore = new(DataDirectory, LoggerService);
@@ -68,7 +72,7 @@ public static class Program
         var culture = SettingsStore.Current.ApplicationLanguage switch
         {
             ApplicationLanguage.Dutch => new CultureInfo("nl"),
-            _ => new CultureInfo("en")
+            _ => new CultureInfo("en"),
         };
         Thread.CurrentThread.CurrentUICulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
@@ -88,7 +92,8 @@ public static class Program
         };
 
         RxApp.DefaultExceptionHandler = Observer.Create<Exception>(ex =>
-            LoggerService.ErrorAsync("Unhandled RxApp exception", ex));
+            LoggerService.ErrorAsync("Unhandled RxApp exception", ex)
+        );
 
         LoggerService.InfoAsync("Application starting");
 
@@ -104,12 +109,14 @@ public static class Program
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.
-    private static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
+    private static AppBuilder BuildAvaloniaApp() =>
+        AppBuilder
+            .Configure<App>()
             .UsePlatformDetect()
             .UseReactiveUIWithMicrosoftDependencyResolver(
                 ConfigureServices,
-                withResolver: sp => App.Services = sp!)
+                withResolver: sp => App.Services = sp!
+            )
             .WithInterFont()
             .AfterSetup(_ => Logger.Sink = new FileLogSinkService(LoggerService));
 
@@ -121,34 +128,52 @@ public static class Program
         services.AddSingleton<IAudioPlaybackService>(audioService);
         services.AddSingleton<IQueueService>(sp =>
         {
-            var consumption =
-                new Lazy<IQueueConsumptionService>(sp.GetRequiredService<IQueueConsumptionService>);
+            var consumption = new Lazy<IQueueConsumptionService>(
+                sp.GetRequiredService<IQueueConsumptionService>
+            );
             return new QueueService(
                 sp.GetRequiredService<ISettingsStore>(),
                 sp.GetRequiredService<IQueueHistoryStore>(),
                 () => consumption.Value.CurrentItem,
-                sp.GetRequiredService<ILoggerService>());
+                sp.GetRequiredService<ILoggerService>()
+            );
         });
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
         services.AddTransient<IEditorHistoryService, EditorHistoryService>();
-        services.AddSingleton<ITrackDurationCache>(sp => new TrackDurationCache(DataDirectory, sp.GetRequiredService<ILoggerService>()));
+        services.AddSingleton<ITrackDurationCache>(sp => new TrackDurationCache(
+            DataDirectory,
+            sp.GetRequiredService<ILoggerService>()
+        ));
         services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<ISynonymResolutionService, SynonymResolutionService>();
 
         // Stores
-        services.AddSingleton<IDanceTreeStore>(sp => new DanceTreeStore(DataDirectory, sp.GetRequiredService<ILoggerService>()));
-        services.AddSingleton<IDanceSynonymStore>(sp => new DanceSynonymStore(DataDirectory, sp.GetRequiredService<ILoggerService>()));
+        services.AddSingleton<IDanceTreeStore>(sp => new DanceTreeStore(
+            DataDirectory,
+            sp.GetRequiredService<ILoggerService>()
+        ));
+        services.AddSingleton<IDanceSynonymStore>(sp => new DanceSynonymStore(
+            DataDirectory,
+            sp.GetRequiredService<ILoggerService>()
+        ));
         services.AddSingleton<ISettingsStore>(SettingsStore);
-        services.AddSingleton<IQueueHistoryStore>(sp => new QueueHistoryStore(DataDirectory, sp.GetRequiredService<ILoggerService>()));
+        services.AddSingleton<IQueueHistoryStore>(sp => new QueueHistoryStore(
+            DataDirectory,
+            sp.GetRequiredService<ILoggerService>()
+        ));
         services.AddSingleton<ITrackStore, TrackStore>();
 
         // UI layer services
         services.AddSingleton<NavigationService>();
         services.AddSingleton<NotificationService>();
-        services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
+        services.AddSingleton<INotificationService>(sp =>
+            sp.GetRequiredService<NotificationService>()
+        );
         services.AddSingleton<ConfirmationService>();
-        services.AddSingleton<IConfirmationService>(sp => sp.GetRequiredService<ConfirmationService>());
+        services.AddSingleton<IConfirmationService>(sp =>
+            sp.GetRequiredService<ConfirmationService>()
+        );
 
         // ViewModels
         services.AddSingleton<ToolbarViewModel>();
@@ -162,11 +187,19 @@ public static class Program
         services.AddSingleton<DanceSynonymsViewModel>();
 
         // Lazy wrappers — defers ViewModel creation until first navigation/toggle
-        services.AddSingleton<Lazy<HistoryViewModel>>(sp => new(sp.GetRequiredService<HistoryViewModel>));
-        services.AddSingleton<Lazy<DanceTreeViewModel>>(sp => new(sp.GetRequiredService<DanceTreeViewModel>));
-        services.AddSingleton<Lazy<SettingsViewModel>>(sp => new(sp.GetRequiredService<SettingsViewModel>));
+        services.AddSingleton<Lazy<HistoryViewModel>>(sp =>
+            new(sp.GetRequiredService<HistoryViewModel>)
+        );
+        services.AddSingleton<Lazy<DanceTreeViewModel>>(sp =>
+            new(sp.GetRequiredService<DanceTreeViewModel>)
+        );
+        services.AddSingleton<Lazy<SettingsViewModel>>(sp =>
+            new(sp.GetRequiredService<SettingsViewModel>)
+        );
         services.AddSingleton<Lazy<HelpViewModel>>(sp => new(sp.GetRequiredService<HelpViewModel>));
-        services.AddSingleton<Lazy<DanceSynonymsViewModel>>(sp => new(sp.GetRequiredService<DanceSynonymsViewModel>));
+        services.AddSingleton<Lazy<DanceSynonymsViewModel>>(sp =>
+            new(sp.GetRequiredService<DanceSynonymsViewModel>)
+        );
         // View registrations for ViewModelViewHost resolution
         services.AddTransient<IViewFor<SettingsViewModel>, SettingsView>();
         services.AddTransient<IViewFor<HelpViewModel>, HelpView>();
