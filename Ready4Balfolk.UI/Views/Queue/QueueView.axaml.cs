@@ -2,6 +2,7 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using ReactiveUI.Avalonia;
 using Ready4Balfolk.Domain.Models.QueueItems;
 
@@ -28,6 +29,8 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         QueueListBox.AddHandler(PointerPressedEvent, OnQueuePointerPressed, handledEventsToo: true);
         QueueListBox.AddHandler(PointerMovedEvent, OnQueuePointerMoved, handledEventsToo: true);
         QueueListBox.AddHandler(PointerReleasedEvent, OnQueuePointerReleased, handledEventsToo: true);
+
+        QueueListBox.AddHandler(KeyDownEvent, OnQueueKeyDown, RoutingStrategies.Tunnel);
 
         QueueListBox.ContainerPrepared += OnContainerPrepared;
         QueueListBox.ContainerClearing += OnContainerClearing;
@@ -179,11 +182,21 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
             ViewModel?.DeleteSelectedItem();
             e.Handled = true;
         }
+        else if (e.Key == Key.Up && e.KeyModifiers == KeyModifiers.Control)
+        {
+            ViewModel?.MoveSelectedUp();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Down && e.KeyModifiers == KeyModifiers.Control)
+        {
+            ViewModel?.MoveSelectedDown();
+            e.Handled = true;
+        }
     }
 
-    private void OnRefreshAutoQueuedClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => ViewModel?.RefreshAutoTrack();
+    private void OnRefreshAutoQueuedClick(object? sender, RoutedEventArgs e) => ViewModel?.RefreshAutoTrack();
 
-    private void OnPinAutoQueuedClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void OnPinAutoQueuedClick(object? sender, RoutedEventArgs e)
     {
         if (sender is Button { DataContext: AutoTrackQueueItem item })
         {

@@ -143,6 +143,12 @@ public static class UiStrings
     public static string Queue_KeepTrack =>
         ResourceManager.GetString("Queue_KeepTrack", Culture)!;
 
+    public static string Queue_MoveUp =>
+        ResourceManager.GetString("Queue_MoveUp", Culture)!;
+
+    public static string Queue_MoveDown =>
+        ResourceManager.GetString("Queue_MoveDown", Culture)!;
+
     public static string Queue_Empty =>
         ResourceManager.GetString("Queue_Empty", Culture)!;
 

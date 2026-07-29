@@ -161,6 +161,12 @@
   <data name="Queue_KeepTrack" xml:space="preserve">
     <value>Dit nummer behouden</value>
   </data>
+  <data name="Queue_MoveUp" xml:space="preserve">
+    <value>Omhoog verplaatsen</value>
+  </data>
+  <data name="Queue_MoveDown" xml:space="preserve">
+    <value>Omlaag verplaatsen</value>
+  </data>
   <data name="Queue_Empty" xml:space="preserve">
     <value>Wachtrij leeg</value>
   </data>
