@@ -23,6 +23,8 @@
         <PackageReference Include="ReactiveUI.Avalonia" Version="11.3.8" />
         <PackageReference Include="ReactiveUI.Avalonia.Microsoft.Extensions.DependencyInjection" Version="11.3.8" />
         <PackageReference Include="OneWare.Markdown.Avalonia.Tight" Version="11.3.11.3" />
+        <!--Transitive dependency of Avalonia; pinned to a patched version for GHSA-xrw6-gwf8-vvr9 (NU1903).-->
+        <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
         <PackageReference Include="ReactiveUI.SourceGenerators" Version="2.6.1">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
