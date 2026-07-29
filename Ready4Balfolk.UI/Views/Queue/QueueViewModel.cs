@@ -117,7 +117,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         var item = SelectedItem;
-        var index = _queuedItems.IndexOf(item);
+        var index = IndexOfSelected();
         if (index > 0)
         {
             MoveItem(index, index - 1);
@@ -134,7 +134,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         var item = SelectedItem;
-        var index = _queuedItems.IndexOf(item);
+        var index = IndexOfSelected();
         if (index >= 0 && index < _queuedItems.Count - 1)
         {
             MoveItem(index, index + 1);
@@ -256,9 +256,31 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        var index = _queuedItems.IndexOf(SelectedItem);
+        var index = IndexOfSelected();
         IsSelectedMovableUp = index > 0;
         IsSelectedMovableDown = index >= 0 && index < _queuedItems.Count - 1;
+    }
+
+    // Queue items are records with value equality and duplicates are allowed
+    // (e.g. two StopQueueItems), so the selected item must be located by
+    // reference identity — IndexOf would return the first equal instance.
+    private int IndexOfSelected()
+    {
+        var selected = SelectedItem;
+        if (selected is null)
+        {
+            return -1;
+        }
+
+        for (var i = 0; i < _queuedItems.Count; i++)
+        {
+            if (ReferenceEquals(_queuedItems[i], selected))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     public void DeleteSelectedItem()
@@ -268,7 +290,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        var index = _queuedItems.IndexOf(SelectedItem);
+        var index = IndexOfSelected();
         if (index >= 0)
         {
             _queueService.RemoveAt(index);
