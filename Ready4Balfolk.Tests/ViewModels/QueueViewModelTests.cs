@@ -284,6 +284,54 @@ public sealed class QueueViewModelTests : IDisposable
         _queueService.Received(1).Move(0, 1);
     }
 
+    // --- Selection with duplicate (value-equal) items ---
+    // Queue items are records, so two StopQueueItems are Equals; these tests
+    // pin down that the selected *instance* is moved/removed, not the first
+    // value-equal one.
+
+    [Fact]
+    public void MoveSelectedUp_DuplicateStops_MovesSelectedInstance()
+    {
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _queueSource.Add(new StopQueueItem());
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("B"), false));
+        var lastStop = new StopQueueItem();
+        _queueSource.Add(lastStop);
+
+        _sut.SelectedItem = lastStop;
+        _sut.MoveSelectedUp();
+
+        _queueService.Received(1).Move(3, 2);
+    }
+
+    [Fact]
+    public void MoveStates_DuplicateStops_UseSelectedInstancePosition()
+    {
+        _queueSource.Add(new StopQueueItem());
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
+        var lastStop = new StopQueueItem();
+        _queueSource.Add(lastStop);
+
+        _sut.SelectedItem = lastStop;
+
+        Assert.True(_sut.IsSelectedMovableUp);
+        Assert.False(_sut.IsSelectedMovableDown);
+    }
+
+    [Fact]
+    public void DeleteSelectedItem_DuplicateStops_RemovesSelectedInstance()
+    {
+        _queueSource.Add(new StopQueueItem());
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
+        var lastStop = new StopQueueItem();
+        _queueSource.Add(lastStop);
+
+        _sut.SelectedItem = lastStop;
+        _sut.DeleteSelectedItem();
+
+        _queueService.Received(1).RemoveAt(2);
+    }
+
     // --- ItemCountText ---
 
     [Fact]

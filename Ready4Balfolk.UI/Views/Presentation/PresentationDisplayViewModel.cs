@@ -20,8 +20,9 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
     [Reactive] public partial string CurrentTitle { get; set; }
     [Reactive] public partial bool HasCurrentItem { get; set; }
     [Reactive] public partial bool IsMessageMode { get; set; }
-    [Reactive] public partial double Duration { get; set; }
-    [Reactive] public partial double Progress { get; set; }
+    [Reactive] public partial TimeSpan Duration { get; set; }
+    [Reactive] public partial TimeSpan Progress { get; set; }
+    [Reactive] public partial string CurrentTimeLeft { get; set; }
 
     // Next item properties
     [Reactive] public partial string NextDance { get; set; }
@@ -37,6 +38,7 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         NextDance = "";
         NextArtist = "";
         NextTitle = "";
+        CurrentTimeLeft = "";
 
         consumptionService.WhenCurrentItemChanged
             .ObserveOn(RxApp.MainThreadScheduler)
@@ -45,12 +47,20 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
 
         consumptionService.WhenElapsedChanged
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(elapsed => Progress = elapsed.TotalSeconds)
+            .Subscribe(elapsed =>
+            {
+                Progress = elapsed;
+                CurrentTimeLeft = FormatTimeLeft(Duration - elapsed);
+            })
             .DisposeWith(_disposables);
 
         consumptionService.WhenTotalDurationChanged
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(dur => Duration = dur.TotalSeconds)
+            .Subscribe(dur =>
+            {
+                Duration = dur;
+                CurrentTimeLeft = FormatTimeLeft(dur - Progress);
+            })
             .DisposeWith(_disposables);
 
         queueService.Connect()
@@ -114,8 +124,9 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         CurrentDance = "";
         CurrentArtist = "";
         CurrentTitle = "";
-        Progress = 0;
-        Duration = 0;
+        Progress = TimeSpan.Zero;
+        Duration = TimeSpan.Zero;
+        CurrentTimeLeft = "";
     }
 
     private void UpdateNextItem(IQueueService queueService)
@@ -164,6 +175,16 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         NextDance = trackItem.Track.Dance;
         NextArtist = trackItem.Track.Artist;
         NextTitle = trackItem.Track.Title;
+    }
+
+    private static string FormatTimeLeft(TimeSpan remaining)
+    {
+        if (remaining < TimeSpan.Zero)
+        {
+            remaining = TimeSpan.Zero;
+        }
+
+        return $"{(int)remaining.TotalMinutes}:{remaining.Seconds:D2}";
     }
 
     public void Dispose() => _disposables.Dispose();

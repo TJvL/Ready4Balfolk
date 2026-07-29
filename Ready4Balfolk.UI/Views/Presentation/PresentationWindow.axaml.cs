@@ -48,7 +48,7 @@ public partial class PresentationWindow : Window
         if (_isBorderless)
         {
             SystemDecorations = SystemDecorations.None;
-            WindowState = WindowState.Maximized;
+            WindowState = WindowState.FullScreen;
         }
         else
         {

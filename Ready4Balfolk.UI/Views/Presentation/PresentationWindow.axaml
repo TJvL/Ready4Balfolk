@@ -65,15 +65,27 @@
                            VerticalAlignment="Center" />
             </Grid>
 
-            <!-- Progress bar (middle) -->
-            <ProgressBar Grid.Row="1"
-                         Minimum="0"
-                         Maximum="{Binding Duration}"
-                         Value="{Binding Progress}"
-                         Foreground="#4CAF50"
-                         Height="24"
-                         Margin="80,0"
-                         IsVisible="{Binding HasCurrentItem}" />
+            <!-- Progress bar and remaining time (middle) -->
+            <Grid Grid.Row="1" VerticalAlignment="Center" Margin="80,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="300" />
+                </Grid.ColumnDefinitions>
+                <ProgressBar Grid.Column="0"
+                             Minimum="0"
+                             Maximum="{Binding Duration.TotalSeconds}"
+                             Value="{Binding Progress.TotalSeconds}"
+                             Foreground="#4CAF50"
+                             Height="24"
+                             IsVisible="{Binding HasCurrentItem}" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding CurrentTimeLeft}"
+                           Foreground="White"
+                           FontSize="60"
+                           FontWeight="Bold"
+                           Margin="32,0,0,0"
+                           IsVisible="{Binding HasCurrentItem}" />
+            </Grid>
 
             <!-- Next item (bottom half) -->
             <Grid Grid.Row="2" VerticalAlignment="Center" Margin="80,20">

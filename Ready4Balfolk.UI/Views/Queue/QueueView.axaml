@@ -48,8 +48,7 @@
                      SelectionMode="Single"
                      FontSize="13"
                      ClipToBounds="True"
-                     DragDrop.AllowDrop="True"
-                     KeyDown="OnQueueKeyDown">
+                     DragDrop.AllowDrop="True">
                 <ListBox.DataTemplates>
                     <!-- Track template -->
                     <DataTemplate DataType="queueItems:TrackQueueItem">
