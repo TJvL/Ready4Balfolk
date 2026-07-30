@@ -18,7 +18,8 @@ public class PatternMatcher
         { "%g", ("genre", PatternSegment.Genre, @".+?") },
 
         { "%d", ("dance", PatternSegment.Dance, @".+?") },
-        { "%x", ("extension", null, @"\w{3}") }
+        // 2-4 chars: covers .mp3-style extensions as well as .fla, .flac and .aiff
+        { "%x", ("extension", null, @"\w{2,4}") }
     };
 
     // Cache compiled regex per pattern

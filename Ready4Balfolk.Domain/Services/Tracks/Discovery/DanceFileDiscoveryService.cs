@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO.Abstractions;
 using Ready4Balfolk.Domain.Models.Tracks;
 
@@ -5,7 +6,9 @@ namespace Ready4Balfolk.Domain.Services.Tracks.Discovery;
 
 public class DanceFileDiscoveryService(DanceFileService danceFileService) : IDanceFileDiscoveryService
 {
-    private readonly Dictionary<string, CacheEntry> _cache = [];
+    // Scanned from Parallel.ForEachAsync in TrackStore, so this must be
+    // thread-safe.
+    private readonly ConcurrentDictionary<string, CacheEntry> _cache = [];
 
     public bool Exists(IDirectoryInfo directoryInfo) => danceFileService.Exists(directoryInfo);
 
@@ -21,7 +24,9 @@ public class DanceFileDiscoveryService(DanceFileService danceFileService) : IDan
 
         var danceEntries = danceFileService.Matches(directoryInfo);
         var entry = new CacheEntry(directoryInfo.FullName, danceFileService.FileInfo(directoryInfo).LastWriteTimeUtc, danceEntries);
-        _cache.Add(entry.FullName, entry);
+        // Indexer, not Add: the entry replaces a stale one when dances.json
+        // changed since it was cached.
+        _cache[entry.FullName] = entry;
         return danceEntries;
     }
 

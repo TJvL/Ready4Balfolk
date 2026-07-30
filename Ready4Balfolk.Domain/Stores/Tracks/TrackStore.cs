@@ -148,36 +148,24 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
             var producerTask = Task.Run(async () =>
             {
-                var audioFiles = SupportedAudioFormats.Extensions
-                    .SelectMany(ext => directory.EnumerateFiles($"*{ext}", SearchOption.AllDirectories))
-                    .ToArray();
-                _ = _loggerService.DebugAsync($"Found {audioFiles.Length} audio files to load");
+                // The channel must always be completed, or the reader loop below
+                // hangs the load forever; hence the finally.
+                try
+                {
+                    var audioFiles = SupportedAudioFormats.Extensions
+                        .SelectMany(ext => directory.EnumerateFiles($"*{ext}", SearchOption.AllDirectories))
+                        .ToArray();
+                    _ = _loggerService.DebugAsync($"Found {audioFiles.Length} audio files to load");
 
-                await Parallel.ForEachAsync(audioFiles,
-                    new ParallelOptions
-                    {
-                        MaxDegreeOfParallelism = MaxAmountOfFileReaderThreads
-                    },
-                    async (file, ct) =>
-                    {
-                        try
+                    await Parallel.ForEachAsync(audioFiles,
+                        new ParallelOptions
                         {
-                            Track track;
-                            var cachedDuration = _durationCache.TryGetDuration(
-                                file.FullName, file.LastWriteTimeUtc);
-                            if (cachedDuration.HasValue)
-                            {
-                                track = _discoveryService.LoadTrackWithDuration(
-                                    file, cachedDuration.Value);
-                            }
-                            else
-                            {
-                                track = _discoveryService.LoadTrack(file);
-                                _durationCache.SetDuration(
-                                    file.FullName, file.LastWriteTimeUtc, track.Length);
-                            }
-
-                            if (!track.IsValid())
+                            MaxDegreeOfParallelism = MaxAmountOfFileReaderThreads
+                        },
+                        async (file, ct) =>
+                        {
+                            var track = TryLoadTrack(file);
+                            if (track is null)
                             {
                                 return;
                             }
@@ -187,16 +175,13 @@ public sealed class TrackStore : ITrackStore, IDisposable
                                 loadedPaths.Add(file.FullName);
                             }
 
-                            await channel.Writer.WriteAsync(
-                                ResolveTrackDance(track), ct);
-                        }
-                        catch (Exception ex) when (ex is FormatException or IOException)
-                        {
-                            _ = _loggerService.ErrorAsync(ex.Message, ex);
-                        }
-                    });
-
-                channel.Writer.Complete();
+                            await channel.Writer.WriteAsync(track, ct);
+                        });
+                }
+                finally
+                {
+                    channel.Writer.Complete();
+                }
             });
 
             var batch = new List<Track>();
@@ -235,6 +220,48 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
+    /// <summary>
+    /// Loads a single file into a resolved track. Centralized per-file handling:
+    /// discovery can throw many exception types (TagLib corrupt-file errors,
+    /// JSON errors from dances.json, discovery exceptions for unparseable
+    /// files); none of them may escape, or a single bad file kills a whole
+    /// directory scan or crashes an async void watcher handler.
+    /// </summary>
+    private Track? TryLoadTrack(IFileInfo file)
+    {
+        try
+        {
+            Track track;
+            var cachedDuration = _durationCache.TryGetDuration(
+                file.FullName, file.LastWriteTimeUtc);
+            if (cachedDuration.HasValue)
+            {
+                track = _discoveryService.LoadTrackWithDuration(
+                    file, cachedDuration.Value);
+            }
+            else
+            {
+                track = _discoveryService.LoadTrack(file);
+                _durationCache.SetDuration(
+                    file.FullName, file.LastWriteTimeUtc, track.Length);
+            }
+
+            if (!track.IsValid())
+            {
+                _ = _loggerService.WarningAsync(
+                    $"Skipping '{file.FullName}': incomplete track information (dance, artist or title missing).");
+                return null;
+            }
+
+            return ResolveTrackDance(track);
+        }
+        catch (Exception ex)
+        {
+            _ = _loggerService.ErrorAsync($"Failed to load track '{file.FullName}'", ex);
+            return null;
+        }
+    }
+
     private void StartWatching(IFileSystemInfo directory)
     {
         _watcher = new FileSystemWatcher(directory.FullName)
@@ -250,23 +277,17 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _watcher.EnableRaisingEvents = true;
     }
 
-    private async void OnFileCreated(object sender, FileSystemEventArgs fileSystemEventArgs)
+    private void OnFileCreated(object sender, FileSystemEventArgs fileSystemEventArgs)
     {
         if (!SupportedAudioFormats.IsSupported(fileSystemEventArgs.FullPath))
         {
             return;
         }
 
-        try
+        var track = TryLoadTrack(_fileSystem.FileInfo.New(fileSystemEventArgs.FullPath));
+        if (track != null)
         {
-            var fileInfo = _fileSystem.FileInfo.New(fileSystemEventArgs.FullPath);
-            var track = _discoveryService.LoadTrack(fileInfo);
-            _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
-            _tracks.Add(ResolveTrackDance(track));
-        }
-        catch (Exception ex) when (ex is FormatException or IOException)
-        {
-            await _loggerService.ErrorAsync(ex.Message, ex);
+            _tracks.Add(track);
         }
     }
 
@@ -285,7 +306,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private async void OnFileRenamed(object sender, RenamedEventArgs renamedEventArgs)
+    private void OnFileRenamed(object sender, RenamedEventArgs renamedEventArgs)
     {
         var oldTrack = _tracks.Items.FirstOrDefault(t =>
             string.Equals(t.FileInfo.FullName, renamedEventArgs.OldFullPath, StringComparison.Ordinal));
@@ -299,16 +320,10 @@ public sealed class TrackStore : ITrackStore, IDisposable
             return;
         }
 
-        try
+        var track = TryLoadTrack(_fileSystem.FileInfo.New(renamedEventArgs.FullPath));
+        if (track != null)
         {
-            var fileInfo = _fileSystem.FileInfo.New(renamedEventArgs.FullPath);
-            var track = _discoveryService.LoadTrack(fileInfo);
-            _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
-            _tracks.Add(ResolveTrackDance(track));
-        }
-        catch (Exception ex) when (ex is FormatException or IOException)
-        {
-            await _loggerService.ErrorAsync(ex.Message, ex);
+            _tracks.Add(track);
         }
     }
 

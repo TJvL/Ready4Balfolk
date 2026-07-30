@@ -103,7 +103,10 @@ public sealed class FilenameSegmentDiscoveryTests
     [InlineData("artist.mp3", true, "%a.%x")]
     [InlineData("artist.mp4", true, "%a.%x")]
     [InlineData("artist.ogg", true, "%a.%x")]
-    [InlineData("artist.nope", false, "%a.%x")]
+    [InlineData("artist.fla", true, "%a.%x")]
+    [InlineData("artist.flac", true, "%a.%x")]
+    [InlineData("artist.aiff", true, "%a.%x")]
+    [InlineData("artist.toolong", false, "%a.%x")]
     public void Pattern_Matching_Extension_Tests(string filename, bool match, string pattern)
     {
         var mockFileSystem = new MockFileSystem();

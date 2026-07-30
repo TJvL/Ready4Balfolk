@@ -144,7 +144,7 @@ public static class Program
         services.AddSingleton<ITagFileFactory, TagFileFactory>();
         services.AddSingleton<IPatternSegmentDiscovery, TagSegmentDiscovery>();
         services.AddSingleton<IPatternSegmentDiscovery, DanceFileDiscovery>();
-        services.AddSingleton<IPatternSegmentDiscovery, FilenameSegmentDiscovery>(sp => new FilenameSegmentDiscovery(sp.GetRequiredService<ISettingsStore>().Current.DiscoveryPattern));
+        services.AddSingleton<IPatternSegmentDiscovery, FilenameSegmentDiscovery>(sp => new FilenameSegmentDiscovery(() => sp.GetRequiredService<ISettingsStore>().Current.DiscoveryPattern));
         services.AddSingleton<IDanceFileDiscoveryService, DanceFileDiscoveryService>();
         services.AddSingleton<DanceFileService>();
 

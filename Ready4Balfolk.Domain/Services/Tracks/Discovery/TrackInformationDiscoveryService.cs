@@ -16,9 +16,13 @@ public sealed class TrackInformationDiscoveryService(OrderedSegmentDiscovery pat
         return Track.FromSegments(set, fileInfo, duration, format);
     }
 
+    // Title and Artist are required; Dance is wanted but a track without one is
+    // still created (and filtered later), so it must not make discovery throw.
+    private static readonly HashSet<PatternSegment> MinimalSet = [PatternSegment.Title, PatternSegment.Artist];
+    private static readonly HashSet<PatternSegment> DesiredSet = [PatternSegment.Title, PatternSegment.Artist, PatternSegment.Dance];
+
     public Dictionary<PatternSegment, string> LoadMinimalSet(IFileInfo fileInfo)
     {
-        HashSet<PatternSegment> minimalSet = [PatternSegment.Title, PatternSegment.Artist];
         Dictionary<PatternSegment, string> patterns = [];
         foreach (var patternSegmentDiscovery in patternSegmentDiscoveries.PatternSegmentDiscoveries)
         {
@@ -28,13 +32,18 @@ public sealed class TrackInformationDiscoveryService(OrderedSegmentDiscovery pat
                 patterns.TryAdd(segment, value);
             }
 
-            if (minimalSet.All(patterns.ContainsKey))
+            // Only stop early once the dance is also known; otherwise keep
+            // consulting later steps (dances.json, filename pattern) so a file
+            // with ordinary Title/Artist tags still gets its dance discovered.
+            if (DesiredSet.All(patterns.ContainsKey))
             {
                 return patterns;
             }
         }
 
-        throw new TrackInformationDiscoveryException($"Minimal set of information not found for song: {fileInfo.FullName}");
+        return MinimalSet.All(patterns.ContainsKey)
+            ? patterns
+            : throw new TrackInformationDiscoveryException($"Minimal set of information not found for song: {fileInfo.FullName}");
     }
 
     private static TimeSpan GetTrackDuration(IFileInfo fileInfo)

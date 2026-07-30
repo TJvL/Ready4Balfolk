@@ -292,9 +292,11 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void MoveSelectedUp_DuplicateStops_MovesSelectedInstance()
     {
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        var mockFileSystem = new MockFileSystem();
+
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
         _queueSource.Add(new StopQueueItem());
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("B"), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false));
         var lastStop = new StopQueueItem();
         _queueSource.Add(lastStop);
 
@@ -307,8 +309,10 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void MoveStates_DuplicateStops_UseSelectedInstancePosition()
     {
+        var mockFileSystem = new MockFileSystem();
+
         _queueSource.Add(new StopQueueItem());
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
         var lastStop = new StopQueueItem();
         _queueSource.Add(lastStop);
 
@@ -321,8 +325,10 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void DeleteSelectedItem_DuplicateStops_RemovesSelectedInstance()
     {
+        var mockFileSystem = new MockFileSystem();
+
         _queueSource.Add(new StopQueueItem());
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
         var lastStop = new StopQueueItem();
         _queueSource.Add(lastStop);
 
