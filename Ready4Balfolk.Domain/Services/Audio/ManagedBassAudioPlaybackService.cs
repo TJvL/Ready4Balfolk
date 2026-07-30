@@ -317,7 +317,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     {
         try
         {
-            if (!Bass.Init(0))
+            if (!Bass.Init())
             {
                 _bassFailed = true;
                 _isAvailable.OnNext(false);

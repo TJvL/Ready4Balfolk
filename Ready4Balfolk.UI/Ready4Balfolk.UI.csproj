@@ -15,7 +15,6 @@
         <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
         <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
         <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
-      <PackageReference Include="Tmds.DBus.Protocol" Version="0.23.0" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Include="Avalonia.Diagnostics" Version="11.3.12">
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
@@ -24,7 +23,10 @@
         <PackageReference Include="ReactiveUI.Avalonia" Version="11.3.8" />
         <PackageReference Include="ReactiveUI.Avalonia.Microsoft.Extensions.DependencyInjection" Version="11.3.8" />
         <PackageReference Include="OneWare.Markdown.Avalonia.Tight" Version="11.3.11.3" />
-        <!--Transitive dependency of Avalonia; pinned to a patched version for GHSA-xrw6-gwf8-vvr9 (NU1903).-->
+        <!--Transitive dependency of Avalonia; pinned to a patched version for GHSA-xrw6-gwf8-vvr9 (NU1903).
+            0.22+ (incl. the 0.9x line with the avaloniaui/avalonia#19523 shutdown-timing fix) breaks
+            Avalonia 11.3.12 at runtime (TypeLoadException: Tmds.DBus.Protocol.Connection); revisit
+            when Avalonia references the new API itself.-->
         <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
         <PackageReference Include="ReactiveUI.SourceGenerators" Version="2.6.1">
           <PrivateAssets>all</PrivateAssets>

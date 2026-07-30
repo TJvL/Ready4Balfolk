@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
+using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -37,12 +39,18 @@ namespace Ready4Balfolk.UI;
 
 public static class Program
 {
+    internal static readonly Stopwatch StartupStopwatch = new();
+
+    private static LogLevel _minimumLogLevel = LogLevel.Info;
+
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
     public static void Main(string[] args)
     {
+        StartupStopwatch.Start();
+
         // ReSharper disable once RedundantAssignment
         var isDebug = args.Contains("--debug", StringComparer.OrdinalIgnoreCase);
 #if DEBUG
@@ -50,10 +58,8 @@ public static class Program
 #endif
         if (isDebug)
         {
-            //LoggerService.MinimumLevel = LogLevel.Debug;
+            _minimumLogLevel = LogLevel.Debug;
         }
-
-        //LoggerService.InfoAsync("Application starting");
 
         try
         {
@@ -61,10 +67,8 @@ public static class Program
         }
         catch (Exception ex)
         {
-            //LoggerService.CriticalAsync("Fatal startup exception", ex);
-#pragma warning disable CA2201
-            throw new Exception("Critical", ex);
-#pragma warning restore CA2201
+            _ = App.Services?.GetService<ILoggerService>()?.CriticalAsync("Fatal startup exception", ex);
+            throw;
         }
     }
 
@@ -103,12 +107,21 @@ public static class Program
                     loggerService.ErrorAsync("Unobserved task exception", e.Exception);
                     e.SetObserved();
                 };
+
+                RxApp.DefaultExceptionHandler = Observer.Create<Exception>(ex =>
+                    loggerService.ErrorAsync("Unhandled RxApp exception", ex));
+
+                loggerService.InfoAsync("Application starting");
             });
 
     private static void ConfigureServices(IServiceCollection services)
     {
         // Services
-        services.AddSingleton<ILoggerService, ConsoleLoggerService>();
+        services.AddSingleton<ILoggerService>(sp =>
+            new FileLoggerService(sp.GetRequiredService<IApplicationSettingsDirectory>().DirectoryInfoRoot)
+            {
+                MinimumLevel = _minimumLogLevel
+            });
         services.AddSingleton<IAudioPlaybackService, ManagedBassAudioPlaybackService>();
         services.AddSingleton<IQueueService>(sp =>
         {

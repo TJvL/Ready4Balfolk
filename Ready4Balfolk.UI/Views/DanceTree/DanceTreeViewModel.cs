@@ -120,7 +120,6 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
             .ToProperty(this, x => x.IsLoading);
         _isLoadingHelper.DisposeWith(_disposables);
 
-        _trackCounts = Observable.Empty<IReadOnlyDictionary<string, int>>();
         _trackCounts = trackStore.Connect()
             .ToCollection()
             .Select(IReadOnlyDictionary<string, int> (tracks) => tracks

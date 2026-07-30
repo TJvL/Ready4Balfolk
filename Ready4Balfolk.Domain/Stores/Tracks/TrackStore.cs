@@ -150,34 +150,42 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
 
         _isLoading.OnNext(true);
-        await _durationCache.LoadAsync();
-
-        var audioFiles = DiscoverFiles(directory);
-        _ = _loggerService.DebugAsync($"Found {audioFiles.Count} audio files to load");
-
-        var trackLoaded = audioFiles.ToObservable()
-            .TakeUntil(_ => cancellationToken.IsCancellationRequested)
-            .Select(LoadTrackObservable)
-            .Merge(MaxAmountOfFileReaderThreads)
-            .Buffer(TimeSpan.FromMilliseconds(200), 50);
-
-        await trackLoaded.Where(r => r.Any()).ForEachAsync(tracksBatch =>
+        try
         {
-            _tracks.Edit(innerList => innerList.AddRange(tracksBatch));
+            await _durationCache.LoadAsync();
 
-            _ = _loggerService.DebugAsync($"Added batch of '{tracksBatch.Count:N0}' tracks");
-        }, cancellationToken);
+            var audioFiles = DiscoverFiles(directory);
+            _ = _loggerService.DebugAsync($"Found {audioFiles.Count} audio files to load");
 
-        await _loggerService.DebugAsync($"Loaded '{_tracks.Count:N0}' tracks successfully");
-        await _durationCache.SaveAsync([.. audioFiles.Select(r => r.FullName)]);
-        StartWatching(directory);
-        _isLoading.OnNext(false);
+            var trackLoaded = audioFiles.ToObservable()
+                .TakeUntil(_ => cancellationToken.IsCancellationRequested)
+                .Select(LoadTrackObservable)
+                .Merge(MaxAmountOfFileReaderThreads)
+                .Buffer(TimeSpan.FromMilliseconds(200), 50);
+
+            await trackLoaded.Where(r => r.Any()).ForEachAsync(tracksBatch =>
+            {
+                _tracks.Edit(innerList => innerList.AddRange(tracksBatch));
+
+                _ = _loggerService.DebugAsync($"Added batch of '{tracksBatch.Count:N0}' tracks");
+            }, cancellationToken);
+
+            await _loggerService.DebugAsync($"Loaded '{_tracks.Count:N0}' tracks successfully");
+            await _durationCache.SaveAsync([.. audioFiles.Select(r => r.FullName)]);
+            StartWatching(directory);
+        }
+        finally
+        {
+            _isLoading.OnNext(false);
+        }
     }
 
     private IObservable<Track> LoadTrackObservable(FileInfo file)
     {
+        // Defer keeps the inner observable cold so Merge(MaxAmountOfFileReaderThreads)
+        // actually caps how many LoadTrack calls run concurrently.
         return Observable
-            .Start(() => LoadTrack(file), TaskPoolScheduler.Default)
+            .Defer(() => Observable.Start(() => LoadTrack(file), TaskPoolScheduler.Default))
             .Catch<Track, Exception>((ex) =>
             {
                 _ = _loggerService.WarningAsync($"Error loading {file.FullName}: {ex.Message}");
@@ -201,15 +209,19 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private void StartWatching(FileSystemInfo directory)
     {
         _fileWatcherSubscriptions.Clear();
-        _watcher = new FileSystemWatcher(directory.FullName)
+        // Local capture: the FromEventPattern remove-handlers must close over this
+        // instance, not the _watcher field, which is nulled on the next reload
+        // before the old subscriptions are disposed.
+        var watcher = new FileSystemWatcher(directory.FullName)
         {
             IncludeSubdirectories = true,
             NotifyFilter = NotifyFilters.FileName
         };
+        _watcher = watcher;
 
         var createdObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
-                h => _watcher.Created += h,
-                h => _watcher.Created -= h
+                h => watcher.Created += h,
+                h => watcher.Created -= h
             )
                 .Select(fromEvent => OnFileCreated(fromEvent.EventArgs))
                 .Where(r => r != null)
@@ -217,22 +229,22 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _fileWatcherSubscriptions.Add(createdObs);
 
         var deletedObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
-                h => _watcher.Deleted += h,
-                h => _watcher.Deleted -= h
+                h => watcher.Deleted += h,
+                h => watcher.Deleted -= h
             )
             .Subscribe(fromEvent => OnFileDeleted(fromEvent.EventArgs));
         _fileWatcherSubscriptions.Add(deletedObs);
 
         var renamedObs = Observable.FromEventPattern<RenamedEventHandler, RenamedEventArgs>(
-                    h => _watcher.Renamed += h,
-                    h => _watcher.Renamed -= h
+                    h => watcher.Renamed += h,
+                    h => watcher.Renamed -= h
                 )
                 .Select(evt => OnFileRenamed(evt.EventArgs))
                 .Where(r => r != null)
                 .Subscribe(track => _tracks.Edit(e => e.Add(track!)));
         _fileWatcherSubscriptions.Add(renamedObs);
 
-        _watcher.EnableRaisingEvents = true;
+        watcher.EnableRaisingEvents = true;
     }
 
     private Track? OnFileCreated(FileSystemEventArgs fileSystemEventArgs)

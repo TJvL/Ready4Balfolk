@@ -8,6 +8,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -42,7 +43,6 @@ public sealed class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        var cts = new CancellationTokenSource();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var settingsStore = Services.GetRequiredService<ISettingsStore>();
@@ -55,7 +55,7 @@ public sealed class App : Application
             mainWindow.Opened += (_, _) =>
             {
                 var logger = Services.GetRequiredService<ILoggerService>();
-                //_ = logger.InfoAsync($"Window opened in {Program.StartupStopwatch.ElapsedMilliseconds} ms");
+                _ = logger.InfoAsync($"Window opened in {Program.StartupStopwatch.ElapsedMilliseconds} ms");
 
                 var notificationService = Services.GetRequiredService<INotificationService>();
                 _compositeDisposable.Add(logger.WhenErrorLogged
@@ -75,7 +75,6 @@ public sealed class App : Application
                     .Select(s => s.MusicDirectoryPath)
                     .Where(path => !string.IsNullOrWhiteSpace(path))
                     .Select(r => new DirectoryInfo(r))
-                    .Where(r => r.Exists)
                     .Subscribe(directory => trackStore.MusicDirectory = directory));
 
                 var windowState = settingsStore.Current.MainWindowState;
@@ -117,27 +116,21 @@ public sealed class App : Application
                 )
                 .Subscribe());
 
-            mainWindow.Closing += async (_, e) =>
+            mainWindow.Closing += (_, e) =>
             {
                 if (_closing)
                 {
                     return;
                 }
 
+                // Cancel the close; HandleClosingAsync closes the window for real
+                // (with _closing set) once the confirmation dialog and state saving
+                // are done.
                 e.Cancel = true;
 
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                HandleClosingAsync(mainWindow, settingsStore).ContinueWith(t =>
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                {
-                    if (t.Exception != null)
-                    {
-                        Console.WriteLine("Exception caught in ContinueWith");
-                    }
-
-                    // finally allow close
-                    e.Cancel = false;
-                }, TaskScheduler.FromCurrentSynchronizationContext());
+                HandleClosingAsync(mainWindow, settingsStore).SafeFireAndForget(ex =>
+                    Services.GetRequiredService<ILoggerService>()
+                        .ErrorAsync("Failed to handle window closing", ex));
             };
         }
 
@@ -198,11 +191,6 @@ public sealed class App : Application
 
         // Close presentation windows
         _compositeDisposable.Dispose();
-        //
-        // for (var i = 0; i < 4000; i++)
-        // {
-        //     await Task.Delay(TimeSpan.FromMilliseconds(1));
-        // }
 
         foreach (var pw in _presentationWindows)
         {
@@ -230,7 +218,6 @@ public sealed class App : Application
                 .Do(ti => logger.InfoAsync($"{typeof(T).Name} completed | Duration: {ti.Interval:g}"))
                 .Select(ti => ti.Value)
                 .SubscribeOn(RxApp.TaskpoolScheduler)
-                .SubscribeOn(RxSchedulers.TaskpoolScheduler)
                 .Catch<Unit, Exception>(ex =>
                 {
                     logger.ErrorAsync(errorMessage, ex);
