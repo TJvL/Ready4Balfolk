@@ -1,6 +1,6 @@
 using System;
 using System.Reactive.Linq;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.DanceSynonyms;

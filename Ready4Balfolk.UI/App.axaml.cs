@@ -10,7 +10,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Microsoft.Extensions.DependencyInjection;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
@@ -57,7 +57,7 @@ public sealed class App : Application
                 logger.WhenErrorLogged
                     .GroupBy(e => e.Message)
                     .SelectMany(group => group.Throttle(TimeSpan.FromSeconds(2)))
-                    .ObserveOn(RxApp.MainThreadScheduler)
+                    .ObserveOn(RxSchedulers.MainThreadScheduler)
                     .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error));
 
                 _ = Task.Run(async () =>

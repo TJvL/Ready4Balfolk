@@ -7,7 +7,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Synonyms;
 using Ready4Balfolk.Domain.Services.Editor;
@@ -71,7 +71,7 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
         Entries = [];
 
         _isLoadingHelper = store.IsLoading
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .ToProperty(this, x => x.IsLoading);
         _isLoadingHelper.DisposeWith(_disposables);
 
@@ -91,7 +91,7 @@ public sealed partial class DanceSynonymsViewModel : ReactiveObject, IDisposable
         _redoTooltipHelper.DisposeWith(_disposables);
 
         store.Observe()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Where(_ => _pendingCommits == 0)
             .Subscribe(RebuildEntries)
             .DisposeWith(_disposables);

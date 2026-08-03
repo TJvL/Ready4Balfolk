@@ -2,7 +2,7 @@ using System;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.DependencyInjection;
-using ReactiveUI.Avalonia;
+using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.Message;
 

@@ -5,7 +5,7 @@ using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using DynamicData;
 using DynamicData.Binding;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
@@ -49,7 +49,7 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
         SearchText = "";
 
         _isLoadingHelper = trackStore.IsLoading
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .ToProperty(this, x => x.IsLoading);
         _isLoadingHelper.DisposeWith(_disposables);
 
@@ -60,7 +60,7 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
         trackStore.Connect(searchObservable)
             .Transform(track => new TrackViewModel(track))
             .Sort(SortExpressionComparer<TrackViewModel>.Ascending(t => t.Dance))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Bind(out _tracks)
             .Subscribe()
             .DisposeWith(_disposables);
