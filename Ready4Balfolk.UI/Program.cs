@@ -10,7 +10,6 @@ using Avalonia.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 using ReactiveUI.Avalonia.Reactive.Splat;
-using ReactiveUI.Reactive;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Editor;
