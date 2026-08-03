@@ -47,12 +47,12 @@ public partial class PresentationWindow : Window
     {
         if (_isBorderless)
         {
-            SystemDecorations = SystemDecorations.None;
+            WindowDecorations = WindowDecorations.None;
             WindowState = WindowState.FullScreen;
         }
         else
         {
-            SystemDecorations = SystemDecorations.Full;
+            WindowDecorations = WindowDecorations.Full;
             WindowState = WindowState.Normal;
         }
     }

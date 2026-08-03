@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tree;
@@ -232,8 +232,8 @@ public sealed partial class DanceCategoryNode : ReactiveObject, IDisposable
     {
         var helper = this.WhenAnyValue(x => x.Name, x => x.Weight, x => x.TrackCount)
             .Select(t => IsRoot
-                ? t.Item1
-                : $"{t.Item1} ({t.Item3}) \u2014 weight: {t.Item2}")
+                ? t.Value1
+                : $"{t.Value1} ({t.Value3}) \u2014 weight: {t.Value2}")
             .ToProperty(this, x => x.DisplayName, initialValue: Name);
         helper.DisposeWith(_disposables);
         return helper;

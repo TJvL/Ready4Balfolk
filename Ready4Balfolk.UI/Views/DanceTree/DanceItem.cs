@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tree;
@@ -90,7 +90,7 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
         _isMarkedHelper.DisposeWith(_disposables);
 
         _displayNameHelper = this.WhenAnyValue(x => x.Name, x => x.Weight, x => x.TrackCount)
-            .Select(t => $"{t.Item1} ({t.Item3}) \u2014 weight: {t.Item2}")
+            .Select(t => $"{t.Value1} ({t.Value3}) \u2014 weight: {t.Value2}")
             .ToProperty(this, x => x.DisplayName, initialValue: $"{leaf.Name} (0) \u2014 weight: {leaf.Weight}");
         _displayNameHelper.DisposeWith(_disposables);
 

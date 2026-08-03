@@ -2,7 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Reactive.Linq;
 using DynamicData;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 namespace Ready4Balfolk.UI.Services;
 

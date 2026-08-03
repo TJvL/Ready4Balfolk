@@ -3,8 +3,8 @@ using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using ReactiveUI;
-using ReactiveUI.Avalonia;
+using ReactiveUI.Avalonia.Reactive;
+using ReactiveUI.Reactive;
 
 namespace Ready4Balfolk.UI.Views.Playback;
 
