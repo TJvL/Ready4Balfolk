@@ -182,7 +182,7 @@ public sealed partial class DanceCategoryNode : ReactiveObject, IDisposable
 
                 return total;
             })
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .ToProperty(this, x => x.TrackCount);
         helper.DisposeWith(_disposables);
         return helper;
@@ -197,7 +197,7 @@ public sealed partial class DanceCategoryNode : ReactiveObject, IDisposable
                 MarkedSelection.Branch b => b.Path.SequenceEqual(Path),
                 _ => false
             })
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .ToProperty(this, x => x.IsMarked);
         helper.DisposeWith(_disposables);
         return helper;
@@ -245,14 +245,14 @@ public sealed partial class DanceCategoryNode : ReactiveObject, IDisposable
             .Skip(1)
             .Where(_ => !IsEditing)
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(name => _context.CommitDirect(roots => DanceTreeTransforms.RenameBranch(roots, Path, name)))
             .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.Weight)
             .Skip(1)
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(weight =>
                 _context.CommitDirect(roots => DanceTreeTransforms.ReweightBranch(roots, Path, weight)))
             .DisposeWith(_disposables);

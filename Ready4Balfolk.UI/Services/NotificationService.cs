@@ -32,7 +32,7 @@ public class NotificationService : INotificationService, IDisposable
         _notifications.Add(item);
 
         Observable.Timer(TimeSpan.FromSeconds(4))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => _notifications.Remove(item));
     }
 

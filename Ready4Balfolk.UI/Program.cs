@@ -87,9 +87,6 @@ public static class Program
             e.SetObserved();
         };
 
-        RxApp.DefaultExceptionHandler = Observer.Create<Exception>(ex =>
-            LoggerService.ErrorAsync("Unhandled RxApp exception", ex));
-
         LoggerService.InfoAsync("Application starting");
 
         try
@@ -109,7 +106,10 @@ public static class Program
             .UsePlatformDetect()
             .UseReactiveUIWithMicrosoftDependencyResolver(
                 ConfigureServices,
-                withResolver: sp => App.Services = sp!)
+                withResolver: sp => App.Services = sp!,
+                // Replaces the RxApp.DefaultExceptionHandler assignment removed in ReactiveUI 23.
+                withReactiveUIBuilder: builder => builder.WithExceptionHandler(Observer.Create<Exception>(ex =>
+                    LoggerService.ErrorAsync("Unhandled RxApp exception", ex))))
             .WithInterFont()
             .AfterSetup(_ => Logger.Sink = new FileLogSinkService(LoggerService));
 

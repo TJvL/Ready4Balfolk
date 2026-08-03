@@ -57,7 +57,7 @@ public sealed class App : Application
                 logger.WhenErrorLogged
                     .GroupBy(e => e.Message)
                     .SelectMany(group => group.Throttle(TimeSpan.FromSeconds(2)))
-                    .ObserveOn(RxApp.MainThreadScheduler)
+                    .ObserveOn(RxSchedulers.MainThreadScheduler)
                     .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error));
 
                 _ = Task.Run(async () =>

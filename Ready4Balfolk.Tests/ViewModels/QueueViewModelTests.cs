@@ -44,7 +44,7 @@ public sealed class QueueViewModelTests : IDisposable
         _queueService.Items.Returns(_ => _queueSource.Items.ToList());
         _queueService.Enqueue(Arg.Any<IQueueItem>()).Returns(ci =>
         {
-            _queueSource.Add(ci.Arg<IQueueItem>());
+            _queueSource.Add(ci.Arg<IQueueItem>()!);
             return QueueAddResult.Allow();
         });
         _queueService.InsertAt(Arg.Any<int>(), Arg.Any<IQueueItem>()).Returns(ci =>
@@ -71,7 +71,7 @@ public sealed class QueueViewModelTests : IDisposable
         });
         _queueService.RemoveWhere(Arg.Any<Func<IQueueItem, bool>>()).Returns(ci =>
         {
-            var predicate = ci.Arg<Func<IQueueItem, bool>>();
+            var predicate = ci.Arg<Func<IQueueItem, bool>>()!;
             var found = false;
             _queueSource.Edit(list =>
             {
@@ -151,7 +151,7 @@ public sealed class QueueViewModelTests : IDisposable
 
         _sut.QueueRandomTrackCommand.Execute().Subscribe();
 
-        _queueService.Received(1).Enqueue(Arg.Is<TrackQueueItem>(t => t.Track == track));
+        _queueService.Received(1).Enqueue(Arg.Is<TrackQueueItem>(t => t!.Track == track));
     }
 
     [Fact]
@@ -367,7 +367,7 @@ public sealed class QueueViewModelTests : IDisposable
 
         _queueService.Received().RemoveWhere(Arg.Any<Func<IQueueItem, bool>>());
         _queueService.Received(1).InsertAt(Arg.Any<int>(),
-            Arg.Is<TrackQueueItem>(t => t.RandomlyAdded));
+            Arg.Is<TrackQueueItem>(t => t!.RandomlyAdded));
     }
 
     public void Dispose()
