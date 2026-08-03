@@ -1,4 +1,4 @@
-using ReactiveUI.Avalonia;
+using ReactiveUI.Avalonia.Reactive;
 
 namespace Ready4Balfolk.UI.Views.Help;
 

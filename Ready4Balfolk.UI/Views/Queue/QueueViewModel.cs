@@ -8,7 +8,7 @@ using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using DynamicData;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
@@ -121,7 +121,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         if (index > 0)
         {
             MoveItem(index, index - 1);
-            RxApp.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
+            RxSchedulers.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
         }
     }
 
@@ -138,7 +138,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         if (index >= 0 && index < _queuedItems.Count - 1)
         {
             MoveItem(index, index + 1);
-            RxApp.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
+            RxSchedulers.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
         }
     }
 
@@ -183,7 +183,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         FinishTimeText = "";
 
         queueService.Connect()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Bind(out _queuedItems)
             .Subscribe(_ =>
             {
@@ -206,12 +206,12 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             .Select(s => s.AutoQueueRandomTrack)
             .DistinctUntilChanged()
             .Where(enabled => enabled)
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => TryAutoEnqueue())
             .DisposeWith(_disposables);
 
         consumptionService.WhenCurrentItemChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(item =>
             {
                 if (item is null)
@@ -242,7 +242,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             .Select(_ => Unit.Default);
 
         Observable.Merge(queueChanged, currentItemChanged, totalDurationChanged, elapsedTick, minuteTimer)
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateFinishTimeText())
             .DisposeWith(_disposables);
     }

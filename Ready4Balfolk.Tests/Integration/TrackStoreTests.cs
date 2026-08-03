@@ -28,9 +28,9 @@ public sealed class TrackStoreTests : IDisposable
 
         var discoveryService = Substitute.For<ITrackDiscoveryService>();
         discoveryService.LoadTrack(Arg.Any<FileInfo>())
-            .Returns(call => CreateTrackFor(call.Arg<FileInfo>()));
+            .Returns(call => CreateTrackFor(call.Arg<FileInfo>()!));
         discoveryService.LoadTrackWithDuration(Arg.Any<FileInfo>(), Arg.Any<TimeSpan>())
-            .Returns(call => CreateTrackFor(call.Arg<FileInfo>()));
+            .Returns(call => CreateTrackFor(call.Arg<FileInfo>()!));
 
         var synonymService = Substitute.For<ISynonymResolutionService>();
         synonymService.Resolve(Arg.Any<string>()).Returns(call => call.Arg<string>());

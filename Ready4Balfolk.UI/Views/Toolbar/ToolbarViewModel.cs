@@ -1,4 +1,4 @@
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 namespace Ready4Balfolk.UI.Views.Toolbar;
 

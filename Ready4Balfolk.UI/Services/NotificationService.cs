@@ -2,7 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Reactive.Linq;
 using DynamicData;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 namespace Ready4Balfolk.UI.Services;
 
@@ -32,7 +32,7 @@ public class NotificationService : INotificationService, IDisposable
         _notifications.Add(item);
 
         Observable.Timer(TimeSpan.FromSeconds(4))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => _notifications.Remove(item));
     }
 

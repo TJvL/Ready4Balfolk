@@ -2,7 +2,7 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
@@ -41,12 +41,12 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         CurrentTimeLeft = "";
 
         consumptionService.WhenCurrentItemChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(OnCurrentItemChanged)
             .DisposeWith(_disposables);
 
         consumptionService.WhenElapsedChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(elapsed =>
             {
                 Progress = elapsed;
@@ -55,7 +55,7 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
             .DisposeWith(_disposables);
 
         consumptionService.WhenTotalDurationChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(dur =>
             {
                 Duration = dur;
@@ -64,7 +64,7 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
             .DisposeWith(_disposables);
 
         queueService.Connect()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateNextItem(queueService))
             .DisposeWith(_disposables);
     }

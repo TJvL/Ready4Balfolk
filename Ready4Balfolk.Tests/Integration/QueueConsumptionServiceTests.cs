@@ -87,7 +87,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         await _sut.AdvanceAsync();
 
         await _history.Received(1)
-            .AddAsync(Arg.Is<TrackHistoryEntry>(e => e.CompletionStatus == CompletionStatus.Skipped));
+            .AddAsync(Arg.Is<TrackHistoryEntry>(e => e!.CompletionStatus == CompletionStatus.Skipped));
     }
 
     [Fact]

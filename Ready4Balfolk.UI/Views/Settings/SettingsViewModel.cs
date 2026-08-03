@@ -7,7 +7,7 @@ using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -106,13 +106,13 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         this.WhenAnyValue(x => x.SelectedLanguage)
             .Skip(1)
             .DistinctUntilChanged()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(OnLanguageChanged)
             .DisposeWith(_disposables);
 
         settingsStore.Observe()
             .Skip(1)
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(SyncFromStore)
             .DisposeWith(_disposables);
     }
@@ -139,7 +139,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         this.WhenAnyValue(property)
             .Skip(1)
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(value => CommitDirect(transform(value)))
             .DisposeWith(_disposables);
     }

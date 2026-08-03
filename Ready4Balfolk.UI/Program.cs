@@ -8,7 +8,7 @@ using Avalonia;
 using Avalonia.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
-using ReactiveUI.Avalonia.Splat;
+using ReactiveUI.Avalonia.Reactive.Splat;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Editor;
@@ -78,7 +78,11 @@ public static class Program
             .UsePlatformDetect()
             .UseReactiveUIWithMicrosoftDependencyResolver(
                 ConfigureServices,
-                withResolver: sp => App.Services = sp!)
+                withResolver: sp => App.Services = sp!,
+                // Replaces the RxApp.DefaultExceptionHandler assignment removed in ReactiveUI 23.
+                // Resolved lazily: the logger service does not exist yet when the builder runs.
+                withReactiveUIBuilder: builder => builder.WithExceptionHandler(Observer.Create<Exception>(ex =>
+                    _ = App.Services?.GetService<ILoggerService>()?.ErrorAsync("Unhandled RxApp exception", ex))))
             .WithInterFont()
             .AfterSetup(_ =>
             {
@@ -107,9 +111,6 @@ public static class Program
                     loggerService.ErrorAsync("Unobserved task exception", e.Exception);
                     e.SetObserved();
                 };
-
-                RxApp.DefaultExceptionHandler = Observer.Create<Exception>(ex =>
-                    loggerService.ErrorAsync("Unhandled RxApp exception", ex));
 
                 loggerService.InfoAsync("Application starting");
             });

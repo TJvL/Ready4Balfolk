@@ -10,25 +10,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="11.3.12" />
-        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.12" />
-        <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
-        <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-        <PackageReference Include="Avalonia.Diagnostics" Version="11.3.12">
-            <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
-            <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
-        </PackageReference>
-        <PackageReference Include="ReactiveUI.Avalonia" Version="11.3.8" />
-        <PackageReference Include="ReactiveUI.Avalonia.Microsoft.Extensions.DependencyInjection" Version="11.3.8" />
-        <PackageReference Include="OneWare.Markdown.Avalonia.Tight" Version="11.3.11.3" />
-        <!--Transitive dependency of Avalonia; pinned to a patched version for GHSA-xrw6-gwf8-vvr9 (NU1903).
-            0.22+ (incl. the 0.9x line with the avaloniaui/avalonia#19523 shutdown-timing fix) breaks
-            Avalonia 11.3.12 at runtime (TypeLoadException: Tmds.DBus.Protocol.Connection); revisit
-            when Avalonia references the new API itself.-->
-        <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
-        <PackageReference Include="ReactiveUI.SourceGenerators" Version="2.6.1">
+        <PackageReference Include="Avalonia" Version="12.1.1" />
+        <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+        <PackageReference Include="ReactiveUI.Avalonia.Reactive" Version="12.1.1" />
+        <PackageReference Include="ReactiveUI.Avalonia.Microsoft.Extensions.DependencyInjection.Reactive" Version="12.1.1" />
+        <!--Upstream of the OneWare fork used pre-Avalonia-12; same control and xmlns.
+            12.x is still alpha, but only renders the static help page.-->
+        <PackageReference Include="Markdown.Avalonia.Tight" Version="12.0.0-a3" />
+        <PackageReference Include="ReactiveUI.SourceGenerators" Version="3.2.0">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>

@@ -20,7 +20,7 @@ public sealed class DanceSynonymActionTests : IDisposable
         _store.UpdateAsync(Arg.Any<Func<IReadOnlyList<DanceMainName>, IReadOnlyList<DanceMainName>>>())
             .Returns(ci =>
             {
-                var transform = ci.Arg<Func<IReadOnlyList<DanceMainName>, IReadOnlyList<DanceMainName>>>();
+                var transform = ci.Arg<Func<IReadOnlyList<DanceMainName>, IReadOnlyList<DanceMainName>>>()!;
                 _state.OnNext(transform(_state.Value));
                 return Task.CompletedTask;
             });

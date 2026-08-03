@@ -14,7 +14,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Microsoft.Extensions.DependencyInjection;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
@@ -61,7 +61,7 @@ public sealed class App : Application
                 _compositeDisposable.Add(logger.WhenErrorLogged
                     .GroupBy(e => e.Message)
                     .SelectMany(group => group.Throttle(TimeSpan.FromSeconds(2)))
-                    .ObserveOn(RxApp.MainThreadScheduler)
+                    .ObserveOn(RxSchedulers.MainThreadScheduler)
                     .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error)));
 
                 ApplyTheme(settingsStore.Current.ApplicationTheme);
@@ -217,7 +217,7 @@ public sealed class App : Application
                 .TimeInterval()
                 .Do(ti => logger.InfoAsync($"{typeof(T).Name} completed | Duration: {ti.Interval:g}"))
                 .Select(ti => ti.Value)
-                .SubscribeOn(RxApp.TaskpoolScheduler)
+                .SubscribeOn(RxSchedulers.TaskpoolScheduler)
                 .Catch<Unit, Exception>(ex =>
                 {
                     logger.ErrorAsync(errorMessage, ex);

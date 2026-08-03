@@ -3,7 +3,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Audio;
@@ -104,17 +104,17 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         TotalTime = "0:00";
 
         audioPlaybackService.WhenAvailabilityChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(available => IsAudioUnavailable = !available)
             .DisposeWith(_disposables);
 
         consumptionService.WhenCurrentItemChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(OnCurrentItemChanged)
             .DisposeWith(_disposables);
 
         consumptionService.WhenElapsedChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(elapsed =>
             {
                 Progress = elapsed.TotalSeconds;
@@ -123,7 +123,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
 
         consumptionService.WhenTotalDurationChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(dur =>
             {
                 Duration = dur.TotalSeconds;
@@ -132,12 +132,12 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
 
         consumptionService.WhenIsPlayingChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(playing => IsPlaying = playing)
             .DisposeWith(_disposables);
 
         queueService.Connect()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => ShowNextIcon = _queueService.Count > 0)
             .DisposeWith(_disposables);
     }
