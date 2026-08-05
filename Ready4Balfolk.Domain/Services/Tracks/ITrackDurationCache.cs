@@ -8,5 +8,5 @@ public interface ITrackDurationCache
 
     void SetDuration(string filePath, DateTime lastWriteTimeUtc, TimeSpan duration);
 
-    Task SaveAsync(IReadOnlySet<string> existingFilePaths);
+    Task SaveAsync(HashSet<string> existingFilePaths);
 }

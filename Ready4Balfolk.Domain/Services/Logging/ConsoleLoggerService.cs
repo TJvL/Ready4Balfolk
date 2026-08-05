@@ -37,6 +37,10 @@ public sealed class ConsoleLoggerService : ILoggerService, IDisposable
     {
         _errorSubject.OnNext(new LogEntry(LogLevel.Critical, message, exception));
         Console.WriteLine($"[Critical] {message}: {exception.Message}");
+        if (!string.IsNullOrEmpty(exception.StackTrace))
+        {
+            Console.WriteLine(exception.StackTrace);
+        }
         return Task.CompletedTask;
     }
 

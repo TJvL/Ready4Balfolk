@@ -1,17 +1,18 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Stores;
 
 namespace Ready4Balfolk.Domain.Services.Tracks;
 
-public sealed class TrackDurationCache(DirectoryInfo dataDirectory, ILoggerService loggerService) : ITrackDurationCache
+public sealed class TrackDurationCache(IApplicationSettingsDirectory dataDirectory, ILoggerService loggerService) : ITrackDurationCache
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true
     };
 
-    private readonly string _filePath = Path.Combine(dataDirectory.FullName, "track_duration_cache.json");
+    private readonly string _filePath = Path.Combine(dataDirectory.DirectoryInfoRoot.FullName, "track_duration_cache.json");
     private ConcurrentDictionary<string, CacheEntry> _entries = new(StringComparer.Ordinal);
 
     public async Task LoadAsync()
@@ -53,7 +54,7 @@ public sealed class TrackDurationCache(DirectoryInfo dataDirectory, ILoggerServi
     public void SetDuration(string filePath, DateTime lastWriteTimeUtc, TimeSpan duration) =>
         _entries[filePath] = new CacheEntry(filePath, lastWriteTimeUtc, duration);
 
-    public async Task SaveAsync(IReadOnlySet<string> existingFilePaths)
+    public async Task SaveAsync(HashSet<string> existingFilePaths)
     {
         var keysToRemove = _entries.Keys.Where(k => !existingFilePaths.Contains(k)).ToList();
         foreach (var key in keysToRemove)

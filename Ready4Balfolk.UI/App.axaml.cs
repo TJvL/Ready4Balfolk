@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reactive;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -32,7 +36,8 @@ public sealed class App : Application
     public static IServiceProvider Services { get; set; } = null!;
 
     private readonly List<PresentationWindow> _presentationWindows = [];
-    private IDisposable? _presentationCountSubscription;
+    private readonly CompositeDisposable _compositeDisposable = [];
+    private static bool _closing;
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
@@ -41,7 +46,6 @@ public sealed class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var settingsStore = Services.GetRequiredService<ISettingsStore>();
-            var closeConfirmed = false;
 
             var mainWindow = new MainWindow();
             desktop.MainWindow = mainWindow;
@@ -54,57 +58,24 @@ public sealed class App : Application
                 _ = logger.InfoAsync($"Window opened in {Program.StartupStopwatch.ElapsedMilliseconds} ms");
 
                 var notificationService = Services.GetRequiredService<INotificationService>();
-                logger.WhenErrorLogged
+                _compositeDisposable.Add(logger.WhenErrorLogged
                     .GroupBy(e => e.Message)
                     .SelectMany(group => group.Throttle(TimeSpan.FromSeconds(2)))
                     .ObserveOn(RxSchedulers.MainThreadScheduler)
-                    .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error));
-
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Services.GetRequiredService<IDanceTreeStore>().LoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = logger.ErrorAsync("Failed to load dance tree", ex);
-                    }
-                });
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Services.GetRequiredService<IDanceSynonymStore>().LoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = logger.ErrorAsync("Failed to load dance synonyms", ex);
-                    }
-                });
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Services.GetRequiredService<IQueueHistoryStore>().LoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = logger.ErrorAsync("Failed to load queue history", ex);
-                    }
-                });
+                    .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error)));
 
                 ApplyTheme(settingsStore.Current.ApplicationTheme);
-                settingsStore.Observe()
+                _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.ApplicationTheme)
                     .DistinctUntilChanged()
-                    .Subscribe(ApplyTheme);
+                    .Subscribe(ApplyTheme));
 
                 var trackStore = Services.GetRequiredService<ITrackStore>();
-                settingsStore.Observe()
+                _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.MusicDirectoryPath)
-                    .Where(path => !string.IsNullOrEmpty(path))
-                    .Subscribe(path => trackStore.MusicDirectory = new DirectoryInfo(path));
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Select(r => new DirectoryInfo(r))
+                    .Subscribe(directory => trackStore.MusicDirectory = directory));
 
                 var windowState = settingsStore.Current.MainWindowState;
                 if (windowState is { X: not null, Y: not null })
@@ -126,88 +97,134 @@ public sealed class App : Application
                 // Open initial presentation windows and subscribe to count changes
                 SyncPresentationWindows(settingsStore.Current.PresentationDisplayCount, settingsStore);
 
-                _presentationCountSubscription = settingsStore.Observe()
+                _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.PresentationDisplayCount)
                     .DistinctUntilChanged()
-                    .Subscribe(count => SyncPresentationWindows(count, settingsStore));
+                    .Subscribe(count => SyncPresentationWindows(count, settingsStore)));
             };
 
-            mainWindow.Closing += async (_, e) =>
+            _compositeDisposable.Add(Observable.FromEventPattern(
+                    h => mainWindow.Opened += h,
+                    h => mainWindow.Opened -= h)
+                .Take(1)
+                .SelectMany(_ =>
+                    Observable.Merge(
+                        RunLoad<IDanceTreeStore>((s, token) => s.LoadAsync(token), "Failed to load dance tree"),
+                        RunLoad<IDanceSynonymStore>((s, token) => s.LoadAsync(token), "Failed to load dance synonyms"),
+                        RunLoad<IQueueHistoryStore>((s, token) => s.LoadAsync(token), "Failed to load queue history")
+                    )
+                )
+                .Subscribe());
+
+            mainWindow.Closing += (_, e) =>
             {
-                if (closeConfirmed)
+                if (_closing)
                 {
                     return;
                 }
 
+                // Cancel the close; HandleClosingAsync closes the window for real
+                // (with _closing set) once the confirmation dialog and state saving
+                // are done.
                 e.Cancel = true;
 
-                var dialogVm = new ConfirmationDialogViewModel
-                {
-                    Title = UiStrings.App_ExitTitle,
-                    Message = UiStrings.App_ExitMessage
-                };
-                var dialog = new ConfirmationDialogView
-                {
-                    DataContext = dialogVm
-                };
-                await dialog.ShowDialog(mainWindow);
-
-                if (dialogVm.DialogResult != true)
-                {
-                    return;
-                }
-
-                // Save all window states while everything is still open
-                var isMaximized = mainWindow.WindowState == AvaloniaWindowState.Maximized;
-                var bounds = mainWindow.Bounds;
-                var position = mainWindow.Position;
-
-                var presentationStates = _presentationWindows.Select(w =>
-                {
-                    var wBounds = w.Bounds;
-                    var wPosition = w.Position;
-                    return new DomainWindowState(
-                        wPosition.X,
-                        wPosition.Y,
-                        wBounds.Width,
-                        wBounds.Height,
-                        w.WindowState == AvaloniaWindowState.Maximized,
-                        w.IsBorderless);
-                }).ToList();
-
-                var mainVm = Services.GetRequiredService<MainWindowViewModel>();
-                var collapsedBranches = mainVm.DanceTree?.GetCollapsedBranches()
-                                        ?? settingsStore.Current.CollapsedBranches;
-
-                await settingsStore.UpdateAsync(s => s with
-                {
-                    MainWindowState = new DomainWindowState(
-                        position.X,
-                        position.Y,
-                        bounds.Width,
-                        bounds.Height,
-                        isMaximized),
-                    PresentationWindowStates = presentationStates,
-                    CollapsedBranches = collapsedBranches
-                });
-
-                // Close presentation windows
-                _presentationCountSubscription?.Dispose();
-                foreach (var pw in _presentationWindows)
-                {
-                    pw.AllowClose = true;
-                    pw.Close();
-                }
-
-                _presentationWindows.Clear();
-
-                // Now close for real — second Closing invocation will pass through
-                closeConfirmed = true;
-                mainWindow.Close();
+                HandleClosingAsync(mainWindow, settingsStore).SafeFireAndForget(ex =>
+                    Services.GetRequiredService<ILoggerService>()
+                        .ErrorAsync("Failed to handle window closing", ex));
             };
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private async Task HandleClosingAsync(MainWindow mainWindow, ISettingsStore settingsStore)
+    {
+        var dialogVm = new ConfirmationDialogViewModel
+        {
+            Title = UiStrings.App_ExitTitle,
+            Message = UiStrings.App_ExitMessage
+        };
+        var dialog = new ConfirmationDialogView
+        {
+            DataContext = dialogVm
+        };
+        await dialog.ShowDialog(mainWindow);
+
+        if (dialogVm.DialogResult != true)
+        {
+            return;
+        }
+
+        // Save all window states while everything is still open
+        var isMaximized = mainWindow.WindowState == AvaloniaWindowState.Maximized;
+        var bounds = mainWindow.Bounds;
+        var position = mainWindow.Position;
+
+        var presentationStates = _presentationWindows.Select(w =>
+        {
+            var wBounds = w.Bounds;
+            var wPosition = w.Position;
+            return new DomainWindowState(
+                wPosition.X,
+                wPosition.Y,
+                wBounds.Width,
+                wBounds.Height,
+                w.WindowState == AvaloniaWindowState.Maximized,
+                w.IsBorderless);
+        }).ToList();
+
+        var mainVm = Services.GetRequiredService<MainWindowViewModel>();
+        var collapsedBranches = mainVm.DanceTree?.GetCollapsedBranches()
+                                ?? settingsStore.Current.CollapsedBranches;
+
+        await settingsStore.UpdateAsync(s => s with
+        {
+            MainWindowState = new DomainWindowState(
+                position.X,
+                position.Y,
+                bounds.Width,
+                bounds.Height,
+                isMaximized),
+            PresentationWindowStates = presentationStates,
+            CollapsedBranches = collapsedBranches
+        });
+
+        // Close presentation windows
+        _compositeDisposable.Dispose();
+
+        foreach (var pw in _presentationWindows)
+        {
+            pw.AllowClose = true;
+            pw.Close();
+        }
+
+        _presentationWindows.Clear();
+
+        // Now close for real — second Closing invocation will pass through
+
+        _closing = true;
+        mainWindow.Close();
+    }
+
+    private static IObservable<Unit> RunLoad<T>(Func<T, CancellationToken, Task> loader, string errorMessage) where T : notnull
+    {
+        return Observable.Defer(() =>
+        {
+            var logger = Services.GetRequiredService<ILoggerService>();
+            var service = Services.GetRequiredService<T>();
+
+            return Observable.FromAsync(token => loader(service, token))
+                .TimeInterval()
+                .Do(ti => logger.InfoAsync($"{typeof(T).Name} completed | Duration: {ti.Interval:g}"))
+                .Select(ti => ti.Value)
+                .SubscribeOn(RxSchedulers.TaskpoolScheduler)
+                .Catch<Unit, Exception>(ex =>
+                {
+                    logger.ErrorAsync(errorMessage, ex);
+                    // Just continue
+                    return Observable.Empty<Unit>();
+                });
+        });
     }
 
     private void ApplyTheme(ApplicationTheme theme)

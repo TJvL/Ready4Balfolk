@@ -1,5 +1,7 @@
+using NSubstitute;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Tracks;
+using Ready4Balfolk.Domain.Stores;
 
 namespace Ready4Balfolk.Tests.Integration;
 
@@ -7,12 +9,16 @@ public sealed class TrackDurationCacheTests : IDisposable
 {
     private readonly DirectoryInfo _tempDir;
     private readonly TrackDurationCache _sut;
+    private readonly IApplicationSettingsDirectory _settingsDirectory;
 
     public TrackDurationCacheTests()
     {
         _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
-        _sut = new TrackDurationCache(_tempDir, new NoOpLoggerService());
+
+        _settingsDirectory = Substitute.For<IApplicationSettingsDirectory>();
+        _settingsDirectory.DirectoryInfoRoot.Returns(_ => _tempDir);
+        _sut = new TrackDurationCache(_settingsDirectory, new NoOpLoggerService());
     }
 
     [Fact]
@@ -87,12 +93,9 @@ public sealed class TrackDurationCacheTests : IDisposable
         var duration = TimeSpan.FromMinutes(4.2);
 
         _sut.SetDuration(filePath, lastWrite, duration);
-        await _sut.SaveAsync(new HashSet<string>
-        {
-            filePath
-        });
+        await _sut.SaveAsync([filePath]);
 
-        var sut2 = new TrackDurationCache(_tempDir, new NoOpLoggerService());
+        var sut2 = new TrackDurationCache(_settingsDirectory, new NoOpLoggerService());
         await sut2.LoadAsync();
 
         var result = sut2.TryGetDuration(filePath, lastWrite);
@@ -111,12 +114,9 @@ public sealed class TrackDurationCacheTests : IDisposable
         _sut.SetDuration(keepPath, lastWrite, TimeSpan.FromMinutes(3));
         _sut.SetDuration(deletedPath, lastWrite, TimeSpan.FromMinutes(4));
 
-        await _sut.SaveAsync(new HashSet<string>
-        {
-            keepPath
-        });
+        await _sut.SaveAsync([keepPath]);
 
-        var sut2 = new TrackDurationCache(_tempDir, new NoOpLoggerService());
+        var sut2 = new TrackDurationCache(_settingsDirectory, new NoOpLoggerService());
         await sut2.LoadAsync();
 
         Assert.NotNull(sut2.TryGetDuration(keepPath, lastWrite));

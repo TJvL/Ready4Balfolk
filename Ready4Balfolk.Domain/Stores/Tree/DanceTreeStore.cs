@@ -7,7 +7,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.Tree;
 
-public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo, ILoggerService loggerService) : IDanceTreeStore
+public sealed class DanceTreeStore(IApplicationSettingsDirectory danceTreeDirectoryInfo, ILoggerService loggerService) : IDanceTreeStore
 {
     private const string DanceTreeFileName = "dance_tree.json";
 
@@ -20,7 +20,7 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo, ILogger
     private readonly BehaviorSubject<IReadOnlyList<DanceBranch>> _branches = new([]);
     private readonly BehaviorSubject<bool> _isLoading = new(false);
 
-    private string DanceTreeFilePath => Path.Combine(danceTreeDirectoryInfo.FullName, DanceTreeFileName);
+    private string DanceTreeFilePath => Path.Combine(danceTreeDirectoryInfo.DirectoryInfoRoot.FullName, DanceTreeFileName);
 
     public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
@@ -28,7 +28,7 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo, ILogger
 
     public IObservable<IReadOnlyList<DanceBranch>> Observe() => _branches.AsObservable();
 
-    public async Task LoadAsync()
+    public async Task LoadAsync(CancellationToken token)
     {
         _isLoading.OnNext(true);
         try
@@ -38,8 +38,8 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo, ILogger
                 return;
             }
 
-            await using var stream = File.OpenRead(DanceTreeFilePath);
-            var branches = await JsonSerializer.DeserializeAsync<List<DanceBranch>>(stream, JsonOptions);
+            await using var stream = new FileStream(DanceTreeFilePath, FileMode.Open, FileAccess.Read);
+            var branches = await JsonSerializer.DeserializeAsync<List<DanceBranch>>(stream, JsonOptions, token);
             if (branches != null)
             {
                 _branches.OnNext(branches);
@@ -135,7 +135,7 @@ public sealed class DanceTreeStore(DirectoryInfo danceTreeDirectoryInfo, ILogger
     {
         try
         {
-            danceTreeDirectoryInfo.Create();
+            danceTreeDirectoryInfo.DirectoryInfoRoot.Create();
             await using var stream = File.Create(DanceTreeFilePath);
             await JsonSerializer.SerializeAsync(stream, branches, JsonOptions);
         }

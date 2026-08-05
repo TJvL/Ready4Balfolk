@@ -7,7 +7,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.History;
 
-public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo, ILoggerService loggerService)
+public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistoryDirectoryInfo, ILoggerService loggerService)
     : IQueueHistoryStore
 {
     private const string QueueHistoryFileName = "queue_history.json";
@@ -22,11 +22,11 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo, I
     };
 
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly BehaviorSubject<QueueHistory> _history = new(new QueueHistory(null, []));
+    private readonly BehaviorSubject<QueueHistory> _history = new(QueueHistory.Empty);
     private readonly BehaviorSubject<bool> _isLoading = new(false);
 
     private string QueueHistoryFilePath =>
-        Path.Combine(queueHistoryDirectoryInfo.FullName, QueueHistoryFileName);
+        Path.Combine(queueHistoryDirectoryInfo.DirectoryInfoRoot.FullName, QueueHistoryFileName);
 
     public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
@@ -34,7 +34,7 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo, I
 
     public IObservable<QueueHistory> Observe() => _history.AsObservable();
 
-    public async Task LoadAsync()
+    public async Task LoadAsync(CancellationToken token)
     {
         _isLoading.OnNext(true);
         try
@@ -45,7 +45,7 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo, I
             }
 
             await using var stream = File.OpenRead(QueueHistoryFilePath);
-            var history = await JsonSerializer.DeserializeAsync<QueueHistory>(stream, JsonOptions);
+            var history = await JsonSerializer.DeserializeAsync<QueueHistory>(stream, JsonOptions, token);
             if (history != null)
             {
                 _history.OnNext(history);
@@ -125,7 +125,7 @@ public sealed class QueueHistoryStore(DirectoryInfo queueHistoryDirectoryInfo, I
     {
         try
         {
-            queueHistoryDirectoryInfo.Create();
+            queueHistoryDirectoryInfo.DirectoryInfoRoot.Create();
             await using var stream = File.Create(QueueHistoryFilePath);
             await JsonSerializer.SerializeAsync(stream, history, JsonOptions);
         }

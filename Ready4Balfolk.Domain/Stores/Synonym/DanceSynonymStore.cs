@@ -9,7 +9,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.Synonym;
 
-public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo, ILoggerService loggerService)
+public sealed class DanceSynonymStore(IApplicationSettingsDirectory danceSynonymDirectoryInfo, ILoggerService loggerService)
     : IDanceSynonymStore, IDisposable
 {
     private const string DanceSynonymsFileName = "dance_synonyms.json";
@@ -24,7 +24,7 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo, I
     private readonly BehaviorSubject<bool> _isLoading = new(false);
 
     private string DanceSynonymsFilePath =>
-        Path.Combine(danceSynonymDirectoryInfo.FullName, DanceSynonymsFileName);
+        Path.Combine(danceSynonymDirectoryInfo.DirectoryInfoRoot.FullName, DanceSynonymsFileName);
 
     public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
@@ -32,7 +32,7 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo, I
 
     public IObservable<IReadOnlyList<DanceMainName>> Observe() => _synonyms.AsObservable();
 
-    public async Task LoadAsync()
+    public async Task LoadAsync(CancellationToken token)
     {
         _isLoading.OnNext(true);
         try
@@ -42,8 +42,8 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo, I
                 return;
             }
 
-            await using var stream = File.OpenRead(DanceSynonymsFilePath);
-            var synonyms = await JsonSerializer.DeserializeAsync<List<DanceMainName>>(stream, JsonOptions);
+            await using var stream = new FileStream(DanceSynonymsFilePath, FileMode.Open, FileAccess.Read);
+            var synonyms = await JsonSerializer.DeserializeAsync<List<DanceMainName>>(stream, JsonOptions, token);
             if (synonyms != null)
             {
                 _synonyms.OnNext(synonyms);
@@ -157,7 +157,7 @@ public sealed class DanceSynonymStore(DirectoryInfo danceSynonymDirectoryInfo, I
     {
         try
         {
-            danceSynonymDirectoryInfo.Create();
+            danceSynonymDirectoryInfo.DirectoryInfoRoot.Create();
             await using var stream = File.Create(DanceSynonymsFilePath);
             await JsonSerializer.SerializeAsync(stream, synonyms, JsonOptions);
         }
