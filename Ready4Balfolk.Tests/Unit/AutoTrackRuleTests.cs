@@ -18,11 +18,21 @@ public sealed class AutoTrackRuleTests
     }
 
     [Fact]
-    public void EvaluateAdd_AutoTrack_NonEmpty_Denies()
+    public void EvaluateAdd_AutoTrack_QueueHasRequests_NoOpinion()
     {
         var sut = new AutoTrackRule(true);
         var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
         var existing = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        var verdict = sut.EvaluateAdd(auto, [existing]);
+        Assert.Null(verdict);
+    }
+
+    [Fact]
+    public void EvaluateAdd_AutoTrack_AlreadyPresent_Denies()
+    {
+        var sut = new AutoTrackRule(true);
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var existing = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("A"), true));
         var verdict = sut.EvaluateAdd(auto, [existing]);
         Assert.NotNull(verdict);
         Assert.False(verdict.Allowed);
@@ -40,16 +50,14 @@ public sealed class AutoTrackRuleTests
     // --- GetPreAddRemovalPredicate ---
 
     [Fact]
-    public void GetPreAddRemovalPredicate_Regular_ReturnsAutoTrackPredicate()
+    public void GetPreAddRemovalPredicate_Regular_ReturnsNull()
     {
         var sut = new AutoTrackRule(true);
         var track = new TrackQueueItem(TestData.CreateTrack(), false);
         var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("X"), true));
-        var predicate = sut.GetPreAddRemovalPredicate(track, [auto]);
 
-        Assert.NotNull(predicate);
-        Assert.True(predicate(auto));
-        Assert.False(predicate(track));
+        // The auto-track survives a request being added; it is only moved to the bottom.
+        Assert.Null(sut.GetPreAddRemovalPredicate(track, [auto]));
     }
 
     [Fact]

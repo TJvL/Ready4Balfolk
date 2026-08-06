@@ -9,6 +9,50 @@ public sealed class MaxItemsRuleTests
     private readonly MaxItemsRule _sut = new(3);
 
     [Fact]
+    public void EvaluateAdd_AtLimitOfRequests_AutoTrackStillAllowed()
+    {
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        IReadOnlyList<IQueueItem> items =
+        [
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
+            new TrackQueueItem(TestData.CreateTrack("B"), false),
+            new TrackQueueItem(TestData.CreateTrack("C"), false)
+        ];
+
+        Assert.Null(_sut.EvaluateAdd(auto, items));
+    }
+
+    [Fact]
+    public void EvaluateAdd_AutoTrackDoesNotConsumeASlot()
+    {
+        var track = new TrackQueueItem(TestData.CreateTrack("New"), false);
+        IReadOnlyList<IQueueItem> items =
+        [
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
+            new TrackQueueItem(TestData.CreateTrack("B"), false),
+            new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true))
+        ];
+
+        Assert.Null(_sut.EvaluateAdd(track, items));
+    }
+
+    [Fact]
+    public void GetEvictionIndices_SkipsAutoTrack()
+    {
+        IReadOnlyList<IQueueItem> items =
+        [
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
+            new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true)),
+            new TrackQueueItem(TestData.CreateTrack("B"), false),
+            new TrackQueueItem(TestData.CreateTrack("C"), false),
+            new TrackQueueItem(TestData.CreateTrack("D"), false)
+        ];
+
+        // max=3 requests: A, B, C are kept, D is evicted, and the auto-track is never touched.
+        Assert.Equal([4], _sut.GetEvictionIndices(items));
+    }
+
+    [Fact]
     public void EvaluateAdd_UnderLimit_NoOpinion()
     {
         var track = new TrackQueueItem(TestData.CreateTrack(), false);

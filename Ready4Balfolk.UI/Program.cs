@@ -161,10 +161,14 @@ public static class Program
 
         // UI layer services
         services.AddSingleton<NavigationService>();
+        // Forward to the concrete registration rather than registering the implementation again:
+        // AddSingleton<TService, TImplementation> would build a second instance, and both of these
+        // carry state set from outside (the dialog owner, the notification list the overlay binds
+        // to) that would then be written on one instance and read from the other.
         services.AddSingleton<NotificationService>();
-        services.AddSingleton<INotificationService, NotificationService>();
+        services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
         services.AddSingleton<ConfirmationService>();
-        services.AddSingleton<IConfirmationService, ConfirmationService>();
+        services.AddSingleton<IConfirmationService>(sp => sp.GetRequiredService<ConfirmationService>());
 
         // ViewModels
         services.AddSingleton<ToolbarViewModel>();

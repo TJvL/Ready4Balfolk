@@ -9,22 +9,30 @@ public sealed class MaxItemsRule(int maxItems) : IQueueRule
     public Func<IQueueItem, bool>? GetPreAddRemovalPredicate(IQueueItem newItem, IReadOnlyList<IQueueItem> currentItems)
         => null;
 
+    // The auto-track is a placeholder for an empty slot rather than a request, so it never counts
+    // against the limit and is never evicted by it. Without this the limit would either push the
+    // auto-track out of the queue or cost the user a request slot.
     public QueueRuleVerdict? EvaluateAdd(IQueueItem item, IReadOnlyList<IQueueItem> adjustedItems)
-        => adjustedItems.Count >= maxItems
+        => item is not AutoTrackQueueItem && adjustedItems.Count(i => i is not AutoTrackQueueItem) >= maxItems
             ? new QueueRuleVerdict(false, string.Format(CultureInfo.CurrentCulture, DomainStrings.MaxItemsRule_QueueFull, maxItems))
             : null;
 
     public IReadOnlyList<int> GetEvictionIndices(IReadOnlyList<IQueueItem> currentItems)
     {
-        if (currentItems.Count <= maxItems)
-        {
-            return [];
-        }
-
         var indices = new List<int>();
-        for (var i = maxItems; i < currentItems.Count; i++)
+        var kept = 0;
+        for (var i = 0; i < currentItems.Count; i++)
         {
-            indices.Add(i);
+            if (currentItems[i] is AutoTrackQueueItem)
+            {
+                continue;
+            }
+
+            kept++;
+            if (kept > maxItems)
+            {
+                indices.Add(i);
+            }
         }
 
         return indices;
