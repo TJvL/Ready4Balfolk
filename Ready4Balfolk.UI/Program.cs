@@ -76,6 +76,9 @@ public static class Program
     private static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            // Takes over from the X11 backend selected above whenever a Wayland compositor is
+            // present, and leaves it in place otherwise. Must follow UsePlatformDetect.
+            .UseWaylandWithFallback()
             .UseReactiveUIWithMicrosoftDependencyResolver(
                 ConfigureServices,
                 withResolver: sp => App.Services = sp!,
