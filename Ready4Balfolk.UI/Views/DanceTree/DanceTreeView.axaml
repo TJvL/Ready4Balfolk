@@ -20,6 +20,7 @@
     </UserControl.KeyBindings>
     <controls:LoadingContainer IsLoading="{Binding IsLoading}">
     <TreeView x:Name="DanceTreeControl"
+    FontSize="18"
               ItemsSource="{Binding DanceTreeDisplayRoot}"
               SelectedItem="{Binding SelectedTreeItem}">
         <TreeView.Styles>

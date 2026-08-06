@@ -91,6 +91,19 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task AdvanceAsync_RecordsWhenTheTrackStarted()
+    {
+        var before = DateTime.Now;
+        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        _queue.Enqueue(track);
+        await _sut.AdvanceAsync();
+        await _sut.AdvanceAsync();
+
+        await _history.Received(1).AddAsync(Arg.Is<TrackHistoryEntry>(e =>
+            e!.StartedAt != null && e.StartedAt >= before && e.StartedAt <= DateTime.Now));
+    }
+
+    [Fact]
     public async Task PlayPauseAsync_DelegatesToAudio()
     {
         _audio.IsPlaying.Returns(true);

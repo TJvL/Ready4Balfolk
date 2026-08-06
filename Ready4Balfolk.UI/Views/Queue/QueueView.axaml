@@ -47,7 +47,7 @@
                      ItemsSource="{Binding QueuedItems}"
                      SelectedItem="{Binding SelectedItem}"
                      SelectionMode="Single"
-                     FontSize="13"
+                     FontSize="18"
                      ClipToBounds="True"
                      DragDrop.AllowDrop="True">
                 <ListBox.DataTemplates>
@@ -222,13 +222,13 @@
                                Text="{Binding ItemCountText}"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Center"
-                               FontSize="13"
+                               FontSize="18"
                                Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
                     <TextBlock Grid.Column="1"
                                Text="{Binding FinishTimeText}"
                                HorizontalAlignment="Right"
                                VerticalAlignment="Center"
-                               FontSize="13"
+                               FontSize="18"
                                Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
                 </Grid>
             </Border>
