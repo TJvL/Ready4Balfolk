@@ -30,6 +30,9 @@
             </Style>
             <Style Selector="DataGridCell">
                 <Setter Property="BorderThickness" Value="0" />
+                <!-- Set here rather than on the DataGrid: the cell template applies its own font
+                     size, so an inherited value from the grid never reaches the text. -->
+                <Setter Property="FontSize" Value="18" />
             </Style>
             <Style Selector="DataGridColumnHeader">
                 <Setter Property="BorderThickness" Value="0" />

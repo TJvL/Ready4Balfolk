@@ -220,6 +220,9 @@ public static class UiStrings
     public static string History_TypeStop =>
         ResourceManager.GetString("History_TypeStop", Culture)!;
 
+    public static string History_StartedAt =>
+        ResourceManager.GetString("History_StartedAt", Culture)!;
+
     public static string History_StatusFinished =>
         ResourceManager.GetString("History_StatusFinished", Culture)!;
 
