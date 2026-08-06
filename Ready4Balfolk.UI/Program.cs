@@ -142,6 +142,7 @@ public static class Program
                 sp.GetRequiredService<ISettingsStore>(),
                 sp.GetRequiredService<IQueueHistoryStore>(),
                 () => consumption.Value.CurrentItem,
+                () => consumption.Value.CurrentItemRemaining,
                 sp.GetRequiredService<ILoggerService>());
         });
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();

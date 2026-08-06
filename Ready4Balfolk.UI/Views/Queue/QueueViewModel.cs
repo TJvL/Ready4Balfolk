@@ -464,9 +464,18 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         var finishTime = DateTime.Now + currentRemaining + queueDuration;
-        FinishTimeText = halts
+        var text = halts
             ? string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistHaltsAt, finishTime.ToString("HH:mm", CultureInfo.CurrentCulture))
             : string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistFinishesAt, finishTime.ToString("HH:mm", CultureInfo.CurrentCulture));
+
+        // Say when the cutoff is not being applied, rather than leaving the user to wonder why a
+        // request went through: past a halt there is no end time to judge it against.
+        if (halts && _settingsStore.Current.QueueCutoffEnabled)
+        {
+            text += $" \u2014 {UiStrings.Queue_CutoffPaused}";
+        }
+
+        FinishTimeText = text;
     }
 
     public void Dispose() => _disposables.Dispose();

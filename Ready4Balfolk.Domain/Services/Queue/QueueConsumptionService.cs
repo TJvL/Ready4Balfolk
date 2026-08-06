@@ -33,6 +33,9 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
     public IQueueItem? CurrentItem => _currentItem.Value;
     public IObservable<IQueueItem?> WhenCurrentItemChanged => _currentItem.AsObservable();
+    public TimeSpan CurrentItemRemaining =>
+        _totalDuration.Value > _elapsed.Value ? _totalDuration.Value - _elapsed.Value : TimeSpan.Zero;
+
     public IObservable<TimeSpan> WhenElapsedChanged => _elapsed.AsObservable();
     public IObservable<TimeSpan> WhenTotalDurationChanged => _totalDuration.AsObservable();
     public IObservable<bool> WhenIsPlayingChanged => _isPlaying.AsObservable();

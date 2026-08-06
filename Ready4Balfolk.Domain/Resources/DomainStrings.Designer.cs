@@ -29,6 +29,9 @@ public static class DomainStrings
     public static string AutoTrackRule_OnlyOneAllowed =>
         ResourceManager.GetString("AutoTrackRule_OnlyOneAllowed", Culture)!;
 
+    public static string QueueCutoffRule_PastCutoff =>
+        ResourceManager.GetString("QueueCutoffRule_PastCutoff", Culture)!;
+
     public static string DuplicateTrackRule_AlreadyInQueue =>
         ResourceManager.GetString("DuplicateTrackRule_AlreadyInQueue", Culture)!;
 

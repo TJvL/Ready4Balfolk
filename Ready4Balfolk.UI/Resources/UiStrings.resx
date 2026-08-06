@@ -312,6 +312,18 @@
   <data name="Settings_Browse" xml:space="preserve">
     <value>Browse...</value>
   </data>
+  <data name="Settings_QueueCutoff" xml:space="preserve">
+    <value>Stop accepting requests after a set time</value>
+  </data>
+  <data name="Settings_QueueCutoffGrace" xml:space="preserve">
+    <value>Grace (minutes)</value>
+  </data>
+  <data name="Settings_QueueCutoffDescription" xml:space="preserve">
+    <value>Refuse new entries once the queue would run past this time, allowing the grace period on top. While a stop request is queued the end time is unknown, so the limit is not applied; use a delay instead if you know how long the pause will be.</value>
+  </data>
+  <data name="Queue_CutoffPaused" xml:space="preserve">
+    <value>limit paused for the stop</value>
+  </data>
   <data name="Settings_MaxQueueItems" xml:space="preserve">
     <value>Maximum Queue Items</value>
   </data>

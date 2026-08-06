@@ -220,6 +220,18 @@ public static class UiStrings
     public static string Settings_Browse =>
         ResourceManager.GetString("Settings_Browse", Culture)!;
 
+    public static string Settings_QueueCutoff =>
+        ResourceManager.GetString("Settings_QueueCutoff", Culture)!;
+
+    public static string Settings_QueueCutoffGrace =>
+        ResourceManager.GetString("Settings_QueueCutoffGrace", Culture)!;
+
+    public static string Settings_QueueCutoffDescription =>
+        ResourceManager.GetString("Settings_QueueCutoffDescription", Culture)!;
+
+    public static string Queue_CutoffPaused =>
+        ResourceManager.GetString("Queue_CutoffPaused", Culture)!;
+
     public static string Settings_MaxQueueItems =>
         ResourceManager.GetString("Settings_MaxQueueItems", Culture)!;
 

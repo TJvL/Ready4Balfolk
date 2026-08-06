@@ -33,6 +33,9 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool AllowDuplicateTracksInQueue { get; set; }
     [Reactive] public partial bool RequirePlaybackConfirmation { get; set; }
     [Reactive] public partial bool ShowButtonText { get; set; }
+    [Reactive] public partial bool QueueCutoffEnabled { get; set; }
+    [Reactive] public partial int QueueCutoffMinutesOfDay { get; set; }
+    [Reactive] public partial int QueueCutoffGraceMinutes { get; set; }
     [Reactive] public partial ApplicationTheme SelectedTheme { get; set; }
     [Reactive] public partial ApplicationLanguage SelectedLanguage { get; set; }
 
@@ -69,6 +72,9 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         AllowDuplicateTracksInQueue = current.AllowDuplicateTracksInQueue;
         RequirePlaybackConfirmation = current.RequirePlaybackConfirmation;
         ShowButtonText = current.ShowButtonText;
+        QueueCutoffEnabled = current.QueueCutoffEnabled;
+        QueueCutoffMinutesOfDay = current.QueueCutoffMinutesOfDay;
+        QueueCutoffGraceMinutes = current.QueueCutoffGraceMinutes;
         SelectedTheme = current.ApplicationTheme;
         SelectedLanguage = current.ApplicationLanguage;
 
@@ -104,6 +110,18 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         {
             ShowButtonText = v
         });
+        ThrottledSave(x => x.QueueCutoffEnabled, v => s => s with
+        {
+            QueueCutoffEnabled = v
+        });
+        ThrottledSave(x => x.QueueCutoffMinutesOfDay, v => s => s with
+        {
+            QueueCutoffMinutesOfDay = v
+        });
+        ThrottledSave(x => x.QueueCutoffGraceMinutes, v => s => s with
+        {
+            QueueCutoffGraceMinutes = v
+        });
         ThrottledSave(x => x.SelectedTheme, v => s => s with
         {
             ApplicationTheme = v
@@ -134,6 +152,9 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         AllowDuplicateTracksInQueue = s.AllowDuplicateTracksInQueue;
         RequirePlaybackConfirmation = s.RequirePlaybackConfirmation;
         ShowButtonText = s.ShowButtonText;
+        QueueCutoffEnabled = s.QueueCutoffEnabled;
+        QueueCutoffMinutesOfDay = s.QueueCutoffMinutesOfDay;
+        QueueCutoffGraceMinutes = s.QueueCutoffGraceMinutes;
         SelectedTheme = s.ApplicationTheme;
         SelectedLanguage = s.ApplicationLanguage;
         _syncing = false;

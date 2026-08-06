@@ -217,7 +217,7 @@
                     Padding="10,6"
                     Margin="0,8,0,0"
                     MinHeight="32">
-                <Grid ColumnDefinitions="*,*">
+                <Grid ColumnDefinitions="Auto,*">
                     <TextBlock Grid.Column="0"
                                Text="{Binding ItemCountText}"
                                HorizontalAlignment="Left"
@@ -227,6 +227,7 @@
                     <TextBlock Grid.Column="1"
                                Text="{Binding FinishTimeText}"
                                HorizontalAlignment="Right"
+                               TextTrimming="CharacterEllipsis"
                                VerticalAlignment="Center"
                                FontSize="18"
                                Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />

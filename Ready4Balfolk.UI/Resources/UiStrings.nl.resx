@@ -237,6 +237,18 @@
   <data name="Settings_Browse" xml:space="preserve">
     <value>Bladeren...</value>
   </data>
+  <data name="Settings_QueueCutoff" xml:space="preserve">
+    <value>Geen verzoeken meer aannemen na een bepaalde tijd</value>
+  </data>
+  <data name="Settings_QueueCutoffGrace" xml:space="preserve">
+    <value>Speling (minuten)</value>
+  </data>
+  <data name="Settings_QueueCutoffDescription" xml:space="preserve">
+    <value>Weiger nieuwe items zodra de wachtrij tot na deze tijd zou doorlopen, met de speling erbovenop. Zolang er een stopverzoek in de wachtrij staat is de eindtijd onbekend en geldt de limiet niet; gebruik een pauze als je weet hoe lang het duurt.</value>
+  </data>
+  <data name="Queue_CutoffPaused" xml:space="preserve">
+    <value>limiet gepauzeerd voor de stop</value>
+  </data>
   <data name="Settings_MaxQueueItems" xml:space="preserve">
     <value>Maximaal aantal wachtrij-items</value>
   </data>
