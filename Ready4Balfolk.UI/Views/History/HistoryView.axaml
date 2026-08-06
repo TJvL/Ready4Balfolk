@@ -15,6 +15,7 @@
     <controls:LoadingContainer IsLoading="{Binding IsLoading}">
     <Grid RowDefinitions="*,Auto" ClipToBounds="True">
         <ListBox Grid.Row="0"
+                 x:Name="HistoryList"
                  ItemsSource="{Binding Items}"
                  SelectionMode="Single"
                  FontSize="13"
