@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.TrackCatalog"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="40"
              x:Class="Ready4Balfolk.UI.Views.TrackCatalog.TrackCatalogToolbarView"
              x:DataType="local:TrackCatalogViewModel">
@@ -13,8 +14,9 @@
                 ToolTip.Tip="{x:Static res:UiStrings.TrackCatalog_SwitchToDanceTree}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconTreeStructure}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconTreeStructure}"
+                                    Text="{x:Static res:UiStrings.TrackCatalog_DancesLabel}"
+                                    IconSize="16" />
         </Button>
 
         <Rectangle DockPanel.Dock="Left" Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -25,8 +27,9 @@
                 Padding="8"
                 Margin="4,0,0,0"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconClose}"
-                      Width="14" Height="14" />
+            <controls:ButtonContent Icon="{StaticResource IconClose}"
+                                    Text="{x:Static res:UiStrings.TrackCatalog_ClearSearchLabel}"
+                                    IconSize="14" />
         </Button>
 
         <TextBox Text="{Binding SearchText}"

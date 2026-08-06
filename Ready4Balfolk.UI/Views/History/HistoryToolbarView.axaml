@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.History"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="40"
              x:Class="Ready4Balfolk.UI.Views.History.HistoryToolbarView"
              x:DataType="local:HistoryViewModel">
@@ -12,8 +13,9 @@
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_SwitchToQueue}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconMenu}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconMenu}"
+                                    Text="{x:Static res:UiStrings.HistoryToolbar_QueueLabel}"
+                                    IconSize="16" />
         </Button>
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -23,15 +25,17 @@
                 IsEnabled="{Binding HasItems}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconDownload}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconDownload}"
+                                    Text="{x:Static res:UiStrings.HistoryToolbar_ExportLabel}"
+                                    IconSize="16" />
         </Button>
         <Button Command="{Binding ClearHistoryCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ClearHistory}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconDelete}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconDelete}"
+                                    Text="{x:Static res:UiStrings.HistoryToolbar_ClearLabel}"
+                                    IconSize="16" />
         </Button>
     </StackPanel>
 </UserControl>

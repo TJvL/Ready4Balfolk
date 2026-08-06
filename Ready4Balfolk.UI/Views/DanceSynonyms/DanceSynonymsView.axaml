@@ -17,8 +17,7 @@
         <!-- Toolbar -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
             <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Back}" Padding="8" Focusable="False">
-                <PathIcon Data="{StaticResource IconArrowLeft}"
-                          Width="16" Height="16" />
+                <controls:ButtonContent Icon="{StaticResource IconArrowLeft}" Text="{x:Static res:UiStrings.DanceSynonyms_BackLabel}" IconSize="16" />
             </Button>
             <TextBlock Text="{x:Static res:UiStrings.DanceSynonyms_Title}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"
                        Margin="0,0,16,0" />
@@ -29,18 +28,14 @@
                     Padding="8"
                     IsEnabled="{Binding !IsLocked}"
                     Focusable="False">
-                <PathIcon
-                    Data="{StaticResource IconUndo}"
-                    Width="16" Height="16" />
+                <controls:ButtonContent Icon="{StaticResource IconUndo}" Text="{x:Static res:UiStrings.DanceSynonyms_UndoLabel}" IconSize="16" />
             </Button>
             <Button Command="{Binding RedoCommand}"
                     ToolTip.Tip="{Binding RedoTooltip}"
                     Padding="8"
                     IsEnabled="{Binding !IsLocked}"
                     Focusable="False">
-                <PathIcon
-                    Data="{StaticResource IconRedo}"
-                    Width="16" Height="16" />
+                <controls:ButtonContent Icon="{StaticResource IconRedo}" Text="{x:Static res:UiStrings.DanceSynonyms_RedoLabel}" IconSize="16" />
             </Button>
 
             <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -52,9 +47,7 @@
                     Click="OnImportClick"
                     IsEnabled="{Binding !IsLocked}"
                     Focusable="False">
-                <PathIcon
-                    Data="{StaticResource IconFileImport}"
-                    Width="16" Height="16" />
+                <controls:ButtonContent Icon="{StaticResource IconFileImport}" Text="{x:Static res:UiStrings.DanceSynonyms_ImportLabel}" IconSize="16" />
             </Button>
             <Button x:Name="ExportButton"
                     ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_ExportSynonyms}"
@@ -67,9 +60,7 @@
                         <Binding Path="!IsLocked" />
                     </MultiBinding>
                 </Button.IsEnabled>
-                <PathIcon
-                    Data="{StaticResource IconFileExport}"
-                    Width="16" Height="16" />
+                <controls:ButtonContent Icon="{StaticResource IconFileExport}" Text="{x:Static res:UiStrings.DanceSynonyms_ExportLabel}" IconSize="16" />
             </Button>
 
             <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -80,8 +71,7 @@
                     Padding="8"
                     IsEnabled="{Binding !IsLocked}"
                     Focusable="False">
-                <PathIcon Data="{StaticResource IconPlus}"
-                          Width="16" Height="16" />
+                <controls:ButtonContent Icon="{StaticResource IconPlus}" Text="{x:Static res:UiStrings.DanceSynonyms_AddDanceLabel}" IconSize="16" />
             </Button>
         </StackPanel>
 
@@ -142,9 +132,7 @@
                                                     BorderThickness="0"
                                                     IsVisible="{Binding !IsEditing}"
                                                     Focusable="False">
-                                                <PathIcon
-                                                    Data="{StaticResource IconPencil}"
-                                                    Width="14" Height="14" />
+                                                <controls:ButtonContent Icon="{StaticResource IconPencil}" Text="{x:Static res:UiStrings.DanceSynonyms_EditLabel}" IconSize="14" />
                                             </Button>
                                             <Button Command="{Binding ToggleEditingCommand}"
                                                     ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Confirm}"
@@ -154,9 +142,7 @@
                                                     IsVisible="{Binding IsEditing}"
                                                     IsEnabled="{Binding Name, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
                                                     Focusable="False">
-                                                <PathIcon
-                                                    Data="{StaticResource IconCheck}"
-                                                    Width="14" Height="14" />
+                                                <controls:ButtonContent Icon="{StaticResource IconCheck}" Text="{x:Static res:UiStrings.DanceSynonyms_ConfirmLabel}" IconSize="14" />
                                             </Button>
                                         </Panel>
                                         <!-- Trash / Cancel (X) share the same slot -->
@@ -168,9 +154,7 @@
                                                     BorderThickness="0"
                                                     IsVisible="{Binding !IsEditing}"
                                                     Focusable="False">
-                                                <PathIcon
-                                                    Data="{StaticResource IconDelete}"
-                                                    Width="14" Height="14" />
+                                                <controls:ButtonContent Icon="{StaticResource IconDelete}" Text="{x:Static res:UiStrings.DanceSynonyms_DeleteLabel}" IconSize="14" />
                                             </Button>
                                             <Button Command="{Binding DeleteOrCancelCommand}"
                                                     ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Cancel}"
@@ -179,9 +163,7 @@
                                                     BorderThickness="0"
                                                     IsVisible="{Binding IsEditing}"
                                                     Focusable="False">
-                                                <PathIcon
-                                                    Data="{StaticResource IconClose}"
-                                                    Width="14" Height="14" />
+                                                <controls:ButtonContent Icon="{StaticResource IconClose}" Text="{x:Static res:UiStrings.DanceSynonyms_CancelLabel}" IconSize="14" />
                                             </Button>
                                         </Panel>
                                     </StackPanel>
@@ -221,10 +203,7 @@
                                                             BorderThickness="0"
                                                             VerticalAlignment="Center"
                                                             Focusable="False">
-                                                            <PathIcon
-                                                                Data="{StaticResource IconClose}"
-                                                                Width="10" Height="10"
-                                                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                                                            <controls:ButtonContent Icon="{StaticResource IconClose}" Text="{x:Static res:UiStrings.DanceSynonyms_RemoveLabel}" IconSize="10" />
                                                         </Button>
                                                     </StackPanel>
                                                 </Border>
@@ -261,9 +240,7 @@
                                                     VerticalAlignment="Center"
                                                     IsEnabled="{Binding NewSynonymText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
                                                     Focusable="False">
-                                                <PathIcon
-                                                    Data="{StaticResource IconCheck}"
-                                                    Width="10" Height="10" />
+                                                <controls:ButtonContent Icon="{StaticResource IconCheck}" Text="{x:Static res:UiStrings.DanceSynonyms_ConfirmLabel}" IconSize="10" />
                                             </Button>
                                             <Button Command="{Binding CancelAddSynonymCommand}"
                                                     ToolTip.Tip="{x:Static res:UiStrings.DanceSynonyms_Cancel}"
@@ -272,9 +249,7 @@
                                                     BorderThickness="0"
                                                     VerticalAlignment="Center"
                                                     Focusable="False">
-                                                <PathIcon
-                                                    Data="{StaticResource IconClose}"
-                                                    Width="10" Height="10" />
+                                                <controls:ButtonContent Icon="{StaticResource IconClose}" Text="{x:Static res:UiStrings.DanceSynonyms_CancelLabel}" IconSize="10" />
                                             </Button>
                                         </StackPanel>
                                     </Border>
@@ -293,8 +268,7 @@
                                                          Converter="{x:Static conv:BoolConverters.Not}" />
                                             </MultiBinding>
                                         </Button.IsVisible>
-                                        <PathIcon Data="{StaticResource IconPlus}"
-                                                  Width="12" Height="12" />
+                                        <controls:ButtonContent Icon="{StaticResource IconPlus}" Text="{x:Static res:UiStrings.DanceSynonyms_AddSynonymLabel}" IconSize="12" />
                                     </Button>
                                 </WrapPanel>
                             </Grid>

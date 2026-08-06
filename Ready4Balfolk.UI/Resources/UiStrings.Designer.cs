@@ -39,6 +39,162 @@ public static class UiStrings
         ResourceManager.GetString("MainWindow_Help", Culture)!;
 
     // Toolbar
+    public static string Playback_PlayLabel =>
+        ResourceManager.GetString("Playback_PlayLabel", Culture)!;
+
+    public static string Playback_PauseLabel =>
+        ResourceManager.GetString("Playback_PauseLabel", Culture)!;
+
+    public static string Playback_RestartLabel =>
+        ResourceManager.GetString("Playback_RestartLabel", Culture)!;
+
+    public static string Playback_SkipLabel =>
+        ResourceManager.GetString("Playback_SkipLabel", Culture)!;
+
+    public static string Playback_ClearLabel =>
+        ResourceManager.GetString("Playback_ClearLabel", Culture)!;
+
+    public static string QueueToolbar_HistoryLabel =>
+        ResourceManager.GetString("QueueToolbar_HistoryLabel", Culture)!;
+
+    public static string QueueToolbar_RandomLabel =>
+        ResourceManager.GetString("QueueToolbar_RandomLabel", Culture)!;
+
+    public static string QueueToolbar_StopLabel =>
+        ResourceManager.GetString("QueueToolbar_StopLabel", Culture)!;
+
+    public static string QueueToolbar_DelayLabel =>
+        ResourceManager.GetString("QueueToolbar_DelayLabel", Culture)!;
+
+    public static string QueueToolbar_MessageLabel =>
+        ResourceManager.GetString("QueueToolbar_MessageLabel", Culture)!;
+
+    public static string QueueToolbar_RemoveLabel =>
+        ResourceManager.GetString("QueueToolbar_RemoveLabel", Culture)!;
+
+    public static string QueueToolbar_ClearLabel =>
+        ResourceManager.GetString("QueueToolbar_ClearLabel", Culture)!;
+
+    public static string Queue_MoveUpLabel =>
+        ResourceManager.GetString("Queue_MoveUpLabel", Culture)!;
+
+    public static string Queue_MoveDownLabel =>
+        ResourceManager.GetString("Queue_MoveDownLabel", Culture)!;
+
+    public static string HistoryToolbar_QueueLabel =>
+        ResourceManager.GetString("HistoryToolbar_QueueLabel", Culture)!;
+
+    public static string HistoryToolbar_ExportLabel =>
+        ResourceManager.GetString("HistoryToolbar_ExportLabel", Culture)!;
+
+    public static string HistoryToolbar_ClearLabel =>
+        ResourceManager.GetString("HistoryToolbar_ClearLabel", Culture)!;
+
+    public static string TrackCatalog_DancesLabel =>
+        ResourceManager.GetString("TrackCatalog_DancesLabel", Culture)!;
+
+    public static string TrackCatalog_ClearSearchLabel =>
+        ResourceManager.GetString("TrackCatalog_ClearSearchLabel", Culture)!;
+
+    public static string MainWindow_BackLabel =>
+        ResourceManager.GetString("MainWindow_BackLabel", Culture)!;
+
+    public static string DanceTreeToolbar_TrackListLabel =>
+        ResourceManager.GetString("DanceTreeToolbar_TrackListLabel", Culture)!;
+
+    public static string DanceTreeToolbar_UndoLabel =>
+        ResourceManager.GetString("DanceTreeToolbar_UndoLabel", Culture)!;
+
+    public static string DanceTreeToolbar_RedoLabel =>
+        ResourceManager.GetString("DanceTreeToolbar_RedoLabel", Culture)!;
+
+    public static string DanceTreeToolbar_ImportLabel =>
+        ResourceManager.GetString("DanceTreeToolbar_ImportLabel", Culture)!;
+
+    public static string DanceTreeToolbar_ExportLabel =>
+        ResourceManager.GetString("DanceTreeToolbar_ExportLabel", Culture)!;
+
+    public static string DanceTree_RandomLabel =>
+        ResourceManager.GetString("DanceTree_RandomLabel", Culture)!;
+
+    public static string DanceTree_AddCategoryLabel =>
+        ResourceManager.GetString("DanceTree_AddCategoryLabel", Culture)!;
+
+    public static string DanceTree_AddDanceLabel =>
+        ResourceManager.GetString("DanceTree_AddDanceLabel", Culture)!;
+
+    public static string DanceTree_EditLabel =>
+        ResourceManager.GetString("DanceTree_EditLabel", Culture)!;
+
+    public static string DanceTree_ConfirmLabel =>
+        ResourceManager.GetString("DanceTree_ConfirmLabel", Culture)!;
+
+    public static string DanceTree_DeleteLabel =>
+        ResourceManager.GetString("DanceTree_DeleteLabel", Culture)!;
+
+    public static string DanceTree_CancelLabel =>
+        ResourceManager.GetString("DanceTree_CancelLabel", Culture)!;
+
+    public static string DanceSynonyms_BackLabel =>
+        ResourceManager.GetString("DanceSynonyms_BackLabel", Culture)!;
+
+    public static string DanceSynonyms_UndoLabel =>
+        ResourceManager.GetString("DanceSynonyms_UndoLabel", Culture)!;
+
+    public static string DanceSynonyms_RedoLabel =>
+        ResourceManager.GetString("DanceSynonyms_RedoLabel", Culture)!;
+
+    public static string DanceSynonyms_ImportLabel =>
+        ResourceManager.GetString("DanceSynonyms_ImportLabel", Culture)!;
+
+    public static string DanceSynonyms_ExportLabel =>
+        ResourceManager.GetString("DanceSynonyms_ExportLabel", Culture)!;
+
+    public static string DanceSynonyms_AddDanceLabel =>
+        ResourceManager.GetString("DanceSynonyms_AddDanceLabel", Culture)!;
+
+    public static string DanceSynonyms_EditLabel =>
+        ResourceManager.GetString("DanceSynonyms_EditLabel", Culture)!;
+
+    public static string DanceSynonyms_ConfirmLabel =>
+        ResourceManager.GetString("DanceSynonyms_ConfirmLabel", Culture)!;
+
+    public static string DanceSynonyms_DeleteLabel =>
+        ResourceManager.GetString("DanceSynonyms_DeleteLabel", Culture)!;
+
+    public static string DanceSynonyms_CancelLabel =>
+        ResourceManager.GetString("DanceSynonyms_CancelLabel", Culture)!;
+
+    public static string DanceSynonyms_RemoveLabel =>
+        ResourceManager.GetString("DanceSynonyms_RemoveLabel", Culture)!;
+
+    public static string DanceSynonyms_AddSynonymLabel =>
+        ResourceManager.GetString("DanceSynonyms_AddSynonymLabel", Culture)!;
+
+    public static string Queue_RefreshAutoTrackLabel =>
+        ResourceManager.GetString("Queue_RefreshAutoTrackLabel", Culture)!;
+
+    public static string Queue_KeepTrackLabel =>
+        ResourceManager.GetString("Queue_KeepTrackLabel", Culture)!;
+
+    public static string Toolbar_ExitLabel =>
+        ResourceManager.GetString("Toolbar_ExitLabel", Culture)!;
+
+    public static string Toolbar_HelpLabel =>
+        ResourceManager.GetString("Toolbar_HelpLabel", Culture)!;
+
+    public static string Toolbar_SettingsLabel =>
+        ResourceManager.GetString("Toolbar_SettingsLabel", Culture)!;
+
+    public static string Toolbar_DanceSynonymsLabel =>
+        ResourceManager.GetString("Toolbar_DanceSynonymsLabel", Culture)!;
+
+    public static string Settings_ShowButtonText =>
+        ResourceManager.GetString("Settings_ShowButtonText", Culture)!;
+
+    public static string Settings_ShowButtonTextDescription =>
+        ResourceManager.GetString("Settings_ShowButtonTextDescription", Culture)!;
+
     public static string Toolbar_Exit =>
         ResourceManager.GetString("Toolbar_Exit", Culture)!;
 

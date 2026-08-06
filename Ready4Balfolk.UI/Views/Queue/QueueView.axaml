@@ -5,6 +5,7 @@
              xmlns:local="using:Ready4Balfolk.UI.Views.Queue"
              xmlns:queueItems="using:Ready4Balfolk.Domain.Models.QueueItems"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="Ready4Balfolk.UI.Views.Queue.QueueView"
              x:DataType="local:QueueViewModel">
@@ -138,7 +139,7 @@
                     <!-- Auto-queued track template (faded appearance, not draggable) -->
                     <DataTemplate DataType="queueItems:AutoTrackQueueItem">
                         <Border Background="{DynamicResource AutoTrackBackground}" CornerRadius="2" Padding="4,2" Margin="-4,-2">
-                            <Grid ColumnDefinitions="Auto,*,*,2*,Auto,Auto,50">
+                            <Grid ColumnDefinitions="Auto,*,*,2*,60">
                                 <TextBlock Grid.Column="0" Text="&#x27F3;"
                                            Foreground="{DynamicResource AutoTrackForeground}"
                                            VerticalAlignment="Center"
@@ -153,39 +154,42 @@
                                            Opacity="0.6"
                                            FontStyle="Italic"
                                            Margin="0,0,8,0" />
-                                <TextBlock Grid.Column="3" Text="{Binding TrackQueueItem.Track.Title}"
-                                           VerticalAlignment="Center"
-                                           Opacity="0.6"
-                                           FontStyle="Italic"
-                                           Margin="0,0,8,0" />
-                                <!-- Refresh button -->
-                                <Button Grid.Column="4"
-                                        Click="OnRefreshAutoQueuedClick"
-                                        ToolTip.Tip="{x:Static res:UiStrings.Queue_RefreshAutoTrack}"
-                                        Padding="2"
-                                        Margin="0,0,4,0"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Focusable="False">
-                                    <PathIcon
-                                        Data="{StaticResource IconAutoRepeat}"
-                                        Width="12" Height="12"
-                                        Foreground="{DynamicResource AutoTrackForeground}" />
-                                </Button>
-                                <!-- Pin button -->
-                                <Button Grid.Column="5"
-                                        Click="OnPinAutoQueuedClick"
-                                        ToolTip.Tip="{x:Static res:UiStrings.Queue_KeepTrack}"
-                                        Padding="2"
-                                        Margin="0,0,8,0"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Focusable="False">
-                                    <PathIcon Data="{StaticResource IconPin}"
-                                              Width="12" Height="12"
-                                              Foreground="{DynamicResource AutoTrackForeground}" />
-                                </Button>
-                                <TextBlock Grid.Column="6"
+                                <!-- The buttons dock inside the title cell rather than taking columns
+                                     of their own, so this row's columns line up with a normal track
+                                     row whether the buttons show icons or text. Pin docks first so it
+                                     ends up rightmost, keeping the original left-to-right order. -->
+                                <DockPanel Grid.Column="3" Margin="0,0,8,0">
+                                    <Button DockPanel.Dock="Right"
+                                            Click="OnPinAutoQueuedClick"
+                                            ToolTip.Tip="{x:Static res:UiStrings.Queue_KeepTrack}"
+                                            Padding="2"
+                                            Margin="0,0,8,0"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Focusable="False">
+                                        <controls:ButtonContent Icon="{StaticResource IconPin}"
+                                                                Text="{x:Static res:UiStrings.Queue_KeepTrackLabel}"
+                                                                IconSize="12" />
+                                    </Button>
+                                    <Button DockPanel.Dock="Right"
+                                            Click="OnRefreshAutoQueuedClick"
+                                            ToolTip.Tip="{x:Static res:UiStrings.Queue_RefreshAutoTrack}"
+                                            Padding="2"
+                                            Margin="0,0,4,0"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Focusable="False">
+                                        <controls:ButtonContent Icon="{StaticResource IconAutoRepeat}"
+                                                                Text="{x:Static res:UiStrings.Queue_RefreshAutoTrackLabel}"
+                                                                IconSize="12" />
+                                    </Button>
+                                    <TextBlock Text="{Binding TrackQueueItem.Track.Title}"
+                                               VerticalAlignment="Center"
+                                               Opacity="0.6"
+                                               FontStyle="Italic"
+                                               TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                                <TextBlock Grid.Column="4"
                                            Text="{Binding TrackQueueItem.Track.Length, Converter={x:Static local:DurationFormatConverter.Instance}}"
                                            VerticalAlignment="Center"
                                            Opacity="0.6"

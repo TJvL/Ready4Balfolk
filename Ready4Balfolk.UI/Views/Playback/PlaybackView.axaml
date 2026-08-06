@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Playback"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
              x:Class="Ready4Balfolk.UI.Views.Playback.PlaybackView"
              x:DataType="local:PlaybackViewModel">
@@ -116,40 +117,45 @@
                             HorizontalAlignment="Center"
                             Spacing="16">
                     <Button Command="{Binding PlayPauseCommand}"
-                            Width="60"
+                            MinWidth="60"
                             Height="40"
                             HorizontalContentAlignment="Center"
                             VerticalContentAlignment="Center"
                             Focusable="False">
                         <Panel>
-                            <PathIcon Data="{StaticResource IconPlay}" IsVisible="{Binding !IsPlaying}" />
-                            <PathIcon Data="{StaticResource IconPause}" IsVisible="{Binding IsPlaying}" />
+                            <controls:ButtonContent Icon="{StaticResource IconPlay}"
+                                    Text="{x:Static res:UiStrings.Playback_PlayLabel}"
+                                    IsVisible="{Binding !IsPlaying}" />
+                            <controls:ButtonContent Icon="{StaticResource IconPause}"
+                                    Text="{x:Static res:UiStrings.Playback_PauseLabel}"
+                                    IsVisible="{Binding IsPlaying}" />
                         </Panel>
                     </Button>
                     <Button Command="{Binding RestartCommand}"
-                            Width="60"
+                            MinWidth="60"
                             Height="40"
                             HorizontalContentAlignment="Center"
                             VerticalContentAlignment="Center"
                             ToolTip.Tip="{x:Static res:UiStrings.Playback_RestartTrack}"
                             Focusable="False">
-                        <PathIcon
-                            Data="{StaticResource IconRestart}" />
+                        <controls:ButtonContent Icon="{StaticResource IconRestart}"
+                                    Text="{x:Static res:UiStrings.Playback_RestartLabel}" />
                     </Button>
                     <Button Command="{Binding NextOrClearCommand}"
-                            Width="60"
+                            MinWidth="60"
                             Height="40"
                             HorizontalContentAlignment="Center"
                             VerticalContentAlignment="Center"
                             Focusable="False">
                         <Panel>
                             <!-- Next track icon - shown when queue has items -->
-                            <PathIcon Data="{StaticResource IconSkipNext}"
-                                      IsVisible="{Binding ShowNextIcon}" />
+                            <controls:ButtonContent Icon="{StaticResource IconSkipNext}"
+                                    Text="{x:Static res:UiStrings.Playback_SkipLabel}"
+                                    IsVisible="{Binding ShowNextIcon}" />
                             <!-- Clear/X icon - shown when queue is empty -->
-                            <PathIcon
-                                Data="{StaticResource IconClose}"
-                                IsVisible="{Binding !ShowNextIcon}" />
+                            <controls:ButtonContent Icon="{StaticResource IconClose}"
+                                    Text="{x:Static res:UiStrings.Playback_ClearLabel}"
+                                    IsVisible="{Binding !ShowNextIcon}" />
                         </Panel>
                     </Button>
                 </StackPanel>

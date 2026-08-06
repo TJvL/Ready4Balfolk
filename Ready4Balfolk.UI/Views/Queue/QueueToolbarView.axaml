@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Queue"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="40"
              x:Class="Ready4Balfolk.UI.Views.Queue.QueueToolbarView"
              x:DataType="local:QueueViewModel">
@@ -12,8 +13,9 @@
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_SwitchToHistory}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconHourglass}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconHourglass}"
+                                    Text="{x:Static res:UiStrings.QueueToolbar_HistoryLabel}"
+                                    IconSize="16" />
         </Button>
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -22,8 +24,9 @@
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_QueueRandomTrack}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconDice}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconDice}"
+                                    Text="{x:Static res:UiStrings.QueueToolbar_RandomLabel}"
+                                    IconSize="16" />
         </Button>
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -32,22 +35,25 @@
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RequestStop}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconStop}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconStop}"
+                                    Text="{x:Static res:UiStrings.QueueToolbar_StopLabel}"
+                                    IconSize="16" />
         </Button>
         <Button Command="{Binding EnqueueDelayCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RequestDelay}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconClock}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconClock}"
+                                    Text="{x:Static res:UiStrings.QueueToolbar_DelayLabel}"
+                                    IconSize="16" />
         </Button>
         <Button Click="OnMessageClick"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RequestMessage}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconEmail}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconEmail}"
+                                    Text="{x:Static res:UiStrings.QueueToolbar_MessageLabel}"
+                                    IconSize="16" />
         </Button>
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -56,15 +62,17 @@
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RemoveSelected}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconClose}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconClose}"
+                                    Text="{x:Static res:UiStrings.QueueToolbar_RemoveLabel}"
+                                    IconSize="16" />
         </Button>
         <Button Command="{Binding ClearQueueCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_ClearQueue}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconDelete}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconDelete}"
+                                    Text="{x:Static res:UiStrings.QueueToolbar_ClearLabel}"
+                                    IconSize="16" />
         </Button>
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -73,15 +81,17 @@
                 ToolTip.Tip="{x:Static res:UiStrings.Queue_MoveUp}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconArrowUp}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconArrowUp}"
+                                    Text="{x:Static res:UiStrings.Queue_MoveUpLabel}"
+                                    IconSize="16" />
         </Button>
         <Button Command="{Binding MoveSelectedDownCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.Queue_MoveDown}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconArrowDown}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconArrowDown}"
+                                    Text="{x:Static res:UiStrings.Queue_MoveDownLabel}"
+                                    IconSize="16" />
         </Button>
 
     </StackPanel>
