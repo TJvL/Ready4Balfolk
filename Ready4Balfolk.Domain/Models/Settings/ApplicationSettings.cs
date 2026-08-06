@@ -12,7 +12,9 @@ public sealed record ApplicationSettings(
     ApplicationLanguage ApplicationLanguage,
     WindowState MainWindowState,
     IEnumerable<WindowState> PresentationWindowStates,
-    IEnumerable<string> CollapsedBranches)
+    IEnumerable<string> CollapsedBranches,
+    // Last, and with a default, so settings files written before this existed still deserialize.
+    bool ShowButtonText = false)
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [], [])

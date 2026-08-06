@@ -32,6 +32,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool AutoQueueRandomTrack { get; set; }
     [Reactive] public partial bool AllowDuplicateTracksInQueue { get; set; }
     [Reactive] public partial bool RequirePlaybackConfirmation { get; set; }
+    [Reactive] public partial bool ShowButtonText { get; set; }
     [Reactive] public partial ApplicationTheme SelectedTheme { get; set; }
     [Reactive] public partial ApplicationLanguage SelectedLanguage { get; set; }
 
@@ -67,6 +68,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         AutoQueueRandomTrack = current.AutoQueueRandomTrack;
         AllowDuplicateTracksInQueue = current.AllowDuplicateTracksInQueue;
         RequirePlaybackConfirmation = current.RequirePlaybackConfirmation;
+        ShowButtonText = current.ShowButtonText;
         SelectedTheme = current.ApplicationTheme;
         SelectedLanguage = current.ApplicationLanguage;
 
@@ -98,6 +100,10 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         {
             RequirePlaybackConfirmation = v
         });
+        ThrottledSave(x => x.ShowButtonText, v => s => s with
+        {
+            ShowButtonText = v
+        });
         ThrottledSave(x => x.SelectedTheme, v => s => s with
         {
             ApplicationTheme = v
@@ -127,6 +133,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         AutoQueueRandomTrack = s.AutoQueueRandomTrack;
         AllowDuplicateTracksInQueue = s.AllowDuplicateTracksInQueue;
         RequirePlaybackConfirmation = s.RequirePlaybackConfirmation;
+        ShowButtonText = s.ShowButtonText;
         SelectedTheme = s.ApplicationTheme;
         SelectedLanguage = s.ApplicationLanguage;
         _syncing = false;

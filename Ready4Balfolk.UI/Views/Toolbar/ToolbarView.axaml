@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Toolbar"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="40"
              x:Class="Ready4Balfolk.UI.Views.Toolbar.ToolbarView"
              x:DataType="local:ToolbarViewModel">
@@ -12,8 +13,9 @@
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Exit}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconLogin}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconLogin}"
+                                    Text="{x:Static res:UiStrings.Toolbar_ExitLabel}"
+                                    IconSize="16" />
         </Button>
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -22,22 +24,25 @@
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Help}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconHelp}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconHelp}"
+                                    Text="{x:Static res:UiStrings.Toolbar_HelpLabel}"
+                                    IconSize="16" />
         </Button>
         <Button Click="OnSettingsClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Settings}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconSettings}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconSettings}"
+                                    Text="{x:Static res:UiStrings.Toolbar_SettingsLabel}"
+                                    IconSize="16" />
         </Button>
         <Button Click="OnSynonymsClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_DanceSynonyms}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconBook}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconBook}"
+                                    Text="{x:Static res:UiStrings.Toolbar_DanceSynonymsLabel}"
+                                    IconSize="16" />
         </Button>
     </StackPanel>
 </UserControl>

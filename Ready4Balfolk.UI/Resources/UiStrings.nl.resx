@@ -55,6 +55,162 @@
   </data>
 
   <!-- Toolbar -->
+  <data name="Playback_PlayLabel" xml:space="preserve">
+    <value>Afspelen</value>
+  </data>
+  <data name="Playback_PauseLabel" xml:space="preserve">
+    <value>Pauze</value>
+  </data>
+  <data name="Playback_RestartLabel" xml:space="preserve">
+    <value>Opnieuw</value>
+  </data>
+  <data name="Playback_SkipLabel" xml:space="preserve">
+    <value>Volgende</value>
+  </data>
+  <data name="Playback_ClearLabel" xml:space="preserve">
+    <value>Wissen</value>
+  </data>
+  <data name="QueueToolbar_HistoryLabel" xml:space="preserve">
+    <value>Geschiedenis</value>
+  </data>
+  <data name="QueueToolbar_RandomLabel" xml:space="preserve">
+    <value>Willekeurig</value>
+  </data>
+  <data name="QueueToolbar_StopLabel" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="QueueToolbar_DelayLabel" xml:space="preserve">
+    <value>Pauze</value>
+  </data>
+  <data name="QueueToolbar_MessageLabel" xml:space="preserve">
+    <value>Bericht</value>
+  </data>
+  <data name="QueueToolbar_RemoveLabel" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="QueueToolbar_ClearLabel" xml:space="preserve">
+    <value>Wissen</value>
+  </data>
+  <data name="Queue_MoveUpLabel" xml:space="preserve">
+    <value>Omhoog</value>
+  </data>
+  <data name="Queue_MoveDownLabel" xml:space="preserve">
+    <value>Omlaag</value>
+  </data>
+  <data name="HistoryToolbar_QueueLabel" xml:space="preserve">
+    <value>Wachtrij</value>
+  </data>
+  <data name="HistoryToolbar_ExportLabel" xml:space="preserve">
+    <value>Exporteren</value>
+  </data>
+  <data name="HistoryToolbar_ClearLabel" xml:space="preserve">
+    <value>Wissen</value>
+  </data>
+  <data name="TrackCatalog_DancesLabel" xml:space="preserve">
+    <value>Dansen</value>
+  </data>
+  <data name="TrackCatalog_ClearSearchLabel" xml:space="preserve">
+    <value>Wissen</value>
+  </data>
+  <data name="MainWindow_BackLabel" xml:space="preserve">
+    <value>Terug</value>
+  </data>
+  <data name="DanceTreeToolbar_TrackListLabel" xml:space="preserve">
+    <value>Nummers</value>
+  </data>
+  <data name="DanceTreeToolbar_UndoLabel" xml:space="preserve">
+    <value>Ongedaan</value>
+  </data>
+  <data name="DanceTreeToolbar_RedoLabel" xml:space="preserve">
+    <value>Opnieuw</value>
+  </data>
+  <data name="DanceTreeToolbar_ImportLabel" xml:space="preserve">
+    <value>Importeren</value>
+  </data>
+  <data name="DanceTreeToolbar_ExportLabel" xml:space="preserve">
+    <value>Exporteren</value>
+  </data>
+  <data name="DanceTree_RandomLabel" xml:space="preserve">
+    <value>Willekeurig</value>
+  </data>
+  <data name="DanceTree_AddCategoryLabel" xml:space="preserve">
+    <value>Groep erbij</value>
+  </data>
+  <data name="DanceTree_AddDanceLabel" xml:space="preserve">
+    <value>Dans erbij</value>
+  </data>
+  <data name="DanceTree_EditLabel" xml:space="preserve">
+    <value>Bewerken</value>
+  </data>
+  <data name="DanceTree_ConfirmLabel" xml:space="preserve">
+    <value>Klaar</value>
+  </data>
+  <data name="DanceTree_DeleteLabel" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="DanceTree_CancelLabel" xml:space="preserve">
+    <value>Annuleren</value>
+  </data>
+  <data name="DanceSynonyms_BackLabel" xml:space="preserve">
+    <value>Terug</value>
+  </data>
+  <data name="DanceSynonyms_UndoLabel" xml:space="preserve">
+    <value>Ongedaan</value>
+  </data>
+  <data name="DanceSynonyms_RedoLabel" xml:space="preserve">
+    <value>Opnieuw</value>
+  </data>
+  <data name="DanceSynonyms_ImportLabel" xml:space="preserve">
+    <value>Importeren</value>
+  </data>
+  <data name="DanceSynonyms_ExportLabel" xml:space="preserve">
+    <value>Exporteren</value>
+  </data>
+  <data name="DanceSynonyms_AddDanceLabel" xml:space="preserve">
+    <value>Dans erbij</value>
+  </data>
+  <data name="DanceSynonyms_EditLabel" xml:space="preserve">
+    <value>Bewerken</value>
+  </data>
+  <data name="DanceSynonyms_ConfirmLabel" xml:space="preserve">
+    <value>Klaar</value>
+  </data>
+  <data name="DanceSynonyms_DeleteLabel" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="DanceSynonyms_CancelLabel" xml:space="preserve">
+    <value>Annuleren</value>
+  </data>
+  <data name="DanceSynonyms_RemoveLabel" xml:space="preserve">
+    <value>Weghalen</value>
+  </data>
+  <data name="DanceSynonyms_AddSynonymLabel" xml:space="preserve">
+    <value>Synoniem erbij</value>
+  </data>
+  <data name="Queue_RefreshAutoTrackLabel" xml:space="preserve">
+    <value>Opnieuw</value>
+  </data>
+  <data name="Queue_KeepTrackLabel" xml:space="preserve">
+    <value>Behouden</value>
+  </data>
+  <data name="Toolbar_ExitLabel" xml:space="preserve">
+    <value>Afsluiten</value>
+  </data>
+  <data name="Toolbar_HelpLabel" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="Toolbar_SettingsLabel" xml:space="preserve">
+    <value>Instellingen</value>
+  </data>
+  <data name="Toolbar_DanceSynonymsLabel" xml:space="preserve">
+    <value>Synoniemen</value>
+  </data>
+  <data name="Settings_ShowButtonText" xml:space="preserve">
+    <value>Tekst op knoppen tonen in plaats van iconen</value>
+  </data>
+  <data name="Settings_ShowButtonTextDescription" xml:space="preserve">
+    <value>Vervang de iconen op knoppen door een korte omschrijving van wat ze doen.</value>
+  </data>
   <data name="Toolbar_Exit" xml:space="preserve">
     <value>Afsluiten</value>
   </data>

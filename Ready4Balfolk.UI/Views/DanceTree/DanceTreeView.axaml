@@ -38,9 +38,7 @@
                             ToolTip.Tip="{x:Static res:UiStrings.DanceTree_MarkRootRandom}"
                             Command="{Binding MarkAsRootCommand}"
                             Focusable="False">
-                        <PathIcon Data="{StaticResource IconDice}"
-                                  Width="14" Height="14"
-                                  Foreground="{Binding IsMarked, Converter={StaticResource MarkedBrushConverter}}" />
+                        <controls:ButtonContent Icon="{StaticResource IconDice}" Text="{x:Static res:UiStrings.DanceTree_RandomLabel}" IconSize="14" />
                     </Button>
                     <!-- Display mode: read-only text -->
                     <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
@@ -75,8 +73,7 @@
                                 Command="{Binding AddCategoryCommand}"
                                 IsVisible="{Binding !IsEditing}"
                                 Focusable="False">
-                            <PathIcon Data="{StaticResource IconMarked}"
-                                      Width="14" Height="14" />
+                            <controls:ButtonContent Icon="{StaticResource IconMarked}" Text="{x:Static res:UiStrings.DanceTree_AddCategoryLabel}" IconSize="14" />
                         </Button>
                         <!-- Add Dance (not for root, hidden when editing) -->
                         <Button Padding="4,2"
@@ -91,9 +88,7 @@
                                     <Binding Path="!IsEditing" />
                                 </MultiBinding>
                             </Button.IsVisible>
-                            <PathIcon
-                                Data="{StaticResource IconLeaf}"
-                                Width="14" Height="14" />
+                            <controls:ButtonContent Icon="{StaticResource IconLeaf}" Text="{x:Static res:UiStrings.DanceTree_AddDanceLabel}" IconSize="14" />
                         </Button>
                         <!-- Edit/Confirm toggle (not for root) -->
                         <Button Padding="4,2"
@@ -104,12 +99,8 @@
                                 IsVisible="{Binding !IsRoot}"
                                 Focusable="False">
                             <Panel>
-                                <PathIcon Data="{StaticResource IconPencil}"
-                                          Width="14" Height="14"
-                                          IsVisible="{Binding !IsEditing}" />
-                                <PathIcon Data="{StaticResource IconCheck}"
-                                          Width="14" Height="14"
-                                          IsVisible="{Binding IsEditing}" />
+                                <controls:ButtonContent Icon="{StaticResource IconPencil}" Text="{x:Static res:UiStrings.DanceTree_EditLabel}" IconSize="14" IsVisible="{Binding !IsEditing}" />
+                                <controls:ButtonContent Icon="{StaticResource IconCheck}" Text="{x:Static res:UiStrings.DanceTree_ConfirmLabel}" IconSize="14" IsVisible="{Binding IsEditing}" />
                             </Panel>
                         </Button>
                         <!-- Delete / Cancel (not for root) -->
@@ -121,12 +112,8 @@
                                 IsVisible="{Binding !IsRoot}"
                                 Focusable="False">
                             <Panel>
-                                <PathIcon Data="{StaticResource IconDelete}"
-                                          Width="14" Height="14"
-                                          IsVisible="{Binding !IsEditing}" />
-                                <PathIcon Data="{StaticResource IconClose}"
-                                          Width="14" Height="14"
-                                          IsVisible="{Binding IsEditing}" />
+                                <controls:ButtonContent Icon="{StaticResource IconDelete}" Text="{x:Static res:UiStrings.DanceTree_DeleteLabel}" IconSize="14" IsVisible="{Binding !IsEditing}" />
+                                <controls:ButtonContent Icon="{StaticResource IconClose}" Text="{x:Static res:UiStrings.DanceTree_CancelLabel}" IconSize="14" IsVisible="{Binding IsEditing}" />
                             </Panel>
                         </Button>
                     </StackPanel>
@@ -141,9 +128,7 @@
                             ToolTip.Tip="{x:Static res:UiStrings.DanceTree_MarkRandom}"
                             Command="{Binding MarkAsRootCommand}"
                             Focusable="False">
-                        <PathIcon Data="{StaticResource IconDice}"
-                                  Width="14" Height="14"
-                                  Foreground="{Binding IsMarked, Converter={StaticResource MarkedBrushConverter}}" />
+                        <controls:ButtonContent Icon="{StaticResource IconDice}" Text="{x:Static res:UiStrings.DanceTree_RandomLabel}" IconSize="14" />
                     </Button>
                     <!-- Display mode: read-only text -->
                     <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
@@ -177,12 +162,8 @@
                                 Command="{Binding ToggleEditingCommand}"
                                 Focusable="False">
                             <Panel>
-                                <PathIcon Data="{StaticResource IconPencil}"
-                                          Width="14" Height="14"
-                                          IsVisible="{Binding !IsEditing}" />
-                                <PathIcon Data="{StaticResource IconCheck}"
-                                          Width="14" Height="14"
-                                          IsVisible="{Binding IsEditing}" />
+                                <controls:ButtonContent Icon="{StaticResource IconPencil}" Text="{x:Static res:UiStrings.DanceTree_EditLabel}" IconSize="14" IsVisible="{Binding !IsEditing}" />
+                                <controls:ButtonContent Icon="{StaticResource IconCheck}" Text="{x:Static res:UiStrings.DanceTree_ConfirmLabel}" IconSize="14" IsVisible="{Binding IsEditing}" />
                             </Panel>
                         </Button>
                         <!-- Delete / Cancel -->
@@ -193,12 +174,8 @@
                                 Command="{Binding DeleteOrCancelCommand}"
                                 Focusable="False">
                             <Panel>
-                                <PathIcon Data="{StaticResource IconDelete}"
-                                          Width="14" Height="14"
-                                          IsVisible="{Binding !IsEditing}" />
-                                <PathIcon Data="{StaticResource IconClose}"
-                                          Width="14" Height="14"
-                                          IsVisible="{Binding IsEditing}" />
+                                <controls:ButtonContent Icon="{StaticResource IconDelete}" Text="{x:Static res:UiStrings.DanceTree_DeleteLabel}" IconSize="14" IsVisible="{Binding !IsEditing}" />
+                                <controls:ButtonContent Icon="{StaticResource IconClose}" Text="{x:Static res:UiStrings.DanceTree_CancelLabel}" IconSize="14" IsVisible="{Binding IsEditing}" />
                             </Panel>
                         </Button>
                     </StackPanel>

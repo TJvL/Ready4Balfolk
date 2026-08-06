@@ -64,6 +64,13 @@ public sealed class App : Application
                     .ObserveOn(RxSchedulers.MainThreadScheduler)
                     .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error)));
 
+                ApplyShowButtonText(settingsStore.Current.ShowButtonText);
+                _compositeDisposable.Add(settingsStore.Observe()
+                    .Select(s => s.ShowButtonText)
+                    .DistinctUntilChanged()
+                    .ObserveOn(RxSchedulers.MainThreadScheduler)
+                    .Subscribe(ApplyShowButtonText));
+
                 ApplyTheme(settingsStore.Current.ApplicationTheme);
                 _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.ApplicationTheme)
@@ -226,6 +233,10 @@ public sealed class App : Application
                 });
         });
     }
+
+    // A resource rather than a property on each control: the App.axaml style pushes it into every
+    // ButtonContent at once, so call sites only supply their icon and label.
+    private void ApplyShowButtonText(bool showText) => Resources["ShowButtonText"] = showText;
 
     private void ApplyTheme(ApplicationTheme theme)
     {
