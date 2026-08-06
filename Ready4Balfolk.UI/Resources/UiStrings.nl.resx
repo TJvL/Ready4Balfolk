@@ -240,6 +240,9 @@
   <data name="History_TypeStop" xml:space="preserve">
     <value>Stop</value>
   </data>
+  <data name="History_StartedAt" xml:space="preserve">
+    <value>Gestart om</value>
+  </data>
   <data name="History_StatusFinished" xml:space="preserve">
     <value>Afgelopen</value>
   </data>
