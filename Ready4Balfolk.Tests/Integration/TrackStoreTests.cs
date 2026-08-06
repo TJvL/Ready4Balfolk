@@ -116,6 +116,31 @@ public sealed class TrackStoreTests : IDisposable
         => new("Mazurka", "Artist", fileInfo.Name, fileInfo,
             TimeSpan.FromSeconds(180), AudioFormat.Mp3);
 
+    [Fact]
+    public async Task MusicDirectory_SwitchedWhileLoading_SerialisesAndKeepsWatching()
+    {
+        await File.WriteAllTextAsync(
+            Path.Combine(_tempDirA.FullName, "a.mp3"), "", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(
+            Path.Combine(_tempDirB.FullName, "b.mp3"), "", TestContext.Current.CancellationToken);
+
+        // Switch without waiting, so the second load starts while the first is still running.
+        // Unserialised, the two race over _watcher and _tracks: one disposes the watcher the
+        // other just published, and enabling it then throws ObjectDisposedException.
+        _sut.MusicDirectory = _tempDirA;
+        _sut.MusicDirectory = _tempDirB;
+
+        await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));
+
+        await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
+        Assert.DoesNotContain(_sut.Current, t => t.FileInfo.Name == "a.mp3");
+
+        // The surviving load must still own a live watcher on its own directory.
+        await File.WriteAllTextAsync(
+            Path.Combine(_tempDirB.FullName, "c.mp3"), "", TestContext.Current.CancellationToken);
+        await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "c.mp3"));
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 10_000)
     {
         var stopwatch = Stopwatch.StartNew();

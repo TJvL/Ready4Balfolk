@@ -23,6 +23,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly IDisposable _synonymSubscription;
     private readonly CompositeDisposable _fileWatcherSubscriptions = [];
+    // Loads are started fire-and-forget from the setter, so without a gate two of them interleave:
+    // each opens by disposing the watcher and clearing the track list, so one load ends up
+    // disposing the watcher the other just published, and appending its tracks after the other
+    // cleared them.
+    private readonly SemaphoreSlim _loadGate = new(1, 1);
+    private CancellationTokenSource? _loadCts;
     private FileSystemWatcher? _watcher;
     private bool _disposed;
 
@@ -68,8 +74,15 @@ public sealed class TrackStore : ITrackStore, IDisposable
             }
 
             field = value;
-            // TODO: Accept a global CancellationToken so that this can be interrupted
-            Task.Run(() => LoadDirectoryAsync(value, CancellationToken.None)).SafeFireAndForget(exception => _loggerService.ErrorAsync("Loading directory failed", exception));
+
+            // Cancel whatever is in flight so it stops before it can touch shared state again.
+            // Superseded sources are deliberately not disposed here: the load that owns one may
+            // still be observing its token, and a CancellationTokenSource without registered
+            // timers holds nothing worth reclaiming.
+            var cancellation = new CancellationTokenSource();
+            Interlocked.Exchange(ref _loadCts, cancellation)?.Cancel();
+
+            Task.Run(() => LoadDirectoryAsync(value, cancellation.Token)).SafeFireAndForget(exception => _loggerService.ErrorAsync("Loading directory failed", exception));
         }
     }
 
@@ -92,16 +105,22 @@ public sealed class TrackStore : ITrackStore, IDisposable
             return;
         }
 
+        // Set first: a load still in flight checks this before publishing a watcher.
+        _disposed = true;
+
         if (disposing)
         {
+            var cancellation = Interlocked.Exchange(ref _loadCts, null);
+            cancellation?.Cancel();
+            cancellation?.Dispose();
+
             _synonymSubscription.Dispose();
             _fileWatcherSubscriptions.Dispose();
             _watcher?.Dispose();
             _tracks.Dispose();
             _isLoading.Dispose();
+            _loadGate.Dispose();
         }
-
-        _disposed = true;
     }
 
     private void ReResolveAllTracks()
@@ -138,6 +157,25 @@ public sealed class TrackStore : ITrackStore, IDisposable
     {
         _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
 
+        await _loadGate.WaitAsync(CancellationToken.None);
+        try
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                // Superseded while queued behind the previous load: leave its results alone.
+                return;
+            }
+
+            await LoadDirectoryCoreAsync(directory, cancellationToken);
+        }
+        finally
+        {
+            _loadGate.Release();
+        }
+    }
+
+    private async Task LoadDirectoryCoreAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    {
         _watcher?.Dispose();
         _watcher = null;
         _tracks.Clear();
@@ -172,7 +210,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
             await _loggerService.DebugAsync($"Loaded '{_tracks.Count:N0}' tracks successfully");
             await _durationCache.SaveAsync([.. audioFiles.Select(r => r.FullName)]);
-            StartWatching(directory);
+            StartWatching(directory, cancellationToken);
         }
         finally
         {
@@ -206,8 +244,15 @@ public sealed class TrackStore : ITrackStore, IDisposable
         return track;
     }
 
-    private void StartWatching(FileSystemInfo directory)
+    private void StartWatching(FileSystemInfo directory, CancellationToken cancellationToken)
     {
+        if (cancellationToken.IsCancellationRequested || _disposed)
+        {
+            // Do not publish a watcher nobody will dispose, and do not enable one on a store that
+            // is going away: enabling a disposed watcher is what threw ObjectDisposedException.
+            return;
+        }
+
         _fileWatcherSubscriptions.Clear();
         // Local capture: the FromEventPattern remove-handlers must close over this
         // instance, not the _watcher field, which is nulled on the next reload
