@@ -26,8 +26,8 @@ public static class DomainStrings
     public static CultureInfo? Culture { get; set; }
 
     // Queue guard rules
-    public static string AutoTrackRule_OnlyEmptyQueue =>
-        ResourceManager.GetString("AutoTrackRule_OnlyEmptyQueue", Culture)!;
+    public static string AutoTrackRule_OnlyOneAllowed =>
+        ResourceManager.GetString("AutoTrackRule_OnlyOneAllowed", Culture)!;
 
     public static string DuplicateTrackRule_AlreadyInQueue =>
         ResourceManager.GetString("DuplicateTrackRule_AlreadyInQueue", Culture)!;

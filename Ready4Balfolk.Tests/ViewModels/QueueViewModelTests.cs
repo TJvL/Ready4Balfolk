@@ -354,7 +354,76 @@ public sealed class QueueViewModelTests : IDisposable
         Assert.True(_sut.HasItems);
     }
 
+    // --- Auto-track visibility ---
+
+    [Fact]
+    public void AutoTrack_Enqueued_WhenQueueHasRequests()
+    {
+        var track = TestData.CreateTrack("Auto");
+        _randomTrackService.PickRandomTrack(Arg.Any<RandomSelectionScope>(), Arg.Any<bool>())
+            .Returns(track);
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Playing"), false));
+
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("Request"), false));
+
+        _queueService.Received().Enqueue(Arg.Is<AutoTrackQueueItem>(a => a!.TrackQueueItem.Track == track));
+    }
+
+    [Fact]
+    public void AutoTrack_NotEnqueued_WhenOneIsAlreadyPresent()
+    {
+        _randomTrackService.PickRandomTrack(Arg.Any<RandomSelectionScope>(), Arg.Any<bool>())
+            .Returns(TestData.CreateTrack("Auto"));
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Playing"), false));
+        _queueSource.Add(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Existing"), true)));
+        _queueService.ClearReceivedCalls();
+
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("Request"), false));
+
+        _queueService.DidNotReceive().Enqueue(Arg.Any<AutoTrackQueueItem>());
+    }
+
+    [Fact]
+    public void MoveDown_Blocked_ForItemAboveAutoTrack()
+    {
+        var request = new TrackQueueItem(TestData.CreateTrack("Request"), false);
+        _queueSource.Add(request);
+        _queueSource.Add(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true)));
+
+        _sut.SelectedItem = request;
+
+        Assert.False(_sut.IsSelectedMovableDown);
+    }
+
     // --- PinAutoTrack ---
+
+    [Fact]
+    public void PinAutoTrack_QueueFull_KeepsSameAutoTrackAndWarns()
+    {
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true));
+        _queueSource.Add(auto);
+        _queueService.InsertAt(Arg.Any<int>(), Arg.Any<IQueueItem>())
+            .Returns(QueueAddResult.Deny("Queue is full (max 6 items)."));
+
+        _sut.PinAutoTrack(auto);
+
+        // The very same auto-track goes back, so a refused pin does not reroll the track.
+        _queueService.Received(1).Enqueue(auto);
+        _notification.Received(1).Show("Queue is full (max 6 items).", NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public void PinAutoTrack_Allowed_DoesNotReAddAutoTrack()
+    {
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true));
+        _queueSource.Add(auto);
+
+        _sut.PinAutoTrack(auto);
+
+        _queueService.DidNotReceive().Enqueue(auto);
+        _notification.DidNotReceive().Show(Arg.Any<string>(), NotificationSeverity.Warning);
+    }
+
 
     [Fact]
     public void PinAutoTrack_ConvertsToRegularTrack()

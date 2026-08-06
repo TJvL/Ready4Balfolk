@@ -191,7 +191,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
                 UpdateItemCountText();
                 UpdateMoveStates();
 
-                if (_queuedItems.Count == 0 && !_suppressAutoEnqueue)
+                if (!_suppressAutoEnqueue)
                 {
                     TryAutoEnqueue();
                 }
@@ -257,8 +257,23 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         var index = IndexOfSelected();
+        var lastMovable = LastRequestIndex();
         IsSelectedMovableUp = index > 0;
-        IsSelectedMovableDown = index >= 0 && index < _queuedItems.Count - 1;
+        IsSelectedMovableDown = index >= 0 && index < lastMovable;
+    }
+
+    // The auto-track is pinned to the bottom, so a request cannot be moved below it.
+    private int LastRequestIndex()
+    {
+        for (var i = _queuedItems.Count - 1; i >= 0; i--)
+        {
+            if (_queuedItems[i] is not AutoTrackQueueItem)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     // Queue items are records with value equality and duplicates are allowed
@@ -326,12 +341,28 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         _suppressAutoEnqueue = true;
-        _queueService.RemoveWhere(i => i is AutoTrackQueueItem);
-        _queueService.InsertAt(index, item.TrackQueueItem with
+        try
         {
-            RandomlyAdded = true
-        });
-        _suppressAutoEnqueue = false;
+            // The auto-track has to come out first or it blocks its own pin as a duplicate, but
+            // the pin can still be refused (a full queue). Put the same one back when that
+            // happens, so a refused pin leaves the queue exactly as it was rather than silently
+            // rerolling the track.
+            _queueService.RemoveWhere(i => i is AutoTrackQueueItem);
+            var result = _queueService.InsertAt(index, item.TrackQueueItem with
+            {
+                RandomlyAdded = true
+            });
+
+            if (!result.Allowed)
+            {
+                _queueService.Enqueue(item);
+                _notificationService.Show(result.RejectionReason!, NotificationSeverity.Warning);
+            }
+        }
+        finally
+        {
+            _suppressAutoEnqueue = false;
+        }
     }
 
     private void TryAutoEnqueue()
@@ -341,7 +372,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        if (_queueService.Count > 0)
+        // One auto-track at a time, and only once something is playing: with nothing playing the
+        // queue is genuinely empty rather than waiting for a follow-up track.
+        if (_queuedItems.Any(i => i is AutoTrackQueueItem))
         {
             return;
         }

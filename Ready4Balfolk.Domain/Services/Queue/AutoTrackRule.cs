@@ -5,12 +5,14 @@ namespace Ready4Balfolk.Domain.Services.Queue;
 
 public sealed class AutoTrackRule(bool autoQueueEnabled) : IQueueRule
 {
+    // The auto-track stays at the tail of the queue alongside real requests, so adding one no
+    // longer evicts it. QueueService keeps it last.
     public Func<IQueueItem, bool>? GetPreAddRemovalPredicate(IQueueItem newItem, IReadOnlyList<IQueueItem> currentItems)
-        => newItem is not AutoTrackQueueItem ? item => item is AutoTrackQueueItem : null;
+        => null;
 
     public QueueRuleVerdict? EvaluateAdd(IQueueItem item, IReadOnlyList<IQueueItem> adjustedItems)
-        => item is AutoTrackQueueItem && adjustedItems.Count > 0
-            ? new QueueRuleVerdict(false, DomainStrings.AutoTrackRule_OnlyEmptyQueue)
+        => item is AutoTrackQueueItem && adjustedItems.Any(i => i is AutoTrackQueueItem)
+            ? new QueueRuleVerdict(false, DomainStrings.AutoTrackRule_OnlyOneAllowed)
             : null;
 
     public IReadOnlyList<int> GetEvictionIndices(IReadOnlyList<IQueueItem> currentItems)
