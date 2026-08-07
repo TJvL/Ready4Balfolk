@@ -46,6 +46,18 @@ jobs:
             fi
           done
 
+          # Scalable icon, so shells that want a size we did not rasterise render the
+          # vector instead of stretching the nearest PNG.
+          mkdir -p $STAGE/stage/share/icons/hicolor/scalable/apps
+          cp Ready4Balfolk.UI/Assets/icon.svg \
+            $STAGE/stage/share/icons/hicolor/scalable/apps/io.github.tjvl.Ready4Balfolk.svg
+
+          # Symbolic icon, picked up by the desktop for monochrome surfaces such as
+          # notification headers and tray items, and recoloured to the theme.
+          mkdir -p $STAGE/stage/share/icons/hicolor/symbolic/apps
+          cp Ready4Balfolk.UI/Assets/icon-symbolic.svg \
+            $STAGE/stage/share/icons/hicolor/symbolic/apps/io.github.tjvl.Ready4Balfolk-symbolic.svg
+
       - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
