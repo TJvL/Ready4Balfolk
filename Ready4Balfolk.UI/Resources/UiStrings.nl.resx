@@ -755,4 +755,29 @@ Doorgaan met importeren?</value>
     <value>Herstarten</value>
   </data>
 
+  <data name="Equalizer_Title" xml:space="preserve">
+    <value>Equalizer</value>
+  </data>
+  <data name="Equalizer_On" xml:space="preserve">
+    <value>aan</value>
+  </data>
+  <data name="Equalizer_Off" xml:space="preserve">
+    <value>uit</value>
+  </data>
+  <data name="Equalizer_Enable" xml:space="preserve">
+    <value>Inschakelen</value>
+  </data>
+  <data name="Equalizer_LowCut" xml:space="preserve">
+    <value>Laagafsnijding</value>
+  </data>
+  <data name="Equalizer_Preamp" xml:space="preserve">
+    <value>Voorversterking</value>
+  </data>
+  <data name="Equalizer_Reset" xml:space="preserve">
+    <value>Terug naar vlak</value>
+  </data>
+  <data name="Equalizer_Unavailable" xml:space="preserve">
+    <value>Equalizer niet beschikbaar</value>
+  </data>
+
 </root>

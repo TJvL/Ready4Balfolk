@@ -24,7 +24,7 @@ De applicatie splitst de bestandsnaam op koppeltekens om de dansnaam, artiest en
 
 Het hoofdscherm is verdeeld in twee kolommen:
 
-- **Linkerkolom**: Werkbalk, afspeelknoppen en de wachtrij- of geschiedenisweergave
+- **Linkerkolom**: Werkbalk, afspeelknoppen, de equalizer en de wachtrij- of geschiedenisweergave
 - **Rechterkolom**: Nummercatalogus of dansboom-editor
 
 U kunt schakelen tussen weergaven in elke kolom met behulp van de schakelknoppen bovenaan elk paneel.
@@ -72,6 +72,55 @@ Wanneer een berichtitem wordt afgespeeld, schakelt de weergave over naar bericht
 - **Next / Clear**: Deze knop verandert van gedrag afhankelijk van de wachtrijstatus:
   - **Next** (wanneer de wachtrij items bevat): Slaat over naar het volgende item in de wachtrij. Een bevestigingsdialoog verschijnt als een nummer momenteel wordt afgespeeld (tenzij uitgeschakeld in instellingen).
   - **Clear** (wanneer de wachtrij leeg is): Stopt het afspelen en wist het huidige item.
+
+---
+
+## Equalizer
+
+De equalizer vormt het geluid dat naar de PA gaat. Hij is bedoeld voor avonden waarop de app de
+enige plek is waar het geluid bijgesteld kan worden: geen mengtafel, geen geluidsman. Stel hem
+vroeg op de avond in op de zaal en laat hem daarna met rust.
+
+Hij is standaard ingeklapt. De kop toont **aan** of **uit**, zodat een equalizer die van een vorige
+avond aan is blijven staan zichtbaar is zonder het paneel te openen. Wijzigingen werken direct,
+ook tijdens het afspelen, wat de enige praktische manier is om een zaal te beoordelen.
+
+### Banden
+
+Zeven schuifregelaars, die elk tot 15 dB verzwakken of versterken op een vaste frequentie:
+
+| Regelaar | Meestal gebruikt voor |
+|---|---|
+| 63 Hz | Gewicht en gerommel |
+| 160 Hz | Dreun en holheid, het gebruikelijke probleem in een zaal met harde wanden |
+| 400 Hz | Modderigheid |
+| 1 kHz | Body van accordeon, viool en stem |
+| 2,5 kHz | Aanwezigheid en aanzet |
+| 6,3 kHz | Schelheid, sisklanken |
+| 16 kHz | Lucht en glans |
+
+De buitenste twee zijn shelving-filters, dus die tillen of verlagen alles onder 63 Hz en boven
+16 kHz in plaats van alleen een band rond het middelpunt. Verzwakken is bijna altijd veiliger dan
+versterken.
+
+### Laagafsnijding
+
+Een hoogdoorlaatfilter dat alles onder de gekozen frequentie weghaalt, instelbaar van 20 tot
+200 Hz. Nuttig tegen gerommel van het podium, hanteringsgeluid en verkeer, en op kleine speakers
+die de onderste octaaf toch niet zinvol kunnen weergeven. Begin rond 40 a 60 Hz.
+
+### Voorversterking
+
+Banden versterken maakt het signaal luider en kan de uitgang laten clippen, wat klinkt als
+vervorming die erger wordt bij de luidste stukken van een nummer. Heb je iets versterkt, draai de
+voorversterking dan ongeveer net zoveel omlaag als je grootste versterking.
+
+### Terug naar vlak
+
+Zet elke regelaar terug op 0 dB en schakelt de laagafsnijding uit. De equalizer blijft ingeschakeld.
+
+Als het paneel meldt dat de equalizer niet beschikbaar is, kon de BASS_FX-audiobibliotheek niet
+geladen worden. Het afspelen wordt daar niet door beinvloed.
 
 ---
 

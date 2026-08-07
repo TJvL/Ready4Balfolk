@@ -5,6 +5,7 @@
         xmlns:ui="using:Ready4Balfolk.UI"
         xmlns:toolbar="using:Ready4Balfolk.UI.Views.Toolbar"
         xmlns:playback="using:Ready4Balfolk.UI.Views.Playback"
+        xmlns:equalizer="using:Ready4Balfolk.UI.Views.Equalizer"
         xmlns:queue="using:Ready4Balfolk.UI.Views.Queue"
         xmlns:history="using:Ready4Balfolk.UI.Views.History"
         xmlns:trackCatalog="using:Ready4Balfolk.UI.Views.TrackCatalog"
@@ -31,6 +32,9 @@
                 <playback:PlaybackView DockPanel.Dock="Top"
                                        DataContext="{Binding Playback}"
                                        Margin="0,0,0,8" />
+                <equalizer:EqualizerView DockPanel.Dock="Top"
+                                         DataContext="{Binding Equalizer}"
+                                         Margin="0,0,0,8" />
                 <!-- Queue/History toolbar swap -->
                 <Panel DockPanel.Dock="Top">
                     <queue:QueueToolbarView DataContext="{Binding Queue}"

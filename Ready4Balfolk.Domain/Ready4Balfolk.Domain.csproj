@@ -10,6 +10,7 @@
       <PackageReference Include="AsyncAwaitBestPractices" Version="10.0.0" />
       <PackageReference Include="DynamicData" Version="9.4.33" />
       <PackageReference Include="ManagedBass" Version="4.0.2" />
+      <PackageReference Include="ManagedBass.Fx" Version="4.0.2" />
       <PackageReference Include="TagLibSharp" Version="2.3.0" />
     </ItemGroup>
 

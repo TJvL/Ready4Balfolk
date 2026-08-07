@@ -830,4 +830,29 @@ Continue with import?</value>
     <value>Restart</value>
   </data>
 
+  <data name="Equalizer_Title" xml:space="preserve">
+    <value>Equalizer</value>
+  </data>
+  <data name="Equalizer_On" xml:space="preserve">
+    <value>on</value>
+  </data>
+  <data name="Equalizer_Off" xml:space="preserve">
+    <value>off</value>
+  </data>
+  <data name="Equalizer_Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="Equalizer_LowCut" xml:space="preserve">
+    <value>Low cut</value>
+  </data>
+  <data name="Equalizer_Preamp" xml:space="preserve">
+    <value>Preamp</value>
+  </data>
+  <data name="Equalizer_Reset" xml:space="preserve">
+    <value>Reset to flat</value>
+  </data>
+  <data name="Equalizer_Unavailable" xml:space="preserve">
+    <value>Equalizer unavailable</value>
+  </data>
+
 </root>

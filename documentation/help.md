@@ -24,7 +24,7 @@ The application splits the file name on dashes to extract the dance name, artist
 
 The main screen is divided into two columns:
 
-- **Left column**: Toolbar, playback controls, and the queue or history view
+- **Left column**: Toolbar, playback controls, the equalizer, and the queue or history view
 - **Right column**: Track catalog or dance tree editor
 
 You can toggle between views in each column using the toggle buttons at the top of each panel.
@@ -72,6 +72,54 @@ When a message item is playing, the display switches to message mode with auto-s
 - **Next / Clear**: This button changes behavior depending on the queue state:
   - **Next** (when the queue has items): Skips to the next item in the queue. A confirmation dialog appears if a track is currently playing (unless disabled in settings).
   - **Clear** (when the queue is empty): Stops playback and clears the current item.
+
+---
+
+## Equalizer
+
+The equalizer shapes the sound going out to the PA. It exists for the nights where the app is the
+only place the sound can be adjusted: no mixing desk, no sound engineer. Set it against the room
+early in the evening and leave it alone.
+
+It is collapsed by default. The header shows **on** or **off**, so an equalizer left engaged from a
+previous night is visible without opening the panel. Changes take effect immediately, including
+while a track is playing, which is the only practical way to judge a room.
+
+### Bands
+
+Seven sliders, each cutting or boosting by up to 15 dB at a fixed frequency:
+
+| Slider | Typically used for |
+|---|---|
+| 63 Hz | Weight and rumble |
+| 160 Hz | Boom and boxiness, the usual problem in a hard-walled hall |
+| 400 Hz | Muddiness |
+| 1 kHz | Body of accordion, fiddle and voice |
+| 2.5 kHz | Presence and attack |
+| 6.3 kHz | Harshness, sibilance |
+| 16 kHz | Air and sparkle |
+
+The outer two are shelving filters, so they lift or cut everything below 63 Hz and above 16 kHz
+rather than only a band around the centre. Cutting is almost always safer than boosting.
+
+### Low cut
+
+A high pass filter that removes everything below the chosen frequency, adjustable from 20 to
+200 Hz. Useful against stage rumble, handling noise and traffic, and on small speakers that cannot
+usefully reproduce the bottom octave anyway. Start around 40 to 60 Hz.
+
+### Preamp
+
+Boosting bands makes the signal louder and can clip the output, which sounds like distortion that
+gets worse on the loudest parts of a track. If you have boosted anything, pull the preamp down by
+roughly the size of your largest boost.
+
+### Reset to flat
+
+Returns every slider to 0 dB and switches the low cut off. The equalizer stays enabled.
+
+If the panel says the equalizer is unavailable, the BASS_FX audio library could not be loaded.
+Playback is unaffected.
 
 ---
 

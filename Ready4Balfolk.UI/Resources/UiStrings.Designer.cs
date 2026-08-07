@@ -474,6 +474,31 @@ public static class UiStrings
     public static string Playback_AudioUnavailable =>
         ResourceManager.GetString("Playback_AudioUnavailable", Culture)!;
 
+    // Equalizer
+    public static string Equalizer_Title =>
+        ResourceManager.GetString("Equalizer_Title", Culture)!;
+
+    public static string Equalizer_On =>
+        ResourceManager.GetString("Equalizer_On", Culture)!;
+
+    public static string Equalizer_Off =>
+        ResourceManager.GetString("Equalizer_Off", Culture)!;
+
+    public static string Equalizer_Enable =>
+        ResourceManager.GetString("Equalizer_Enable", Culture)!;
+
+    public static string Equalizer_LowCut =>
+        ResourceManager.GetString("Equalizer_LowCut", Culture)!;
+
+    public static string Equalizer_Preamp =>
+        ResourceManager.GetString("Equalizer_Preamp", Culture)!;
+
+    public static string Equalizer_Reset =>
+        ResourceManager.GetString("Equalizer_Reset", Culture)!;
+
+    public static string Equalizer_Unavailable =>
+        ResourceManager.GetString("Equalizer_Unavailable", Culture)!;
+
     // Track Catalog
     public static string TrackCatalog_ColumnDance =>
         ResourceManager.GetString("TrackCatalog_ColumnDance", Culture)!;

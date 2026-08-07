@@ -25,6 +25,7 @@ using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.DanceSynonyms;
 using Ready4Balfolk.UI.Views.DanceTree;
+using Ready4Balfolk.UI.Views.Equalizer;
 using Ready4Balfolk.UI.Views.Help;
 using Ready4Balfolk.UI.Views.History;
 using Ready4Balfolk.UI.Views.Playback;
@@ -179,6 +180,7 @@ public static class Program
         // ViewModels
         services.AddSingleton<ToolbarViewModel>();
         services.AddSingleton<PlaybackViewModel>();
+        services.AddSingleton<EqualizerViewModel>();
         services.AddSingleton<QueueViewModel>();
         services.AddSingleton<HistoryViewModel>();
         services.AddSingleton<TrackCatalogViewModel>();
