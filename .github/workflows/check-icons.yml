@@ -29,3 +29,22 @@ jobs:
             exit 1
           fi
           echo "Icons are up to date."
+
+      - name: Check SVG icons are recognisable to gdk-pixbuf
+        run: |
+          # flatpak build-export validates every exported icon with gdk-pixbuf, which
+          # sniffs only a short prefix of the file. A comment before the <svg> root
+          # pushes it out of that window, and the release build fails at the very last
+          # step with "Format not recognized". An <?xml ?> declaration does not help.
+          status=0
+          for svg in Ready4Balfolk.UI/Assets/*.svg; do
+            if ! head -c 256 "$svg" | grep -q '<svg'; then
+              echo "ERROR: $svg has no <svg> root element in its first 256 bytes."
+              echo "  Move any leading comment inside the root element."
+              status=1
+            fi
+          done
+          if [[ $status -eq 0 ]]; then
+            echo "SVG icons are recognisable."
+          fi
+          exit $status
