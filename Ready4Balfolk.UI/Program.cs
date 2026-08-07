@@ -13,6 +13,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Editor;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Synonym;
 using Ready4Balfolk.Domain.Services.Tracks;
@@ -34,6 +35,7 @@ using Ready4Balfolk.UI.Views.Queue;
 using Ready4Balfolk.UI.Views.Settings;
 using Ready4Balfolk.UI.Views.Toolbar;
 using Ready4Balfolk.UI.Views.TrackCatalog;
+using Ready4Balfolk.Web;
 using FileLogSinkService = Ready4Balfolk.UI.Services.FileLogSinkService;
 
 namespace Ready4Balfolk.UI;
@@ -158,6 +160,7 @@ public static class Program
         services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<ISynonymResolutionService, SynonymResolutionService>();
+        services.AddSingleton<IPresentationStateService, PresentationStateService>();
 
         // Stores
         services.AddSingleton<IDanceTreeStore, DanceTreeStore>();
@@ -176,6 +179,11 @@ public static class Program
         services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
         services.AddSingleton<ConfirmationService>();
         services.AddSingleton<IConfirmationService>(sp => sp.GetRequiredService<ConfirmationService>());
+
+        // The embedded server. It builds its own container and is handed these same instances by
+        // AddForwardedHostServices, so nothing here is ever constructed twice.
+        services.AddSingleton<IRemoteCommandDispatcher, AvaloniaRemoteCommandDispatcher>();
+        services.AddSingleton(sp => new PresentationWebServer(sp, sp.GetRequiredService<ILoggerService>()));
 
         // ViewModels
         services.AddSingleton<ToolbarViewModel>();

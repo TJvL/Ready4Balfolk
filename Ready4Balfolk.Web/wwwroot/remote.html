@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#191919">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Ready4Balfolk remote</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+
+  <!-- The PIN is exchanged for a token here; the hub checks the token, so this form is not the
+       only thing standing in front of the queue. -->
+  <div class="gate" id="gate">
+    <form id="gateForm" autocomplete="off">
+      <h1 id="gateTitle"></h1>
+      <p id="gateHint"></p>
+      <input id="pin" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+             autocomplete="one-time-code" aria-label="PIN">
+      <button type="submit" id="gateButton"></button>
+      <div class="error" id="gateError" role="alert"></div>
+    </form>
+  </div>
+
+  <div class="remote-page is-hidden" id="app">
+    <header class="remote-head">
+      <span><b>Ready4Balfolk</b></span>
+      <span id="link"></span>
+    </header>
+
+    <div class="remote-body">
+      <!-- Now -->
+      <section class="pane is-active" data-pane="now">
+        <div class="now-card">
+          <div class="kicker" id="nowKicker"></div>
+          <div class="now-primary" id="nowPrimary"></div>
+          <div class="now-sub" id="nowSub"></div>
+          <div class="now-times">
+            <span id="nowElapsed">0:00</span>
+            <span id="nowLeft">-0:00</span>
+          </div>
+          <div class="now-bar"><i id="nowBar"></i></div>
+        </div>
+
+        <div class="transport">
+          <button class="tbtn" type="button" data-act="restart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            <span id="restartLabel"></span>
+          </button>
+          <button class="tbtn tbtn-primary" type="button" data-act="playpause">
+            <svg id="ppIcon" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            <span id="ppLabel"></span>
+          </button>
+          <!-- Held, not tapped: a mis-tap here is instantly audible to the whole room. -->
+          <button class="tbtn tbtn-hold" type="button" id="skip">
+            <i class="fill" id="skipFill"></i>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5l10 7-10 7z"/><rect x="16" y="5" width="3" height="14" rx="1"/></svg>
+            <span id="skipLabel"></span>
+          </button>
+        </div>
+
+        <div class="upnext">
+          <div class="kicker" id="upnextKicker"></div>
+          <div class="un-text" id="upnextText"></div>
+        </div>
+      </section>
+
+      <!-- Queue -->
+      <section class="pane" data-pane="queue">
+        <div class="qhead">
+          <span id="queueCount"></span>
+        </div>
+        <div class="qlist" id="queueList"></div>
+      </section>
+
+      <!-- Add -->
+      <section class="pane" data-pane="add">
+        <div class="addgrid">
+          <button class="addbtn" type="button" data-act="random">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg>
+            <span id="randomLabel"></span>
+            <small id="randomHint"></small>
+          </button>
+          <button class="addbtn" type="button" data-act="stop">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+            <span id="stopLabel"></span>
+            <small id="stopHint"></small>
+          </button>
+        </div>
+
+        <div class="stepper">
+          <span id="delayLengthLabel"></span>
+          <div class="grp">
+            <button type="button" data-act="delay-down" aria-label="-15">&minus;</button>
+            <span class="val" id="delayValue">30s</span>
+            <button type="button" data-act="delay-up" aria-label="+15">+</button>
+          </div>
+        </div>
+
+        <button class="addbtn wide" type="button" data-act="delay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span id="delayLabel"></span>
+        </button>
+
+        <div class="msgbox">
+          <div class="kicker" id="messageKicker"></div>
+          <textarea id="messageText" rows="2"></textarea>
+          <button class="addbtn wide" type="button" data-act="message">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span id="messageLabel"></span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Find -->
+      <section class="pane" data-pane="find">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="search" type="search" enterkeyhint="search" aria-label="Search">
+        </div>
+        <div class="hits" id="hits"></div>
+      </section>
+    </div>
+
+    <nav class="tabbar" id="tabs" role="tablist">
+      <button role="tab" type="button" aria-selected="true" data-tab="now">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span id="tabNow"></span>
+      </button>
+      <button role="tab" type="button" aria-selected="false" data-tab="queue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
+        <span id="tabQueue"></span>
+      </button>
+      <button role="tab" type="button" aria-selected="false" data-tab="add">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        <span id="tabAdd"></span>
+      </button>
+      <button role="tab" type="button" aria-selected="false" data-tab="find">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span id="tabFind"></span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/lib/signalr.min.js"></script>
+  <script src="/strings.js"></script>
+  <script src="/remote.js"></script>
+</body>
+</html>

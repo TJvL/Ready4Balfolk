@@ -10,6 +10,9 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --share=ipc
+  # The embedded presentation server listens on localhost and, when the user allows it, on the LAN.
+  # Without this the sandbox has no network namespace at all and the server cannot bind.
+  - --share=network
   - --device=dri
 
 modules:

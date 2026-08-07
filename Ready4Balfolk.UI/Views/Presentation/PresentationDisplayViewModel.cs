@@ -4,12 +4,19 @@ using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
-using Ready4Balfolk.Domain.Models.QueueItems;
-using Ready4Balfolk.Domain.Services.Queue;
+using Ready4Balfolk.Domain.Models.Presentation;
+using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.Presentation;
 
+/// <summary>Binds the shared presentation state to the desktop display window.</summary>
+/// <remarks>
+/// The mapping from queue items to what a screen shows lives in
+/// <see cref="IPresentationStateService"/>, so this and the browser draw the same six pictures from
+/// the same source. All that is left here is localizing the kinds that carry no text of their own,
+/// and shaping the rest for XAML bindings.
+/// </remarks>
 public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisposable
 {
     private readonly CompositeDisposable _disposables = [];
@@ -30,8 +37,10 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
     [Reactive] public partial string NextTitle { get; set; }
     [Reactive] public partial bool HasNextItem { get; set; }
 
-    public PresentationDisplayViewModel(IQueueConsumptionService consumptionService, IQueueService queueService)
+    public PresentationDisplayViewModel(IPresentationStateService presentationState)
     {
+        ArgumentNullException.ThrowIfNull(presentationState);
+
         CurrentDance = "";
         CurrentArtist = "";
         CurrentTitle = "";
@@ -40,152 +49,67 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         NextTitle = "";
         CurrentTimeLeft = "";
 
-        consumptionService.WhenCurrentItemChanged
+        presentationState.WhenStateChanged
             .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(OnCurrentItemChanged)
+            .Subscribe(Apply)
             .DisposeWith(_disposables);
 
-        consumptionService.WhenElapsedChanged
+        presentationState.WhenProgressChanged
             .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(elapsed =>
+            .Subscribe(progress =>
             {
-                Progress = elapsed;
-                CurrentTimeLeft = FormatTimeLeft(Duration - elapsed);
+                Progress = progress.Elapsed;
+                Duration = progress.Duration;
+                CurrentTimeLeft = FormatTimeLeft(progress.Remaining);
             })
             .DisposeWith(_disposables);
-
-        consumptionService.WhenTotalDurationChanged
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(dur =>
-            {
-                Duration = dur;
-                CurrentTimeLeft = FormatTimeLeft(dur - Progress);
-            })
-            .DisposeWith(_disposables);
-
-        queueService.Connect()
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(_ => UpdateNextItem(queueService))
-            .DisposeWith(_disposables);
     }
 
-    private void OnCurrentItemChanged(IQueueItem? item)
+    private void Apply(PresentationState state)
     {
-        HasCurrentItem = item != null;
+        HasCurrentItem = state.HasCurrent;
+        IsMessageMode = state.Current.Kind is PresentationItemKind.Message;
+        CurrentDance = Label(state.Current);
+        CurrentArtist = state.Current.Artist;
+        CurrentTitle = state.Current.Title;
 
-        if (item == null)
+        if (!state.HasCurrent)
         {
-            ClearCurrentState();
-            return;
+            Progress = TimeSpan.Zero;
+            Duration = TimeSpan.Zero;
+            CurrentTimeLeft = "";
         }
 
-        switch (item)
+        HasNextItem = state.HasNext;
+
+        // A queued announcement is billed as "Message" with its text beneath, rather than shouting
+        // the whole announcement in the next-up slot before its turn.
+        if (state.Next.Kind is PresentationItemKind.Message)
         {
-            case AutoTrackQueueItem auto:
-                SetCurrentTrack(auto.TrackQueueItem);
-                break;
-            case TrackQueueItem track:
-                SetCurrentTrack(track);
-                break;
-            case MessageQueueItem message:
-                IsMessageMode = true;
-                CurrentDance = message.Description;
-                CurrentArtist = "";
-                CurrentTitle = "";
-                break;
-            case DelayQueueItem:
-                IsMessageMode = false;
-                CurrentDance = UiStrings.Presentation_Delay;
-                CurrentArtist = "";
-                CurrentTitle = "";
-                break;
-            case StopQueueItem:
-                IsMessageMode = false;
-                CurrentDance = UiStrings.Presentation_Stop;
-                CurrentArtist = "";
-                CurrentTitle = "";
-                break;
-            default:
-                break;
-        }
-    }
-
-    private void SetCurrentTrack(TrackQueueItem trackItem)
-    {
-        IsMessageMode = false;
-        CurrentDance = trackItem.Track.Dance;
-        CurrentArtist = trackItem.Track.Artist;
-        CurrentTitle = trackItem.Track.Title;
-    }
-
-    private void ClearCurrentState()
-    {
-        IsMessageMode = false;
-        CurrentDance = "";
-        CurrentArtist = "";
-        CurrentTitle = "";
-        Progress = TimeSpan.Zero;
-        Duration = TimeSpan.Zero;
-        CurrentTimeLeft = "";
-    }
-
-    private void UpdateNextItem(IQueueService queueService)
-    {
-        var next = queueService.Peek();
-        HasNextItem = next != null;
-
-        if (next == null)
-        {
-            NextDance = "";
-            NextArtist = "";
+            NextDance = UiStrings.Presentation_Message;
+            NextArtist = state.Next.Primary;
             NextTitle = "";
             return;
         }
 
-        switch (next)
-        {
-            case AutoTrackQueueItem auto:
-                SetNextTrack(auto.TrackQueueItem);
-                break;
-            case TrackQueueItem track:
-                SetNextTrack(track);
-                break;
-            case MessageQueueItem message:
-                NextDance = UiStrings.Presentation_Message;
-                NextArtist = message.Description;
-                NextTitle = "";
-                break;
-            case DelayQueueItem:
-                NextDance = UiStrings.Presentation_Delay;
-                NextArtist = "";
-                NextTitle = "";
-                break;
-            case StopQueueItem:
-                NextDance = UiStrings.Presentation_Stop;
-                NextArtist = "";
-                NextTitle = "";
-                break;
-            default:
-                break;
-        }
+        NextDance = Label(state.Next);
+        NextArtist = state.Next.Artist;
+        NextTitle = state.Next.Title;
     }
 
-    private void SetNextTrack(TrackQueueItem trackItem)
+    /// <summary>
+    /// The large line. A track and a message carry their own text; a delay and a stop deliberately
+    /// do not, so that the window and the browser can each say it in their own words.
+    /// </summary>
+    private static string Label(PresentationItem item) => item.Kind switch
     {
-        NextDance = trackItem.Track.Dance;
-        NextArtist = trackItem.Track.Artist;
-        NextTitle = trackItem.Track.Title;
-    }
+        PresentationItemKind.Delay => UiStrings.Presentation_Delay,
+        PresentationItemKind.Stop => UiStrings.Presentation_Stop,
+        _ => item.Primary
+    };
 
-    private static string FormatTimeLeft(TimeSpan remaining)
-    {
-        if (remaining < TimeSpan.Zero)
-        {
-            remaining = TimeSpan.Zero;
-        }
-
-        return $"{(int)remaining.TotalMinutes}:{remaining.Seconds:D2}";
-    }
+    private static string FormatTimeLeft(TimeSpan remaining) =>
+        $"{(int)remaining.TotalMinutes}:{remaining.Seconds:D2}";
 
     public void Dispose() => _disposables.Dispose();
 }

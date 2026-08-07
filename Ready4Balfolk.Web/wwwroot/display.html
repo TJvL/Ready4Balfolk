@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Ready4Balfolk</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body class="display-page">
+
+  <!-- The 1920x1080 grid of PresentationWindow.axaml, with every size written as its XAML
+       pixel value over 1920. A container query does here what the Viewbox does there. -->
+  <main class="screen" id="screen">
+    <section class="screen-row">
+      <div class="pres-current" data-when="current">
+        <div class="pres-primary" id="primary"></div>
+        <div class="pres-sub" id="sub">
+          <span class="pres-artist" id="artist"></span>
+          <span class="pres-dash" id="dash">&nbsp;&mdash;&nbsp;</span>
+          <span class="pres-title" id="title"></span>
+        </div>
+      </div>
+      <div class="pres-idle" data-when="no-current" id="idle"></div>
+    </section>
+
+    <section class="screen-mid" id="mid">
+      <div class="pres-bar"><i id="bar"></i></div>
+      <div class="pres-left" id="remaining"></div>
+    </section>
+
+    <section class="screen-row">
+      <div class="pres-next" data-when="next">
+        <div class="pres-next-label" id="nextLabel"></div>
+        <div class="pres-next-primary" id="nextPrimary"></div>
+        <div class="pres-next-sub" id="nextSub">
+          <span class="pres-next-artist" id="nextArtist"></span>
+          <span class="pres-next-dash" id="nextDash">&nbsp;&mdash;&nbsp;</span>
+          <span class="pres-next-title" id="nextTitle"></span>
+        </div>
+      </div>
+      <div class="pres-next-idle" data-when="no-next" id="nextIdle"></div>
+    </section>
+  </main>
+
+  <div class="link-lost" id="lost" hidden></div>
+
+  <script src="/lib/signalr.min.js"></script>
+  <script src="/strings.js"></script>
+  <script src="/display.js"></script>
+</body>
+</html>

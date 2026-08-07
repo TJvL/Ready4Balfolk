@@ -745,4 +745,51 @@ public static class UiStrings
 
     public static string Dialog_Restart =>
         ResourceManager.GetString("Dialog_Restart", Culture)!;
+
+    public static string Settings_WebServerSection =>
+        ResourceManager.GetString("Settings_WebServerSection", Culture)!;
+
+    public static string Settings_WebServerEnabled =>
+        ResourceManager.GetString("Settings_WebServerEnabled", Culture)!;
+
+    public static string Settings_WebServerDescription =>
+        ResourceManager.GetString("Settings_WebServerDescription", Culture)!;
+
+    public static string Settings_WebServerPort =>
+        ResourceManager.GetString("Settings_WebServerPort", Culture)!;
+
+
+
+    public static string Settings_WebRemoteControlEnabled =>
+        ResourceManager.GetString("Settings_WebRemoteControlEnabled", Culture)!;
+
+    public static string Settings_WebRemoteControlDescription =>
+        ResourceManager.GetString("Settings_WebRemoteControlDescription", Culture)!;
+
+    public static string Settings_WebRemoteControlPin =>
+        ResourceManager.GetString("Settings_WebRemoteControlPin", Culture)!;
+
+    public static string Settings_WebRegeneratePin =>
+        ResourceManager.GetString("Settings_WebRegeneratePin", Culture)!;
+
+    public static string Settings_WebRegeneratePinDescription =>
+        ResourceManager.GetString("Settings_WebRegeneratePinDescription", Culture)!;
+
+    public static string Settings_WebServerAddresses =>
+        ResourceManager.GetString("Settings_WebServerAddresses", Culture)!;
+
+    public static string Settings_WebServerRunning =>
+        ResourceManager.GetString("Settings_WebServerRunning", Culture)!;
+
+    public static string Settings_WebServerStopped =>
+        ResourceManager.GetString("Settings_WebServerStopped", Culture)!;
+
+    public static string Settings_WebServerStarting =>
+        ResourceManager.GetString("Settings_WebServerStarting", Culture)!;
+
+    public static string Settings_WebServerFailed =>
+        ResourceManager.GetString("Settings_WebServerFailed", Culture)!;
+
+    public static string Settings_WebServerStopping =>
+        ResourceManager.GetString("Settings_WebServerStopping", Culture)!;
 }
