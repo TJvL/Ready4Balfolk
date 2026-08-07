@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
@@ -14,6 +15,8 @@ using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
+using Ready4Balfolk.Web;
+using Ready4Balfolk.Web.Security;
 
 namespace Ready4Balfolk.UI.Views.Settings;
 
@@ -22,6 +25,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     private readonly ISettingsStore _settingsStore;
     private readonly ILoggerService _loggerService;
     private readonly IConfirmationService _confirmationService;
+    private readonly PresentationWebServer _webServer;
     private readonly CompositeDisposable _disposables = [];
     private bool _syncing;
 
@@ -36,6 +40,23 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool QueueCutoffEnabled { get; set; }
     [Reactive] public partial int QueueCutoffMinutesOfDay { get; set; }
     [Reactive] public partial int QueueCutoffGraceMinutes { get; set; }
+    [Reactive] public partial bool WebServerEnabled { get; set; }
+    [Reactive] public partial int WebServerPort { get; set; }
+    [Reactive] public partial bool WebRemoteControlEnabled { get; set; }
+    [Reactive] public partial string WebRemoteControlPin { get; set; }
+
+    /// <summary>What the server is actually doing, which is not the same as what the switch says.</summary>
+    [Reactive] public partial string WebServerStatus { get; set; }
+
+    /// <summary>The addresses to type into the other device, one per line.</summary>
+    [Reactive] public partial string WebServerAddresses { get; set; }
+
+    /// <summary>
+    /// True while the socket is being bound or drained. Both take long enough to see, so the
+    /// controls go quiet rather than letting a second click queue another whole cycle.
+    /// </summary>
+    [Reactive] public partial bool IsWebServerBusy { get; set; }
+
     [Reactive] public partial ApplicationTheme SelectedTheme { get; set; }
     [Reactive] public partial ApplicationLanguage SelectedLanguage { get; set; }
 
@@ -57,11 +78,12 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     }
 
     public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
-        IConfirmationService confirmationService)
+        IConfirmationService confirmationService, PresentationWebServer webServer)
     {
         _settingsStore = settingsStore;
         _loggerService = loggerService;
         _confirmationService = confirmationService;
+        _webServer = webServer;
 
         var current = settingsStore.Current;
         MusicDirectoryPath = current.MusicDirectoryPath;
@@ -75,6 +97,13 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         QueueCutoffEnabled = current.QueueCutoffEnabled;
         QueueCutoffMinutesOfDay = current.QueueCutoffMinutesOfDay;
         QueueCutoffGraceMinutes = current.QueueCutoffGraceMinutes;
+        WebServerEnabled = current.WebServerEnabled;
+        WebServerPort = current.WebServerPort;
+        WebRemoteControlEnabled = current.WebRemoteControlEnabled;
+        WebRemoteControlPin = current.WebRemoteControlPin;
+        WebServerStatus = "";
+        WebServerAddresses = "";
+        IsWebServerBusy = false;
         SelectedTheme = current.ApplicationTheme;
         SelectedLanguage = current.ApplicationLanguage;
 
@@ -122,6 +151,23 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         {
             QueueCutoffGraceMinutes = v
         });
+        ThrottledSave(x => x.WebServerEnabled, v => s => s with
+        {
+            WebServerEnabled = v
+        });
+        ThrottledSave(x => x.WebServerPort, v => s => s with
+        {
+            WebServerPort = v
+        });
+        // Switching the remote on for the first time mints its PIN, so there is never a moment
+        // where the remote is reachable and the PIN is empty.
+        ThrottledSave(x => x.WebRemoteControlEnabled, v => s => s with
+        {
+            WebRemoteControlEnabled = v,
+            WebRemoteControlPin = v && s.WebRemoteControlPin.Length == 0
+                ? RemoteAccessService.GeneratePin()
+                : s.WebRemoteControlPin
+        });
         ThrottledSave(x => x.SelectedTheme, v => s => s with
         {
             ApplicationTheme = v
@@ -139,6 +185,44 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(SyncFromStore)
             .DisposeWith(_disposables);
+
+        UpdateWebServerStatus();
+        webServer.WhenChanged
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(_ => UpdateWebServerStatus())
+            .DisposeWith(_disposables);
+    }
+
+    /// <summary>Mints a new PIN, which also drops every phone currently connected.</summary>
+    [ReactiveCommand]
+    private void RegeneratePin()
+    {
+        var pin = RemoteAccessService.GeneratePin();
+        WebRemoteControlPin = pin;
+        CommitDirect(s => s with { WebRemoteControlPin = pin });
+    }
+
+    private void UpdateWebServerStatus()
+    {
+        var state = _webServer.State;
+
+        IsWebServerBusy = state is WebServerState.Starting or WebServerState.Stopping;
+
+        WebServerStatus = state switch
+        {
+            WebServerState.Starting => UiStrings.Settings_WebServerStarting,
+            WebServerState.Stopping => UiStrings.Settings_WebServerStopping,
+            WebServerState.Running => UiStrings.Settings_WebServerRunning,
+            WebServerState.Failed => string.Format(
+                CultureInfo.CurrentCulture,
+                UiStrings.Settings_WebServerFailed,
+                _webServer.LastError ?? ""),
+            _ => UiStrings.Settings_WebServerStopped
+        };
+
+        WebServerAddresses = state is WebServerState.Running
+            ? string.Join(Environment.NewLine, _webServer.Addresses)
+            : "";
     }
 
     private void SyncFromStore(ApplicationSettings s)
@@ -155,6 +239,10 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         QueueCutoffEnabled = s.QueueCutoffEnabled;
         QueueCutoffMinutesOfDay = s.QueueCutoffMinutesOfDay;
         QueueCutoffGraceMinutes = s.QueueCutoffGraceMinutes;
+        WebServerEnabled = s.WebServerEnabled;
+        WebServerPort = s.WebServerPort;
+        WebRemoteControlEnabled = s.WebRemoteControlEnabled;
+        WebRemoteControlPin = s.WebRemoteControlPin;
         SelectedTheme = s.ApplicationTheme;
         SelectedLanguage = s.ApplicationLanguage;
         _syncing = false;

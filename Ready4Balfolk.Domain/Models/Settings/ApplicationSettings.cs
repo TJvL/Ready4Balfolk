@@ -25,7 +25,16 @@ public sealed record ApplicationSettings(
     int QueueCutoffGraceMinutes = 2,
     // Null rather than a flat instance, because a constructor default has to be a compile-time
     // constant. Read it through Equalizer, never directly.
-    EqualizerSettings? EqualizerOrNull = null)
+    EqualizerSettings? EqualizerOrNull = null,
+    // Serve the presentation display and the remote to a browser. Off by default: the app works
+    // without it, and a listening socket nobody asked for is not something to switch on for them.
+    bool WebServerEnabled = false,
+    int WebServerPort = 8420,
+    // A second switch, because the display page is harmless and the remote is not: anyone who can
+    // reach it can skip the track a hall full of people is dancing to.
+    bool WebRemoteControlEnabled = false,
+    // Empty until the remote is first enabled, at which point one is generated.
+    string WebRemoteControlPin = "")
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [], [])
@@ -37,6 +46,11 @@ public sealed record ApplicationSettings(
 
     /// <summary>How far past the cutoff the queue may still run before adds are refused.</summary>
     public TimeSpan QueueCutoffGrace => TimeSpan.FromMinutes(Math.Max(0, QueueCutoffGraceMinutes));
+
+    /// <summary>The port the embedded server listens on, clamped to the unprivileged range.</summary>
+    /// <remarks>Below 1024 needs root on Linux, which this app will never have.</remarks>
+    [JsonIgnore]
+    public int WebServerPortClamped => Math.Clamp(WebServerPort, 1024, 65535);
 
     /// <summary>Output equalizer, flat when the settings file predates it.</summary>
     /// <remarks>

@@ -32,6 +32,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Ready4Balfolk.Domain\Ready4Balfolk.Domain.csproj" />
+      <ProjectReference Include="..\Ready4Balfolk.Web\Ready4Balfolk.Web.csproj" />
     </ItemGroup>
 
     <ItemGroup>

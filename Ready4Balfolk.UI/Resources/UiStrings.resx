@@ -855,4 +855,49 @@ Continue with import?</value>
     <value>Equalizer unavailable</value>
   </data>
 
+  <data name="Settings_WebServerSection" xml:space="preserve">
+    <value>Presentation in a browser</value>
+  </data>
+  <data name="Settings_WebServerEnabled" xml:space="preserve">
+    <value>Serve the presentation display to a browser</value>
+  </data>
+  <data name="Settings_WebServerDescription" xml:space="preserve">
+    <value>Serves the display page, and optionally a phone remote, to any device on the same network: a laptop at the projector, a tablet on a stand, your phone. Off by default; nothing else in the app depends on it.</value>
+  </data>
+  <data name="Settings_WebServerPort" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="Settings_WebRemoteControlEnabled" xml:space="preserve">
+    <value>Enable the phone remote</value>
+  </data>
+  <data name="Settings_WebRemoteControlDescription" xml:space="preserve">
+    <value>A separate page that can play, pause, skip and add to the queue. Anyone who can reach it and knows the PIN can change what the room is dancing to, so it is off unless you want it.</value>
+  </data>
+  <data name="Settings_WebRemoteControlPin" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="Settings_WebRegeneratePin" xml:space="preserve">
+    <value>New PIN</value>
+  </data>
+  <data name="Settings_WebRegeneratePinDescription" xml:space="preserve">
+    <value>A new PIN disconnects every phone using the old one.</value>
+  </data>
+  <data name="Settings_WebServerAddresses" xml:space="preserve">
+    <value>Open in a browser</value>
+  </data>
+  <data name="Settings_WebServerRunning" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="Settings_WebServerStopped" xml:space="preserve">
+    <value>Stopped</value>
+  </data>
+  <data name="Settings_WebServerStarting" xml:space="preserve">
+    <value>Starting</value>
+  </data>
+  <data name="Settings_WebServerFailed" xml:space="preserve">
+    <value>Failed: {0}</value>
+  </data>
+  <data name="Settings_WebServerStopping" xml:space="preserve">
+    <value>Stopping</value>
+  </data>
 </root>

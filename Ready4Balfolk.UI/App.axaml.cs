@@ -26,6 +26,7 @@ using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 using Ready4Balfolk.UI.Views.Presentation;
+using Ready4Balfolk.Web;
 using AvaloniaWindowState = Avalonia.Controls.WindowState;
 using DomainWindowState = Ready4Balfolk.Domain.Models.Settings.WindowState;
 
@@ -100,6 +101,17 @@ public sealed class App : Application
                 {
                     mainWindow.WindowState = AvaloniaWindowState.Maximized;
                 }
+
+                // The embedded server follows the settings live: switching it on, moving its port or
+                // opening it to the network never needs a restart.
+                var webServer = Services.GetRequiredService<PresentationWebServer>();
+                ApplyWebServer(webServer, settingsStore.Current);
+                _compositeDisposable.Add(settingsStore.Observe()
+                    .Select(ToWebServerOptions)
+                    .DistinctUntilChanged()
+                    .Subscribe(options => webServer.ApplyAsync(options).SafeFireAndForget(ex =>
+                        Services.GetRequiredService<ILoggerService>()
+                            .ErrorAsync("Failed to apply presentation server settings", ex))));
 
                 // Open initial presentation windows and subscribe to count changes
                 SyncPresentationWindows(settingsStore.Current.PresentationDisplayCount, settingsStore);
@@ -196,6 +208,15 @@ public sealed class App : Application
             CollapsedBranches = collapsedBranches
         });
 
+        // Asked to stop, never waited for. The process is about to end and the socket goes with
+        // it, so there is nothing here worth making the user watch: awaiting Kestrel's drain is
+        // what made the close button appear to do nothing while a browser held a WebSocket open.
+        Services.GetRequiredService<PresentationWebServer>()
+            .DisposeAsync()
+            .AsTask()
+            .SafeFireAndForget(ex => Services.GetRequiredService<ILoggerService>()
+                .ErrorAsync("Presentation server did not shut down cleanly", ex));
+
         // Close presentation windows
         _compositeDisposable.Dispose();
 
@@ -212,6 +233,17 @@ public sealed class App : Application
         _closing = true;
         mainWindow.Close();
     }
+
+    private static WebServerOptions ToWebServerOptions(ApplicationSettings settings) => new(
+        settings.WebServerEnabled,
+        settings.WebServerPortClamped,
+        settings.WebRemoteControlEnabled,
+        settings.WebRemoteControlPin);
+
+    private static void ApplyWebServer(PresentationWebServer server, ApplicationSettings settings) =>
+        server.ApplyAsync(ToWebServerOptions(settings)).SafeFireAndForget(ex =>
+            Services.GetRequiredService<ILoggerService>()
+                .ErrorAsync("Failed to start the presentation server", ex));
 
     private static IObservable<Unit> RunLoad<T>(Func<T, CancellationToken, Task> loader, string errorMessage) where T : notnull
     {

@@ -780,4 +780,49 @@ Doorgaan met importeren?</value>
     <value>Equalizer niet beschikbaar</value>
   </data>
 
+  <data name="Settings_WebServerSection" xml:space="preserve">
+    <value>Presentatie in een browser</value>
+  </data>
+  <data name="Settings_WebServerEnabled" xml:space="preserve">
+    <value>Presentatiescherm aanbieden aan een browser</value>
+  </data>
+  <data name="Settings_WebServerDescription" xml:space="preserve">
+    <value>Biedt het presentatiescherm, en eventueel een afstandsbediening, aan elk apparaat op hetzelfde netwerk: een laptop bij de beamer, een tablet op een standaard, je telefoon. Staat standaard uit; de rest van de app werkt er niet mee of zonder anders.</value>
+  </data>
+  <data name="Settings_WebServerPort" xml:space="preserve">
+    <value>Poort</value>
+  </data>
+  <data name="Settings_WebRemoteControlEnabled" xml:space="preserve">
+    <value>Afstandsbediening op de telefoon inschakelen</value>
+  </data>
+  <data name="Settings_WebRemoteControlDescription" xml:space="preserve">
+    <value>Een aparte pagina die kan afspelen, pauzeren, overslaan en aan de wachtrij toevoegen. Iedereen die erbij kan en de pincode kent, kan veranderen waarop de zaal danst, dus dit staat uit tenzij je het wilt.</value>
+  </data>
+  <data name="Settings_WebRemoteControlPin" xml:space="preserve">
+    <value>Pincode</value>
+  </data>
+  <data name="Settings_WebRegeneratePin" xml:space="preserve">
+    <value>Nieuwe pincode</value>
+  </data>
+  <data name="Settings_WebRegeneratePinDescription" xml:space="preserve">
+    <value>Een nieuwe pincode verbreekt de verbinding met elke telefoon die de oude gebruikt.</value>
+  </data>
+  <data name="Settings_WebServerAddresses" xml:space="preserve">
+    <value>Openen in een browser</value>
+  </data>
+  <data name="Settings_WebServerRunning" xml:space="preserve">
+    <value>Actief</value>
+  </data>
+  <data name="Settings_WebServerStopped" xml:space="preserve">
+    <value>Gestopt</value>
+  </data>
+  <data name="Settings_WebServerStarting" xml:space="preserve">
+    <value>Wordt gestart</value>
+  </data>
+  <data name="Settings_WebServerFailed" xml:space="preserve">
+    <value>Mislukt: {0}</value>
+  </data>
+  <data name="Settings_WebServerStopping" xml:space="preserve">
+    <value>Wordt gestopt</value>
+  </data>
 </root>
