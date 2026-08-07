@@ -1,5 +1,16 @@
 <Project>
 
+    <!--
+        The un4seen download URLs carry no version and always serve the latest build, so the
+        downloads below are what keep a local checkout in step with CI. They rely on
+        SkipUnchangedFiles, which compares size and remote last-modified and so costs only a
+        headers request per build unless un4seen has actually published something new. Guarding
+        them on the zip already existing would short-circuit that and let a stale local cache
+        drift from CI indefinitely.
+
+        Set BassSkipDownload=true to build offline from whatever is already in build/bass-native.
+    -->
+
     <PropertyGroup>
         <BassNativeDir>$(MSBuildThisFileDirectory)build/bass-native/</BassNativeDir>
         <_BassIsWindows>$([MSBuild]::IsOSPlatform('Windows'))</_BassIsWindows>
@@ -57,12 +68,12 @@
         <DownloadFile SourceUrl="$(_BassZipUrl)"
                       DestinationFolder="$(BassNativeDir)"
                       SkipUnchangedFiles="true"
-                      Condition="!Exists('$(BassNativeDir)$(_BassZipFile)')"/>
+                      Retries="3"
+                      Condition="'$(BassSkipDownload)' != 'true'"/>
 
         <Unzip SourceFiles="$(BassNativeDir)$(_BassZipFile)"
                DestinationFolder="$(BassNativeDir)$(_BassExtractDir)"
-               OverwriteReadOnlyFiles="true"
-               Condition="!Exists('$(BassNativeDir)$(_BassExtractDir)$(_BassNativeFile)')"/>
+               OverwriteReadOnlyFiles="true"/>
 
         <ItemGroup>
             <None Include="$(BassNativeDir)$(_BassExtractDir)$(_BassNativeFile)"
@@ -121,18 +132,82 @@
         <DownloadFile SourceUrl="$(_BassFlacZipUrl)"
                       DestinationFolder="$(BassNativeDir)"
                       SkipUnchangedFiles="true"
-                      Condition="!Exists('$(BassNativeDir)$(_BassFlacZipFile)')"/>
+                      Retries="3"
+                      Condition="'$(BassSkipDownload)' != 'true'"/>
 
         <Unzip SourceFiles="$(BassNativeDir)$(_BassFlacZipFile)"
                DestinationFolder="$(BassNativeDir)$(_BassFlacExtractDir)"
-               OverwriteReadOnlyFiles="true"
-               Condition="!Exists('$(BassNativeDir)$(_BassFlacExtractDir)$(_BassFlacNativeFile)')"/>
+               OverwriteReadOnlyFiles="true"/>
 
         <ItemGroup>
             <None Include="$(BassNativeDir)$(_BassFlacExtractDir)$(_BassFlacNativeFile)"
                   CopyToOutputDirectory="PreserveNewest"
                   CopyToPublishDirectory="Always"
                   Link="$(_BassFlacOutputFile)" />
+        </ItemGroup>
+    </Target>
+
+    <!-- BASS_FX: Windows -->
+    <PropertyGroup Condition="'$(_BassIsWindows)' == 'true'">
+        <_BassFxZipUrl>https://www.un4seen.com/files/z/0/bass_fx24.zip</_BassFxZipUrl>
+        <_BassFxZipFile>bass_fx24.zip</_BassFxZipFile>
+        <_BassFxExtractDir>win-fx/</_BassFxExtractDir>
+        <_BassFxOutputFile>bass_fx.dll</_BassFxOutputFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsWindows)' == 'true' AND '$(_BassArch)' == 'X64'">
+        <_BassFxNativeFile>x64/bass_fx.dll</_BassFxNativeFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsWindows)' == 'true' AND '$(_BassArch)' == 'X86'">
+        <_BassFxNativeFile>bass_fx.dll</_BassFxNativeFile>
+    </PropertyGroup>
+
+    <!-- BASS_FX: Linux -->
+    <PropertyGroup Condition="'$(_BassIsLinux)' == 'true'">
+        <_BassFxZipUrl>https://www.un4seen.com/files/z/0/bass_fx24-linux.zip</_BassFxZipUrl>
+        <_BassFxZipFile>bass_fx24-linux.zip</_BassFxZipFile>
+        <_BassFxExtractDir>linux-fx/</_BassFxExtractDir>
+        <_BassFxOutputFile>libbass_fx.so</_BassFxOutputFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsLinux)' == 'true' AND '$(_BassArch)' == 'X64'">
+        <_BassFxNativeFile>libs/x86_64/libbass_fx.so</_BassFxNativeFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_BassIsLinux)' == 'true' AND '$(_BassArch)' == 'Arm64'">
+        <_BassFxNativeFile>libs/aarch64/libbass_fx.so</_BassFxNativeFile>
+    </PropertyGroup>
+
+    <!-- BASS_FX: macOS -->
+    <PropertyGroup Condition="'$(_BassIsMacOS)' == 'true'">
+        <_BassFxZipUrl>https://www.un4seen.com/files/z/0/bass_fx24-osx.zip</_BassFxZipUrl>
+        <_BassFxZipFile>bass_fx24-osx.zip</_BassFxZipFile>
+        <_BassFxExtractDir>osx-fx/</_BassFxExtractDir>
+        <_BassFxOutputFile>libbass_fx.dylib</_BassFxOutputFile>
+        <_BassFxNativeFile>libbass_fx.dylib</_BassFxNativeFile>
+    </PropertyGroup>
+
+    <Target Name="DownloadBassFxNative"
+            BeforeTargets="PrepareForBuild"
+            Condition="'$(_BassFxZipUrl)' != '' AND '$(_BassFxNativeFile)' != ''">
+        <MakeDir Directories="$(BassNativeDir)"/>
+
+        <DownloadFile SourceUrl="$(_BassFxZipUrl)"
+                      DestinationFolder="$(BassNativeDir)"
+                      SkipUnchangedFiles="true"
+                      Retries="3"
+                      Condition="'$(BassSkipDownload)' != 'true'"/>
+
+        <Unzip SourceFiles="$(BassNativeDir)$(_BassFxZipFile)"
+               DestinationFolder="$(BassNativeDir)$(_BassFxExtractDir)"
+               OverwriteReadOnlyFiles="true"/>
+
+        <ItemGroup>
+            <None Include="$(BassNativeDir)$(_BassFxExtractDir)$(_BassFxNativeFile)"
+                  CopyToOutputDirectory="PreserveNewest"
+                  CopyToPublishDirectory="Always"
+                  Link="$(_BassFxOutputFile)" />
         </ItemGroup>
     </Target>
 

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Ready4Balfolk.Domain.Models.Settings;
 
 public sealed record ApplicationSettings(
@@ -20,7 +22,10 @@ public sealed record ApplicationSettings(
     // constant, and 1380 is 23:00.
     int QueueCutoffMinutesOfDay = 1380,
     // How far past the cutoff the queue may still run before adds are refused.
-    int QueueCutoffGraceMinutes = 2)
+    int QueueCutoffGraceMinutes = 2,
+    // Null rather than a flat instance, because a constructor default has to be a compile-time
+    // constant. Read it through Equalizer, never directly.
+    EqualizerSettings? EqualizerOrNull = null)
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [], [])
@@ -32,4 +37,12 @@ public sealed record ApplicationSettings(
 
     /// <summary>How far past the cutoff the queue may still run before adds are refused.</summary>
     public TimeSpan QueueCutoffGrace => TimeSpan.FromMinutes(Math.Max(0, QueueCutoffGraceMinutes));
+
+    /// <summary>Output equalizer, flat when the settings file predates it.</summary>
+    /// <remarks>
+    /// Ignored for serialization, or the whole equalizer would be written twice, once here and
+    /// once under EqualizerOrNull, with only the latter ever read back.
+    /// </remarks>
+    [JsonIgnore]
+    public EqualizerSettings Equalizer => EqualizerOrNull ?? EqualizerSettings.Flat;
 }
