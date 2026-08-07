@@ -84,7 +84,12 @@ public static class Program
             // bar, so the export buys nothing and throws on every other desktop.
             .With(new X11PlatformOptions
             {
-                UseDBusMenu = false
+                UseDBusMenu = false,
+                // Desktops match a window to its launcher entry by comparing WM_CLASS to the
+                // desktop file basename, and without that the taskbar shows a window with no
+                // icon next to a launcher that has one. Wayland sessions still miss out: that
+                // backend never sets the equivalent app_id at all, which is issue #46.
+                WmClass = "io.github.tjvl.Ready4Balfolk"
             })
             .UseReactiveUIWithMicrosoftDependencyResolver(
                 ConfigureServices,

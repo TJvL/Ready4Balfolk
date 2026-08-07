@@ -27,6 +27,8 @@ modules:
               "/app/share/icons/hicolor/${size}x${size}/apps/io.github.tjvl.Ready4Balfolk.png"
           fi
         done
+      - install -Dm644 stage/share/icons/hicolor/scalable/apps/io.github.tjvl.Ready4Balfolk.svg /app/share/icons/hicolor/scalable/apps/io.github.tjvl.Ready4Balfolk.svg
+      - install -Dm644 stage/share/icons/hicolor/symbolic/apps/io.github.tjvl.Ready4Balfolk-symbolic.svg /app/share/icons/hicolor/symbolic/apps/io.github.tjvl.Ready4Balfolk-symbolic.svg
     sources:
       - type: dir
         path: flatpak-stage

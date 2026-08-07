@@ -5,4 +5,4 @@ Comment=Music queue manager for bal folk events
 Exec=Ready4Balfolk.UI
 Icon=io.github.tjvl.Ready4Balfolk
 Terminal=false
-Categories=Audio;Music;
+Categories=AudioVideo;Audio;Music;
