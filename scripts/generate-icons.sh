@@ -104,7 +104,11 @@ for size in "${ICO_SIZES[@]}"; do
   ICO_INPUTS+=("$OUT/icon-${size}.png")
 done
 
-magick "${ICO_INPUTS[@]}" -strip "$OUT/icon.ico"
+# -type TrueColorAlpha because the small PNGs above have few enough colours that
+# ImageMagick stores them as palette images, and the ICO coder then writes 8bpp
+# palette frames whose transparency is a 1-bit mask. That throws away the
+# antialiased edges, so Windows renders the small sizes with hard jagged edges.
+magick "${ICO_INPUTS[@]}" -type TrueColorAlpha -strip "$OUT/icon.ico"
 echo "  icon.ico"
 
 # --- Generate ICNS (macOS only) ---
