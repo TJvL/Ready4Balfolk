@@ -50,7 +50,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         settingsStore.Current.Returns(settings);
         settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
 
-        _queue = new QueueService(settingsStore, _history, () => null, new NoOpLoggerService());
+        _queue = new QueueService(settingsStore, _history, () => null, () => TimeSpan.Zero, new NoOpLoggerService());
 
         _sut = new QueueConsumptionService(_audio, _queue, _history, new NoOpLoggerService());
     }

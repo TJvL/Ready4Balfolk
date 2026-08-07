@@ -6,6 +6,9 @@ namespace Ready4Balfolk.Domain.Services.Queue;
 public interface IQueueConsumptionService
 {
     IQueueItem? CurrentItem { get; }
+
+    /// <summary>How much of the current item is left to play, or zero when nothing is playing.</summary>
+    TimeSpan CurrentItemRemaining { get; }
     IObservable<IQueueItem?> WhenCurrentItemChanged { get; }
     IObservable<TimeSpan> WhenElapsedChanged { get; }
     IObservable<TimeSpan> WhenTotalDurationChanged { get; }

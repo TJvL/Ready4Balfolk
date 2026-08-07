@@ -36,7 +36,7 @@ public sealed class QueueServiceTests : IDisposable
         historyStore.Current.Returns(_ => _historySubject.Value);
         historyStore.Observe().Returns(_historySubject);
 
-        _sut = new QueueService(settingsStore, historyStore, () => null, new NoOpLoggerService());
+        _sut = new QueueService(settingsStore, historyStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService());
     }
 
     // --- Basic ops ---

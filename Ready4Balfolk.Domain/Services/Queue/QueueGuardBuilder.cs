@@ -9,7 +9,8 @@ public static class QueueGuardBuilder
     public static IQueueGuard FromSettings(
         ApplicationSettings settings,
         Func<IQueueItem?> currentItemProvider,
-        IQueueHistoryStore historyStore)
+        IQueueHistoryStore historyStore,
+        Func<TimeSpan> currentItemRemainingProvider)
     {
         var rules = new List<IQueueRule>
         {
@@ -18,6 +19,12 @@ public static class QueueGuardBuilder
         if (!settings.AllowDuplicateTracksInQueue)
         {
             rules.Add(new DuplicateTrackRule(currentItemProvider, historyStore));
+        }
+
+        if (settings.QueueCutoffEnabled)
+        {
+            rules.Add(new QueueCutoffRule(settings.QueueCutoff, settings.QueueCutoffGrace,
+                currentItemRemainingProvider, () => DateTime.Now));
         }
 
         rules.Add(new MaxItemsRule(settings.MaxQueueItems));
