@@ -101,7 +101,11 @@ finally {
 
 # --- Generate ICO ---
 $icoInputs = $IcoSizes | ForEach-Object { Join-Path $Out "icon-${_}.png" }
-& magick @icoInputs -strip (Join-Path $Out 'icon.ico')
+# -type TrueColorAlpha because the small PNGs above have few enough colours that
+# ImageMagick stores them as palette images, and the ICO coder then writes 8bpp
+# palette frames whose transparency is a 1-bit mask. That throws away the
+# antialiased edges, so Windows renders the small sizes with hard jagged edges.
+& magick @icoInputs -type TrueColorAlpha -strip (Join-Path $Out 'icon.ico')
 if ($LASTEXITCODE -ne 0) { throw 'magick failed for icon.ico' }
 Write-Host '  icon.ico'
 
