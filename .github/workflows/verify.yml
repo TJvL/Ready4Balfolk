@@ -8,7 +8,7 @@ on:
   workflow_call:
 
 jobs:
-  verify:
+  test:
     # Both released platforms, because the tests have to run somewhere they could fail differently:
     # Directory.Build.targets resolves the BASS natives from the host OS, and the paths the stores
     # write to are not the same shape on Windows.
@@ -43,3 +43,20 @@ jobs:
 
       - name: Run tests
         run: dotnet test Ready4Balfolk.Tests/ -c Release --no-build --verbosity normal
+
+  # A stable name for the branch ruleset to require. A matrix reports one status check per leg,
+  # named after its matrix values, so requiring those directly means editing the ruleset every time
+  # the matrix changes — and a leg nobody remembered to add is a leg that cannot block a merge.
+  # This job is the contract; what runs underneath it is free to change.
+  verify:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every platform passed
+        run: |
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "The verify matrix finished as: ${{ needs.test.result }}"
+            exit 1
+          fi
+          echo "Verify passed on every platform."

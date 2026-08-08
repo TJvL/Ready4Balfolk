@@ -12,7 +12,7 @@ on:
         type: string
 
 jobs:
-  build:
+  publish:
     strategy:
       matrix:
         include:
@@ -119,3 +119,19 @@ jobs:
         with:
           name: linux-x64-flatpak-publish
           path: publish-flatpak/
+
+  # A stable name for the branch ruleset to require, for the same reason verify.yml has one: the
+  # matrix legs above are named after their matrix values, and a smoke test that cannot block a
+  # merge is a smoke test that reports regressions rather than preventing them.
+  build:
+    needs: publish
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every platform published and started
+        run: |
+          if [[ "${{ needs.publish.result }}" != "success" ]]; then
+            echo "The build matrix finished as: ${{ needs.publish.result }}"
+            exit 1
+          fi
+          echo "Every platform published and its portable build started cleanly."
