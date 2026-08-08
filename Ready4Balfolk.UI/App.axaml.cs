@@ -137,7 +137,9 @@ public sealed class App : Application
 
             mainWindow.Closing += (_, e) =>
             {
-                if (_closing)
+                // The smoke test shuts the app down itself and there is nobody there to answer a
+                // confirmation dialog, so the close has to go straight through.
+                if (_closing || Program.IsSmokeTest)
                 {
                     return;
                 }

@@ -44,13 +44,19 @@ public static class Program
 {
     internal static readonly Stopwatch StartupStopwatch = new();
 
+    /// <summary>
+    /// True when started with <c>--smoke-test</c>: the app comes up for a CI check rather than for
+    /// a user, so it must be able to shut itself down and must not depend on an audio device.
+    /// </summary>
+    internal static bool IsSmokeTest { get; private set; }
+
     private static LogLevel _minimumLogLevel = LogLevel.Info;
 
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
         StartupStopwatch.Start();
 
@@ -64,9 +70,13 @@ public static class Program
             _minimumLogLevel = LogLevel.Debug;
         }
 
+        IsSmokeTest = args.Contains("--smoke-test", StringComparer.OrdinalIgnoreCase);
+
         try
         {
-            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+            return IsSmokeTest
+                ? SmokeTest.Run(BuildAvaloniaApp(), args)
+                : BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
         {
@@ -141,7 +151,10 @@ public static class Program
             {
                 MinimumLevel = _minimumLogLevel
             });
-        services.AddSingleton<IAudioPlaybackService, ManagedBassAudioPlaybackService>();
+        services.AddSingleton<IAudioPlaybackService>(sp => new ManagedBassAudioPlaybackService(
+            sp.GetRequiredService<ILoggerService>(),
+            sp.GetRequiredService<ISettingsStore>(),
+            useNoSoundDevice: IsSmokeTest));
         services.AddSingleton<IQueueService>(sp =>
         {
             var consumption =

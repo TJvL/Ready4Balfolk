@@ -22,6 +22,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private readonly Subject<TimeSpan> _durationChanged = new();
     private readonly BehaviorSubject<bool> _isAvailable = new(true);
     private readonly ILoggerService _loggerService;
+    private readonly bool _useNoSoundDevice;
 
     private readonly CompositeDisposable _disposables = [];
     private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -37,9 +38,22 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private bool _disposed;
     private EqualizerSettings _equalizerSettings = EqualizerSettings.Flat;
 
-    public ManagedBassAudioPlaybackService(ILoggerService loggerService, ISettingsStore settingsStore)
+    /// <param name="loggerService">Where initialisation results and playback failures are recorded.</param>
+    /// <param name="settingsStore">Supplies the equalizer settings the effect chain starts from.</param>
+    /// <param name="useNoSoundDevice">
+    /// Initialises BASS against its "no sound" device instead of the default output. The library,
+    /// its plugins and the whole effect chain come up exactly as they would against real hardware;
+    /// only the audio goes nowhere. For the CI smoke test, where the runner has no sound card at
+    /// all, this keeps the check measuring what it is there to measure — that the native libraries
+    /// shipped and load — rather than whether the machine can make a noise.
+    /// </param>
+    public ManagedBassAudioPlaybackService(
+        ILoggerService loggerService,
+        ISettingsStore settingsStore,
+        bool useNoSoundDevice = false)
     {
         _loggerService = loggerService;
+        _useNoSoundDevice = useNoSoundDevice;
         _equalizerSettings = settingsStore.Current.Equalizer;
 
         WhenProgressChanged = Observable.Interval(TimeSpan.FromMilliseconds(100))
@@ -349,9 +363,12 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
     private void InitializeBass()
     {
+        // -1 is the default output; 0 is BASS's "no sound" device.
+        var device = _useNoSoundDevice ? 0 : -1;
+
         try
         {
-            if (!Bass.Init())
+            if (!Bass.Init(device))
             {
                 _bassFailed = true;
                 _isAvailable.OnNext(false);
@@ -377,12 +394,46 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
         InitializeEqualizer();
 
-        var flacPluginHandle = Bass.PluginLoad("bassflac");
+        var flacPluginHandle = Bass.PluginLoad(ResolveNativeLibrary(
+            OperatingSystem.IsWindows() ? "bassflac.dll" : "libbassflac.so"));
         _ = flacPluginHandle == 0
             ? _loggerService.WarningAsync($"Failed to load BASSFLAC plugin: {Bass.LastError}")
             : _loggerService.DebugAsync("BASSFLAC plugin loaded");
 
         DiscoverSupportedExtensions(flacPluginHandle);
+    }
+
+    /// <summary>
+    /// Finds a BASS add-on on disk so it can be loaded by full path.
+    /// </summary>
+    /// <remarks>
+    /// PluginLoad is a LoadLibrary/dlopen from inside BASS itself, so it searches the operating
+    /// system's library path and knows nothing about where .NET put the file. Under
+    /// PublishSingleFile the natives are extracted to a temp directory that is on neither path,
+    /// and the Windows builds shipped without FLAC support because of it. Managed P/Invokes such
+    /// as bass and bass_fx are unaffected, because those go through .NET's own resolver — which
+    /// is also where the extraction directory can be read back from.
+    /// </remarks>
+    private static string ResolveNativeLibrary(string fileName)
+    {
+        var directories = new List<string> { AppContext.BaseDirectory };
+
+        if (AppContext.GetData("NATIVE_DLL_SEARCH_DIRECTORIES") is string searchPath)
+        {
+            directories.AddRange(searchPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        foreach (var candidate in directories.Select(directory => Path.Combine(directory, fileName)))
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        // Nothing found. Hand back the bare name so BASS searches the system path and reports its
+        // own error, rather than inventing a path that is certain to fail.
+        return fileName;
     }
 
     /// <summary>

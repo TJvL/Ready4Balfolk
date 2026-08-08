@@ -15,7 +15,6 @@
         <BassNativeDir>$(MSBuildThisFileDirectory)build/bass-native/</BassNativeDir>
         <_BassIsWindows>$([MSBuild]::IsOSPlatform('Windows'))</_BassIsWindows>
         <_BassIsLinux>$([MSBuild]::IsOSPlatform('Linux'))</_BassIsLinux>
-        <_BassIsMacOS>$([MSBuild]::IsOSPlatform('OSX'))</_BassIsMacOS>
         <_BassArch>$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)</_BassArch>
     </PropertyGroup>
 
@@ -49,15 +48,6 @@
 
     <PropertyGroup Condition="'$(_BassIsLinux)' == 'true' AND '$(_BassArch)' == 'Arm64'">
         <_BassNativeFile>libs/aarch64/libbass.so</_BassNativeFile>
-    </PropertyGroup>
-
-    <!-- BASS: macOS -->
-    <PropertyGroup Condition="'$(_BassIsMacOS)' == 'true'">
-        <_BassZipUrl>https://www.un4seen.com/files/bass24-osx.zip</_BassZipUrl>
-        <_BassZipFile>bass24-osx.zip</_BassZipFile>
-        <_BassExtractDir>osx/</_BassExtractDir>
-        <_BassOutputFile>libbass.dylib</_BassOutputFile>
-        <_BassNativeFile>libbass.dylib</_BassNativeFile>
     </PropertyGroup>
 
     <Target Name="DownloadBassNative"
@@ -115,15 +105,6 @@
         <_BassFlacNativeFile>libs/aarch64/libbassflac.so</_BassFlacNativeFile>
     </PropertyGroup>
 
-    <!-- BASSFLAC: macOS -->
-    <PropertyGroup Condition="'$(_BassIsMacOS)' == 'true'">
-        <_BassFlacZipUrl>https://www.un4seen.com/files/bassflac24-osx.zip</_BassFlacZipUrl>
-        <_BassFlacZipFile>bassflac24-osx.zip</_BassFlacZipFile>
-        <_BassFlacExtractDir>osx-flac/</_BassFlacExtractDir>
-        <_BassFlacOutputFile>libbassflac.dylib</_BassFlacOutputFile>
-        <_BassFlacNativeFile>libbassflac.dylib</_BassFlacNativeFile>
-    </PropertyGroup>
-
     <Target Name="DownloadBassFlacNative"
             BeforeTargets="PrepareForBuild"
             Condition="'$(_BassFlacZipUrl)' != '' AND '$(_BassFlacNativeFile)' != ''">
@@ -177,15 +158,6 @@
 
     <PropertyGroup Condition="'$(_BassIsLinux)' == 'true' AND '$(_BassArch)' == 'Arm64'">
         <_BassFxNativeFile>libs/aarch64/libbass_fx.so</_BassFxNativeFile>
-    </PropertyGroup>
-
-    <!-- BASS_FX: macOS -->
-    <PropertyGroup Condition="'$(_BassIsMacOS)' == 'true'">
-        <_BassFxZipUrl>https://www.un4seen.com/files/z/0/bass_fx24-osx.zip</_BassFxZipUrl>
-        <_BassFxZipFile>bass_fx24-osx.zip</_BassFxZipFile>
-        <_BassFxExtractDir>osx-fx/</_BassFxExtractDir>
-        <_BassFxOutputFile>libbass_fx.dylib</_BassFxOutputFile>
-        <_BassFxNativeFile>libbass_fx.dylib</_BassFxNativeFile>
     </PropertyGroup>
 
     <Target Name="DownloadBassFxNative"

@@ -1,0 +1,103 @@
+name: Smoke Test Packages
+
+# Installs each release package the way a user would and launches what the installer actually put
+# on disk. The portable builds are already checked inside build-binaries.yml; what only this can
+# catch is a packaging bug the portable build hides — a native library that is present in publish/
+# but never copied into the bundle, an installer that writes the executable somewhere the shortcut
+# does not point, a Flatpak manifest missing a permission the app needs to start.
+
+on:
+  workflow_call:
+
+jobs:
+  flatpak:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Install Flatpak and smoke test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            flatpak xvfb cage libx11-6 libice6 libsm6 libfontconfig1 fonts-dejavu-core
+
+          # Ubuntu 24.04 confines unprivileged user namespaces with an AppArmor profile, and
+          # bubblewrap — and so every flatpak run — needs them. The runner is a throwaway VM.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Install the Flatpak bundle
+        run: |
+          set -euo pipefail
+          bundle=$(find artifacts -name '*.flatpak' -print -quit)
+          if [ -z "$bundle" ]; then
+            echo "no .flatpak bundle among the build artifacts"
+            exit 1
+          fi
+          echo "installing $bundle"
+
+          # The bundle carries the app but not org.freedesktop.Platform, which it is built against.
+          flatpak remote-add --user --if-not-exists \
+            flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive --bundle "$bundle"
+
+      - name: Smoke test the installed Flatpak (X11)
+        run: scripts/smoke-test.sh x11 flatpak run io.github.tjvl.Ready4Balfolk
+
+      - name: Smoke test the installed Flatpak (Wayland)
+        run: scripts/smoke-test.sh wayland flatpak run io.github.tjvl.Ready4Balfolk
+
+      - name: Uninstall the Flatpak
+        run: flatpak uninstall --user --noninteractive io.github.tjvl.Ready4Balfolk
+
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Install silently
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = Get-ChildItem artifacts -Recurse -Filter '*-setup.exe' | Select-Object -First 1
+          if (-not $setup) { throw 'no installer among the build artifacts' }
+          Write-Host "installing $($setup.FullName)"
+
+          # setup.iss marks its post-install launch skipifsilent, so this installs and returns
+          # rather than leaving a window open for the step below to fight with.
+          $process = Start-Process -FilePath $setup.FullName `
+            -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "installer exited with $($process.ExitCode)" }
+
+      # setup.iss installs into {autopf}, which with PrivilegesRequired=admin is Program Files.
+      - name: Smoke test the installed application
+        shell: pwsh
+        run: ./scripts/smoke-test.ps1 "$env:ProgramFiles\Ready4Balfolk\Ready4Balfolk.UI.exe"
+
+      - name: Uninstall silently
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installDir = "$env:ProgramFiles\Ready4Balfolk"
+          $uninstaller = Get-ChildItem $installDir -Filter 'unins*.exe' | Select-Object -First 1
+          if (-not $uninstaller) { throw 'the installer left no uninstaller behind' }
+
+          # Inno's uninstaller relaunches itself out of the temp directory and the process started
+          # here returns immediately, so its exit code says nothing. Wait for the result instead.
+          Start-Process -FilePath $uninstaller.FullName `
+            -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
+
+          $deadline = (Get-Date).AddMinutes(2)
+          while ((Test-Path $installDir) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2 }
+          if (Test-Path $installDir) { throw "uninstall left $installDir behind" }
