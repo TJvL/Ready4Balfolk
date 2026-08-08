@@ -394,12 +394,46 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
         InitializeEqualizer();
 
-        var flacPluginHandle = Bass.PluginLoad("bassflac");
+        var flacPluginHandle = Bass.PluginLoad(ResolveNativeLibrary(
+            OperatingSystem.IsWindows() ? "bassflac.dll" : "libbassflac.so"));
         _ = flacPluginHandle == 0
             ? _loggerService.WarningAsync($"Failed to load BASSFLAC plugin: {Bass.LastError}")
             : _loggerService.DebugAsync("BASSFLAC plugin loaded");
 
         DiscoverSupportedExtensions(flacPluginHandle);
+    }
+
+    /// <summary>
+    /// Finds a BASS add-on on disk so it can be loaded by full path.
+    /// </summary>
+    /// <remarks>
+    /// PluginLoad is a LoadLibrary/dlopen from inside BASS itself, so it searches the operating
+    /// system's library path and knows nothing about where .NET put the file. Under
+    /// PublishSingleFile the natives are extracted to a temp directory that is on neither path,
+    /// and the Windows builds shipped without FLAC support because of it. Managed P/Invokes such
+    /// as bass and bass_fx are unaffected, because those go through .NET's own resolver — which
+    /// is also where the extraction directory can be read back from.
+    /// </remarks>
+    private static string ResolveNativeLibrary(string fileName)
+    {
+        var directories = new List<string> { AppContext.BaseDirectory };
+
+        if (AppContext.GetData("NATIVE_DLL_SEARCH_DIRECTORIES") is string searchPath)
+        {
+            directories.AddRange(searchPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        foreach (var candidate in directories.Select(directory => Path.Combine(directory, fileName)))
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        // Nothing found. Hand back the bare name so BASS searches the system path and reports its
+        // own error, rather than inventing a path that is certain to fail.
+        return fileName;
     }
 
     /// <summary>
