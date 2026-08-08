@@ -7,6 +7,7 @@ using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
+using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Tracks;
 
 namespace Ready4Balfolk.Tests.Integration;
@@ -16,6 +17,9 @@ public sealed class TrackStoreTests : IDisposable
     private readonly DirectoryInfo _tempDirA;
     private readonly DirectoryInfo _tempDirB;
     private readonly ILoggerService _loggerService;
+    private readonly ITrackDiscoveryService _discoveryService;
+    private readonly ILibraryIndex _libraryIndex;
+    private Dictionary<string, LibraryEntry> _indexSnapshot = [];
     private readonly TrackStore _sut;
 
     public TrackStoreTests()
@@ -27,11 +31,15 @@ public sealed class TrackStoreTests : IDisposable
 
         _loggerService = Substitute.For<ILoggerService>();
 
-        var discoveryService = Substitute.For<ITrackDiscoveryService>();
+        _discoveryService = Substitute.For<ITrackDiscoveryService>();
+        var discoveryService = _discoveryService;
         discoveryService.LoadTrack(Arg.Any<FileInfo>())
             .Returns(call => CreateTrackFor(call.Arg<FileInfo>()!));
         discoveryService.LoadTrackWithDuration(Arg.Any<FileInfo>(), Arg.Any<TimeSpan>())
             .Returns(call => CreateTrackFor(call.Arg<FileInfo>()!));
+        discoveryService.Scan(Arg.Any<FileInfo>())
+            .Returns(call => new ScannedAudioFile("Mazurka", "Artist", call.Arg<FileInfo>()!.Name,
+                TimeSpan.FromSeconds(180), AudioFormat.Mp3, [1, 2, 3]));
 
         // An empty list: every track stays unresolved, keeping the name the file gave it, which is
         // what these tests assert on.
@@ -40,11 +48,13 @@ public sealed class TrackStoreTests : IDisposable
         danceListStore.Index.Returns(DanceListIndex.Empty);
         danceListStore.Observe().Returns(Observable.Never<DanceList>());
 
-        var durationCache = Substitute.For<ITrackDurationCache>();
-        durationCache.TryGetDuration(Arg.Any<string>(), Arg.Any<DateTime>())
-            .Returns((TimeSpan?)null);
+        // An index that knows nothing, so every file is read: these tests are about the store's
+        // discovery and watching, not about what the index remembers.
+        _libraryIndex = Substitute.For<ILibraryIndex>();
+        _libraryIndex.SnapshotByPathAsync(Arg.Any<CancellationToken>())
+            .Returns(_ => _indexSnapshot);
 
-        _sut = new TrackStore(_loggerService, discoveryService, danceListStore, durationCache);
+        _sut = new TrackStore(_loggerService, discoveryService, danceListStore, _libraryIndex);
     }
 
     [Fact]
@@ -115,6 +125,71 @@ public sealed class TrackStoreTests : IDisposable
         directory.Create();
         return directory;
     }
+
+    [Fact]
+    public async Task UnchangedFile_IsNotOpened()
+    {
+        var path = Path.Combine(_tempDirA.FullName, "known.mp3");
+        await File.WriteAllTextAsync(path, "audio", TestContext.Current.CancellationToken);
+        var file = new FileInfo(path);
+        _indexSnapshot = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
+        {
+            [path] = IndexedAs(file, "Mazurka")
+        };
+
+        _sut.MusicDirectory = _tempDirA;
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        // The whole point of the index: a startup that finds nothing changed touches no audio.
+        _discoveryService.DidNotReceiveWithAnyArgs().Scan(default!);
+        Assert.Equal("Mazurka", _sut.Current[0].Dance);
+        Assert.Equal(TimeSpan.FromSeconds(42), _sut.Current[0].Length);
+    }
+
+    [Fact]
+    public async Task ChangedFile_IsReadAgain()
+    {
+        var path = Path.Combine(_tempDirA.FullName, "changed.mp3");
+        await File.WriteAllTextAsync(path, "audio", TestContext.Current.CancellationToken);
+        var file = new FileInfo(path);
+        _indexSnapshot = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
+        {
+            // A size the file no longer has, which is what "this changed" looks like without
+            // opening it.
+            [path] = IndexedAs(file, "Mazurka") with { FileSize = file.Length + 1 }
+        };
+
+        _sut.MusicDirectory = _tempDirA;
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        _discoveryService.ReceivedWithAnyArgs().Scan(default!);
+    }
+
+    [Fact]
+    public async Task FileTheIndexHasNeverSeen_IsReadAndWrittenBack()
+    {
+        await File.WriteAllTextAsync(
+            Path.Combine(_tempDirA.FullName, "fresh.mp3"), "audio", TestContext.Current.CancellationToken);
+
+        _sut.MusicDirectory = _tempDirA;
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        await _libraryIndex.ReceivedWithAnyArgs().WriteAsync(default!, TestContext.Current.CancellationToken);
+    }
+
+    private static LibraryEntry IndexedAs(FileInfo file, string dance) => new()
+    {
+        ContentHash = [7],
+        Path = file.FullName,
+        FileSize = file.Length,
+        LastWriteUtc = file.LastWriteTimeUtc,
+        Duration = TimeSpan.FromSeconds(42),
+        Format = AudioFormat.Mp3,
+        DanceSlug = null,
+        OriginalDance = dance,
+        Artist = "Artist",
+        Title = file.Name
+    };
 
     private static Track CreateTrackFor(FileInfo fileInfo)
         => new("Mazurka", "Artist", fileInfo.Name, fileInfo,

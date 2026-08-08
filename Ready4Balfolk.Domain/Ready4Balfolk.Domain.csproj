@@ -11,6 +11,8 @@
       <PackageReference Include="DynamicData" Version="9.4.33" />
       <PackageReference Include="ManagedBass" Version="4.0.2" />
       <PackageReference Include="ManagedBass.Fx" Version="4.0.2" />
+      <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+      <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
       <PackageReference Include="TagLibSharp" Version="2.3.0" />
     </ItemGroup>
 

@@ -8,7 +8,7 @@ Ready4Balfolk is a two-project Avalonia desktop application for managing and pla
 
 | Project | Purpose | Key dependencies |
 |---------|---------|-----------------|
-| `Ready4Balfolk.Domain` | Models, stores, services — no UI dependencies | System.Reactive, DynamicData, ManagedBass, System.Text.Json |
+| `Ready4Balfolk.Domain` | Models, stores, services — no UI dependencies | System.Reactive, DynamicData, ManagedBass, System.Text.Json, Microsoft.Data.Sqlite |
 | `Ready4Balfolk.UI` | Views, ViewModels, converters, UI services | Avalonia 11, ReactiveUI, ReactiveUI.SourceGenerators |
 
 **Key principles:**
@@ -54,6 +54,16 @@ Impl:       XxxStore   →  BehaviorSubject<T> + SemaphoreSlim + JSON file I/O
 
 The `TrackStore` is different: it uses a DynamicData `SourceList<Track>` instead of `BehaviorSubject`, exposes `Connect()` for reactive collection binding, integrates a `FileSystemWatcher` for live directory monitoring, and uses `Task.WhenEach()` for streaming track discovery.
 
+### Library index
+
+`Stores/Library/` is the index of what is in the music directory, in SQLite (`library.sqlite`). It replaced a JSON duration cache, and its job is that **a startup which finds nothing changed opens no audio files at all** — verified on a 345-track library: first run 345 files read, second run 0.
+
+- **`Microsoft.Data.Sqlite` appears in `SqliteLibraryIndex` and nowhere else.** Extracting a `.Data` project later should be a file move, not an untangling.
+- `id INTEGER PRIMARY KEY` is an alias for the rowid, so there is no second index to maintain. **`content_hash BLOB UNIQUE` is the natural key** and what an upsert conflicts on, so a renamed or retagged file keeps its row along with everything the user decided about it.
+- The hash is over **the audio stream only** (`AudioContentHasher`, using TagLib's invariant start/end positions). The application writes tags into files itself, and a whole-file hash would make every one of its own edits look like a new track.
+- The **fast path is path + size + last-write-time**, held in a snapshot read once per scan. Hashing would be a better check and is what the row is keyed by, but it means opening the file, which is the cost the index exists to avoid.
+- The index stores **the slug, not a name**, plus `original_dance` for the tagging editor to group by. `CountUnresolvedAsync` is a query, so the count of files the dance list has nothing to say about survives a restart for free.
+
 `DanceListStore` owns `dance_list.json` and additionally exposes an `Index`. The index is rebuilt *before* the new list is published, so a subscriber reacting to a change never reads a lookup built from the list it just replaced.
 
 **To add a new store:**
@@ -73,7 +83,8 @@ Services hold **ephemeral runtime state** and operational logic — queue manage
 | `QueueConsumptionService` | Dequeues items, drives playback, tracks elapsed time, records history. |
 | `AudioPlaybackService` | ManagedBass wrapper for audio playback (play, pause, seek, volume). |
 | `RandomTrackService` | Weighted random selection straight from the dance list (category weight x dance weight), with deduplication against queue + history + currently playing. Groups tracks by slug, so an unresolved track never takes part. |
-| `TrackDiscoveryService` | Reads audio metadata (TagLib) to produce `Track` records. |
+| `TrackDiscoveryService` | Reads audio metadata (TagLib) to produce `Track` records. `Scan` opens the file once and returns tags, duration and content hash together, because opening it is the expensive part. |
+| `AudioContentHasher` | SHA-256 over the audio between the tags, so the application's own tag edits do not move a row in the library index. |
 | `BigBalfolkListImporter` | One-time read of the `dances.json` BigBalfolkList publishes. Region becomes a category, family or suite a sub-category, everything weight 1. Static, because it is a pure function of a file. |
 | `DanceListValidation` | Checks the one invariant everything else rests on: a name belongs to exactly one dance. |
 

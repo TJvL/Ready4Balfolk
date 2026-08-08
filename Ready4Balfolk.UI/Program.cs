@@ -19,6 +19,7 @@ using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Services;
@@ -167,7 +168,7 @@ public static class Program
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
         services.AddSingleton<IApplicationSettingsDirectory, ApplicationSettingsDirectory>();
         services.AddTransient<IEditorHistoryService, EditorHistoryService>();
-        services.AddSingleton<ITrackDurationCache, TrackDurationCache>();
+        services.AddSingleton<ILibraryIndex, SqliteLibraryIndex>();
         services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<IPresentationStateService, PresentationStateService>();

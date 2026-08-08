@@ -19,6 +19,35 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
         return new Track(dance, artist, title, fileInfo, duration, format);
     }
 
+    public ScannedAudioFile Scan(FileInfo fileInfo)
+    {
+        var (dance, artist, title) = ParseFileName(fileInfo);
+        var format = ParseAudioFormat(fileInfo);
+
+        TimeSpan duration;
+        long audioStart;
+        long audioEnd;
+        try
+        {
+            using var file = TagLib.File.Create(fileInfo.FullName);
+            duration = file.Properties.Duration;
+            // The audio, not the tags: see AudioContentHasher.
+            audioStart = file.InvariantStartPosition;
+            audioEnd = file.InvariantEndPosition;
+        }
+        catch (IOException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new IOException($"Unable to read '{fileInfo.Name}'.", exception);
+        }
+
+        return new ScannedAudioFile(dance, artist, title, duration, format,
+            AudioContentHasher.Compute(fileInfo, audioStart, audioEnd));
+    }
+
     private static (string Dance, string Artist, string Title) ParseFileName(FileInfo fileInfo)
     {
         var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileInfo.Name);

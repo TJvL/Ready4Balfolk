@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -9,6 +10,7 @@ using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
+using Ready4Balfolk.Domain.Stores.Library;
 
 namespace Ready4Balfolk.Domain.Stores.Tracks;
 
@@ -18,7 +20,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly ILoggerService _loggerService;
     private readonly ITrackDiscoveryService _discoveryService;
     private readonly IDanceListStore _danceListStore;
-    private readonly ITrackDurationCache _durationCache;
+    private readonly ILibraryIndex _libraryIndex;
     private readonly SourceList<Track> _tracks = new();
     private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly IDisposable _danceListSubscription;
@@ -36,12 +38,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
         ILoggerService loggerService,
         ITrackDiscoveryService discoveryService,
         IDanceListStore danceListStore,
-        ITrackDurationCache durationCache)
+        ILibraryIndex libraryIndex)
     {
         _loggerService = loggerService;
         _discoveryService = discoveryService;
         _danceListStore = danceListStore;
-        _durationCache = durationCache;
+        _libraryIndex = libraryIndex;
 
         // Skip(1): the store replays its current list to a new subscriber, and re-resolving an
         // empty track list at construction is work with nothing to do.
@@ -203,26 +205,34 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _isLoading.OnNext(true);
         try
         {
-            await _durationCache.LoadAsync();
+            await _libraryIndex.OpenAsync(cancellationToken);
+            // The whole table in one query. Every file is then answered from memory, which is what
+            // lets an unchanged startup open no audio files at all.
+            var known = await _libraryIndex.SnapshotByPathAsync(cancellationToken);
 
             var audioFiles = DiscoverFiles(directory);
             _ = _loggerService.DebugAsync($"Found {audioFiles.Count} audio files to load");
 
-            var trackLoaded = audioFiles.ToObservable()
+            var scanned = new ConcurrentBag<LibraryEntry>();
+            var loaded = audioFiles.ToObservable()
                 .TakeUntil(_ => cancellationToken.IsCancellationRequested)
-                .Select(LoadTrackObservable)
+                .Select(file => LoadTrackObservable(file, known, scanned))
                 .Merge(MaxAmountOfFileReaderThreads)
                 .Buffer(TimeSpan.FromMilliseconds(200), 50);
 
-            await trackLoaded.Where(r => r.Any()).ForEachAsync(tracksBatch =>
+            await loaded.Where(batch => batch.Any()).ForEachAsync(tracksBatch =>
             {
                 _tracks.Edit(innerList => innerList.AddRange(tracksBatch));
 
                 _ = _loggerService.DebugAsync($"Added batch of '{tracksBatch.Count:N0}' tracks");
             }, cancellationToken);
 
-            await _loggerService.DebugAsync($"Loaded '{_tracks.Count:N0}' tracks successfully");
-            await _durationCache.SaveAsync([.. audioFiles.Select(r => r.FullName)]);
+            await _loggerService.DebugAsync(
+                $"Loaded '{_tracks.Count:N0}' tracks, {scanned.Count:N0} of them read from disk");
+
+            await _libraryIndex.WriteAsync([.. scanned], cancellationToken);
+            await _libraryIndex.DeleteMissingAsync([.. audioFiles.Select(file => file.FullName)], cancellationToken);
+
             StartWatching(directory, cancellationToken);
         }
         finally
@@ -231,30 +241,62 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private IObservable<Track> LoadTrackObservable(FileInfo file)
+    private IObservable<Track> LoadTrackObservable(
+        FileInfo file, IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<LibraryEntry> scanned)
     {
         // Defer keeps the inner observable cold so Merge(MaxAmountOfFileReaderThreads)
-        // actually caps how many LoadTrack calls run concurrently.
+        // actually caps how many files are opened at once.
         return Observable
-            .Defer(() => Observable.Start(() => LoadTrack(file), TaskPoolScheduler.Default))
-            .Catch<Track, Exception>((ex) =>
+            .Defer(() => Observable.Start(() => LoadTrack(file, known, scanned), TaskPoolScheduler.Default))
+            .Catch<Track, Exception>(exception =>
             {
-                _ = _loggerService.WarningAsync($"Error loading {file.FullName}: {ex.Message}");
+                _ = _loggerService.WarningAsync($"Error loading {file.FullName}: {exception.Message}");
                 return Observable.Empty<Track>();
             });
     }
 
-    private Track LoadTrack(FileInfo file)
+    /// <summary>
+    /// Builds a track from the index when the file has not changed, and reads it when it has.
+    /// </summary>
+    /// <remarks>
+    /// Size and write time are the whole check. Hashing would be a better answer and is what the
+    /// row is keyed by, but it means opening the file, which is the cost this exists to avoid.
+    /// </remarks>
+    private Track LoadTrack(
+        FileInfo file, IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<LibraryEntry> scanned)
     {
-        var cachedDuration = _durationCache.TryGetDuration(file.FullName, file.LastWriteTimeUtc);
-        if (cachedDuration.HasValue)
+        if (known.TryGetValue(file.FullName, out var entry)
+            && entry.FileSize == file.Length
+            && entry.LastWriteUtc == file.LastWriteTimeUtc)
         {
-            return ResolveTrackDance(_discoveryService.LoadTrackWithDuration(file, cachedDuration.Value));
+            return ResolveTrackDance(new Track(
+                entry.OriginalDance ?? string.Empty,
+                entry.Artist ?? string.Empty,
+                entry.Title ?? string.Empty,
+                file,
+                entry.Duration,
+                entry.Format));
         }
 
-        var track = _discoveryService.LoadTrack(file);
-        _durationCache.SetDuration(file.FullName, file.LastWriteTimeUtc, track.Length);
-        return ResolveTrackDance(track);
+        var scan = _discoveryService.Scan(file);
+        var track = ResolveTrackDance(new Track(
+            scan.Dance, scan.Artist, scan.Title, file, scan.Duration, scan.Format));
+
+        scanned.Add(new LibraryEntry
+        {
+            ContentHash = scan.ContentHash,
+            Path = file.FullName,
+            FileSize = file.Length,
+            LastWriteUtc = file.LastWriteTimeUtc,
+            Duration = scan.Duration,
+            Format = scan.Format,
+            DanceSlug = track.DanceSlug,
+            OriginalDance = track.OriginalDance,
+            Artist = track.Artist,
+            Title = track.Title
+        });
+
+        return track;
     }
 
     private void StartWatching(FileSystemInfo directory, CancellationToken cancellationToken)
@@ -314,10 +356,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         try
         {
-            var fileInfo = new FileInfo(fileSystemEventArgs.FullPath);
-            var track = _discoveryService.LoadTrack(fileInfo);
-            _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
-            return ResolveTrackDance(track);
+            return IndexAndResolve(new FileInfo(fileSystemEventArgs.FullPath));
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
@@ -358,10 +397,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         try
         {
-            var fileInfo = new FileInfo(renamedEventArgs.FullPath);
-            var track = _discoveryService.LoadTrack(fileInfo);
-            _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
-            return ResolveTrackDance(track);
+            return IndexAndResolve(new FileInfo(renamedEventArgs.FullPath));
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
@@ -369,6 +405,39 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Reads a file the watcher noticed and puts it in the index, silently.
+    /// </summary>
+    /// <remarks>
+    /// No dialog and no toast, whatever it turns out to be. The application runs in front of a room,
+    /// and a tagging question during a bal is the worst possible moment to ask one.
+    /// </remarks>
+    private Track IndexAndResolve(FileInfo fileInfo)
+    {
+        var scan = _discoveryService.Scan(fileInfo);
+        var track = ResolveTrackDance(new Track(
+            scan.Dance, scan.Artist, scan.Title, fileInfo, scan.Duration, scan.Format));
+
+        _libraryIndex.WriteAsync([
+            new LibraryEntry
+            {
+                ContentHash = scan.ContentHash,
+                Path = fileInfo.FullName,
+                FileSize = fileInfo.Length,
+                LastWriteUtc = fileInfo.LastWriteTimeUtc,
+                Duration = scan.Duration,
+                Format = scan.Format,
+                DanceSlug = track.DanceSlug,
+                OriginalDance = track.OriginalDance,
+                Artist = track.Artist,
+                Title = track.Title
+            }
+        ]).SafeFireAndForget(exception =>
+            _loggerService.ErrorAsync("Failed to index a new file", exception));
+
+        return track;
     }
 
     private static Func<Track, bool> CreateSearchFilter(string search)

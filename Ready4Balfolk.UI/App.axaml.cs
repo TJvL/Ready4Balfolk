@@ -20,6 +20,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Resources;
@@ -130,6 +131,9 @@ public sealed class App : Application
                 .SelectMany(_ =>
                     Observable.Merge(
                         RunLoad<IDanceListStore>((s, token) => s.LoadAsync(token), "Failed to load the dance list"),
+                        // Opened before anything asks it a question: the track store reads it on
+                        // the first music directory it is handed, which can be immediately.
+                        RunLoad<ILibraryIndex>((s, token) => s.OpenAsync(token), "Failed to open the library index"),
                         RunLoad<IQueueHistoryStore>((s, token) => s.LoadAsync(token), "Failed to load queue history")
                     // ToList waits for every load to finish before emitting once. The wizard reads
                     // the dance list to decide what to show, so it cannot open while that load is
