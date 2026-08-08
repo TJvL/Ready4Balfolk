@@ -302,7 +302,13 @@ So the app can start itself for inspection:
 ./Ready4Balfolk.UI --smoke-test
 ```
 
-`SmokeTest.Run` starts the application for real, waits for the main window, then resolves `IAudioPlaybackService` — which is what loads BASS, and is why killing the app after a timeout would not do: the service is a lazy singleton that nothing on the startup path touches, so a build with no BASS at all reaches a running window quite happily. It then checks BASSFLAC (`.flac` among the supported extensions) and BASS_FX (`IsEqualizerAvailable`), scans everything this run appended to `app.log` for `[ERROR]` and `[CRITICAL]`, prints the log if anything failed, and exits: `0` passed, `1` a check failed, `2` startup hung.
+`SmokeTest.Run` starts the application for real, waits for the main window, then resolves `IAudioPlaybackService` — which is what loads BASS, and is why killing the app after a timeout would not do: the service is a lazy singleton that nothing on the startup path touches, so a build with no BASS at all reaches a running window quite happily. It then checks BASS_FX (`IsEqualizerAvailable`), checks every extension the app offers is registered, **decodes a file in each format**, scans everything this run appended to `app.log` for `[ERROR]` and `[CRITICAL]`, prints the log if anything failed, and exits: `0` passed, `1` a check failed, `2` startup hung.
+
+The decode matters because registering a plugin is not the same as being able to read a file with it. v1.1.0 shipped Windows builds with BASSFLAC present and unloadable, so `.flac` was silently missing from the catalogue for every Windows user.
+
+`scripts/smoke-test-media/` holds the fixtures: the same 1.5 s chromatic scale, A4 up to G♯5, encoded as `.wav`, `.aiff`, `.flac`, `.mp3`, `.mp2` and `.ogg`. They are committed rather than generated, for the same reason the icons are — CI decodes them on every pull request, and generating them there would put ffmpeg on the critical path of every run, which `windows-latest` does not ship. Regenerate with `scripts/generate-smoke-test-media.sh` and commit the result; the output is deterministic, so an unchanged scale produces no diff.
+
+`.mp1` and `.aif` have no fixture. Nothing has encoded MPEG audio layer 1 for decades, and `.aif` is byte for byte the same format as `.aiff`; both are covered by the registered-extensions check instead.
 
 Two things exist only for this mode. `App` skips its exit confirmation dialog, since nobody is there to answer one; and BASS initialises against its "no sound" device, so the library, its plugins and the effect chain come up exactly as they would against real hardware on a runner that has no sound card. That keeps the check measuring whether the natives shipped rather than whether the machine can make a noise.
 

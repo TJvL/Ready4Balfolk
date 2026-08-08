@@ -34,7 +34,10 @@ $stdout = New-TemporaryFile
 $stderr = New-TemporaryFile
 
 try {
-    $process = Start-Process -FilePath $Executable -ArgumentList '--smoke-test' `
+    # The fixtures live next to this script, so callers never have to know where they are.
+    $media = Join-Path $PSScriptRoot 'smoke-test-media'
+
+    $process = Start-Process -FilePath $Executable -ArgumentList '--smoke-test', '--smoke-test-media', $media `
         -Wait -PassThru -NoNewWindow `
         -RedirectStandardOutput $stdout.FullName -RedirectStandardError $stderr.FullName
 

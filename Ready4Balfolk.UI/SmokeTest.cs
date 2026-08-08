@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -45,6 +46,20 @@ internal static class SmokeTest
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(20);
 
     /// <summary>
+    /// Every extension the application offers to open. Two of them have no fixture in
+    /// scripts/smoke-test-media: .aif is the same decoder as .aiff, and nothing encodes MPEG audio
+    /// layer 1 any more, so those two are covered by this list alone and not by a decode.
+    /// </summary>
+    private static readonly string[] ExpectedExtensions =
+        [".mp1", ".mp2", ".mp3", ".wav", ".aif", ".aiff", ".ogg", ".flac"];
+
+    /// <summary>What every file in scripts/smoke-test-media lasts, and how far off it may decode.</summary>
+    private static readonly TimeSpan MediaDuration = TimeSpan.FromSeconds(1.5);
+
+    /// <summary>Generous, because the lossy encoders pad the stream with an encoder delay.</summary>
+    private static readonly TimeSpan MediaDurationTolerance = TimeSpan.FromSeconds(0.5);
+
+    /// <summary>
     /// Static so the watchdog survives: the only stack that could root it is the one blocked in
     /// the dispatcher main loop, and a collected timer never fires.
     /// </summary>
@@ -52,6 +67,8 @@ internal static class SmokeTest
 
     public static int Run(AppBuilder builder, string[] args)
     {
+        var mediaDirectory = ReadOption(args, "--smoke-test-media");
+
         var logFile = new FileInfo(Path.Combine(
             new ApplicationSettingsDirectory().DirectoryInfoRoot.FullName, "app.log"));
 
@@ -90,23 +107,43 @@ internal static class SmokeTest
             return Failed;
         }
 
-        mainWindow.Opened += (_, _) =>
-            DispatcherTimer.RunOnce(() => Finish(lifetime, logFile, logOffset), SettleDelay);
+        // FinishAsync handles its own failures and never throws, so there is nothing here to await.
+        mainWindow.Opened += (_, _) => DispatcherTimer.RunOnce(
+            () => _ = FinishAsync(lifetime, logFile, logOffset, mediaDirectory), SettleDelay);
 
         return lifetime.Start(args);
     }
 
-    private static void Finish(ClassicDesktopStyleApplicationLifetime lifetime, FileInfo logFile, long logOffset)
+    private static async Task FinishAsync(
+        ClassicDesktopStyleApplicationLifetime lifetime,
+        FileInfo logFile,
+        long logOffset,
+        string? mediaDirectory)
     {
         var failures = new List<string>();
+        var decoded = 0;
 
         try
         {
-            CheckAudio(failures);
+            // This resolve is the whole point: it is the first and only thing that loads libbass.
+            var audio = App.Services.GetRequiredService<IAudioPlaybackService>();
+
+            // No point decoding anything if BASS never came up; it would only repeat the news.
+            if (CheckAudio(audio, failures))
+            {
+                if (mediaDirectory is null)
+                {
+                    Report("no --smoke-test-media directory given, so no format was actually decoded");
+                }
+                else
+                {
+                    decoded = await CheckMediaAsync(audio, mediaDirectory, failures);
+                }
+            }
         }
         catch (Exception ex)
         {
-            failures.Add($"resolving the audio playback service threw: {ex}");
+            failures.Add($"the audio checks threw: {ex}");
         }
 
         failures.AddRange(ReadLoggedFailures(logFile, logOffset));
@@ -114,7 +151,8 @@ internal static class SmokeTest
         int exitCode;
         if (failures.Count == 0)
         {
-            Report("passed: window opened, BASS, BASSFLAC and BASS_FX all loaded, log clean");
+            Report($"passed: window opened, BASS, BASSFLAC and BASS_FX all loaded, "
+                   + $"{decoded} media files decoded, log clean");
             exitCode = Passed;
         }
         else
@@ -146,11 +184,9 @@ internal static class SmokeTest
         lifetime.Shutdown(exitCode);
     }
 
-    private static void CheckAudio(List<string> failures)
+    /// <returns>Whether BASS came up, and so whether decoding anything is worth attempting.</returns>
+    private static bool CheckAudio(IAudioPlaybackService audio, List<string> failures)
     {
-        // This resolve is the whole point: it is the first and only thing that loads libbass.
-        var audio = App.Services.GetRequiredService<IAudioPlaybackService>();
-
         // WhenAvailabilityChanged replays its current value to a new subscriber, so subscribing
         // and immediately unsubscribing is how the present state is read.
         var isAvailable = false;
@@ -166,10 +202,92 @@ internal static class SmokeTest
             failures.Add("BASS_FX did not load; the equalizer would be unavailable to users");
         }
 
-        if (!SupportedAudioFormats.Extensions.Contains(".flac"))
+        // What the catalogue filters on, so an extension missing here is a format that silently
+        // stops appearing in the app even though BASS could have played it.
+        var missing = ExpectedExtensions
+            .Where(extension => !SupportedAudioFormats.Extensions.Contains(extension))
+            .ToList();
+
+        if (missing.Count > 0)
         {
-            failures.Add("BASSFLAC did not load; .flac is missing from the supported extensions");
+            failures.Add($"missing from the supported extensions: {string.Join(", ", missing)}");
         }
+
+        return isAvailable;
+    }
+
+    /// <summary>
+    /// Opens every fixture in <paramref name="mediaDirectory"/> and checks it decodes to the length
+    /// it should be. Registering a plugin is not the same as being able to read a file with it —
+    /// the Windows builds shipped for a release with BASSFLAC present and unloadable — and a
+    /// duration that comes back right is the cheapest proof that real samples were read.
+    /// </summary>
+    /// <returns>How many files decoded.</returns>
+    private static async Task<int> CheckMediaAsync(
+        IAudioPlaybackService audio,
+        string mediaDirectory,
+        List<string> failures)
+    {
+        if (!Directory.Exists(mediaDirectory))
+        {
+            failures.Add($"no media directory at {mediaDirectory}");
+            return 0;
+        }
+
+        var files = Directory.GetFiles(mediaDirectory).OrderBy(file => file, StringComparer.Ordinal).ToList();
+        if (files.Count == 0)
+        {
+            failures.Add($"no media files in {mediaDirectory}");
+            return 0;
+        }
+
+        var decoded = 0;
+
+        foreach (var file in files)
+        {
+            var name = Path.GetFileName(file);
+
+            if (!SupportedAudioFormats.IsSupported(file))
+            {
+                failures.Add($"{name} is not a format this build offers to open");
+                continue;
+            }
+
+            // WhenDurationChanged is a plain subject with no replay, so the subscription has to be
+            // in place before the decode that raises it.
+            var duration = TimeSpan.Zero;
+            using (audio.WhenDurationChanged.Subscribe(value => duration = value))
+            {
+                try
+                {
+                    await audio.SelectAsync(new Uri(file));
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{name} would not decode: {ex.Message}");
+                    continue;
+                }
+            }
+
+            if ((duration - MediaDuration).Duration() > MediaDurationTolerance)
+            {
+                failures.Add(
+                    $"{name} decoded to {duration.TotalSeconds:0.###} s, "
+                    + $"expected about {MediaDuration.TotalSeconds:0.###} s");
+                continue;
+            }
+
+            decoded++;
+        }
+
+        await audio.ClearAsync();
+        return decoded;
+    }
+
+    private static string? ReadOption(string[] args, string name)
+    {
+        var index = Array.FindIndex(args, arg => string.Equals(arg, name, StringComparison.OrdinalIgnoreCase));
+        return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
     }
 
     private static List<string> ReadLoggedFailures(FileInfo logFile, long logOffset)

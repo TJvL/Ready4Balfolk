@@ -24,9 +24,14 @@ fi
 session=$1
 shift
 
+# The fixtures live next to this script, so callers never have to know where they are. Under
+# Flatpak this is a host path, which the manifest's --filesystem=host:ro makes readable.
+SMOKE_MEDIA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/smoke-test-media"
+export SMOKE_MEDIA_DIR
+
 case "$session" in
   x11)
-    exec xvfb-run -a "$@" --smoke-test
+    exec xvfb-run -a "$@" --smoke-test --smoke-test-media "$SMOKE_MEDIA_DIR"
     ;;
 
   wayland)
@@ -47,7 +52,9 @@ case "$session" in
     export SMOKE_STATUS_FILE
     echo 70 > "$SMOKE_STATUS_FILE"
 
-    cage -- sh -c '"$@" --smoke-test; echo $? > "$SMOKE_STATUS_FILE"' sh "$@" || true
+    cage -- sh -c \
+      '"$@" --smoke-test --smoke-test-media "$SMOKE_MEDIA_DIR"; echo $? > "$SMOKE_STATUS_FILE"' \
+      sh "$@" || true
 
     status=$(cat "$SMOKE_STATUS_FILE")
     rm -f "$SMOKE_STATUS_FILE"
