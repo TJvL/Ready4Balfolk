@@ -1,28 +1,29 @@
 using System.Reactive.Subjects;
 using NSubstitute;
-using Ready4Balfolk.Domain.Models.Tree;
+using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Services.Editor;
 using Ready4Balfolk.Domain.Services.Logging;
-using Ready4Balfolk.Domain.Stores.Tree;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Integration;
 
 public sealed class EditorHistoryIntegrationTests : IDisposable
 {
-    private readonly IDanceTreeStore _store;
-    private readonly BehaviorSubject<IReadOnlyList<DanceBranch>> _state;
+    private readonly IDanceListStore _store;
+    private readonly BehaviorSubject<DanceList> _state;
     private readonly EditorHistoryService _history;
 
     public EditorHistoryIntegrationTests()
     {
-        _state = new BehaviorSubject<IReadOnlyList<DanceBranch>>(TestData.CreateSimpleTree());
-        _store = Substitute.For<IDanceTreeStore>();
+        _state = new BehaviorSubject<DanceList>(TestData.CreateSimpleDanceList());
+        _store = Substitute.For<IDanceListStore>();
         _store.Current.Returns(_ => _state.Value);
-        _store.UpdateAsync(Arg.Any<Func<IReadOnlyList<DanceBranch>, IReadOnlyList<DanceBranch>>>())
+        _store.Index.Returns(_ => DanceListIndex.Build(_state.Value));
+        _store.UpdateAsync(Arg.Any<Func<DanceList, DanceList>>())
             .Returns(ci =>
             {
-                var transform = ci.Arg<Func<IReadOnlyList<DanceBranch>, IReadOnlyList<DanceBranch>>>()!;
+                var transform = ci.Arg<Func<DanceList, DanceList>>()!;
                 _state.OnNext(transform(_state.Value));
                 return Task.CompletedTask;
             });
@@ -33,66 +34,66 @@ public sealed class EditorHistoryIntegrationTests : IDisposable
     [Fact]
     public async Task DoThenUndo_RestoresState()
     {
-        var action = DanceTreeAction.AddBranch(_store, []);
+        var action = DanceListAction.AddCategory(_store, []);
         await _history.DoActionAsync(action);
-        Assert.Equal(3, _state.Value.Count);
+        Assert.Equal(3, _state.Value.Categories.Count);
 
         await _history.UndoAsync();
-        Assert.Equal(2, _state.Value.Count);
+        Assert.Equal(2, _state.Value.Categories.Count);
     }
 
     [Fact]
     public async Task DoThenUndoThenRedo_ReappliesAction()
     {
-        var action = DanceTreeAction.AddBranch(_store, []);
+        var action = DanceListAction.AddCategory(_store, []);
         await _history.DoActionAsync(action);
         await _history.UndoAsync();
         await _history.RedoAsync();
 
-        Assert.Equal(3, _state.Value.Count);
+        Assert.Equal(3, _state.Value.Categories.Count);
     }
 
     [Fact]
     public async Task MultipleActions_UndoAll()
     {
-        await _history.DoActionAsync(DanceTreeAction.AddBranch(_store, []));
-        Assert.Equal(3, _state.Value.Count);
+        await _history.DoActionAsync(DanceListAction.AddCategory(_store, []));
+        Assert.Equal(3, _state.Value.Categories.Count);
 
-        await _history.DoActionAsync(DanceTreeAction.AddLeaf(_store, [0]));
-        Assert.Equal(3, _state.Value[0].Leafs.Count());
+        await _history.DoActionAsync(DanceListAction.AddDance(_store, [0], "Andro"));
+        Assert.Equal(3, _state.Value.Categories[0].Dances.Count);
 
-        // Undo leaf add
+        // Undo the dance
         await _history.UndoAsync();
-        Assert.Equal(2, _state.Value[0].Leafs.Count());
+        Assert.Equal(2, _state.Value.Categories[0].Dances.Count);
 
-        // Undo branch add
+        // Undo the category
         await _history.UndoAsync();
-        Assert.Equal(2, _state.Value.Count);
+        Assert.Equal(2, _state.Value.Categories.Count);
     }
 
     [Fact]
     public async Task UndoSomeThenRedo()
     {
-        await _history.DoActionAsync(DanceTreeAction.AddBranch(_store, []));
-        await _history.DoActionAsync(DanceTreeAction.RenameBranch(_store, [0], "Trad"));
+        await _history.DoActionAsync(DanceListAction.AddCategory(_store, []));
+        await _history.DoActionAsync(DanceListAction.RenameCategory(_store, [0], "Trad"));
 
         await _history.UndoAsync();
-        Assert.Equal("Folk", _state.Value[0].Name);
+        Assert.Equal("Common", _state.Value.Categories[0].Name);
 
         await _history.RedoAsync();
-        Assert.Equal("Trad", _state.Value[0].Name);
+        Assert.Equal("Trad", _state.Value.Categories[0].Name);
     }
 
     [Fact]
     public async Task DoAfterUndo_ClearsRedoStack()
     {
-        await _history.DoActionAsync(DanceTreeAction.AddBranch(_store, []));
+        await _history.DoActionAsync(DanceListAction.AddCategory(_store, []));
         await _history.UndoAsync();
 
         var canRedo = false;
         using var sub = _history.CanRedo.Subscribe(v => canRedo = v);
 
-        await _history.DoActionAsync(DanceTreeAction.AddLeaf(_store, [0]));
+        await _history.DoActionAsync(DanceListAction.AddDance(_store, [0], "Andro"));
 
         Assert.False(canRedo);
     }

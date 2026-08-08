@@ -7,8 +7,8 @@ using DynamicData;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
-using Ready4Balfolk.Domain.Services.Synonym;
 using Ready4Balfolk.Domain.Services.Tracks;
+using Ready4Balfolk.Domain.Stores.Dances;
 
 namespace Ready4Balfolk.Domain.Stores.Tracks;
 
@@ -17,11 +17,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private const int MaxAmountOfFileReaderThreads = 32;
     private readonly ILoggerService _loggerService;
     private readonly ITrackDiscoveryService _discoveryService;
-    private readonly ISynonymResolutionService _synonymService;
+    private readonly IDanceListStore _danceListStore;
     private readonly ITrackDurationCache _durationCache;
     private readonly SourceList<Track> _tracks = new();
     private readonly BehaviorSubject<bool> _isLoading = new(false);
-    private readonly IDisposable _synonymSubscription;
+    private readonly IDisposable _danceListSubscription;
     private readonly CompositeDisposable _fileWatcherSubscriptions = [];
     // Loads are started fire-and-forget from the setter, so without a gate two of them interleave:
     // each opens by disposing the watcher and clearing the track list, so one load ends up
@@ -35,15 +35,18 @@ public sealed class TrackStore : ITrackStore, IDisposable
     public TrackStore(
         ILoggerService loggerService,
         ITrackDiscoveryService discoveryService,
-        ISynonymResolutionService synonymService,
+        IDanceListStore danceListStore,
         ITrackDurationCache durationCache)
     {
         _loggerService = loggerService;
         _discoveryService = discoveryService;
-        _synonymService = synonymService;
+        _danceListStore = danceListStore;
         _durationCache = durationCache;
 
-        _synonymSubscription = synonymService.Changed
+        // Skip(1): the store replays its current list to a new subscriber, and re-resolving an
+        // empty track list at construction is work with nothing to do.
+        _danceListSubscription = danceListStore.Observe()
+            .Skip(1)
             .ObserveOn(TaskPoolScheduler.Default)
             .Subscribe(_ => ReResolveAllTracks());
     }
@@ -114,7 +117,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             cancellation?.Cancel();
             cancellation?.Dispose();
 
-            _synonymSubscription.Dispose();
+            _danceListSubscription.Dispose();
             _fileWatcherSubscriptions.Dispose();
             _watcher?.Dispose();
             _tracks.Dispose();
@@ -134,13 +137,23 @@ public sealed class TrackStore : ITrackStore, IDisposable
         });
     }
 
+    /// <summary>
+    /// Points a track at a dance in the list, or leaves it unresolved.
+    /// </summary>
+    /// <remarks>
+    /// An unknown name is kept as it stands rather than blanked: it is what the tagging editor
+    /// later groups by, and a track the list has nothing to say about is still a track.
+    /// </remarks>
     private Track ResolveTrackDance(Track track)
     {
-        var resolved = _synonymService.Resolve(track.OriginalDance);
+        var index = _danceListStore.Index;
+        var slug = index.ResolveSlug(track.OriginalDance);
+
         return track with
         {
-            Dance = resolved,
-            OriginalDance = track.OriginalDance
+            Dance = slug is null ? track.OriginalDance : index.DisplayNameFor(slug),
+            OriginalDance = track.OriginalDance,
+            DanceSlug = slug
         };
     }
 
@@ -236,12 +249,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
         var cachedDuration = _durationCache.TryGetDuration(file.FullName, file.LastWriteTimeUtc);
         if (cachedDuration.HasValue)
         {
-            return _discoveryService.LoadTrackWithDuration(file, cachedDuration.Value);
+            return ResolveTrackDance(_discoveryService.LoadTrackWithDuration(file, cachedDuration.Value));
         }
 
         var track = _discoveryService.LoadTrack(file);
         _durationCache.SetDuration(file.FullName, file.LastWriteTimeUtc, track.Length);
-        return track;
+        return ResolveTrackDance(track);
     }
 
     private void StartWatching(FileSystemInfo directory, CancellationToken cancellationToken)

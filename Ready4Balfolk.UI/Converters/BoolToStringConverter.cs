@@ -2,8 +2,9 @@ using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 
-namespace Ready4Balfolk.UI.Views.DanceTree;
+namespace Ready4Balfolk.UI.Converters;
 
+/// <summary>Picks one of two labels from a boolean, so a control can say what it will do next.</summary>
 public sealed class BoolToStringConverter : IValueConverter
 {
     public string? TrueValue { get; set; }

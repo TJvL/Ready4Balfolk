@@ -13,6 +13,7 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Services.Editor;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
@@ -41,6 +42,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
     // watching rows nobody can see any more.
     private readonly CompositeDisposable _nodeSubscriptions = [];
     private string? _selectedKey;
+    private string? _markedKey;
     private bool _restoringSelection;
 
     [Reactive] public partial IReadOnlyList<DanceListNode> Nodes { get; private set; }
@@ -64,6 +66,9 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
     [ObservableAsProperty] public partial bool HasSelection { get; }
     [ObservableAsProperty] public partial string SelectionHeader { get; }
     [ObservableAsProperty] public partial string SummaryText { get; }
+    /// <summary>What a random pick is currently scoped to, for the toolbar to say out loud.</summary>
+    [Reactive] public partial string MarkedDescription { get; private set; }
+
     [ObservableAsProperty] public partial string? UndoTooltip { get; }
     [ObservableAsProperty] public partial string? RedoTooltip { get; }
 
@@ -86,6 +91,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         NewNameText = string.Empty;
         NewDanceName = string.Empty;
         EditedWeight = 1;
+        MarkedDescription = UiStrings.DanceList_MarkedWholeList;
 
         _isLoadingHelper = store.IsLoading
             .ObserveOn(RxSchedulers.MainThreadScheduler)
@@ -147,6 +153,19 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
     }
 
+    /// <summary>
+    /// Where a random pick may look. Resolved from the tree every time rather than stored, so a
+    /// marked category that has since been deleted quietly falls back to the whole list instead of
+    /// scoping the pick to something that is not there.
+    /// </summary>
+    public RandomSelectionScope CurrentScope =>
+        (_markedKey is null ? null : FindByKey(Nodes, _markedKey)) switch
+        {
+            DanceCategoryNode category => new RandomSelectionScope.Category(category.Path),
+            DanceNode dance => new RandomSelectionScope.SingleDance(dance.Slug),
+            _ => new RandomSelectionScope.EntireList()
+        };
+
     private IObservable<bool> CanUndo => _editorHistory.CanUndo;
     private IObservable<bool> CanRedo => _editorHistory.CanRedo;
     private IObservable<bool> WhenCategorySelected => this.WhenAnyValue(x => x.IsCategorySelected);
@@ -158,6 +177,21 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
 
     [ReactiveCommand(CanExecute = nameof(CanRedo))]
     private void Redo() => RunHistoryAsync(_editorHistory.RedoAsync);
+
+    /// <summary>Scopes random picks to a row, or back to the whole list when it is already marked.</summary>
+    [ReactiveCommand]
+    private void ToggleMark(DanceListNode node)
+    {
+        _markedKey = string.Equals(_markedKey, node.Key, StringComparison.Ordinal) ? null : node.Key;
+        ApplyMarks();
+    }
+
+    [ReactiveCommand]
+    private void MarkWholeList()
+    {
+        _markedKey = null;
+        ApplyMarks();
+    }
 
     [ReactiveCommand]
     private void AddRootCategory() => Commit(DanceListAction.AddCategory(_store, []));
@@ -356,10 +390,43 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         }
     }
 
+    private void ApplyMarks()
+    {
+        // A category that has since been deleted falls back to the whole list rather than leaving
+        // the pick scoped to something that is not there.
+        var marked = _markedKey is null ? null : FindByKey(Nodes, _markedKey);
+        if (marked is null)
+        {
+            _markedKey = null;
+        }
+
+        foreach (var node in Flatten(Nodes))
+        {
+            node.IsMarked = ReferenceEquals(node, marked);
+        }
+
+        MarkedDescription = marked is null
+            ? UiStrings.DanceList_MarkedWholeList
+            : string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_MarkedFormat, marked.Label);
+    }
+
+    private static IEnumerable<DanceListNode> Flatten(IReadOnlyList<DanceListNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            yield return node;
+            foreach (var child in Flatten(node.Children))
+            {
+                yield return child;
+            }
+        }
+    }
+
     private void Rebuild(DanceListModel list)
     {
         _nodeSubscriptions.Clear();
         Nodes = BuildCategories(list.Categories, parentPath: [], keyPrefix: string.Empty);
+        ApplyMarks();
 
         // Selection is restored by key rather than kept, because every edit replaces the whole tree.
         _restoringSelection = true;

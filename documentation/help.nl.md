@@ -25,7 +25,7 @@ De applicatie splitst de bestandsnaam op koppeltekens om de dansnaam, artiest en
 Het hoofdscherm is verdeeld in twee kolommen:
 
 - **Linkerkolom**: Werkbalk, afspeelknoppen, de equalizer en de wachtrij- of geschiedenisweergave
-- **Rechterkolom**: Nummercatalogus of dansboom-editor
+- **Rechterkolom**: Nummercatalogus of danslijst
 
 U kunt schakelen tussen weergaven in elke kolom met behulp van de schakelknoppen bovenaan elk paneel.
 
@@ -46,10 +46,6 @@ Opent dit helpscherm.
 ### Instellingen
 
 Opent het instellingenscherm waar u muziekmap, wachtrijgedrag, presentatieschermen en thema kunt configureren.
-
-### Danssynoniemen
-
-Opent de danssynoniemen-editor, waar u alternatieve namen voor dansen kunt definiëren om nummers onder één danstype te groeperen.
 
 ---
 
@@ -151,7 +147,7 @@ De wachtrij kan verschillende soorten items bevatten, elk met een uniek uiterlij
 De werkbalk boven de wachtrij biedt deze acties:
 
 - **Schakel naar Geschiedenis**: Schakel het linkerpaneel om de geschiedenisweergave te tonen
-- **Willekeurig nummer in wachtrij plaatsen**: Voeg een willekeurig geselecteerd nummer toe op basis van de huidige gemarkeerde selectie in de dansboom. De willekeurige selectie respecteert gewichten en bereik.
+- **Willekeurig nummer in wachtrij plaatsen**: Voeg een willekeurig geselecteerd nummer toe, uit waar de danslijst op dat moment op ingesteld staat. Gewichten worden gerespecteerd.
 - **Stop in wachtrij plaatsen**: Voeg een stopmarkering toe aan de wachtrij
 - **Pauze in wachtrij plaatsen**: Voeg een pauzemarkering toe met de duur die is geconfigureerd in instellingen
 - **Bericht aanvragen**: Opent een dialoog waar u een bericht kunt typen en optioneel een duur kunt instellen
@@ -217,93 +213,55 @@ Gebruik het zoekvak in de werkbalk om nummers te filteren. De zoekopdracht zoekt
 
 Dubbelklik op een nummer om het toe te voegen aan het einde van de wachtrij. Als duplicaatpreventie is ingeschakeld in instellingen, kunnen nummers die momenteel worden afgespeeld, al in de wachtrij staan of al in de geschiedenis staan niet opnieuw worden toegevoegd.
 
-### Schakel naar Dansboom
+### Schakel naar Danslijst
 
-Gebruik de schakelknop in de werkbalk om het rechterpaneel om te schakelen naar de dansboom-editor.
+Gebruik de schakelknop in de werkbalk om het rechterpaneel om te schakelen naar de danslijst.
 
 ---
 
-## Dansboom
+## Danslijst
 
-De dansboom biedt een hiërarchische weergave van danscategorieën, gebruikt om dansen te organiseren en willekeurige nummerselectie te regelen.
+De danslijst is uw eigen lijst van de dansen die u draait en de namen waaronder elke dans bekend staat. Er zit niets ingebouwd in de applicatie: u bouwt de lijst eenmalig op wanneer u Ready4Balfolk voor het eerst start, door een gepubliceerde lijst te importeren of leeg te beginnen, en daarna is die van u. De lijst is ook wat de willekeurige selectie leest, dus er is geen tweede structuur die u bij moet houden.
 
-### Structuur
+### Categorieen en dansen
 
-De boom is georganiseerd in categorieën (takken) en dansen (bladeren):
+- **Categorieen** bevatten dansen en andere categorieen. Een geimporteerde lijst begint met een categorie per regio, en daarbinnen een categorie voor een familie of suite.
+- **Dansen** staan in een categorie. Elke dans draagt de namen waaronder hij bekend staat; de eerste is degene die overal in de applicatie getoond wordt.
 
-- **Categorieën** kunnen andere categorieën en dansen bevatten, waardoor een hiërarchie wordt gevormd
-- **Dansen** zijn de bladknopen, die een specifiek danstype vertegenwoordigen
-- Elk item toont zijn naam en het aantal overeenkomende nummers tussen haakjes, bijv. "Mazurka (42)"
+Selecteer links iets om het rechts te bewerken.
 
-### Markeren voor willekeurige selectie
+### Namen
 
-Klik op het dobbelsteen-icoon naast elk item om het te **markeren** voor willekeurige selectie. Het gemarkeerde item bepaalt het bereik bij gebruik van "Willekeurig nummer in wachtrij plaatsen":
+Een dans kan meerdere namen hebben, omdat de spelling van een balfolkdans echt omstreden is. Ze betekenen allemaal dezelfde dans, en geen enkele wordt als de juiste behandeld.
 
-- **Markeer de hoofdmap**: Willekeurige selectie kiest uit alle dansen in de hele boom
-- **Markeer een categorie**: Willekeurige selectie kiest uit alle dansen in die categorie en zijn subcategorieën
-- **Markeer een enkele dans**: Willekeurige selectie kiest alleen nummers voor die specifieke dans
+- **Spelling toevoegen**: typ die in het vak onder de lijst met namen en druk op Enter.
+- **Kiezen welke getoond wordt**: klik op de **pijl omhoog** naast een spelling om die bovenaan te zetten. Er verandert verder niets, omdat alles in de applicatie naar de dans zelf verwijst en niet naar zijn naam.
+- **Spelling verwijderen**: klik op het **prullenbak**-icoon. Een dans houdt altijd minstens een naam.
 
-Het gemarkeerde item wordt gemarkeerd om te tonen dat het actief is.
+**Een naam kan maar een dans betekenen.** Een spelling toevoegen die al bij een andere dans hoort wordt geweigerd, en het bericht zegt bij welke dans die hoort. Dat is wat Ready4Balfolk in staat stelt om met een dans te antwoorden wanneer het een naam in een bestandsnaam herkent.
 
 ### Gewichten
 
-Elke categorie en dans heeft een **gewicht**-waarde die de kans op willekeurige selectie beïnvloedt. Een hoger gewicht betekent dat dat item eerder wordt gekozen. De effectieve kans dat een dans wordt geselecteerd is evenredig aan zijn gewicht vermenigvuldigd met zijn aantal beschikbare nummers.
+Categorieen en dansen dragen allebei een **gewicht**, en een willekeurige keuze wordt gewogen met het gewicht van de categorie maal dat van de dans. Een hoger gewicht komt vaker aan de beurt; **nul betekent nooit**, en een categorie met gewicht nul neemt alles erbinnen mee.
 
-Om gewichten te bewerken, selecteert u een item en klikt u op de bewerkknop. Een numerieke spinner verschijnt naast de naam waar u het gewicht kunt aanpassen.
+### Kiezen waaruit willekeurig gekozen wordt
 
-### De boom bewerken
+Klik op het **dobbelsteen**-icoon op een regel om de willekeurige selectie daartoe te beperken:
 
-Selecteer een item om actieknoppen te tonen:
+- **Een categorie**: kiest uit de dansen erin en in alles eronder.
+- **Een enkele dans**: kiest alleen nummers voor die dans.
+- Klik de dobbelsteen nogmaals, of gebruik **Hele lijst** in de werkbalk, om weer uit alles te kiezen.
 
-- **Categorie toevoegen**: Maak een nieuwe subcategorie binnen de geselecteerde categorie
-- **Dans toevoegen**: Maak een nieuwe dans binnen de geselecteerde categorie
-- **Bewerken**: Ga naar bewerkingsmodus om het item te hernoemen en zijn gewicht aan te passen
-- **Bevestigen**: Sla wijzigingen op wanneer u in bewerkingsmodus bent
-- **Verwijderen**: Verwijder het item (en al zijn kinderen, als het een categorie is)
-- **Annuleren**: Verwerp wijzigingen wanneer u in bewerkingsmodus bent
+De werkbalk zegt altijd wat het huidige bereik is, want de dobbelsteen is makkelijk per ongeluk te raken en achteraf moeilijk op te merken.
 
-### Werkbalk
+### Bewerken
 
-- **Schakel naar Nummerlijst**: Ga terug naar de nummercatalogusweergave
-- **Ongedaan maken** (Ctrl+Z): Maak de laatste bewerking ongedaan. Beweeg de muis over de knop om een beschrijving te zien van de actie die ongedaan wordt gemaakt.
-- **Opnieuw uitvoeren** (Ctrl+Y): Voer de laatst ongedaan gemaakte bewerking opnieuw uit. Beweeg de muis over de knop om een beschrijving te zien.
-- **Importeren**: Laad een dansboom uit een JSON-bestand, waarbij de huidige boom wordt vervangen
-- **Exporteren**: Sla de huidige boom op in een JSON-bestand voor back-up of delen
-
----
-
-## Danssynoniemen
-
-De danssynoniemen-editor laat u alternatieve namen voor dansen definiëren. Wanneer de dansnaam van een nummer overeenkomt met een synoniem, wordt het gegroepeerd onder de hoofddansnaam. Dit is handig wanneer uw muziekcollectie verschillende spellingen of regionale namen gebruikt voor dezelfde dans.
-
-Vermeldingen worden weergegeven als kaarten in een vloeiende meerkolommen-indeling. Elke kaart toont de hoofddansnaam bovenaan en zijn synoniemen als tags eronder.
-
-### Vermeldingen beheren
-
-- **Toevoegen**: Klik op de **+**-knop in de werkbalk om een nieuwe vermelding te maken. De vermelding wordt gemaakt met een standaardnaam en gaat direct naar bewerkingsmodus zodat u de naam kunt typen.
-- **Naam bewerken**: Klik op het **potlood**-icoon op een kaart om naar bewerkingsmodus te gaan. De naam wordt een bewerkbaar tekstveld, gefocust en volledig geselecteerd. Tijdens het bewerken zijn alle andere kaarten uitgeschakeld.
-  - Druk op **Enter** of klik op het **vinkje**-icoon om het hernoemen te bevestigen.
-  - Druk op **Escape** of klik op het **X**-icoon om te annuleren en terug te keren naar de oorspronkelijke naam.
-  - Het annuleren van een nieuw toegevoegde vermelding maakt de toevoeging volledig ongedaan.
-- **Verwijderen**: Klik op het **prullenbak**-icoon op een kaart (alleen zichtbaar wanneer niet in bewerkingsmodus) om de vermelding en al zijn synoniemen te verwijderen.
-
-### Synoniemen beheren
-
-Synoniemen verschijnen als tags onder de hoofddansnaam.
-
-- **Synoniem toevoegen**: Klik op de **+**-knop aan het einde van de synoniem-tags om een inline tekstveld te tonen. Tijdens het toevoegen zijn alle andere kaarten uitgeschakeld.
-  - Typ het synoniem en druk vervolgens op **Enter** of klik op het **vinkje**-icoon om te bevestigen.
-  - Druk op **Escape** of klik op het **X**-icoon om te annuleren.
-- **Synoniem verwijderen**: Klik op de **X**-knop op een synoniem-tag om deze te verwijderen.
-
-### Werkbalk
-
-- **Terug**: Keer terug naar het hoofdscherm
-- **Ongedaan maken** (Ctrl+Z): Maak de laatste wijziging ongedaan. De knopinfo toont welke actie ongedaan wordt gemaakt.
-- **Opnieuw uitvoeren** (Ctrl+Y): Voer de laatst ongedaan gemaakte wijziging opnieuw uit. De knopinfo toont welke actie opnieuw wordt uitgevoerd.
-- **Importeren**: Laad synoniemen uit een JSON-bestand, waarbij de huidige set wordt vervangen (met bevestiging)
-- **Exporteren**: Sla de huidige synoniemen op in een JSON-bestand voor back-up of delen
-- **Toevoegen**: Maak een nieuwe dans
+- **Categorie toevoegen**: maakt een nieuwe categorie op het hoogste niveau. Met een categorie geselecteerd nestelt **Categorie hierbinnen toevoegen** er een.
+- **Een dans toevoegen**: typ de naam in het vak bij een geselecteerde categorie en druk op Enter.
+- **Hernoemen**: pas de naam van de geselecteerde categorie aan en druk op Enter. Twee categorieen op dezelfde plek kunnen niet dezelfde naam hebben.
+- **Verwijderen**: verwijdert de geselecteerde categorie of dans. Een categorie verwijderen neemt de dansen erin mee, en er wordt eerst gezegd hoeveel.
+- **Ongedaan maken** / **Opnieuw**: elke bewerking kan ongedaan gemaakt worden. Beweeg over een knop om te zien welke wijziging teruggedraaid wordt.
+- **Importeren** / **Exporteren**: vervang de hele lijst vanuit een bestand, of sla die op als back-up of om te delen. Importeren kan niet ongedaan gemaakt worden, dus er wordt eerst om bevestiging gevraagd.
 
 ---
 

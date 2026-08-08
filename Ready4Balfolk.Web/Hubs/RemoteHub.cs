@@ -57,7 +57,7 @@ public sealed class RemoteHub(
     public Task<CommandResultDto> QueueRandom() => dispatcher.InvokeAsync(() =>
     {
         var track = randomTrackService.PickRandomTrack(
-            new RandomSelectionScope.EntireTree(),
+            new RandomSelectionScope.EntireList(),
             settingsStore.Current.AllowDuplicateTracksInQueue);
 
         return track is null

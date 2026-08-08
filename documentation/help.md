@@ -25,7 +25,7 @@ The application splits the file name on dashes to extract the dance name, artist
 The main screen is divided into two columns:
 
 - **Left column**: Toolbar, playback controls, the equalizer, and the queue or history view
-- **Right column**: Track catalog or dance tree editor
+- **Right column**: Track catalog or dance list
 
 You can toggle between views in each column using the toggle buttons at the top of each panel.
 
@@ -46,10 +46,6 @@ Opens this help screen.
 ### Settings
 
 Opens the settings screen where you can configure music directory, queue behavior, presentation displays, and theme.
-
-### Dance Synonyms
-
-Opens the dance synonyms editor, where you can define alternative names for dances to group tracks under a single dance type.
 
 ---
 
@@ -150,7 +146,7 @@ The queue can contain several types of items, each with a distinct appearance:
 The toolbar above the queue provides these actions:
 
 - **Toggle to History**: Switch the left panel to show the history view
-- **Queue Random Track**: Add a randomly selected track based on the current marked selection in the dance tree. The random selection respects weights and scope.
+- **Queue Random Track**: Add a randomly selected track, from whatever the dance list is currently scoped to. Weights are respected.
 - **Enqueue Stop**: Insert a stop marker into the queue
 - **Enqueue Delay**: Insert a delay marker with the duration configured in settings
 - **Request Message**: Opens a dialog where you can type a message and optionally set a duration
@@ -216,93 +212,55 @@ Use the search box in the toolbar to filter tracks. The search matches against t
 
 Double-click a track to add it to the end of the queue. If duplicate prevention is enabled in settings, tracks that are currently playing, already in the queue, or already in the history cannot be added again.
 
-### Toggle to Dance Tree
+### Toggle to Dance List
 
-Use the toggle button in the toolbar to switch the right panel to the dance tree editor.
+Use the toggle button in the toolbar to switch the right panel to the dance list.
 
 ---
 
-## Dance Tree
+## Dance List
 
-The dance tree provides a hierarchical view of dance categories, used to organize dances and control random track selection.
+The dance list is your own list of the dances you play and the names each one goes by. Nothing is built into the application: you build the list once when you first run Ready4Balfolk, by importing a published list or starting empty, and after that it is yours to edit. The list is also what random selection reads, so there is no second structure to keep in step with it.
 
-### Structure
+### Categories and dances
 
-The tree is organized into categories (branches) and dances (leaves):
+- **Categories** hold dances and other categories. An imported list starts with a category per region, and a category inside it for a family or suite.
+- **Dances** live in a category. Each one carries the names it goes by; the first is the one shown everywhere in the application.
 
-- **Categories** can contain other categories and dances, forming a hierarchy
-- **Dances** are the leaf nodes, representing a specific dance type
-- Each entry shows its name and the number of matching tracks in parentheses, e.g. "Mazurka (42)"
+Select anything on the left to edit it on the right.
 
-### Marking for Random Selection
+### Names
 
-Click the dice icon next to any entry to **mark** it for random selection. The marked entry determines the scope when using "Queue Random Track":
+A dance can go by several names, because the spelling of a balfolk dance is genuinely contested. All of them mean the same dance, and none is treated as the correct one.
 
-- **Mark the root**: Random selection draws from all dances in the entire tree
-- **Mark a category**: Random selection draws from all dances in that category and its subcategories
-- **Mark a single dance**: Random selection only picks tracks for that specific dance
+- **Add a spelling**: type it in the box under the list of names and press Enter.
+- **Choose which one is shown**: click the **up arrow** next to a spelling to move it to the top. Nothing else moves, because everything in the application refers to the dance itself rather than to its name.
+- **Remove a spelling**: click the **trash** icon. A dance always keeps at least one name.
 
-The marked entry is highlighted to show it is active.
+**A name can only ever mean one dance.** Adding a spelling that another dance already answers to is refused, and the message says which dance has it. That is what lets Ready4Balfolk answer with one dance when it recognises a name in a filename.
 
 ### Weights
 
-Each category and dance has a **weight** value that influences random selection probability. A higher weight means that entry is more likely to be chosen. The effective probability of a dance being selected is proportional to its weight multiplied by its number of available tracks.
+Categories and dances both carry a **weight**, and a random pick is weighted by the category's weight multiplied by the dance's. A higher weight comes up more often; **zero means never**, and a category weighted zero takes everything inside it with it.
 
-To edit weights, select an entry and click the edit button. A numeric spinner appears next to the name where you can adjust the weight.
+### Choosing what random picks from
 
-### Editing the Tree
+Click the **dice** icon on any row to scope random selection to it:
 
-Select an entry to reveal action buttons:
+- **A category**: picks from the dances in it and in everything under it.
+- **A single dance**: picks only tracks for that dance.
+- Click the dice again, or use **Whole list** in the toolbar, to go back to picking from everything.
 
-- **Add Category**: Create a new subcategory within the selected category
-- **Add Dance**: Create a new dance entry within the selected category
-- **Edit**: Enter edit mode to rename the entry and adjust its weight
-- **Confirm**: Save changes when in edit mode
-- **Delete**: Remove the entry (and all its children, if it's a category)
-- **Cancel**: Discard changes when in edit mode
+The toolbar always says what the current scope is, because the dice is easy to hit by accident and hard to notice afterwards.
 
-### Toolbar
+### Editing
 
-- **Toggle to Track List**: Switch back to the track catalog view
-- **Undo** (Ctrl+Z): Revert the last edit. Hover over the button to see a description of the action that will be undone.
-- **Redo** (Ctrl+Y): Re-apply the last undone edit. Hover over the button to see a description.
-- **Import**: Load a dance tree from a JSON file, replacing the current tree
-- **Export**: Save the current tree to a JSON file for backup or sharing
-
----
-
-## Dance Synonyms
-
-The dance synonyms editor lets you define alternative names for dances. When a track's dance name matches a synonym, it is grouped under the main dance name. This is useful when your music collection uses different spellings or regional names for the same dance.
-
-Entries are displayed as cards in a flowing multi-column layout. Each card shows the main dance name at the top and its synonyms as tags below.
-
-### Managing Entries
-
-- **Add**: Click the **+** button in the toolbar to create a new entry. The entry is created with a default name and immediately enters edit mode so you can type the name.
-- **Edit name**: Click the **pencil** icon on a card to enter edit mode. The name becomes an editable text field, focused and fully selected. While editing, all other cards are disabled.
-  - Press **Enter** or click the **check** icon to confirm the rename.
-  - Press **Escape** or click the **X** icon to cancel and revert to the original name.
-  - Cancelling a newly added entry undoes the add entirely.
-- **Delete**: Click the **trash** icon on a card (only visible when not in edit mode) to remove the entry and all its synonyms.
-
-### Managing Synonyms
-
-Synonyms appear as tags below the main dance name.
-
-- **Add synonym**: Click the **+** button at the end of the synonym tags to show an inline text field. While adding, all other cards are disabled.
-  - Type the synonym, then press **Enter** or click the **check** icon to confirm.
-  - Press **Escape** or click the **X** icon to cancel.
-- **Remove synonym**: Click the **X** button on any synonym tag to remove it.
-
-### Toolbar
-
-- **Back**: Return to the main screen
-- **Undo** (Ctrl+Z): Revert the last change. The tooltip shows which action will be undone.
-- **Redo** (Ctrl+Y): Re-apply the last undone change. The tooltip shows which action will be redone.
-- **Import**: Load synonyms from a JSON file, replacing the current set (with confirmation)
-- **Export**: Save the current synonyms to a JSON file for backup or sharing
-- **Add**: Create a new dance entry
+- **Add category**: creates a new top-level category. With a category selected, **Add a category inside this one** nests one.
+- **Add a dance**: type its name in the box on a selected category and press Enter.
+- **Rename**: edit the name of the selected category and press Enter. Two categories in the same place cannot share a name.
+- **Delete**: removes the selected category or dance. Deleting a category takes the dances in it with it, and it says how many first.
+- **Undo** / **Redo**: every edit can be undone. Hover a button to see which change it will undo.
+- **Import** / **Export**: replace the whole list from a file, or save it for backup or sharing. Importing cannot be undone, so it asks first.
 
 ---
 

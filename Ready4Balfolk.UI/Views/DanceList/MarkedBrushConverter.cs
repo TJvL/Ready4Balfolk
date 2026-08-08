@@ -1,22 +1,20 @@
 using System;
 using System.Globalization;
-using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 
-namespace Ready4Balfolk.UI.Views.DanceTree;
+namespace Ready4Balfolk.UI.Views.DanceList;
 
+/// <summary>Shows which row a random pick is scoped to, and leaves the rest quiet.</summary>
 public sealed class MarkedBrushConverter : IValueConverter
 {
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        var key = value is true ? "MarkedActiveBrush" : "MarkedMutedBrush";
+    public static readonly MarkedBrushConverter Instance = new();
 
-        return Application.Current!.TryFindResource(key, Application.Current?.ActualThemeVariant, out var resource)
-            ? (IBrush)resource!
-            : Brushes.Gray;
-    }
+    private static readonly IBrush Marked = Brushes.Goldenrod;
+    private static readonly IBrush Unmarked = new SolidColorBrush(Colors.Gray, 0.55);
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is true ? Marked : Unmarked;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();

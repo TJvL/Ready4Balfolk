@@ -18,6 +18,4 @@ public partial class ToolbarView : ReactiveUserControl<ToolbarViewModel>
     private void OnHelpClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Help;
 
     private void OnSettingsClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Settings;
-
-    private void OnSynonymsClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Synonyms;
 }

@@ -3,8 +3,7 @@ using System.Reactive.Linq;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.DanceSynonyms;
-using Ready4Balfolk.UI.Views.DanceTree;
+using Ready4Balfolk.UI.Views.DanceList;
 using Ready4Balfolk.UI.Views.Equalizer;
 using Ready4Balfolk.UI.Views.Help;
 using Ready4Balfolk.UI.Views.History;
@@ -26,10 +25,9 @@ public sealed partial class MainWindowViewModel : ReactiveObject
     public TrackCatalogViewModel TrackCatalog { get; }
 
     [Reactive] public partial HistoryViewModel? History { get; set; }
-    [Reactive] public partial DanceTreeViewModel? DanceTree { get; set; }
+    [Reactive] public partial DanceListViewModel? DanceList { get; set; }
     [Reactive] public partial SettingsViewModel? Settings { get; set; }
     [Reactive] public partial HelpViewModel? Help { get; set; }
-    [Reactive] public partial DanceSynonymsViewModel? DanceSynonyms { get; set; }
 
     public MainWindowViewModel(
         NavigationService navigation,
@@ -39,10 +37,9 @@ public sealed partial class MainWindowViewModel : ReactiveObject
         QueueViewModel queue,
         TrackCatalogViewModel trackCatalog,
         Lazy<HistoryViewModel> lazyHistory,
-        Lazy<DanceTreeViewModel> lazyDanceTree,
+        Lazy<DanceListViewModel> lazyDanceList,
         Lazy<SettingsViewModel> lazySettings,
-        Lazy<HelpViewModel> lazyHelp,
-        Lazy<DanceSynonymsViewModel> lazyDanceSynonyms)
+        Lazy<HelpViewModel> lazyHelp)
     {
         Navigation = navigation;
         Toolbar = toolbar;
@@ -63,10 +60,6 @@ public sealed partial class MainWindowViewModel : ReactiveObject
                 {
                     Help = lazyHelp.Value;
                 }
-                else if (screen is Screen.Synonyms && DanceSynonyms is null)
-                {
-                    DanceSynonyms = lazyDanceSynonyms.Value;
-                }
             });
 
         // Defer main-screen toggle ViewModels until first toggle
@@ -75,9 +68,9 @@ public sealed partial class MainWindowViewModel : ReactiveObject
             .Take(1)
             .Subscribe(_ => History = lazyHistory.Value);
 
-        navigation.WhenAnyValue(x => x.IsTreeViewMode)
+        navigation.WhenAnyValue(x => x.IsDanceListMode)
             .Where(active => active)
             .Take(1)
-            .Subscribe(_ => DanceTree = lazyDanceTree.Value);
+            .Subscribe(_ => DanceList = lazyDanceList.Value);
     }
 }

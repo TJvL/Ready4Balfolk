@@ -16,7 +16,7 @@ using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.DanceTree;
+using Ready4Balfolk.UI.Views.DanceList;
 
 namespace Ready4Balfolk.UI.Views.Queue;
 
@@ -26,7 +26,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     private readonly IQueueConsumptionService _consumptionService;
     private readonly ISettingsStore _settingsStore;
     private readonly IRandomTrackService _randomTrackService;
-    private readonly DanceTreeViewModel _danceTreeViewModel;
+    private readonly DanceListViewModel _danceListViewModel;
     private readonly IConfirmationService _confirmationService;
     private readonly INotificationService _notificationService;
     private readonly CompositeDisposable _disposables = [];
@@ -78,12 +78,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private RandomSelectionScope GetMarkedScope() => _danceTreeViewModel.Marked switch
-    {
-        MarkedSelection.Branch b => new RandomSelectionScope.Subtree(b.Path),
-        MarkedSelection.Leaf l => new RandomSelectionScope.SingleDance(l.ParentPath, l.LeafIndex),
-        _ => new RandomSelectionScope.EntireTree()
-    };
+    private RandomSelectionScope GetMarkedScope() => _danceListViewModel.CurrentScope;
 
     [ReactiveCommand]
     private void EnqueueStop()
@@ -168,7 +163,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         IQueueConsumptionService consumptionService,
         ISettingsStore settingsStore,
         IRandomTrackService randomTrackService,
-        DanceTreeViewModel danceTreeViewModel,
+        DanceListViewModel danceListViewModel,
         IConfirmationService confirmationService,
         INotificationService notificationService)
     {
@@ -176,7 +171,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         _consumptionService = consumptionService;
         _settingsStore = settingsStore;
         _randomTrackService = randomTrackService;
-        _danceTreeViewModel = danceTreeViewModel;
+        _danceListViewModel = danceListViewModel;
         _confirmationService = confirmationService;
         _notificationService = notificationService;
         ItemCountText = UiStrings.Queue_Empty;

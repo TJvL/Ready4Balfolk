@@ -110,6 +110,11 @@ public sealed class DanceListStoreTests : IDisposable
 
         Assert.Equal(3, _sut.Current.AllDances.Count());
         Assert.Equal("scottish", _sut.Index.ResolveSlug("Schottische"));
+
+        // Weights survive the trip: an export is a backup of the list, not of its names alone.
+        Assert.Equal(2, _sut.Current.Categories[0].Weight);
+        Assert.Equal(3, _sut.Current.Categories[1].Categories[0].Weight);
+        Assert.Equal(2, _sut.Current.AllDances.First(d => d.Slug == "plinn").Weight);
     }
 
     [Fact]

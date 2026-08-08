@@ -21,9 +21,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
-using Ready4Balfolk.Domain.Stores.Synonym;
 using Ready4Balfolk.Domain.Stores.Tracks;
-using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
@@ -132,8 +130,6 @@ public sealed class App : Application
                 .SelectMany(_ =>
                     Observable.Merge(
                         RunLoad<IDanceListStore>((s, token) => s.LoadAsync(token), "Failed to load the dance list"),
-                        RunLoad<IDanceTreeStore>((s, token) => s.LoadAsync(token), "Failed to load dance tree"),
-                        RunLoad<IDanceSynonymStore>((s, token) => s.LoadAsync(token), "Failed to load dance synonyms"),
                         RunLoad<IQueueHistoryStore>((s, token) => s.LoadAsync(token), "Failed to load queue history")
                     // ToList waits for every load to finish before emitting once. The wizard reads
                     // the dance list to decide what to show, so it cannot open while that load is
@@ -202,10 +198,6 @@ public sealed class App : Application
                 w.IsBorderless);
         }).ToList();
 
-        var mainVm = Services.GetRequiredService<MainWindowViewModel>();
-        var collapsedBranches = mainVm.DanceTree?.GetCollapsedBranches()
-                                ?? settingsStore.Current.CollapsedBranches;
-
         await settingsStore.UpdateAsync(s => s with
         {
             MainWindowState = new DomainWindowState(
@@ -214,8 +206,7 @@ public sealed class App : Application
                 bounds.Width,
                 bounds.Height,
                 isMaximized),
-            PresentationWindowStates = presentationStates,
-            CollapsedBranches = collapsedBranches
+            PresentationWindowStates = presentationStates
         });
 
         // Asked to stop, never waited for. The process is about to end and the socket goes with

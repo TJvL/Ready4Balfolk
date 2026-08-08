@@ -1,6 +1,7 @@
 using System.Reactive.Subjects;
 using DynamicData;
 using NSubstitute;
+using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
@@ -10,7 +11,7 @@ using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.DanceTree;
+using Ready4Balfolk.UI.Views.DanceList;
 using Ready4Balfolk.UI.Views.Queue;
 using RxUnit = System.Reactive.Unit;
 
@@ -20,7 +21,7 @@ public sealed class QueueViewModelTests : IDisposable
 {
     private readonly IQueueService _queueService;
     private readonly IRandomTrackService _randomTrackService;
-    private readonly DanceTreeViewModel _danceTreeVm;
+    private readonly DanceListViewModel _danceListVm;
     private readonly IConfirmationService _confirmation;
     private readonly INotificationService _notification;
     private readonly QueueViewModel _sut;
@@ -105,19 +106,20 @@ public sealed class QueueViewModelTests : IDisposable
             Arg.Any<string>(), Arg.Any<string>()).Returns(true);
         _notification = Substitute.For<INotificationService>();
 
-        _danceTreeVm = CreateMinimalDanceTreeVm();
+        _danceListVm = CreateMinimalDanceListVm();
 
         _sut = new QueueViewModel(
             _queueService, consumption, settingsStore,
-            _randomTrackService, _danceTreeVm, _confirmation, _notification);
+            _randomTrackService, _danceListVm, _confirmation, _notification);
     }
 
-    private DanceTreeViewModel CreateMinimalDanceTreeVm()
+    private DanceListViewModel CreateMinimalDanceListVm()
     {
-        var treeStore = Substitute.For<Domain.Stores.Tree.IDanceTreeStore>();
-        treeStore.Current.Returns(TestData.CreateSimpleTree());
-        treeStore.Observe()
-            .Returns(new BehaviorSubject<IReadOnlyList<Domain.Models.Tree.DanceBranch>>(TestData.CreateSimpleTree()));
+        var danceListStore = Substitute.For<Domain.Stores.Dances.IDanceListStore>();
+        danceListStore.Current.Returns(TestData.CreateSimpleDanceList());
+        danceListStore.Index.Returns(DanceListIndex.Build(TestData.CreateSimpleDanceList()));
+        danceListStore.Observe().Returns(new BehaviorSubject<DanceList>(TestData.CreateSimpleDanceList()));
+        danceListStore.IsLoading.Returns(new BehaviorSubject<bool>(false));
 
         var editorHistory = Substitute.For<Domain.Services.Editor.IEditorHistoryService>();
         editorHistory.CanUndo.Returns(new BehaviorSubject<bool>(false));
@@ -125,19 +127,8 @@ public sealed class QueueViewModelTests : IDisposable
         editorHistory.UndoDescription.Returns(new BehaviorSubject<string?>(null));
         editorHistory.RedoDescription.Returns(new BehaviorSubject<string?>(null));
 
-        var trackStore = Substitute.For<Domain.Stores.Tracks.ITrackStore>();
-        trackStore.Connect().Returns(new SourceList<Track>().Connect());
-
-        var settingsStore = Substitute.For<ISettingsStore>();
-        settingsStore.Current.Returns(new ApplicationSettings());
-        settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(new ApplicationSettings()));
-
-        var randomTrack = Substitute.For<IRandomTrackService>();
-        var queueService = Substitute.For<IQueueService>();
-        queueService.Connect().Returns(new SourceList<IQueueItem>().Connect());
-
-        return new DanceTreeViewModel(treeStore, editorHistory, trackStore,
-            settingsStore, randomTrack, queueService, _notification, new NoOpLoggerService());
+        return new DanceListViewModel(danceListStore, editorHistory, _notification,
+            _confirmation, new NoOpLoggerService());
     }
 
     // --- QueueRandomTrack ---
@@ -442,7 +433,7 @@ public sealed class QueueViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
-        _danceTreeVm.Dispose();
+        _danceListVm.Dispose();
         _queueSource.Dispose();
         _currentItem.Dispose();
         _elapsed.Dispose();

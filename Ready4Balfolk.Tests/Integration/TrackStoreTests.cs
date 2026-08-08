@@ -2,10 +2,11 @@ using System.Diagnostics;
 using System.Reactive.Linq;
 using NSubstitute;
 using Ready4Balfolk.Domain;
+using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
-using Ready4Balfolk.Domain.Services.Synonym;
 using Ready4Balfolk.Domain.Services.Tracks;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Tracks;
 
 namespace Ready4Balfolk.Tests.Integration;
@@ -32,15 +33,18 @@ public sealed class TrackStoreTests : IDisposable
         discoveryService.LoadTrackWithDuration(Arg.Any<FileInfo>(), Arg.Any<TimeSpan>())
             .Returns(call => CreateTrackFor(call.Arg<FileInfo>()!));
 
-        var synonymService = Substitute.For<ISynonymResolutionService>();
-        synonymService.Resolve(Arg.Any<string>()).Returns(call => call.Arg<string>());
-        synonymService.Changed.Returns(Observable.Never<System.Reactive.Unit>());
+        // An empty list: every track stays unresolved, keeping the name the file gave it, which is
+        // what these tests assert on.
+        var danceListStore = Substitute.For<IDanceListStore>();
+        danceListStore.Current.Returns(DanceList.Empty);
+        danceListStore.Index.Returns(DanceListIndex.Empty);
+        danceListStore.Observe().Returns(Observable.Never<DanceList>());
 
         var durationCache = Substitute.For<ITrackDurationCache>();
         durationCache.TryGetDuration(Arg.Any<string>(), Arg.Any<DateTime>())
             .Returns((TimeSpan?)null);
 
-        _sut = new TrackStore(_loggerService, discoveryService, synonymService, durationCache);
+        _sut = new TrackStore(_loggerService, discoveryService, danceListStore, durationCache);
     }
 
     [Fact]

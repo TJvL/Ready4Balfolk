@@ -106,86 +106,11 @@
   <data name="HistoryToolbar_ClearLabel" xml:space="preserve">
     <value>Wissen</value>
   </data>
-  <data name="TrackCatalog_DancesLabel" xml:space="preserve">
-    <value>Dansen</value>
-  </data>
   <data name="TrackCatalog_ClearSearchLabel" xml:space="preserve">
     <value>Wissen</value>
   </data>
   <data name="MainWindow_BackLabel" xml:space="preserve">
     <value>Terug</value>
-  </data>
-  <data name="DanceTreeToolbar_TrackListLabel" xml:space="preserve">
-    <value>Nummers</value>
-  </data>
-  <data name="DanceTreeToolbar_UndoLabel" xml:space="preserve">
-    <value>Ongedaan</value>
-  </data>
-  <data name="DanceTreeToolbar_RedoLabel" xml:space="preserve">
-    <value>Opnieuw</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportLabel" xml:space="preserve">
-    <value>Importeren</value>
-  </data>
-  <data name="DanceTreeToolbar_ExportLabel" xml:space="preserve">
-    <value>Exporteren</value>
-  </data>
-  <data name="DanceTree_RandomLabel" xml:space="preserve">
-    <value>Willekeurig</value>
-  </data>
-  <data name="DanceTree_AddCategoryLabel" xml:space="preserve">
-    <value>Groep erbij</value>
-  </data>
-  <data name="DanceTree_AddDanceLabel" xml:space="preserve">
-    <value>Dans erbij</value>
-  </data>
-  <data name="DanceTree_EditLabel" xml:space="preserve">
-    <value>Bewerken</value>
-  </data>
-  <data name="DanceTree_ConfirmLabel" xml:space="preserve">
-    <value>Klaar</value>
-  </data>
-  <data name="DanceTree_DeleteLabel" xml:space="preserve">
-    <value>Verwijderen</value>
-  </data>
-  <data name="DanceTree_CancelLabel" xml:space="preserve">
-    <value>Annuleren</value>
-  </data>
-  <data name="DanceSynonyms_BackLabel" xml:space="preserve">
-    <value>Terug</value>
-  </data>
-  <data name="DanceSynonyms_UndoLabel" xml:space="preserve">
-    <value>Ongedaan</value>
-  </data>
-  <data name="DanceSynonyms_RedoLabel" xml:space="preserve">
-    <value>Opnieuw</value>
-  </data>
-  <data name="DanceSynonyms_ImportLabel" xml:space="preserve">
-    <value>Importeren</value>
-  </data>
-  <data name="DanceSynonyms_ExportLabel" xml:space="preserve">
-    <value>Exporteren</value>
-  </data>
-  <data name="DanceSynonyms_AddDanceLabel" xml:space="preserve">
-    <value>Dans erbij</value>
-  </data>
-  <data name="DanceSynonyms_EditLabel" xml:space="preserve">
-    <value>Bewerken</value>
-  </data>
-  <data name="DanceSynonyms_ConfirmLabel" xml:space="preserve">
-    <value>Klaar</value>
-  </data>
-  <data name="DanceSynonyms_DeleteLabel" xml:space="preserve">
-    <value>Verwijderen</value>
-  </data>
-  <data name="DanceSynonyms_CancelLabel" xml:space="preserve">
-    <value>Annuleren</value>
-  </data>
-  <data name="DanceSynonyms_RemoveLabel" xml:space="preserve">
-    <value>Weghalen</value>
-  </data>
-  <data name="DanceSynonyms_AddSynonymLabel" xml:space="preserve">
-    <value>Synoniem erbij</value>
   </data>
   <data name="Queue_RefreshAutoTrackLabel" xml:space="preserve">
     <value>Opnieuw</value>
@@ -202,9 +127,6 @@
   <data name="Toolbar_SettingsLabel" xml:space="preserve">
     <value>Instellingen</value>
   </data>
-  <data name="Toolbar_DanceSynonymsLabel" xml:space="preserve">
-    <value>Synoniemen</value>
-  </data>
   <data name="Settings_ShowButtonText" xml:space="preserve">
     <value>Tekst op knoppen tonen in plaats van iconen</value>
   </data>
@@ -219,9 +141,6 @@
   </data>
   <data name="Toolbar_Settings" xml:space="preserve">
     <value>Instellingen</value>
-  </data>
-  <data name="Toolbar_DanceSynonyms" xml:space="preserve">
-    <value>Danssynoniemen</value>
   </data>
 
   <!-- Settings -->
@@ -510,9 +429,6 @@
   <data name="TrackCatalog_ColumnLength" xml:space="preserve">
     <value>Duur</value>
   </data>
-  <data name="TrackCatalog_SwitchToDanceTree" xml:space="preserve">
-    <value>Naar dansboom</value>
-  </data>
   <data name="TrackCatalog_SearchWatermark" xml:space="preserve">
     <value>Nummers zoeken...</value>
   </data>
@@ -521,161 +437,10 @@
   </data>
 
   <!-- Dance Tree -->
-  <data name="DanceTree_MarkRootRandom" xml:space="preserve">
-    <value>Markeer als basis voor willekeurige selectie</value>
-  </data>
-  <data name="DanceTree_MarkRandom" xml:space="preserve">
-    <value>Markeer voor willekeurige selectie</value>
-  </data>
-  <data name="DanceTree_AddCategory" xml:space="preserve">
-    <value>Categorie toevoegen</value>
-  </data>
-  <data name="DanceTree_AddDance" xml:space="preserve">
-    <value>Dans toevoegen</value>
-  </data>
-  <data name="DanceTree_Confirm" xml:space="preserve">
-    <value>Bevestigen</value>
-  </data>
-  <data name="DanceTree_Edit" xml:space="preserve">
-    <value>Bewerken</value>
-  </data>
-  <data name="DanceTree_Cancel" xml:space="preserve">
-    <value>Annuleren</value>
-  </data>
-  <data name="DanceTree_Delete" xml:space="preserve">
-    <value>Verwijderen</value>
-  </data>
-  <data name="DanceTree_RootName" xml:space="preserve">
-    <value>Dans</value>
-  </data>
-  <data name="DanceTree_NoTracksAvailable" xml:space="preserve">
-    <value>Geen nummers beschikbaar voor willekeurige selectie</value>
-  </data>
-  <data name="DanceTree_NameEmpty" xml:space="preserve">
-    <value>Naam mag niet leeg zijn.</value>
-  </data>
-  <data name="DanceTree_CategoryNameExists" xml:space="preserve">
-    <value>Er bestaat al een categorie met de naam &#x2018;{0}&#x2019;.</value>
-  </data>
-  <data name="DanceTree_DanceNameExists" xml:space="preserve">
-    <value>Er bestaat al een dans met de naam &#x2018;{0}&#x2019;.</value>
-  </data>
 
   <!-- Dance Tree Toolbar -->
-  <data name="DanceTreeToolbar_SwitchToTrackList" xml:space="preserve">
-    <value>Naar nummerlijst</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportDanceTree" xml:space="preserve">
-    <value>Dansboom importeren</value>
-  </data>
-  <data name="DanceTreeToolbar_ExportDanceTree" xml:space="preserve">
-    <value>Dansboom exporteren</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportTitle" xml:space="preserve">
-    <value>Dansboom importeren</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportConfirmMessage" xml:space="preserve">
-    <value>Importeren zal de huidige dansboom permanent overschrijven. Overweeg eerst een back-up te exporteren.
-
-Doorgaan met importeren?</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportButton" xml:space="preserve">
-    <value>Importeren</value>
-  </data>
-  <data name="DanceTreeToolbar_CancelButton" xml:space="preserve">
-    <value>Annuleren</value>
-  </data>
-  <data name="DanceTreeToolbar_ExportTitle" xml:space="preserve">
-    <value>Dansboom exporteren</value>
-  </data>
-  <data name="DanceTreeToolbar_UndoFormat" xml:space="preserve">
-    <value>Ongedaan maken: {0} (Ctrl+Z)</value>
-  </data>
-  <data name="DanceTreeToolbar_UndoDefault" xml:space="preserve">
-    <value>Ongedaan maken (Ctrl+Z)</value>
-  </data>
-  <data name="DanceTreeToolbar_RedoFormat" xml:space="preserve">
-    <value>Opnieuw uitvoeren: {0} (Ctrl+Y)</value>
-  </data>
-  <data name="DanceTreeToolbar_RedoDefault" xml:space="preserve">
-    <value>Opnieuw uitvoeren (Ctrl+Y)</value>
-  </data>
 
   <!-- Dance Synonyms -->
-  <data name="DanceSynonyms_Title" xml:space="preserve">
-    <value>Danssynoniemen</value>
-  </data>
-  <data name="DanceSynonyms_Back" xml:space="preserve">
-    <value>Terug</value>
-  </data>
-  <data name="DanceSynonyms_ImportSynonyms" xml:space="preserve">
-    <value>Synoniemen importeren</value>
-  </data>
-  <data name="DanceSynonyms_ExportSynonyms" xml:space="preserve">
-    <value>Synoniemen exporteren</value>
-  </data>
-  <data name="DanceSynonyms_AddNewDance" xml:space="preserve">
-    <value>Nieuwe dans toevoegen</value>
-  </data>
-  <data name="DanceSynonyms_DanceNameWatermark" xml:space="preserve">
-    <value>Dansnaam</value>
-  </data>
-  <data name="DanceSynonyms_SynonymWatermark" xml:space="preserve">
-    <value>synoniem</value>
-  </data>
-  <data name="DanceSynonyms_Edit" xml:space="preserve">
-    <value>Bewerken</value>
-  </data>
-  <data name="DanceSynonyms_Confirm" xml:space="preserve">
-    <value>Bevestigen</value>
-  </data>
-  <data name="DanceSynonyms_Delete" xml:space="preserve">
-    <value>Verwijderen</value>
-  </data>
-  <data name="DanceSynonyms_Cancel" xml:space="preserve">
-    <value>Annuleren</value>
-  </data>
-  <data name="DanceSynonyms_AddSynonym" xml:space="preserve">
-    <value>Synoniem toevoegen</value>
-  </data>
-  <data name="DanceSynonyms_NameEmpty" xml:space="preserve">
-    <value>Naam mag niet leeg zijn.</value>
-  </data>
-  <data name="DanceSynonyms_NameInUse" xml:space="preserve">
-    <value>De naam '{0}' is al in gebruik.</value>
-  </data>
-  <data name="DanceSynonyms_ImportTitle" xml:space="preserve">
-    <value>Synoniemen importeren</value>
-  </data>
-  <data name="DanceSynonyms_ImportConfirmMessage" xml:space="preserve">
-    <value>Importeren zal de huidige danssynoniemen permanent overschrijven. Overweeg eerst een back-up te exporteren.
-
-Doorgaan met importeren?</value>
-  </data>
-  <data name="DanceSynonyms_ImportButton" xml:space="preserve">
-    <value>Importeren</value>
-  </data>
-  <data name="DanceSynonyms_CancelButton" xml:space="preserve">
-    <value>Annuleren</value>
-  </data>
-  <data name="DanceSynonyms_ImportFilePickerTitle" xml:space="preserve">
-    <value>Danssynoniemen importeren</value>
-  </data>
-  <data name="DanceSynonyms_ExportFilePickerTitle" xml:space="preserve">
-    <value>Danssynoniemen exporteren</value>
-  </data>
-  <data name="DanceSynonyms_UndoFormat" xml:space="preserve">
-    <value>Ongedaan maken: {0} (Ctrl+Z)</value>
-  </data>
-  <data name="DanceSynonyms_UndoDefault" xml:space="preserve">
-    <value>Ongedaan maken (Ctrl+Z)</value>
-  </data>
-  <data name="DanceSynonyms_RedoFormat" xml:space="preserve">
-    <value>Opnieuw uitvoeren: {0} (Ctrl+Y)</value>
-  </data>
-  <data name="DanceSynonyms_RedoDefault" xml:space="preserve">
-    <value>Opnieuw uitvoeren (Ctrl+Y)</value>
-  </data>
 
   <!-- Presentation -->
   <data name="Presentation_WindowTitle" xml:space="preserve">
@@ -1031,5 +796,34 @@ Doorgaan met importeren?</value>
   </data>
   <data name="Wizard_DanceList_ClearCancel" xml:space="preserve">
     <value>Annuleren</value>
+  </data>
+
+  <!-- Dance list scope -->
+  <data name="DanceList_MarkForRandom" xml:space="preserve">
+    <value>Willekeurig kiezen vanaf hier</value>
+  </data>
+  <data name="DanceList_MarkWholeList" xml:space="preserve">
+    <value>Weer uit de hele lijst kiezen</value>
+  </data>
+  <data name="DanceList_MarkWholeListLabel" xml:space="preserve">
+    <value>Hele lijst</value>
+  </data>
+  <data name="DanceList_MarkedWholeList" xml:space="preserve">
+    <value>Willekeurig uit: hele lijst</value>
+  </data>
+  <data name="DanceList_MarkedFormat" xml:space="preserve">
+    <value>Willekeurig uit: {0}</value>
+  </data>
+  <data name="DanceListToolbar_SwitchToTrackList" xml:space="preserve">
+    <value>Naar de nummerlijst</value>
+  </data>
+  <data name="DanceListToolbar_TrackListLabel" xml:space="preserve">
+    <value>Nummers</value>
+  </data>
+  <data name="TrackCatalog_SwitchToDanceList" xml:space="preserve">
+    <value>Naar de danslijst</value>
+  </data>
+  <data name="TrackCatalog_DancesLabel" xml:space="preserve">
+    <value>Dansen</value>
   </data>
 </root>

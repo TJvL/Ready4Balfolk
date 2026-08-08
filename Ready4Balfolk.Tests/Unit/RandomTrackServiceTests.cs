@@ -1,19 +1,20 @@
 using NSubstitute;
+using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Tracks;
-using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Unit;
 
 public sealed class RandomTrackServiceTests
 {
-    private readonly IDanceTreeStore _treeStore = Substitute.For<IDanceTreeStore>();
+    private readonly IDanceListStore _danceListStore = Substitute.For<IDanceListStore>();
     private readonly ITrackStore _trackStore = Substitute.For<ITrackStore>();
     private readonly IQueueHistoryStore _historyStore = Substitute.For<IQueueHistoryStore>();
     private readonly IQueueService _queueService = Substitute.For<IQueueService>();
@@ -22,190 +23,195 @@ public sealed class RandomTrackServiceTests
 
     public RandomTrackServiceTests()
     {
-        _sut = new RandomTrackService(_treeStore, _trackStore, _historyStore, _queueService, _consumptionService);
+        _sut = new RandomTrackService(_danceListStore, _trackStore, _historyStore, _queueService, _consumptionService);
+        _danceListStore.Current.Returns(TestData.CreateSimpleDanceList());
         _historyStore.Current.Returns(new QueueHistory(null, []));
         _queueService.Items.Returns(new List<IQueueItem>());
         _consumptionService.CurrentItem.Returns((IQueueItem?)null);
     }
 
     [Fact]
-    public void EntireTree_ReturnsMatchingTrack()
+    public void EntireList_ReturnsAMatchingTrack()
     {
-        var tree = TestData.CreateSimpleTree();
-        _treeStore.Current.Returns(tree);
-        _trackStore.Current.Returns(new List<Track>
-        {
-            TestData.CreateTrack()
-        });
+        Tracks(TestData.CreateTrack());
 
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
+        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true);
 
         Assert.NotNull(result);
-        Assert.Equal("Mazurka", result.Dance);
+        Assert.Equal("mazurka", result.DanceSlug);
     }
 
     [Fact]
-    public void Subtree_ReturnsMatchingTrack()
+    public void Category_PicksOnlyFromInsideIt()
     {
-        var tree = TestData.CreateSimpleTree();
-        _treeStore.Current.Returns(tree);
-        _trackStore.Current.Returns(new List<Track>
-        {
-            TestData.CreateTrack(), TestData.CreateTrack("Bourree")
-        });
+        Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
 
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.Subtree([0]), true);
+        // Bretagne is the second root category and holds only the plinn.
+        var result = _sut.PickRandomTrack(new RandomSelectionScope.Category([1]), true);
 
         Assert.NotNull(result);
-        Assert.Equal("Mazurka", result.Dance);
+        Assert.Equal("plinn", result.DanceSlug);
     }
 
     [Fact]
-    public void SingleDance_ReturnsMatchingTrack()
+    public void Category_ReachesDancesInItsSubCategories()
     {
-        var tree = TestData.CreateSimpleTree();
-        _treeStore.Current.Returns(tree);
-        _trackStore.Current.Returns(new List<Track>
-        {
-            TestData.CreateTrack(), TestData.CreateTrack("Bourree")
-        });
+        Tracks(TestData.CreateTrack("Plinn"));
 
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.SingleDance([0], 0), true);
-
-        Assert.NotNull(result);
-        Assert.Equal("Mazurka", result.Dance);
-    }
-
-    [Fact]
-    public void NoMatchingTracks_ReturnsNull()
-    {
-        var tree = TestData.CreateSimpleTree();
-        _treeStore.Current.Returns(tree);
-        _trackStore.Current.Returns(new List<Track>
-        {
-            TestData.CreateTrack("Polka")
-        });
-
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
-
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public void AllZeroWeight_ReturnsNull()
-    {
-        var tree = new List<Domain.Models.Tree.DanceBranch>
-        {
-            TestData.CreateBranch("Folk", 0, leaves: [TestData.CreateLeaf("Mazurka", 0)])
-        };
-        _treeStore.Current.Returns(tree);
-        _trackStore.Current.Returns(new List<Track>
-        {
-            TestData.CreateTrack()
-        });
-
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
-
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public void NoDuplicates_ExcludesQueuedAndFinished()
-    {
-        var tree = TestData.CreateSimpleTree();
-        _treeStore.Current.Returns(tree);
-
-        var mazurkaTrack = TestData.CreateTrack();
-        _trackStore.Current.Returns(new List<Track>
-        {
-            mazurkaTrack
-        });
-
-        // Mazurka is in queue
-        _queueService.Items.Returns(new List<IQueueItem>
-        {
-            new TrackQueueItem(mazurkaTrack, false)
-        });
-
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), false);
-
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public void AllowDuplicates_IncludesQueuedTracks()
-    {
-        var tree = TestData.CreateSimpleTree();
-        _treeStore.Current.Returns(tree);
-
-        var mazurkaTrack = TestData.CreateTrack();
-        _trackStore.Current.Returns(new List<Track>
-        {
-            mazurkaTrack
-        });
-
-        _queueService.Items.Returns(new List<IQueueItem>
-        {
-            new TrackQueueItem(mazurkaTrack, false)
-        });
-
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
+        // The plinn sits one level down, in "Suite plinn".
+        var result = _sut.PickRandomTrack(new RandomSelectionScope.Category([1]), true);
 
         Assert.NotNull(result);
     }
 
     [Fact]
-    public void EmptyTree_ReturnsNull()
+    public void SingleDance_PicksThatDanceOnly()
     {
-        _treeStore.Current.Returns(new List<Domain.Models.Tree.DanceBranch>());
-        _trackStore.Current.Returns(new List<Track>
-        {
-            TestData.CreateTrack()
-        });
+        Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
 
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
+        var result = _sut.PickRandomTrack(new RandomSelectionScope.SingleDance("plinn"), true);
 
-        Assert.Null(result);
+        Assert.NotNull(result);
+        Assert.Equal("plinn", result.DanceSlug);
     }
 
     [Fact]
-    public void NoDuplicates_ExcludesCurrentlyPlaying()
+    public void SingleDance_UnknownSlug_ReturnsNull()
     {
-        var tree = TestData.CreateSimpleTree();
-        _treeStore.Current.Returns(tree);
+        Tracks(TestData.CreateTrack());
 
-        var mazurkaTrack = TestData.CreateTrack();
-        _trackStore.Current.Returns(new List<Track>
-        {
-            mazurkaTrack
-        });
-
-        _consumptionService.CurrentItem.Returns(new TrackQueueItem(mazurkaTrack, false));
-
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), false);
-
-        Assert.Null(result);
+        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.SingleDance("nope"), true));
     }
 
     [Fact]
-    public void NoDuplicates_ExcludesFinishedHistory()
+    public void CategoryPathThatNoLongerExists_ReturnsNull()
     {
-        var tree = TestData.CreateSimpleTree();
-        _treeStore.Current.Returns(tree);
+        Tracks(TestData.CreateTrack());
 
-        var mazurkaTrack = TestData.CreateTrack();
-        _trackStore.Current.Returns(new List<Track>
+        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.Category([9]), true));
+    }
+
+    [Fact]
+    public void TrackTheListDoesNotKnow_IsNeverPicked()
+    {
+        // An unresolved track has no dance to be weighted by, so it cannot take part.
+        Tracks(TestData.CreateTrack("An Tri dipop", slug: null));
+
+        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true));
+    }
+
+    [Fact]
+    public void DanceWithNoTracks_IsSkipped()
+    {
+        Tracks(TestData.CreateTrack("Plinn"));
+
+        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true);
+
+        Assert.NotNull(result);
+        Assert.Equal("plinn", result.DanceSlug);
+    }
+
+    [Fact]
+    public void EmptyList_ReturnsNull()
+    {
+        _danceListStore.Current.Returns(DanceList.Empty);
+        Tracks(TestData.CreateTrack());
+
+        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true));
+    }
+
+    [Fact]
+    public void NoTracks_ReturnsNull()
+    {
+        Tracks();
+
+        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true));
+    }
+
+    [Fact]
+    public void DanceWeightedZero_IsNeverPicked()
+    {
+        _danceListStore.Current.Returns(new DanceList
         {
-            mazurkaTrack
+            Categories =
+            [
+                TestData.CreateCategory("Common", dances:
+                [
+                    TestData.CreateDance("mazurka", 0, "Mazurka"),
+                    TestData.CreateDance("plinn", 1, "Plinn")
+                ])
+            ]
         });
+        Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
 
-        _historyStore.Current.Returns(new QueueHistory(DateTime.Now, [
-            new TrackHistoryEntry(mazurkaTrack.FileInfo.FullName, "Mazurka", "Artist", "Title",
-                TimeSpan.FromMinutes(3), false, CompletionStatus.Finished)
+        for (var i = 0; i < 40; i++)
+        {
+            Assert.Equal("plinn", _sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true)?.DanceSlug);
+        }
+    }
+
+    [Fact]
+    public void CategoryWeightedZero_TakesEverythingUnderItWithIt()
+    {
+        _danceListStore.Current.Returns(new DanceList
+        {
+            Categories =
+            [
+                TestData.CreateCategory("Silent", 0, dances: [TestData.CreateDance("mazurka", 1, "Mazurka")]),
+                TestData.CreateCategory("Heard", 1, dances: [TestData.CreateDance("plinn", 1, "Plinn")])
+            ]
+        });
+        Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
+
+        for (var i = 0; i < 40; i++)
+        {
+            Assert.Equal("plinn", _sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true)?.DanceSlug);
+        }
+    }
+
+    [Fact]
+    public void AlreadyFinishedTrack_IsExcludedWhenDuplicatesAreNotAllowed()
+    {
+        var track = TestData.CreateTrack();
+        Tracks(track);
+        _historyStore.Current.Returns(new QueueHistory(null,
+        [
+            new TrackHistoryEntry(track.FileInfo.FullName, track.Dance, track.Artist, track.Title,
+                track.Length, false, CompletionStatus.Finished)
         ]));
 
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), false);
-
-        Assert.Null(result);
+        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), false));
     }
+
+    [Fact]
+    public void QueuedTrack_IsExcludedWhenDuplicatesAreNotAllowed()
+    {
+        var track = TestData.CreateTrack();
+        Tracks(track);
+        _queueService.Items.Returns(new List<IQueueItem> { new TrackQueueItem(track, false) });
+
+        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), false));
+    }
+
+    [Fact]
+    public void PlayingTrack_IsExcludedWhenDuplicatesAreNotAllowed()
+    {
+        var track = TestData.CreateTrack();
+        Tracks(track);
+        _consumptionService.CurrentItem.Returns(new TrackQueueItem(track, false));
+
+        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), false));
+    }
+
+    [Fact]
+    public void ExcludedTrack_IsStillPickedWhenDuplicatesAreAllowed()
+    {
+        var track = TestData.CreateTrack();
+        Tracks(track);
+        _consumptionService.CurrentItem.Returns(new TrackQueueItem(track, false));
+
+        Assert.NotNull(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true));
+    }
+
+    private void Tracks(params Track[] tracks) => _trackStore.Current.Returns(tracks.ToList());
 }

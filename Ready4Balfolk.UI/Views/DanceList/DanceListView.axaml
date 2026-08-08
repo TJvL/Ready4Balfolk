@@ -5,7 +5,7 @@
              xmlns:res="using:Ready4Balfolk.UI.Resources"
              xmlns:controls="using:Ready4Balfolk.UI.Controls"
              xmlns:danceList="using:Ready4Balfolk.UI.Views.DanceList"
-             xmlns:danceTree="using:Ready4Balfolk.UI.Views.DanceTree"
+             xmlns:conv="using:Ready4Balfolk.UI.Converters"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="520"
              x:Class="Ready4Balfolk.UI.Views.DanceList.DanceListView"
              x:DataType="danceList:DanceListViewModel">
@@ -83,6 +83,17 @@
                     <TreeView.DataTemplates>
                         <TreeDataTemplate DataType="danceList:DanceCategoryNode" ItemsSource="{Binding Children}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Button Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).ToggleMarkCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{x:Static res:UiStrings.DanceList_MarkForRandom}"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="2"
+                                        Focusable="False">
+                                    <PathIcon Data="{StaticResource IconDice}"
+                                              Width="14" Height="14"
+                                              Foreground="{Binding IsMarked, Converter={x:Static danceList:MarkedBrushConverter.Instance}}" />
+                                </Button>
                                 <PathIcon Data="{StaticResource IconTreeStructure}"
                                           Width="14" Height="14"
                                           Opacity="0.7"
@@ -96,6 +107,17 @@
                         </TreeDataTemplate>
                         <DataTemplate DataType="danceList:DanceNode">
                             <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Button Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).ToggleMarkCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{x:Static res:UiStrings.DanceList_MarkForRandom}"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="2"
+                                        Focusable="False">
+                                    <PathIcon Data="{StaticResource IconDice}"
+                                              Width="14" Height="14"
+                                              Foreground="{Binding IsMarked, Converter={x:Static danceList:MarkedBrushConverter.Instance}}" />
+                                </Button>
                                 <PathIcon Data="{StaticResource IconLeaf}"
                                           Width="14" Height="14"
                                           Opacity="0.7"
@@ -223,7 +245,7 @@
                         <TextBlock Text="{x:Static res:UiStrings.DanceList_Weight}" FontSize="12" Opacity="0.7" />
                         <Grid ColumnDefinitions="*,Auto">
                             <NumericUpDown Grid.Column="0"
-                                           Value="{CompiledBinding EditedWeight, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
+                                           Value="{CompiledBinding EditedWeight, Mode=TwoWay, Converter={x:Static conv:WeightConverter.Instance}}"
                                            Minimum="0"
                                            Maximum="100"
                                            Increment="1" />

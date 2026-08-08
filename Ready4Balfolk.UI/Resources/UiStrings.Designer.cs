@@ -90,86 +90,11 @@ public static class UiStrings
     public static string HistoryToolbar_ClearLabel =>
         ResourceManager.GetString("HistoryToolbar_ClearLabel", Culture)!;
 
-    public static string TrackCatalog_DancesLabel =>
-        ResourceManager.GetString("TrackCatalog_DancesLabel", Culture)!;
-
     public static string TrackCatalog_ClearSearchLabel =>
         ResourceManager.GetString("TrackCatalog_ClearSearchLabel", Culture)!;
 
     public static string MainWindow_BackLabel =>
         ResourceManager.GetString("MainWindow_BackLabel", Culture)!;
-
-    public static string DanceTreeToolbar_TrackListLabel =>
-        ResourceManager.GetString("DanceTreeToolbar_TrackListLabel", Culture)!;
-
-    public static string DanceTreeToolbar_UndoLabel =>
-        ResourceManager.GetString("DanceTreeToolbar_UndoLabel", Culture)!;
-
-    public static string DanceTreeToolbar_RedoLabel =>
-        ResourceManager.GetString("DanceTreeToolbar_RedoLabel", Culture)!;
-
-    public static string DanceTreeToolbar_ImportLabel =>
-        ResourceManager.GetString("DanceTreeToolbar_ImportLabel", Culture)!;
-
-    public static string DanceTreeToolbar_ExportLabel =>
-        ResourceManager.GetString("DanceTreeToolbar_ExportLabel", Culture)!;
-
-    public static string DanceTree_RandomLabel =>
-        ResourceManager.GetString("DanceTree_RandomLabel", Culture)!;
-
-    public static string DanceTree_AddCategoryLabel =>
-        ResourceManager.GetString("DanceTree_AddCategoryLabel", Culture)!;
-
-    public static string DanceTree_AddDanceLabel =>
-        ResourceManager.GetString("DanceTree_AddDanceLabel", Culture)!;
-
-    public static string DanceTree_EditLabel =>
-        ResourceManager.GetString("DanceTree_EditLabel", Culture)!;
-
-    public static string DanceTree_ConfirmLabel =>
-        ResourceManager.GetString("DanceTree_ConfirmLabel", Culture)!;
-
-    public static string DanceTree_DeleteLabel =>
-        ResourceManager.GetString("DanceTree_DeleteLabel", Culture)!;
-
-    public static string DanceTree_CancelLabel =>
-        ResourceManager.GetString("DanceTree_CancelLabel", Culture)!;
-
-    public static string DanceSynonyms_BackLabel =>
-        ResourceManager.GetString("DanceSynonyms_BackLabel", Culture)!;
-
-    public static string DanceSynonyms_UndoLabel =>
-        ResourceManager.GetString("DanceSynonyms_UndoLabel", Culture)!;
-
-    public static string DanceSynonyms_RedoLabel =>
-        ResourceManager.GetString("DanceSynonyms_RedoLabel", Culture)!;
-
-    public static string DanceSynonyms_ImportLabel =>
-        ResourceManager.GetString("DanceSynonyms_ImportLabel", Culture)!;
-
-    public static string DanceSynonyms_ExportLabel =>
-        ResourceManager.GetString("DanceSynonyms_ExportLabel", Culture)!;
-
-    public static string DanceSynonyms_AddDanceLabel =>
-        ResourceManager.GetString("DanceSynonyms_AddDanceLabel", Culture)!;
-
-    public static string DanceSynonyms_EditLabel =>
-        ResourceManager.GetString("DanceSynonyms_EditLabel", Culture)!;
-
-    public static string DanceSynonyms_ConfirmLabel =>
-        ResourceManager.GetString("DanceSynonyms_ConfirmLabel", Culture)!;
-
-    public static string DanceSynonyms_DeleteLabel =>
-        ResourceManager.GetString("DanceSynonyms_DeleteLabel", Culture)!;
-
-    public static string DanceSynonyms_CancelLabel =>
-        ResourceManager.GetString("DanceSynonyms_CancelLabel", Culture)!;
-
-    public static string DanceSynonyms_RemoveLabel =>
-        ResourceManager.GetString("DanceSynonyms_RemoveLabel", Culture)!;
-
-    public static string DanceSynonyms_AddSynonymLabel =>
-        ResourceManager.GetString("DanceSynonyms_AddSynonymLabel", Culture)!;
 
     public static string Queue_RefreshAutoTrackLabel =>
         ResourceManager.GetString("Queue_RefreshAutoTrackLabel", Culture)!;
@@ -186,9 +111,6 @@ public static class UiStrings
     public static string Toolbar_SettingsLabel =>
         ResourceManager.GetString("Toolbar_SettingsLabel", Culture)!;
 
-    public static string Toolbar_DanceSynonymsLabel =>
-        ResourceManager.GetString("Toolbar_DanceSynonymsLabel", Culture)!;
-
     public static string Settings_ShowButtonText =>
         ResourceManager.GetString("Settings_ShowButtonText", Culture)!;
 
@@ -203,9 +125,6 @@ public static class UiStrings
 
     public static string Toolbar_Settings =>
         ResourceManager.GetString("Toolbar_Settings", Culture)!;
-
-    public static string Toolbar_DanceSynonyms =>
-        ResourceManager.GetString("Toolbar_DanceSynonyms", Culture)!;
 
     // Settings
     public static string Settings_Title =>
@@ -512,9 +431,6 @@ public static class UiStrings
     public static string TrackCatalog_ColumnLength =>
         ResourceManager.GetString("TrackCatalog_ColumnLength", Culture)!;
 
-    public static string TrackCatalog_SwitchToDanceTree =>
-        ResourceManager.GetString("TrackCatalog_SwitchToDanceTree", Culture)!;
-
     public static string TrackCatalog_SearchWatermark =>
         ResourceManager.GetString("TrackCatalog_SearchWatermark", Culture)!;
 
@@ -522,155 +438,8 @@ public static class UiStrings
         ResourceManager.GetString("TrackCatalog_ClearSearch", Culture)!;
 
     // Dance Tree
-    public static string DanceTree_MarkRootRandom =>
-        ResourceManager.GetString("DanceTree_MarkRootRandom", Culture)!;
-
-    public static string DanceTree_MarkRandom =>
-        ResourceManager.GetString("DanceTree_MarkRandom", Culture)!;
-
-    public static string DanceTree_AddCategory =>
-        ResourceManager.GetString("DanceTree_AddCategory", Culture)!;
-
-    public static string DanceTree_AddDance =>
-        ResourceManager.GetString("DanceTree_AddDance", Culture)!;
-
-    public static string DanceTree_Confirm =>
-        ResourceManager.GetString("DanceTree_Confirm", Culture)!;
-
-    public static string DanceTree_Edit =>
-        ResourceManager.GetString("DanceTree_Edit", Culture)!;
-
-    public static string DanceTree_Cancel =>
-        ResourceManager.GetString("DanceTree_Cancel", Culture)!;
-
-    public static string DanceTree_Delete =>
-        ResourceManager.GetString("DanceTree_Delete", Culture)!;
-
-    public static string DanceTree_RootName =>
-        ResourceManager.GetString("DanceTree_RootName", Culture)!;
-
-    public static string DanceTree_NoTracksAvailable =>
-        ResourceManager.GetString("DanceTree_NoTracksAvailable", Culture)!;
-
-    public static string DanceTree_NameEmpty =>
-        ResourceManager.GetString("DanceTree_NameEmpty", Culture)!;
-
-    public static string DanceTree_CategoryNameExists =>
-        ResourceManager.GetString("DanceTree_CategoryNameExists", Culture)!;
-
-    public static string DanceTree_DanceNameExists =>
-        ResourceManager.GetString("DanceTree_DanceNameExists", Culture)!;
-
     // Dance Tree Toolbar
-    public static string DanceTreeToolbar_SwitchToTrackList =>
-        ResourceManager.GetString("DanceTreeToolbar_SwitchToTrackList", Culture)!;
-
-    public static string DanceTreeToolbar_ImportDanceTree =>
-        ResourceManager.GetString("DanceTreeToolbar_ImportDanceTree", Culture)!;
-
-    public static string DanceTreeToolbar_ExportDanceTree =>
-        ResourceManager.GetString("DanceTreeToolbar_ExportDanceTree", Culture)!;
-
-    public static string DanceTreeToolbar_ImportTitle =>
-        ResourceManager.GetString("DanceTreeToolbar_ImportTitle", Culture)!;
-
-    public static string DanceTreeToolbar_ImportConfirmMessage =>
-        ResourceManager.GetString("DanceTreeToolbar_ImportConfirmMessage", Culture)!;
-
-    public static string DanceTreeToolbar_ImportButton =>
-        ResourceManager.GetString("DanceTreeToolbar_ImportButton", Culture)!;
-
-    public static string DanceTreeToolbar_CancelButton =>
-        ResourceManager.GetString("DanceTreeToolbar_CancelButton", Culture)!;
-
-    public static string DanceTreeToolbar_ExportTitle =>
-        ResourceManager.GetString("DanceTreeToolbar_ExportTitle", Culture)!;
-
-    public static string DanceTreeToolbar_UndoFormat =>
-        ResourceManager.GetString("DanceTreeToolbar_UndoFormat", Culture)!;
-
-    public static string DanceTreeToolbar_UndoDefault =>
-        ResourceManager.GetString("DanceTreeToolbar_UndoDefault", Culture)!;
-
-    public static string DanceTreeToolbar_RedoFormat =>
-        ResourceManager.GetString("DanceTreeToolbar_RedoFormat", Culture)!;
-
-    public static string DanceTreeToolbar_RedoDefault =>
-        ResourceManager.GetString("DanceTreeToolbar_RedoDefault", Culture)!;
-
     // Dance Synonyms
-    public static string DanceSynonyms_Title =>
-        ResourceManager.GetString("DanceSynonyms_Title", Culture)!;
-
-    public static string DanceSynonyms_Back =>
-        ResourceManager.GetString("DanceSynonyms_Back", Culture)!;
-
-    public static string DanceSynonyms_ImportSynonyms =>
-        ResourceManager.GetString("DanceSynonyms_ImportSynonyms", Culture)!;
-
-    public static string DanceSynonyms_ExportSynonyms =>
-        ResourceManager.GetString("DanceSynonyms_ExportSynonyms", Culture)!;
-
-    public static string DanceSynonyms_AddNewDance =>
-        ResourceManager.GetString("DanceSynonyms_AddNewDance", Culture)!;
-
-    public static string DanceSynonyms_DanceNameWatermark =>
-        ResourceManager.GetString("DanceSynonyms_DanceNameWatermark", Culture)!;
-
-    public static string DanceSynonyms_SynonymWatermark =>
-        ResourceManager.GetString("DanceSynonyms_SynonymWatermark", Culture)!;
-
-    public static string DanceSynonyms_Edit =>
-        ResourceManager.GetString("DanceSynonyms_Edit", Culture)!;
-
-    public static string DanceSynonyms_Confirm =>
-        ResourceManager.GetString("DanceSynonyms_Confirm", Culture)!;
-
-    public static string DanceSynonyms_Delete =>
-        ResourceManager.GetString("DanceSynonyms_Delete", Culture)!;
-
-    public static string DanceSynonyms_Cancel =>
-        ResourceManager.GetString("DanceSynonyms_Cancel", Culture)!;
-
-    public static string DanceSynonyms_AddSynonym =>
-        ResourceManager.GetString("DanceSynonyms_AddSynonym", Culture)!;
-
-    public static string DanceSynonyms_NameEmpty =>
-        ResourceManager.GetString("DanceSynonyms_NameEmpty", Culture)!;
-
-    public static string DanceSynonyms_NameInUse =>
-        ResourceManager.GetString("DanceSynonyms_NameInUse", Culture)!;
-
-    public static string DanceSynonyms_ImportTitle =>
-        ResourceManager.GetString("DanceSynonyms_ImportTitle", Culture)!;
-
-    public static string DanceSynonyms_ImportConfirmMessage =>
-        ResourceManager.GetString("DanceSynonyms_ImportConfirmMessage", Culture)!;
-
-    public static string DanceSynonyms_ImportButton =>
-        ResourceManager.GetString("DanceSynonyms_ImportButton", Culture)!;
-
-    public static string DanceSynonyms_CancelButton =>
-        ResourceManager.GetString("DanceSynonyms_CancelButton", Culture)!;
-
-    public static string DanceSynonyms_ImportFilePickerTitle =>
-        ResourceManager.GetString("DanceSynonyms_ImportFilePickerTitle", Culture)!;
-
-    public static string DanceSynonyms_ExportFilePickerTitle =>
-        ResourceManager.GetString("DanceSynonyms_ExportFilePickerTitle", Culture)!;
-
-    public static string DanceSynonyms_UndoFormat =>
-        ResourceManager.GetString("DanceSynonyms_UndoFormat", Culture)!;
-
-    public static string DanceSynonyms_UndoDefault =>
-        ResourceManager.GetString("DanceSynonyms_UndoDefault", Culture)!;
-
-    public static string DanceSynonyms_RedoFormat =>
-        ResourceManager.GetString("DanceSynonyms_RedoFormat", Culture)!;
-
-    public static string DanceSynonyms_RedoDefault =>
-        ResourceManager.GetString("DanceSynonyms_RedoDefault", Culture)!;
-
     // Presentation
     public static string Presentation_WindowTitle =>
         ResourceManager.GetString("Presentation_WindowTitle", Culture)!;
@@ -996,4 +765,32 @@ public static class UiStrings
 
     public static string Wizard_DanceList_ClearCancel =>
         ResourceManager.GetString("Wizard_DanceList_ClearCancel", Culture)!;
+
+    // Dance list scope
+    public static string DanceList_MarkForRandom =>
+        ResourceManager.GetString("DanceList_MarkForRandom", Culture)!;
+
+    public static string DanceList_MarkWholeList =>
+        ResourceManager.GetString("DanceList_MarkWholeList", Culture)!;
+
+    public static string DanceList_MarkWholeListLabel =>
+        ResourceManager.GetString("DanceList_MarkWholeListLabel", Culture)!;
+
+    public static string DanceList_MarkedWholeList =>
+        ResourceManager.GetString("DanceList_MarkedWholeList", Culture)!;
+
+    public static string DanceList_MarkedFormat =>
+        ResourceManager.GetString("DanceList_MarkedFormat", Culture)!;
+
+    public static string DanceListToolbar_SwitchToTrackList =>
+        ResourceManager.GetString("DanceListToolbar_SwitchToTrackList", Culture)!;
+
+    public static string DanceListToolbar_TrackListLabel =>
+        ResourceManager.GetString("DanceListToolbar_TrackListLabel", Culture)!;
+
+    public static string TrackCatalog_SwitchToDanceList =>
+        ResourceManager.GetString("TrackCatalog_SwitchToDanceList", Culture)!;
+
+    public static string TrackCatalog_DancesLabel =>
+        ResourceManager.GetString("TrackCatalog_DancesLabel", Culture)!;
 }

@@ -31,8 +31,6 @@ All models are **sealed records** with `[JsonPropertyName]` attributes for persi
 | `Tracks/` | `Track` — file path, dance, artist, title, length. Carries `OriginalDance` for re-resolution. |
 | `QueueItems/` | `IQueueItem` interface + five implementations: `TrackQueueItem`, `DelayQueueItem`, `MessageQueueItem`, `StopQueueItem`, `AutoTrackQueueItem`. |
 | `Dances/` | `DanceList` -> recursive `DanceCategory` -> `Dance`. A dance's identity is its `Slug`; its `Names` are a flat set of equals whose first entry is what gets displayed. Both categories and dances carry a `Weight`. `DanceListIndex` is the folded-name-to-slug lookup built over a list; `DanceListProblems` is what validation reports. |
-| `Tree/` | `DanceBranch` (recursive children + leaf dances) and `DanceLeaf`. Each has a `Weight` for probability-based random selection. |
-| `Synonyms/` | `DanceMainName` (canonical name + list of `DanceSynonym`). |
 | `Settings/` | `ApplicationSettings`, `ApplicationTheme` enum, `WindowState`. |
 | `History/` | `QueueHistoryEntry` (abstract, `[JsonPolymorphic]`) with `TrackHistoryEntry`, `MessageHistoryEntry`, `DelayHistoryEntry`, `StopHistoryEntry`. `QueueHistory` wraps the entry list. |
 
@@ -74,8 +72,7 @@ Services hold **ephemeral runtime state** and operational logic — queue manage
 | `QueueService` | In-memory queue backed by `SourceList<IQueueItem>`. Delegates all validation to a `QueueGuard` (see below). |
 | `QueueConsumptionService` | Dequeues items, drives playback, tracks elapsed time, records history. |
 | `AudioPlaybackService` | ManagedBass wrapper for audio playback (play, pause, seek, volume). |
-| `RandomTrackService` | Weighted random selection from the dance tree, with deduplication against queue + history + currently playing. |
-| `SynonymResolutionService` | Maintains an in-memory `Dictionary<string, string>` (normalised name → canonical name). Rebuilds atomically via `Interlocked.Exchange` when synonyms change. |
+| `RandomTrackService` | Weighted random selection straight from the dance list (category weight x dance weight), with deduplication against queue + history + currently playing. Groups tracks by slug, so an unresolved track never takes part. |
 | `TrackDiscoveryService` | Reads audio metadata (TagLib) to produce `Track` records. |
 | `BigBalfolkListImporter` | One-time read of the `dances.json` BigBalfolkList publishes. Region becomes a category, family or suite a sub-category, everything weight 1. Static, because it is a pure function of a file. |
 | `DanceListValidation` | Checks the one invariant everything else rests on: a name belongs to exactly one dance. |
@@ -130,20 +127,19 @@ The editor system implements **undo/redo** via the Command pattern combined with
 
 - **`IEditorAction`** — interface with `ExecuteAsync()`, `UndoAsync()`, and `Description`.
 - **`EditorHistoryService`** — manages two stacks (`_undoStack`, `_redoStack`). Exposes `CanUndo`, `CanRedo`, `UndoDescription`, `RedoDescription` as `IObservable<T>` via `BehaviorSubject`. Executing a new action clears the redo stack.
-- **`DanceTreeAction` / `DanceSynonymAction`** — concrete `IEditorAction` implementations using static factory methods. Each captures a `_before` snapshot, applies a pure transform via `Store.UpdateAsync()`, and undoes by restoring `_before`. An optional `_validate` closure is checked before execution.
-- **`DanceListTransforms` / `DanceListAction`** — the dance list equivalents. Categories are addressed by `int[]` path, but **dances are addressed by slug**, because a dance keeps its slug when renamed, respelled or moved, so an edit cannot land on the wrong one. `DanceListAction.UndoAsync` is a no-op when the action was refused, so undoing a rejected edit cannot restore a snapshot it never took.
-- **`DanceTreeTransforms` / `DanceSynonymTransforms`** — static classes containing pure functions that transform immutable data structures. Tree transforms use recursive `ReplaceBranchAtDepth` with `int[]` path-based navigation and record `with` expressions.
+- **`DanceListAction`** — the concrete `IEditorAction`, built through static factory methods. Each captures a `_before` snapshot, applies a pure transform via `Store.UpdateAsync()`, and undoes by restoring it. An optional `_validate` closure runs first; a refused action never becomes undoable.
+- **`DanceListTransforms`** — pure functions over an immutable `DanceList`. Categories are addressed by `int[]` path, but **dances are addressed by slug**, because a dance keeps its slug when renamed, respelled or moved, so an edit cannot land on the wrong one. `DanceListAction.UndoAsync` is a no-op when the action was refused, so undoing a rejected edit cannot restore a snapshot it never took.
 
 **To add a new editor action:**
 
-1. Add a static factory method on `DanceTreeAction` or `DanceSynonymAction` (e.g. `public static DanceTreeAction MoveLeaf(...)`).
+1. Add a static factory method on `DanceListAction` (e.g. `public static DanceListAction MoveDance(...)`).
 2. Write the pure transform function in the corresponding `*Transforms` class.
 3. Optionally add a `_validate` closure for pre-execution validation.
-4. Call it from the ViewModel via `editorHistoryService.DoActionAsync(DanceTreeAction.MoveLeaf(store, ...))`.
+4. Call it from the ViewModel via `editorHistoryService.DoActionAsync(DanceListAction.MoveDance(store, ...))`.
 
 ### Helpers
 
-`StringNormalizer.Normalize(string)` — decomposes Unicode (FormD), strips diacritics (non-spacing marks), keeps only letters/digits/spaces, lowercases, and collapses whitespace. Used throughout for case-insensitive, accent-insensitive name matching (synonym resolution, uniqueness checks, search filtering).
+`StringNormalizer.Normalize(string)` — decomposes Unicode (FormD), strips diacritics (non-spacing marks), keeps only letters/digits/spaces, lowercases, and collapses whitespace. Used throughout for case-insensitive, accent-insensitive name matching (resolving a name to a dance, uniqueness checks, search filtering).
 
 ---
 
@@ -185,7 +181,7 @@ Every feature lives in `Views/{Feature}/` containing:
 
 Namespace: `Ready4Balfolk.UI.Views.{Feature}`.
 
-Some features also include sub-item ViewModels (e.g. `TrackViewModel`, `DanceSynonymEntryViewModel`, `HistoryItemViewModel`), node types (e.g. `DanceCategoryNode`, `DanceItem`), and converters.
+Some features also include sub-item ViewModels (e.g. `TrackViewModel`, `DanceNameRow`, `HistoryItemViewModel`), node types (e.g. `DanceCategoryNode`, `DanceNode`), and converters. Converters used by more than one feature live in `Converters/`.
 
 **MainWindow** is the shell. Its `MainWindowViewModel` receives all sub-ViewModels via constructor injection. Navigation uses `IsVisible` bindings on `Panel` children — one panel per screen, all stacked. The `NotificationOverlayView` is always visible on top.
 
@@ -223,17 +219,17 @@ Common cases:
 | Pattern | Example |
 |---------|---------|
 | **Drag-drop reorder** | `QueueView.axaml.cs` — pointer tracking, `DragDrop.DoDragDropAsync`, drop indicator positioning. Calls `ViewModel.MoveItem()`. |
-| **TreeView expansion sync** | `DanceTreeView.axaml.cs` — static class handler on `TreeViewItem.IsExpandedProperty.Changed` writes back to `DanceCategoryNode.IsExpanded`. |
+| **TreeView expansion sync** | `DanceListView.axaml` — a `TreeViewItem` style setter binds `IsExpanded` two-way (ReflectionBinding, since a style setter has no data type to compile against). `DanceListViewModel` subscribes to each node and remembers which keys are open, because every edit rebuilds the whole tree. |
 | **ContainerPrepared styling** | `QueueView.axaml.cs` — adds CSS class `"autoTrack"` to `ListBoxItem` containers for `AutoTrackQueueItem`. |
 | **Focus management** | Various views — programmatic focus after inline edit starts. |
 | **Navigation clicks** | `ToolbarView.axaml.cs`, `MainWindow.axaml.cs` — set `NavigationService.CurrentScreen`. |
 
 ### Navigation
 
-`NavigationService` holds a `[Reactive] Screen CurrentScreen` property and derived `[ObservableAsProperty]` booleans (`IsMainScreen`, `IsSettingsScreen`, `IsHelpScreen`, `IsSynonymsScreen`). The main screen also has `IsHistoryMode` and `IsTreeViewMode` toggles for switching between Queue/History and TrackCatalog/DanceTree panels.
+`NavigationService` holds a `[Reactive] Screen CurrentScreen` property and derived `[ObservableAsProperty]` booleans (`IsMainScreen`, `IsSettingsScreen`, `IsHelpScreen`). The main screen also has `IsHistoryMode` and `IsDanceListMode` toggles for switching between the Queue/History and TrackCatalog/DanceList panels.
 
 ```csharp
-public enum Screen { Main, Settings, Help, Synonyms }
+public enum Screen { Main, Settings, Help }
 ```
 
 **To add a new screen:**
@@ -355,9 +351,8 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 | Mechanism | Where used |
 |-----------|-----------|
 | `SemaphoreSlim(1, 1)` | All stores — serialises file I/O. `FileLoggerService` — serialises log writes. |
-| `Interlocked.Exchange` | `SynonymResolutionService` — atomically swaps the lookup dictionary when synonyms change. |
 | `ObserveOn(RxApp.MainThreadScheduler)` | All ViewModel subscriptions that touch UI-bound properties or collections. |
-| `ObserveOn(TaskPoolScheduler.Default)` | Domain services that rebuild caches off the UI thread (e.g. synonym lookup). |
+| `ObserveOn(TaskPoolScheduler.Default)` | Work that must stay off the UI thread, such as `TrackStore` re-resolving every track when the dance list changes. |
 
 ---
 
@@ -372,4 +367,4 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 7. **Register ViewModel** — add to `Program.cs` as singleton. Add as a property on `MainWindowViewModel` if it is a top-level screen.
 8. **Navigation** — add to `Screen` enum, wire `IsXxxScreen`, add `IsVisible` panel in `MainWindow.axaml`, add toolbar button.
 9. **Converters** — if needed, add with the static `Instance` pattern in the feature folder.
-10. **Editor actions** — if the feature edits tree/synonym data, add factory methods on `DanceTreeAction` / `DanceSynonymAction` and pure transforms in the `*Transforms` class.
+10. **Editor actions** — if the feature edits the dance list, add factory methods on `DanceListAction` and pure transforms in `DanceListTransforms`.

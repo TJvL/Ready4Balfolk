@@ -36,13 +36,5 @@
                                     Text="{x:Static res:UiStrings.Toolbar_SettingsLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Click="OnSynonymsClick"
-                ToolTip.Tip="{x:Static res:UiStrings.Toolbar_DanceSynonyms}"
-                Padding="8"
-                Focusable="False">
-            <controls:ButtonContent Icon="{StaticResource IconBook}"
-                                    Text="{x:Static res:UiStrings.Toolbar_DanceSynonymsLabel}"
-                                    IconSize="16" />
-        </Button>
     </StackPanel>
 </UserControl>

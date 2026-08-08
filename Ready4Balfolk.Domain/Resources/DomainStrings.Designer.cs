@@ -48,118 +48,16 @@ public static class DomainStrings
         ResourceManager.GetString("QueueGuard_DeniedByRule", Culture)!;
 
     // Editor action descriptions
-    public static string DanceTreeAction_AddCategory =>
-        ResourceManager.GetString("DanceTreeAction_AddCategory", Culture)!;
-
-    public static string DanceTreeAction_AddDance =>
-        ResourceManager.GetString("DanceTreeAction_AddDance", Culture)!;
-
-    public static string DanceTreeAction_AddDanceWithName =>
-        ResourceManager.GetString("DanceTreeAction_AddDanceWithName", Culture)!;
-
-    public static string DanceTreeAction_DeleteCategory =>
-        ResourceManager.GetString("DanceTreeAction_DeleteCategory", Culture)!;
-
-    public static string DanceTreeAction_DeleteDance =>
-        ResourceManager.GetString("DanceTreeAction_DeleteDance", Culture)!;
-
-    public static string DanceTreeAction_RenameCategory =>
-        ResourceManager.GetString("DanceTreeAction_RenameCategory", Culture)!;
-
-    public static string DanceTreeAction_ReweightCategory =>
-        ResourceManager.GetString("DanceTreeAction_ReweightCategory", Culture)!;
-
-    public static string DanceTreeAction_RenameDance =>
-        ResourceManager.GetString("DanceTreeAction_RenameDance", Culture)!;
-
-    public static string DanceTreeAction_ReweightDance =>
-        ResourceManager.GetString("DanceTreeAction_ReweightDance", Culture)!;
-
     // DanceTreeAction validation errors
-    public static string DanceTreeAction_CannotAddDanceToRoot =>
-        ResourceManager.GetString("DanceTreeAction_CannotAddDanceToRoot", Culture)!;
-
-    public static string DanceTreeAction_DanceNameEmpty =>
-        ResourceManager.GetString("DanceTreeAction_DanceNameEmpty", Culture)!;
-
-    public static string DanceTreeAction_DanceNameExists =>
-        ResourceManager.GetString("DanceTreeAction_DanceNameExists", Culture)!;
-
-    public static string DanceTreeAction_CategoryNameEmpty =>
-        ResourceManager.GetString("DanceTreeAction_CategoryNameEmpty", Culture)!;
-
-    public static string DanceTreeAction_CategoryNameExists =>
-        ResourceManager.GetString("DanceTreeAction_CategoryNameExists", Culture)!;
-
-    public static string DanceTreeAction_WeightMustBePositive =>
-        ResourceManager.GetString("DanceTreeAction_WeightMustBePositive", Culture)!;
-
     // DanceSynonymAction descriptions
-    public static string DanceSynonymAction_AddDanceName =>
-        ResourceManager.GetString("DanceSynonymAction_AddDanceName", Culture)!;
-
-    public static string DanceSynonymAction_DeleteDanceName =>
-        ResourceManager.GetString("DanceSynonymAction_DeleteDanceName", Culture)!;
-
-    public static string DanceSynonymAction_RenameDanceName =>
-        ResourceManager.GetString("DanceSynonymAction_RenameDanceName", Culture)!;
-
-    public static string DanceSynonymAction_AddSynonym =>
-        ResourceManager.GetString("DanceSynonymAction_AddSynonym", Culture)!;
-
-    public static string DanceSynonymAction_AddSynonymWithName =>
-        ResourceManager.GetString("DanceSynonymAction_AddSynonymWithName", Culture)!;
-
-    public static string DanceSynonymAction_DeleteSynonym =>
-        ResourceManager.GetString("DanceSynonymAction_DeleteSynonym", Culture)!;
-
-    public static string DanceSynonymAction_RenameSynonym =>
-        ResourceManager.GetString("DanceSynonymAction_RenameSynonym", Culture)!;
-
     // DanceSynonymAction validation errors
-    public static string DanceSynonymAction_NameAlreadyInUse =>
-        ResourceManager.GetString("DanceSynonymAction_NameAlreadyInUse", Culture)!;
-
-    public static string DanceSynonymAction_DanceNameEmpty =>
-        ResourceManager.GetString("DanceSynonymAction_DanceNameEmpty", Culture)!;
-
-    public static string DanceSynonymAction_SynonymNameEmpty =>
-        ResourceManager.GetString("DanceSynonymAction_SynonymNameEmpty", Culture)!;
-
     // Default names
-    public static string DanceTreeTransforms_NewDance =>
-        ResourceManager.GetString("DanceTreeTransforms_NewDance", Culture)!;
-
-    public static string DanceTreeTransforms_NewCategory =>
-        ResourceManager.GetString("DanceTreeTransforms_NewCategory", Culture)!;
-
-    public static string DanceSynonymTransforms_NewDance =>
-        ResourceManager.GetString("DanceSynonymTransforms_NewDance", Culture)!;
-
-    public static string DanceSynonymTransforms_NewSynonym =>
-        ResourceManager.GetString("DanceSynonymTransforms_NewSynonym", Culture)!;
-
     // Import errors
     public static string ImportFileNotFound =>
         ResourceManager.GetString("ImportFileNotFound", Culture)!;
 
     public static string ImportFileContainsNull =>
         ResourceManager.GetString("ImportFileContainsNull", Culture)!;
-
-    public static string DanceTreeStore_InvalidJson =>
-        ResourceManager.GetString("DanceTreeStore_InvalidJson", Culture)!;
-
-    public static string DanceTreeStore_MissingNames =>
-        ResourceManager.GetString("DanceTreeStore_MissingNames", Culture)!;
-
-    public static string DanceSynonymStore_InvalidJson =>
-        ResourceManager.GetString("DanceSynonymStore_InvalidJson", Culture)!;
-
-    public static string DanceSynonymStore_MissingNames =>
-        ResourceManager.GetString("DanceSynonymStore_MissingNames", Culture)!;
-
-    public static string DanceSynonymStore_DuplicateNames =>
-        ResourceManager.GetString("DanceSynonymStore_DuplicateNames", Culture)!;
 
     // Queue item descriptions
     public static string StopQueueItem_Description =>

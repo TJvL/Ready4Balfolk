@@ -11,8 +11,7 @@ public enum Screen
 {
     Main,
     Settings,
-    Help,
-    Synonyms
+    Help
 }
 
 public sealed partial class NavigationService : ReactiveObject, IDisposable
@@ -21,12 +20,11 @@ public sealed partial class NavigationService : ReactiveObject, IDisposable
 
     [Reactive] public partial Screen CurrentScreen { get; set; }
     [Reactive] public partial bool IsHistoryMode { get; set; }
-    [Reactive] public partial bool IsTreeViewMode { get; set; }
+    [Reactive] public partial bool IsDanceListMode { get; set; }
 
     [ObservableAsProperty] public partial bool IsMainScreen { get; }
     [ObservableAsProperty] public partial bool IsSettingsScreen { get; }
     [ObservableAsProperty] public partial bool IsHelpScreen { get; }
-    [ObservableAsProperty] public partial bool IsSynonymsScreen { get; }
 
     public NavigationService()
     {
@@ -44,11 +42,6 @@ public sealed partial class NavigationService : ReactiveObject, IDisposable
             .Select(s => s == Screen.Help)
             .ToProperty(this, x => x.IsHelpScreen);
         _isHelpScreenHelper.DisposeWith(_disposables);
-
-        _isSynonymsScreenHelper = this.WhenAnyValue(x => x.CurrentScreen)
-            .Select(s => s == Screen.Synonyms)
-            .ToProperty(this, x => x.IsSynonymsScreen);
-        _isSynonymsScreenHelper.DisposeWith(_disposables);
     }
 
     public void Dispose() => _disposables.Dispose();

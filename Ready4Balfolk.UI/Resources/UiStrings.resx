@@ -181,86 +181,11 @@
   <data name="HistoryToolbar_ClearLabel" xml:space="preserve">
     <value>Clear</value>
   </data>
-  <data name="TrackCatalog_DancesLabel" xml:space="preserve">
-    <value>Dances</value>
-  </data>
   <data name="TrackCatalog_ClearSearchLabel" xml:space="preserve">
     <value>Clear</value>
   </data>
   <data name="MainWindow_BackLabel" xml:space="preserve">
     <value>Back</value>
-  </data>
-  <data name="DanceTreeToolbar_TrackListLabel" xml:space="preserve">
-    <value>Tracks</value>
-  </data>
-  <data name="DanceTreeToolbar_UndoLabel" xml:space="preserve">
-    <value>Undo</value>
-  </data>
-  <data name="DanceTreeToolbar_RedoLabel" xml:space="preserve">
-    <value>Redo</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportLabel" xml:space="preserve">
-    <value>Import</value>
-  </data>
-  <data name="DanceTreeToolbar_ExportLabel" xml:space="preserve">
-    <value>Export</value>
-  </data>
-  <data name="DanceTree_RandomLabel" xml:space="preserve">
-    <value>Random</value>
-  </data>
-  <data name="DanceTree_AddCategoryLabel" xml:space="preserve">
-    <value>Add group</value>
-  </data>
-  <data name="DanceTree_AddDanceLabel" xml:space="preserve">
-    <value>Add dance</value>
-  </data>
-  <data name="DanceTree_EditLabel" xml:space="preserve">
-    <value>Edit</value>
-  </data>
-  <data name="DanceTree_ConfirmLabel" xml:space="preserve">
-    <value>Done</value>
-  </data>
-  <data name="DanceTree_DeleteLabel" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="DanceTree_CancelLabel" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceSynonyms_BackLabel" xml:space="preserve">
-    <value>Back</value>
-  </data>
-  <data name="DanceSynonyms_UndoLabel" xml:space="preserve">
-    <value>Undo</value>
-  </data>
-  <data name="DanceSynonyms_RedoLabel" xml:space="preserve">
-    <value>Redo</value>
-  </data>
-  <data name="DanceSynonyms_ImportLabel" xml:space="preserve">
-    <value>Import</value>
-  </data>
-  <data name="DanceSynonyms_ExportLabel" xml:space="preserve">
-    <value>Export</value>
-  </data>
-  <data name="DanceSynonyms_AddDanceLabel" xml:space="preserve">
-    <value>Add dance</value>
-  </data>
-  <data name="DanceSynonyms_EditLabel" xml:space="preserve">
-    <value>Edit</value>
-  </data>
-  <data name="DanceSynonyms_ConfirmLabel" xml:space="preserve">
-    <value>Done</value>
-  </data>
-  <data name="DanceSynonyms_DeleteLabel" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="DanceSynonyms_CancelLabel" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceSynonyms_RemoveLabel" xml:space="preserve">
-    <value>Remove</value>
-  </data>
-  <data name="DanceSynonyms_AddSynonymLabel" xml:space="preserve">
-    <value>Add synonym</value>
   </data>
   <data name="Queue_RefreshAutoTrackLabel" xml:space="preserve">
     <value>Reroll</value>
@@ -277,9 +202,6 @@
   <data name="Toolbar_SettingsLabel" xml:space="preserve">
     <value>Settings</value>
   </data>
-  <data name="Toolbar_DanceSynonymsLabel" xml:space="preserve">
-    <value>Synonyms</value>
-  </data>
   <data name="Settings_ShowButtonText" xml:space="preserve">
     <value>Show text on buttons instead of icons</value>
   </data>
@@ -294,9 +216,6 @@
   </data>
   <data name="Toolbar_Settings" xml:space="preserve">
     <value>Settings</value>
-  </data>
-  <data name="Toolbar_DanceSynonyms" xml:space="preserve">
-    <value>Dance Synonyms</value>
   </data>
 
   <!-- Settings -->
@@ -585,9 +504,6 @@
   <data name="TrackCatalog_ColumnLength" xml:space="preserve">
     <value>Length</value>
   </data>
-  <data name="TrackCatalog_SwitchToDanceTree" xml:space="preserve">
-    <value>Switch to dance tree</value>
-  </data>
   <data name="TrackCatalog_SearchWatermark" xml:space="preserve">
     <value>Search tracks...</value>
   </data>
@@ -596,161 +512,10 @@
   </data>
 
   <!-- Dance Tree -->
-  <data name="DanceTree_MarkRootRandom" xml:space="preserve">
-    <value>Mark as root for random selection</value>
-  </data>
-  <data name="DanceTree_MarkRandom" xml:space="preserve">
-    <value>Mark for random selection</value>
-  </data>
-  <data name="DanceTree_AddCategory" xml:space="preserve">
-    <value>Add category</value>
-  </data>
-  <data name="DanceTree_AddDance" xml:space="preserve">
-    <value>Add dance</value>
-  </data>
-  <data name="DanceTree_Confirm" xml:space="preserve">
-    <value>Confirm</value>
-  </data>
-  <data name="DanceTree_Edit" xml:space="preserve">
-    <value>Edit</value>
-  </data>
-  <data name="DanceTree_Cancel" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceTree_Delete" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="DanceTree_RootName" xml:space="preserve">
-    <value>Dance</value>
-  </data>
-  <data name="DanceTree_NoTracksAvailable" xml:space="preserve">
-    <value>No tracks available for random selection</value>
-  </data>
-  <data name="DanceTree_NameEmpty" xml:space="preserve">
-    <value>Name cannot be empty.</value>
-  </data>
-  <data name="DanceTree_CategoryNameExists" xml:space="preserve">
-    <value>A category named &#x2018;{0}&#x2019; already exists.</value>
-  </data>
-  <data name="DanceTree_DanceNameExists" xml:space="preserve">
-    <value>A dance named &#x2018;{0}&#x2019; already exists.</value>
-  </data>
 
   <!-- Dance Tree Toolbar -->
-  <data name="DanceTreeToolbar_SwitchToTrackList" xml:space="preserve">
-    <value>Switch to track list</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportDanceTree" xml:space="preserve">
-    <value>Import dance tree</value>
-  </data>
-  <data name="DanceTreeToolbar_ExportDanceTree" xml:space="preserve">
-    <value>Export dance tree</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportTitle" xml:space="preserve">
-    <value>Import Dance Tree</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportConfirmMessage" xml:space="preserve">
-    <value>Importing will permanently overwrite the current dance tree. Consider exporting a backup first.
-
-Continue with import?</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportButton" xml:space="preserve">
-    <value>Import</value>
-  </data>
-  <data name="DanceTreeToolbar_CancelButton" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceTreeToolbar_ExportTitle" xml:space="preserve">
-    <value>Export Dance Tree</value>
-  </data>
-  <data name="DanceTreeToolbar_UndoFormat" xml:space="preserve">
-    <value>Undo: {0} (Ctrl+Z)</value>
-  </data>
-  <data name="DanceTreeToolbar_UndoDefault" xml:space="preserve">
-    <value>Undo (Ctrl+Z)</value>
-  </data>
-  <data name="DanceTreeToolbar_RedoFormat" xml:space="preserve">
-    <value>Redo: {0} (Ctrl+Y)</value>
-  </data>
-  <data name="DanceTreeToolbar_RedoDefault" xml:space="preserve">
-    <value>Redo (Ctrl+Y)</value>
-  </data>
 
   <!-- Dance Synonyms -->
-  <data name="DanceSynonyms_Title" xml:space="preserve">
-    <value>Dance Synonyms</value>
-  </data>
-  <data name="DanceSynonyms_Back" xml:space="preserve">
-    <value>Back</value>
-  </data>
-  <data name="DanceSynonyms_ImportSynonyms" xml:space="preserve">
-    <value>Import synonyms</value>
-  </data>
-  <data name="DanceSynonyms_ExportSynonyms" xml:space="preserve">
-    <value>Export synonyms</value>
-  </data>
-  <data name="DanceSynonyms_AddNewDance" xml:space="preserve">
-    <value>Add new dance</value>
-  </data>
-  <data name="DanceSynonyms_DanceNameWatermark" xml:space="preserve">
-    <value>Dance name</value>
-  </data>
-  <data name="DanceSynonyms_SynonymWatermark" xml:space="preserve">
-    <value>synonym</value>
-  </data>
-  <data name="DanceSynonyms_Edit" xml:space="preserve">
-    <value>Edit</value>
-  </data>
-  <data name="DanceSynonyms_Confirm" xml:space="preserve">
-    <value>Confirm</value>
-  </data>
-  <data name="DanceSynonyms_Delete" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="DanceSynonyms_Cancel" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceSynonyms_AddSynonym" xml:space="preserve">
-    <value>Add synonym</value>
-  </data>
-  <data name="DanceSynonyms_NameEmpty" xml:space="preserve">
-    <value>Name cannot be empty.</value>
-  </data>
-  <data name="DanceSynonyms_NameInUse" xml:space="preserve">
-    <value>The name '{0}' is already in use.</value>
-  </data>
-  <data name="DanceSynonyms_ImportTitle" xml:space="preserve">
-    <value>Import Synonyms</value>
-  </data>
-  <data name="DanceSynonyms_ImportConfirmMessage" xml:space="preserve">
-    <value>Importing will permanently overwrite the current dance synonyms. Consider exporting a backup first.
-
-Continue with import?</value>
-  </data>
-  <data name="DanceSynonyms_ImportButton" xml:space="preserve">
-    <value>Import</value>
-  </data>
-  <data name="DanceSynonyms_CancelButton" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceSynonyms_ImportFilePickerTitle" xml:space="preserve">
-    <value>Import Dance Synonyms</value>
-  </data>
-  <data name="DanceSynonyms_ExportFilePickerTitle" xml:space="preserve">
-    <value>Export Dance Synonyms</value>
-  </data>
-  <data name="DanceSynonyms_UndoFormat" xml:space="preserve">
-    <value>Undo: {0} (Ctrl+Z)</value>
-  </data>
-  <data name="DanceSynonyms_UndoDefault" xml:space="preserve">
-    <value>Undo (Ctrl+Z)</value>
-  </data>
-  <data name="DanceSynonyms_RedoFormat" xml:space="preserve">
-    <value>Redo: {0} (Ctrl+Y)</value>
-  </data>
-  <data name="DanceSynonyms_RedoDefault" xml:space="preserve">
-    <value>Redo (Ctrl+Y)</value>
-  </data>
 
   <!-- Presentation -->
   <data name="Presentation_WindowTitle" xml:space="preserve">
@@ -1106,5 +871,34 @@ Continue with import?</value>
   </data>
   <data name="Wizard_DanceList_ClearCancel" xml:space="preserve">
     <value>Cancel</value>
+  </data>
+
+  <!-- Dance list scope -->
+  <data name="DanceList_MarkForRandom" xml:space="preserve">
+    <value>Pick randomly from here</value>
+  </data>
+  <data name="DanceList_MarkWholeList" xml:space="preserve">
+    <value>Go back to picking from the whole list</value>
+  </data>
+  <data name="DanceList_MarkWholeListLabel" xml:space="preserve">
+    <value>Whole list</value>
+  </data>
+  <data name="DanceList_MarkedWholeList" xml:space="preserve">
+    <value>Random picks: whole list</value>
+  </data>
+  <data name="DanceList_MarkedFormat" xml:space="preserve">
+    <value>Random picks: {0}</value>
+  </data>
+  <data name="DanceListToolbar_SwitchToTrackList" xml:space="preserve">
+    <value>Switch to the track list</value>
+  </data>
+  <data name="DanceListToolbar_TrackListLabel" xml:space="preserve">
+    <value>Tracks</value>
+  </data>
+  <data name="TrackCatalog_SwitchToDanceList" xml:space="preserve">
+    <value>Switch to the dance list</value>
+  </data>
+  <data name="TrackCatalog_DancesLabel" xml:space="preserve">
+    <value>Dances</value>
   </data>
 </root>

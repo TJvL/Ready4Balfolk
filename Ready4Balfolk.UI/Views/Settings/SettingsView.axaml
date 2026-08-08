@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Settings"
              xmlns:conv="using:Avalonia.Data.Converters"
-             xmlns:danceTree="using:Ready4Balfolk.UI.Views.DanceTree"
+             xmlns:uiconv="using:Ready4Balfolk.UI.Converters"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
              xmlns:settings="using:Ready4Balfolk.UI.Views.Settings"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -28,7 +28,7 @@
 
             <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:UiStrings.Settings_MaxQueueItems}" />
-                <NumericUpDown Value="{Binding MaxQueueItems, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
+                <NumericUpDown Value="{Binding MaxQueueItems, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
                                Minimum="1"
                                Maximum="100"
                                Increment="1"
@@ -46,7 +46,7 @@
                                 ClockIdentifier="24HourClock" />
                     <TextBlock Text="{x:Static res:UiStrings.Settings_QueueCutoffGrace}"
                                VerticalAlignment="Center" />
-                    <NumericUpDown Value="{Binding QueueCutoffGraceMinutes, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
+                    <NumericUpDown Value="{Binding QueueCutoffGraceMinutes, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
                                    Minimum="0"
                                    Maximum="60"
                                    Increment="1"
@@ -61,7 +61,7 @@
 
             <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:UiStrings.Settings_DelayDuration}" />
-                <NumericUpDown Value="{Binding DelaySeconds, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
+                <NumericUpDown Value="{Binding DelaySeconds, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
                                Minimum="1"
                                Maximum="300"
                                Increment="5"
@@ -74,7 +74,7 @@
 
             <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:UiStrings.Settings_PresentationDisplays}" />
-                <NumericUpDown Value="{Binding PresentationDisplayCount, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
+                <NumericUpDown Value="{Binding PresentationDisplayCount, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
                                Minimum="0"
                                Maximum="10"
                                Increment="1"
@@ -181,7 +181,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerPort}"
                                    VerticalAlignment="Center" />
-                        <NumericUpDown Value="{Binding WebServerPort, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
+                        <NumericUpDown Value="{Binding WebServerPort, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
                                        Minimum="1024"
                                        Maximum="65535"
                                        Increment="1"

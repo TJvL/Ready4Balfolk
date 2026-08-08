@@ -2,8 +2,9 @@ using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 
-namespace Ready4Balfolk.UI.Views.DanceTree;
+namespace Ready4Balfolk.UI.Converters;
 
+/// <summary>Bridges an <c>int</c> property to <c>NumericUpDown</c>, which works in decimals.</summary>
 public sealed class WeightConverter : IValueConverter
 {
     public static readonly WeightConverter Instance = new();

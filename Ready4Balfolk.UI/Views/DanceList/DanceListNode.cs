@@ -21,6 +21,9 @@ public abstract partial class DanceListNode : ReactiveObject
     public IReadOnlyList<DanceListNode> Children { get; init; } = [];
 
     [Reactive] public partial bool IsExpanded { get; set; }
+
+    /// <summary>True when a random pick is scoped to this row.</summary>
+    [Reactive] public partial bool IsMarked { get; set; }
 }
 
 /// <summary>A category, which is also a branch of the tree randomisation picks from.</summary>

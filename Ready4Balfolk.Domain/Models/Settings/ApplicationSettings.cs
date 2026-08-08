@@ -14,7 +14,6 @@ public sealed record ApplicationSettings(
     ApplicationLanguage ApplicationLanguage,
     WindowState MainWindowState,
     IEnumerable<WindowState> PresentationWindowStates,
-    IEnumerable<string> CollapsedBranches,
     // Last, and with a default, so settings files written before this existed still deserialize.
     bool ShowButtonText = false,
     bool QueueCutoffEnabled = false,
@@ -40,7 +39,7 @@ public sealed record ApplicationSettings(
     bool SetupCompleted = false)
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
-        ApplicationLanguage.English, new WindowState(), [], [])
+        ApplicationLanguage.English, new WindowState(), [])
     {
     }
 
