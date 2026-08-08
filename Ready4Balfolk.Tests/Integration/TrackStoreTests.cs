@@ -4,6 +4,7 @@ using NSubstitute;
 using Ready4Balfolk.Domain;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
@@ -33,13 +34,8 @@ public sealed class TrackStoreTests : IDisposable
 
         _discoveryService = Substitute.For<ITrackDiscoveryService>();
         var discoveryService = _discoveryService;
-        discoveryService.LoadTrack(Arg.Any<FileInfo>())
-            .Returns(call => CreateTrackFor(call.Arg<FileInfo>()!));
-        discoveryService.LoadTrackWithDuration(Arg.Any<FileInfo>(), Arg.Any<TimeSpan>())
-            .Returns(call => CreateTrackFor(call.Arg<FileInfo>()!));
-        discoveryService.Scan(Arg.Any<FileInfo>())
-            .Returns(call => new ScannedAudioFile("Mazurka", "Artist", call.Arg<FileInfo>()!.Name,
-                TimeSpan.FromSeconds(180), AudioFormat.Mp3, [1, 2, 3]));
+        discoveryService.Gather(Arg.Any<FileInfo>(), Arg.Any<DirectoryInfo>())
+            .Returns(call => EvidenceFor(call.Arg<FileInfo>()!));
 
         // An empty list: every track stays unresolved, keeping the name the file gave it, which is
         // what these tests assert on.
@@ -141,7 +137,7 @@ public sealed class TrackStoreTests : IDisposable
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
         // The whole point of the index: a startup that finds nothing changed touches no audio.
-        _discoveryService.DidNotReceiveWithAnyArgs().Scan(default!);
+        _discoveryService.DidNotReceiveWithAnyArgs().Gather(default!, default!);
         Assert.Equal("Mazurka", _sut.Current[0].Dance);
         Assert.Equal(TimeSpan.FromSeconds(42), _sut.Current[0].Length);
     }
@@ -162,7 +158,7 @@ public sealed class TrackStoreTests : IDisposable
         _sut.MusicDirectory = _tempDirA;
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
-        _discoveryService.ReceivedWithAnyArgs().Scan(default!);
+        _discoveryService.ReceivedWithAnyArgs().Gather(default!, default!);
     }
 
     [Fact]
@@ -191,9 +187,14 @@ public sealed class TrackStoreTests : IDisposable
         Title = file.Name
     };
 
-    private static Track CreateTrackFor(FileInfo fileInfo)
-        => new("Mazurka", "Artist", fileInfo.Name, fileInfo,
-            TimeSpan.FromSeconds(180), AudioFormat.Mp3);
+    private static TrackEvidence EvidenceFor(FileInfo fileInfo) => new()
+    {
+        FileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileInfo.Name),
+        PathSegments = ["Artist"],
+        Duration = TimeSpan.FromSeconds(180),
+        Format = AudioFormat.Mp3,
+        ContentHash = [1, 2, 3]
+    };
 
     [Fact]
     public async Task MusicDirectory_SwitchedWhileLoading_SerialisesAndKeepsWatching()

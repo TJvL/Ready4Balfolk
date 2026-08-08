@@ -2,7 +2,7 @@
 
 A desktop application for managing a balfolk dance night with recorded music. Build a queue of tracks, organise dances into categories, and display what's playing to your dancers on a presentation screen.
 
-Tracks are discovered from a music directory using the naming convention `Dance - Artist - Title`. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
+Tracks are discovered from a music directory without requiring any naming convention: Ready4Balfolk looks for the dances you have listed anywhere in a filename or its tags, reads the artist from the folder the file is filed under, and asks you about whatever it does not recognise rather than guessing. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
 
 ## Audio Backend
 

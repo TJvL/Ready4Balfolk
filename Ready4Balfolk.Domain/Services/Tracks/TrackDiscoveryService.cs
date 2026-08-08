@@ -1,39 +1,41 @@
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Discovery;
 
 namespace Ready4Balfolk.Domain.Services.Tracks;
 
+/// <summary>Reads a file and reports what it says about itself, deciding nothing.</summary>
+/// <remarks>
+/// Deciding what a track is belongs to <see cref="TrackInformationResolver"/>, which needs no file
+/// and can be re-run whenever the dance list changes. This half is the part that costs an open.
+/// </remarks>
 public sealed class TrackDiscoveryService : ITrackDiscoveryService
 {
-    public Track LoadTrack(FileInfo fileInfo)
+    public TrackEvidence Gather(FileInfo fileInfo, DirectoryInfo musicRoot)
     {
-        var (dance, artist, title) = ParseFileName(fileInfo);
-        var duration = GetTrackDuration(fileInfo);
-        var format = ParseAudioFormat(fileInfo);
-        return new Track(dance, artist, title, fileInfo, duration, format);
-    }
-
-    public Track LoadTrackWithDuration(FileInfo fileInfo, TimeSpan duration)
-    {
-        var (dance, artist, title) = ParseFileName(fileInfo);
-        var format = ParseAudioFormat(fileInfo);
-        return new Track(dance, artist, title, fileInfo, duration, format);
-    }
-
-    public ScannedAudioFile Scan(FileInfo fileInfo)
-    {
-        var (dance, artist, title) = ParseFileName(fileInfo);
         var format = ParseAudioFormat(fileInfo);
 
-        TimeSpan duration;
-        long audioStart;
-        long audioEnd;
         try
         {
             using var file = TagLib.File.Create(fileInfo.FullName);
-            duration = file.Properties.Duration;
-            // The audio, not the tags: see AudioContentHasher.
-            audioStart = file.InvariantStartPosition;
-            audioEnd = file.InvariantEndPosition;
+            var tag = file.Tag;
+
+            var evidence = new TrackEvidence
+            {
+                FileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileInfo.Name),
+                PathSegments = SegmentsBetween(fileInfo, musicRoot),
+                TagTitle = tag.Title,
+                TagArtist = tag.FirstPerformer,
+                TagAlbumArtist = tag.FirstAlbumArtist,
+                TagAlbum = tag.Album,
+                TagGenre = tag.FirstGenre,
+                TagComment = tag.Comment,
+                Duration = file.Properties.Duration,
+                Format = format,
+                ContentHash = AudioContentHasher.Compute(
+                    fileInfo, file.InvariantStartPosition, file.InvariantEndPosition)
+            };
+
+            return evidence;
         }
         catch (IOException)
         {
@@ -43,20 +45,30 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
         {
             throw new IOException($"Unable to read '{fileInfo.Name}'.", exception);
         }
-
-        return new ScannedAudioFile(dance, artist, title, duration, format,
-            AudioContentHasher.Compute(fileInfo, audioStart, audioEnd));
     }
 
-    private static (string Dance, string Artist, string Title) ParseFileName(FileInfo fileInfo)
+    /// <summary>The folders between the music directory and the file, outermost first.</summary>
+    private static List<string> SegmentsBetween(FileInfo fileInfo, DirectoryInfo musicRoot)
     {
-        var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileInfo.Name);
-        var parts = nameWithoutExtension.Split(" - ", 3);
+        var segments = new List<string>();
+        var directory = fileInfo.Directory;
+        var rootPath = Path.TrimEndingDirectorySeparator(musicRoot.FullName);
 
-        return parts.Length != 3
-            ? throw new FormatException(
-                $"Invalid filename format for '{fileInfo.Name}', expected '{{Dance}} - {{Artist}} - {{Title}}.ext'.")
-            : (parts[0].Trim(), parts[1].Trim(), parts[2].Trim());
+        while (directory is not null
+               && !string.Equals(Path.TrimEndingDirectorySeparator(directory.FullName), rootPath, StringComparison.Ordinal))
+        {
+            segments.Add(directory.Name);
+            directory = directory.Parent;
+        }
+
+        // A file outside the music directory entirely: nothing about its path means anything here.
+        if (directory is null)
+        {
+            return [];
+        }
+
+        segments.Reverse();
+        return segments;
     }
 
     private static AudioFormat ParseAudioFormat(FileInfo fileInfo)
@@ -79,23 +91,5 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
             ? AudioFormat.Aif
             : throw new ArgumentOutOfRangeException(nameof(fileInfo), ext,
                 $"Unsupported audio format for '{fileInfo.Name}'.");
-    }
-
-    private static TimeSpan GetTrackDuration(FileInfo fileInfo)
-    {
-        try
-        {
-            using var file = TagLib.File.Create(fileInfo.FullName);
-            return file.Properties.Duration;
-        }
-        catch (IOException)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            throw new IOException(
-                $"Unable to load track duration for '{fileInfo.Name}'.", exception);
-        }
     }
 }

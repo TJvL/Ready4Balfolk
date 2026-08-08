@@ -7,6 +7,7 @@ using AsyncAwaitBestPractices;
 using DynamicData;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
@@ -31,6 +32,9 @@ public sealed class TrackStore : ITrackStore, IDisposable
     // cleared them.
     private readonly SemaphoreSlim _loadGate = new(1, 1);
     private CancellationTokenSource? _loadCts;
+    // The root the watcher's files are under, so a file it notices can still be read as
+    // Artist/Album/track.
+    private DirectoryInfo? _musicRoot;
     private FileSystemWatcher? _watcher;
     private bool _disposed;
 
@@ -194,6 +198,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _watcher?.Dispose();
         _watcher = null;
         _tracks.Clear();
+        _musicRoot = directory;
 
         if (!directory.Exists)
         {
@@ -213,10 +218,10 @@ public sealed class TrackStore : ITrackStore, IDisposable
             var audioFiles = DiscoverFiles(directory);
             _ = _loggerService.DebugAsync($"Found {audioFiles.Count} audio files to load");
 
-            var scanned = new ConcurrentBag<LibraryEntry>();
+            var scanned = new ConcurrentBag<ScannedFile>();
             var loaded = audioFiles.ToObservable()
                 .TakeUntil(_ => cancellationToken.IsCancellationRequested)
-                .Select(file => LoadTrackObservable(file, known, scanned))
+                .Select(file => LoadTrackObservable(file, directory, known, scanned))
                 .Merge(MaxAmountOfFileReaderThreads)
                 .Buffer(TimeSpan.FromMilliseconds(200), 50);
 
@@ -227,10 +232,18 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 _ = _loggerService.DebugAsync($"Added batch of '{tracksBatch.Count:N0}' tracks");
             }, cancellationToken);
 
+            // Folder agreement runs once the folders are complete, because "what the rest of this
+            // album turned out to be" is not knowable while the album is still being read.
+            var rescued = ApplyFolderAgreement(scanned);
+            if (rescued > 0)
+            {
+                await _loggerService.DebugAsync($"Folder agreement resolved {rescued:N0} more tracks");
+            }
+
             await _loggerService.DebugAsync(
                 $"Loaded '{_tracks.Count:N0}' tracks, {scanned.Count:N0} of them read from disk");
 
-            await _libraryIndex.WriteAsync([.. scanned], cancellationToken);
+            await _libraryIndex.WriteAsync([.. scanned.Select(ToEntry)], cancellationToken);
             await _libraryIndex.DeleteMissingAsync([.. audioFiles.Select(file => file.FullName)], cancellationToken);
 
             StartWatching(directory, cancellationToken);
@@ -242,18 +255,83 @@ public sealed class TrackStore : ITrackStore, IDisposable
     }
 
     private IObservable<Track> LoadTrackObservable(
-        FileInfo file, IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<LibraryEntry> scanned)
+        FileInfo file, DirectoryInfo root,
+        IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<ScannedFile> scanned)
     {
         // Defer keeps the inner observable cold so Merge(MaxAmountOfFileReaderThreads)
         // actually caps how many files are opened at once.
         return Observable
-            .Defer(() => Observable.Start(() => LoadTrack(file, known, scanned), TaskPoolScheduler.Default))
+            .Defer(() => Observable.Start(() => LoadTrack(file, root, known, scanned), TaskPoolScheduler.Default))
             .Catch<Track, Exception>(exception =>
             {
                 _ = _loggerService.WarningAsync($"Error loading {file.FullName}: {exception.Message}");
                 return Observable.Empty<Track>();
             });
     }
+
+    /// <summary>
+    /// Re-resolves the tracks a folder can now speak for, and reports how many were rescued.
+    /// </summary>
+    private int ApplyFolderAgreement(ConcurrentBag<ScannedFile> scanned)
+    {
+        var byFolder = scanned
+            .GroupBy(file => file.Evidence.AlbumFolderKey ?? string.Empty, StringComparer.Ordinal)
+            .ToList();
+
+        var rescued = 0;
+        foreach (var folder in byFolder)
+        {
+            var siblings = folder.ToList();
+            var agreed = AgreedFolderDance(siblings);
+            if (agreed is null)
+            {
+                continue;
+            }
+
+            foreach (var sibling in siblings.Where(s => s.Resolution.DanceSlug is null))
+            {
+                var resolution = TrackInformationResolver.Resolve(
+                    sibling.Evidence, _danceListStore.Index, folderDance: agreed);
+                if (resolution.DanceSlug is null)
+                {
+                    continue;
+                }
+
+                sibling.Resolution = resolution;
+                ReplaceTrack(sibling.File, ToTrack(sibling.File, sibling.Evidence, resolution));
+                rescued++;
+            }
+        }
+
+        return rescued;
+    }
+
+    private void ReplaceTrack(FileInfo file, Track replacement) =>
+        _tracks.Edit(list =>
+        {
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (string.Equals(list[i].FileInfo.FullName, file.FullName, StringComparison.Ordinal))
+                {
+                    list[i] = replacement;
+                    return;
+                }
+            }
+        });
+
+    private static LibraryEntry ToEntry(ScannedFile scanned) => new()
+    {
+        ContentHash = scanned.Evidence.ContentHash,
+        Path = scanned.File.FullName,
+        FileSize = scanned.File.Length,
+        LastWriteUtc = scanned.File.LastWriteTimeUtc,
+        Duration = scanned.Evidence.Duration,
+        Format = scanned.Evidence.Format,
+        DanceSlug = scanned.Resolution.DanceSlug,
+        OriginalDance = scanned.Resolution.OriginalDance,
+        Artist = scanned.Resolution.Artist,
+        Title = scanned.Resolution.Title
+    };
 
     /// <summary>
     /// Builds a track from the index when the file has not changed, and reads it when it has.
@@ -263,40 +341,87 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// row is keyed by, but it means opening the file, which is the cost this exists to avoid.
     /// </remarks>
     private Track LoadTrack(
-        FileInfo file, IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<LibraryEntry> scanned)
+        FileInfo file, DirectoryInfo root,
+        IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<ScannedFile> scanned)
     {
         if (known.TryGetValue(file.FullName, out var entry)
             && entry.FileSize == file.Length
             && entry.LastWriteUtc == file.LastWriteTimeUtc)
         {
-            return ResolveTrackDance(new Track(
-                entry.OriginalDance ?? string.Empty,
+            return new Track(
+                entry.DanceSlug is null
+                    ? entry.OriginalDance ?? string.Empty
+                    : _danceListStore.Index.DisplayNameFor(entry.DanceSlug),
                 entry.Artist ?? string.Empty,
                 entry.Title ?? string.Empty,
                 file,
                 entry.Duration,
-                entry.Format));
+                entry.Format)
+            {
+                OriginalDance = entry.OriginalDance ?? string.Empty,
+                DanceSlug = entry.DanceSlug
+            };
         }
 
-        var scan = _discoveryService.Scan(file);
-        var track = ResolveTrackDance(new Track(
-            scan.Dance, scan.Artist, scan.Title, file, scan.Duration, scan.Format));
+        var evidence = _discoveryService.Gather(file, root);
+        var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index);
 
-        scanned.Add(new LibraryEntry
+        scanned.Add(new ScannedFile(file, evidence, resolution));
+        return ToTrack(file, evidence, resolution);
+    }
+
+    private Track ToTrack(FileInfo file, TrackEvidence evidence, TrackResolution resolution) =>
+        new(
+            resolution.DanceSlug is null
+                ? resolution.OriginalDance ?? string.Empty
+                : _danceListStore.Index.DisplayNameFor(resolution.DanceSlug),
+            resolution.Artist,
+            resolution.Title,
+            file,
+            evidence.Duration,
+            evidence.Format)
         {
-            ContentHash = scan.ContentHash,
-            Path = file.FullName,
-            FileSize = file.Length,
-            LastWriteUtc = file.LastWriteTimeUtc,
-            Duration = scan.Duration,
-            Format = scan.Format,
-            DanceSlug = track.DanceSlug,
-            OriginalDance = track.OriginalDance,
-            Artist = track.Artist,
-            Title = track.Title
-        });
+            OriginalDance = resolution.OriginalDance ?? string.Empty,
+            DanceSlug = resolution.DanceSlug
+        };
 
-        return track;
+    /// <summary>
+    /// Gives a track the dance the rest of its album folder turned out to be.
+    /// </summary>
+    /// <remarks>
+    /// Only ever fills a gap. A folder in which most tracks resolved to one dance is real evidence
+    /// about the ones that did not, and it is the cheapest way to rescue an album whose filenames
+    /// name the dance once and then stop.
+    /// </remarks>
+    private static string? AgreedFolderDance(IReadOnlyCollection<ScannedFile> siblings)
+    {
+        var resolved = siblings
+            .Where(sibling => sibling.Resolution.DanceSlug is not null)
+            .Select(sibling => sibling.Resolution.DanceSlug!)
+            .ToList();
+
+        if (resolved.Count == 0)
+        {
+            return null;
+        }
+
+        var bySlug = resolved.GroupBy(slug => slug, StringComparer.Ordinal)
+            .OrderByDescending(group => group.Count())
+            .ToList();
+
+        // One dance, agreed by the folder. A folder holding several dances says nothing about the
+        // track that named none of them.
+        return bySlug.Count == 1 ? bySlug[0].Key : null;
+    }
+
+    /// <summary>A file that was actually opened, and what was made of it.</summary>
+    /// <remarks>
+    /// <see cref="Resolution"/> is settable because folder agreement revisits it once the folder is
+    /// complete, which is the one thing that cannot be decided a file at a time.
+    /// </remarks>
+    private sealed record ScannedFile(FileInfo File, TrackEvidence Evidence, TrackResolution Resolution)
+    {
+        public TrackResolution Resolution { get; set; } = Resolution;
     }
 
     private void StartWatching(FileSystemInfo directory, CancellationToken cancellationToken)
@@ -416,28 +541,28 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// </remarks>
     private Track IndexAndResolve(FileInfo fileInfo)
     {
-        var scan = _discoveryService.Scan(fileInfo);
-        var track = ResolveTrackDance(new Track(
-            scan.Dance, scan.Artist, scan.Title, fileInfo, scan.Duration, scan.Format));
+        var root = _musicRoot ?? fileInfo.Directory!;
+        var evidence = _discoveryService.Gather(fileInfo, root);
+        var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index);
 
         _libraryIndex.WriteAsync([
             new LibraryEntry
             {
-                ContentHash = scan.ContentHash,
+                ContentHash = evidence.ContentHash,
                 Path = fileInfo.FullName,
                 FileSize = fileInfo.Length,
                 LastWriteUtc = fileInfo.LastWriteTimeUtc,
-                Duration = scan.Duration,
-                Format = scan.Format,
-                DanceSlug = track.DanceSlug,
-                OriginalDance = track.OriginalDance,
-                Artist = track.Artist,
-                Title = track.Title
+                Duration = evidence.Duration,
+                Format = evidence.Format,
+                DanceSlug = resolution.DanceSlug,
+                OriginalDance = resolution.OriginalDance,
+                Artist = resolution.Artist,
+                Title = resolution.Title
             }
         ]).SafeFireAndForget(exception =>
             _loggerService.ErrorAsync("Failed to index a new file", exception));
 
-        return track;
+        return ToTrack(fileInfo, evidence, resolution);
     }
 
     private static Func<Track, bool> CreateSearchFilter(string search)

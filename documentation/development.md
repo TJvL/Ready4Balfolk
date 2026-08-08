@@ -54,6 +54,21 @@ Impl:       XxxStore   →  BehaviorSubject<T> + SemaphoreSlim + JSON file I/O
 
 The `TrackStore` is different: it uses a DynamicData `SourceList<Track>` instead of `BehaviorSubject`, exposes `Connect()` for reactive collection binding, integrates a `FileSystemWatcher` for live directory monitoring, and uses `Task.WhenEach()` for streaming track discovery.
 
+### Discovery: candidates and corroboration
+
+`Services/Discovery/` decides what a track is. **Gathering and deciding are separate**: `TrackDiscoveryService.Gather` opens the file, `TrackInformationResolver.Resolve` is a pure function of that evidence plus the dance list, so it re-runs when the list changes and is tested without a file existing.
+
+There is **no naming convention**. A real library puts the dance in brackets (`10. Hep Harz (Cercle)`), after a trailing dash (`11-La Violette - valse 5tps`), or nowhere at all, and the old `Dance - Artist - Title` split produced a dance column of track numbers and band names.
+
+- **Every source offers a candidate**, and `DanceEvidenceSource` values must be genuinely independent, because agreement between two of them is what makes an answer trustworthy: `FileName`, `Tags`, `Folder`.
+- **Two independent sources agreeing wins.** One source alone still resolves but is not corroborated. Two dances with nothing to separate them resolve to **nothing** — inventing a confident answer is the failure the feature exists to prevent.
+- **The filename pattern is only a tiebreaker**, used to choose between dances the evidence already offered. It is deliberately not a source: it reads the same string the filename scan does, so agreeing with it proves nothing.
+- **Folder agreement fills gaps only.** It is added as a candidate *only when the file itself named nothing*, so an album of mazurkas with one scottish on it keeps the scottish.
+- **Matching is on whole words** (`DanceNameScanner`), longest name first: "Bourrée 3 temps" beats the "Bourrée" inside it, and "Andro" must not match inside "Androgyne".
+- **Dances get a whitelist, artists get a blocklist** (`ArtistNames`). Dances are a closed set that the dance list defines; artists are open, so the defence is against ripper placeholders (`Unknown Artist`, `Various Artists`, digits-only). The artist folder beats a tag, because filing an album under a folder is something the user did on purpose.
+
+Measured on a 2685-file library with BigBalfolkList imported and nothing else configured: 45% resolved, 269 of those rescued by folder agreement. The rest carry the value the file claimed, which is what the tagging editor groups by.
+
 ### Library index
 
 `Stores/Library/` is the index of what is in the music directory, in SQLite (`library.sqlite`). It replaced a JSON duration cache, and its job is that **a startup which finds nothing changed opens no audio files at all** — verified on a 345-track library: first run 345 files read, second run 0.
@@ -83,7 +98,7 @@ Services hold **ephemeral runtime state** and operational logic — queue manage
 | `QueueConsumptionService` | Dequeues items, drives playback, tracks elapsed time, records history. |
 | `AudioPlaybackService` | ManagedBass wrapper for audio playback (play, pause, seek, volume). |
 | `RandomTrackService` | Weighted random selection straight from the dance list (category weight x dance weight), with deduplication against queue + history + currently playing. Groups tracks by slug, so an unresolved track never takes part. |
-| `TrackDiscoveryService` | Reads audio metadata (TagLib) to produce `Track` records. `Scan` opens the file once and returns tags, duration and content hash together, because opening it is the expensive part. |
+| `TrackDiscoveryService` | Opens a file once and reports what it says about itself (`TrackEvidence`): filename, path segments, tags, duration, format, content hash. It decides nothing. |
 | `AudioContentHasher` | SHA-256 over the audio between the tags, so the application's own tag edits do not move a row in the library index. |
 | `BigBalfolkListImporter` | One-time read of the `dances.json` BigBalfolkList publishes. Region becomes a category, family or suite a sub-category, everything weight 1. Static, because it is a pure function of a file. |
 | `DanceListValidation` | Checks the one invariant everything else rests on: a name belongs to exactly one dance. |
