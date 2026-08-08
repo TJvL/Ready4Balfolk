@@ -18,12 +18,14 @@ using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Synonym;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Synonym;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.UI.Services;
+using Ready4Balfolk.UI.Views.DanceList;
 using Ready4Balfolk.UI.Views.DanceSynonyms;
 using Ready4Balfolk.UI.Views.DanceTree;
 using Ready4Balfolk.UI.Views.Equalizer;
@@ -35,6 +37,7 @@ using Ready4Balfolk.UI.Views.Queue;
 using Ready4Balfolk.UI.Views.Settings;
 using Ready4Balfolk.UI.Views.Toolbar;
 using Ready4Balfolk.UI.Views.TrackCatalog;
+using Ready4Balfolk.UI.Views.Wizard;
 using Ready4Balfolk.Web;
 using FileLogSinkService = Ready4Balfolk.UI.Services.FileLogSinkService;
 
@@ -176,6 +179,7 @@ public static class Program
         services.AddSingleton<IPresentationStateService, PresentationStateService>();
 
         // Stores
+        services.AddSingleton<IDanceListStore, DanceListStore>();
         services.AddSingleton<IDanceTreeStore, DanceTreeStore>();
         services.AddSingleton<IDanceSynonymStore, DanceSynonymStore>();
         services.AddSingleton<ISettingsStore, SettingsStore>();
@@ -209,6 +213,17 @@ public static class Program
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<HelpViewModel>();
         services.AddSingleton<DanceSynonymsViewModel>();
+        services.AddSingleton<DanceListViewModel>();
+
+        // Setup wizard. Transient: it is built when the wizard opens and thrown away when it
+        // closes, so a second run starts from what is on disk rather than from the last visit.
+        services.AddTransient<DanceListStepViewModel>();
+        services.AddTransient<DanceListEditStepViewModel>();
+        services.AddTransient<MusicDirectoryStepViewModel>();
+        services.AddTransient<SetupWizardViewModel>();
+        services.AddTransient<IViewFor<DanceListStepViewModel>, DanceListStepView>();
+        services.AddTransient<IViewFor<DanceListEditStepViewModel>, DanceListEditStepView>();
+        services.AddTransient<IViewFor<MusicDirectoryStepViewModel>, MusicDirectoryStepView>();
 
         // Lazy wrappers — defers ViewModel creation until first navigation/toggle
         services.AddSingleton<Lazy<HistoryViewModel>>(sp => new(sp.GetRequiredService<HistoryViewModel>));

@@ -167,4 +167,81 @@ public static class DomainStrings
 
     public static string DelayQueueItem_Description =>
         ResourceManager.GetString("DelayQueueItem_Description", Culture)!;
+
+    // Dance list
+    public static string DanceList_UncategorisedCategory =>
+        ResourceManager.GetString("DanceList_UncategorisedCategory", Culture)!;
+
+    public static string BigBalfolkList_InvalidJson =>
+        ResourceManager.GetString("BigBalfolkList_InvalidJson", Culture)!;
+
+    public static string BigBalfolkList_NotADanceFile =>
+        ResourceManager.GetString("BigBalfolkList_NotADanceFile", Culture)!;
+
+    public static string BigBalfolkList_DuplicateNames =>
+        ResourceManager.GetString("BigBalfolkList_DuplicateNames", Culture)!;
+
+    public static string DanceListStore_InvalidJson =>
+        ResourceManager.GetString("DanceListStore_InvalidJson", Culture)!;
+
+    public static string DanceListStore_DuplicateNames =>
+        ResourceManager.GetString("DanceListStore_DuplicateNames", Culture)!;
+
+    // Dance list editing
+    public static string DanceListTransforms_NewCategory =>
+        ResourceManager.GetString("DanceListTransforms_NewCategory", Culture)!;
+
+    public static string DanceListAction_AddCategory =>
+        ResourceManager.GetString("DanceListAction_AddCategory", Culture)!;
+
+    public static string DanceListAction_RenameCategory =>
+        ResourceManager.GetString("DanceListAction_RenameCategory", Culture)!;
+
+    public static string DanceListAction_ReweightCategory =>
+        ResourceManager.GetString("DanceListAction_ReweightCategory", Culture)!;
+
+    public static string DanceListAction_DeleteCategory =>
+        ResourceManager.GetString("DanceListAction_DeleteCategory", Culture)!;
+
+    public static string DanceListAction_CategoryNameEmpty =>
+        ResourceManager.GetString("DanceListAction_CategoryNameEmpty", Culture)!;
+
+    public static string DanceListAction_CategoryNameExists =>
+        ResourceManager.GetString("DanceListAction_CategoryNameExists", Culture)!;
+
+    public static string DanceListAction_AddDance =>
+        ResourceManager.GetString("DanceListAction_AddDance", Culture)!;
+
+    public static string DanceListAction_DeleteDance =>
+        ResourceManager.GetString("DanceListAction_DeleteDance", Culture)!;
+
+    public static string DanceListAction_MoveDance =>
+        ResourceManager.GetString("DanceListAction_MoveDance", Culture)!;
+
+    public static string DanceListAction_ReweightDance =>
+        ResourceManager.GetString("DanceListAction_ReweightDance", Culture)!;
+
+    public static string DanceListAction_DanceNeedsACategory =>
+        ResourceManager.GetString("DanceListAction_DanceNeedsACategory", Culture)!;
+
+    public static string DanceListAction_AddName =>
+        ResourceManager.GetString("DanceListAction_AddName", Culture)!;
+
+    public static string DanceListAction_RemoveName =>
+        ResourceManager.GetString("DanceListAction_RemoveName", Culture)!;
+
+    public static string DanceListAction_MoveName =>
+        ResourceManager.GetString("DanceListAction_MoveName", Culture)!;
+
+    public static string DanceListAction_NameEmpty =>
+        ResourceManager.GetString("DanceListAction_NameEmpty", Culture)!;
+
+    public static string DanceListAction_NameBelongsToAnotherDance =>
+        ResourceManager.GetString("DanceListAction_NameBelongsToAnotherDance", Culture)!;
+
+    public static string DanceListAction_LastNameCannotGo =>
+        ResourceManager.GetString("DanceListAction_LastNameCannotGo", Culture)!;
+
+    public static string DanceListAction_WeightMustNotBeNegative =>
+        ResourceManager.GetString("DanceListAction_WeightMustNotBeNegative", Culture)!;
 }

@@ -190,4 +190,83 @@
   <data name="DelayQueueItem_Description" xml:space="preserve">
     <value>Delay</value>
   </data>
+
+  <!-- Dance list -->
+  <data name="DanceList_UncategorisedCategory" xml:space="preserve">
+    <value>Uncategorised</value>
+  </data>
+  <data name="BigBalfolkList_InvalidJson" xml:space="preserve">
+    <value>Import file is not a valid BigBalfolkList JSON structure.</value>
+  </data>
+  <data name="BigBalfolkList_NotADanceFile" xml:space="preserve">
+    <value>Import file does not look like a BigBalfolkList dance list.</value>
+  </data>
+  <data name="BigBalfolkList_DuplicateNames" xml:space="preserve">
+    <value>Import file uses the same name for more than one dance: {0}.</value>
+  </data>
+  <data name="DanceListStore_InvalidJson" xml:space="preserve">
+    <value>Import file is not a valid dance list JSON structure.</value>
+  </data>
+  <data name="DanceListStore_DuplicateNames" xml:space="preserve">
+    <value>Import file uses the same name for more than one dance: {0}.</value>
+  </data>
+
+  <!-- Dance list editing -->
+  <data name="DanceListTransforms_NewCategory" xml:space="preserve">
+    <value>New category</value>
+  </data>
+  <data name="DanceListAction_AddCategory" xml:space="preserve">
+    <value>Add category</value>
+  </data>
+  <data name="DanceListAction_RenameCategory" xml:space="preserve">
+    <value>Rename category to "{0}"</value>
+  </data>
+  <data name="DanceListAction_ReweightCategory" xml:space="preserve">
+    <value>Set category weight to {0}</value>
+  </data>
+  <data name="DanceListAction_DeleteCategory" xml:space="preserve">
+    <value>Delete category "{0}"</value>
+  </data>
+  <data name="DanceListAction_CategoryNameEmpty" xml:space="preserve">
+    <value>A category needs a name.</value>
+  </data>
+  <data name="DanceListAction_CategoryNameExists" xml:space="preserve">
+    <value>Another category here is already called "{0}".</value>
+  </data>
+  <data name="DanceListAction_AddDance" xml:space="preserve">
+    <value>Add dance "{0}"</value>
+  </data>
+  <data name="DanceListAction_DeleteDance" xml:space="preserve">
+    <value>Delete dance "{0}"</value>
+  </data>
+  <data name="DanceListAction_MoveDance" xml:space="preserve">
+    <value>Move dance "{0}"</value>
+  </data>
+  <data name="DanceListAction_ReweightDance" xml:space="preserve">
+    <value>Set dance weight to {0}</value>
+  </data>
+  <data name="DanceListAction_DanceNeedsACategory" xml:space="preserve">
+    <value>A dance has to go in a category.</value>
+  </data>
+  <data name="DanceListAction_AddName" xml:space="preserve">
+    <value>Add name "{0}"</value>
+  </data>
+  <data name="DanceListAction_RemoveName" xml:space="preserve">
+    <value>Remove name "{0}"</value>
+  </data>
+  <data name="DanceListAction_MoveName" xml:space="preserve">
+    <value>Reorder names</value>
+  </data>
+  <data name="DanceListAction_NameEmpty" xml:space="preserve">
+    <value>A name cannot be blank.</value>
+  </data>
+  <data name="DanceListAction_NameBelongsToAnotherDance" xml:space="preserve">
+    <value>"{0}" already belongs to {1}. A name can mean only one dance.</value>
+  </data>
+  <data name="DanceListAction_LastNameCannotGo" xml:space="preserve">
+    <value>A dance has to keep at least one name.</value>
+  </data>
+  <data name="DanceListAction_WeightMustNotBeNegative" xml:space="preserve">
+    <value>A weight cannot be negative.</value>
+  </data>
 </root>

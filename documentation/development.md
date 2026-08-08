@@ -30,6 +30,7 @@ All models are **sealed records** with `[JsonPropertyName]` attributes for persi
 |-----------|----------|
 | `Tracks/` | `Track` — file path, dance, artist, title, length. Carries `OriginalDance` for re-resolution. |
 | `QueueItems/` | `IQueueItem` interface + five implementations: `TrackQueueItem`, `DelayQueueItem`, `MessageQueueItem`, `StopQueueItem`, `AutoTrackQueueItem`. |
+| `Dances/` | `DanceList` -> recursive `DanceCategory` -> `Dance`. A dance's identity is its `Slug`; its `Names` are a flat set of equals whose first entry is what gets displayed. Both categories and dances carry a `Weight`. `DanceListIndex` is the folded-name-to-slug lookup built over a list; `DanceListProblems` is what validation reports. |
 | `Tree/` | `DanceBranch` (recursive children + leaf dances) and `DanceLeaf`. Each has a `Weight` for probability-based random selection. |
 | `Synonyms/` | `DanceMainName` (canonical name + list of `DanceSynonym`). |
 | `Settings/` | `ApplicationSettings`, `ApplicationTheme` enum, `WindowState`. |
@@ -55,6 +56,8 @@ Impl:       XxxStore   →  BehaviorSubject<T> + SemaphoreSlim + JSON file I/O
 
 The `TrackStore` is different: it uses a DynamicData `SourceList<Track>` instead of `BehaviorSubject`, exposes `Connect()` for reactive collection binding, integrates a `FileSystemWatcher` for live directory monitoring, and uses `Task.WhenEach()` for streaming track discovery.
 
+`DanceListStore` owns `dance_list.json` and additionally exposes an `Index`. The index is rebuilt *before* the new list is published, so a subscriber reacting to a change never reads a lookup built from the list it just replaced.
+
 **To add a new store:**
 
 1. Create `IXxxStore` in `Stores/{Feature}/` with `Current`, `Observe()`, `LoadAsync()`, `UpdateAsync()`.
@@ -74,6 +77,8 @@ Services hold **ephemeral runtime state** and operational logic — queue manage
 | `RandomTrackService` | Weighted random selection from the dance tree, with deduplication against queue + history + currently playing. |
 | `SynonymResolutionService` | Maintains an in-memory `Dictionary<string, string>` (normalised name → canonical name). Rebuilds atomically via `Interlocked.Exchange` when synonyms change. |
 | `TrackDiscoveryService` | Reads audio metadata (TagLib) to produce `Track` records. |
+| `BigBalfolkListImporter` | One-time read of the `dances.json` BigBalfolkList publishes. Region becomes a category, family or suite a sub-category, everything weight 1. Static, because it is a pure function of a file. |
+| `DanceListValidation` | Checks the one invariant everything else rests on: a name belongs to exactly one dance. |
 
 **To add a new service:**
 
@@ -126,6 +131,7 @@ The editor system implements **undo/redo** via the Command pattern combined with
 - **`IEditorAction`** — interface with `ExecuteAsync()`, `UndoAsync()`, and `Description`.
 - **`EditorHistoryService`** — manages two stacks (`_undoStack`, `_redoStack`). Exposes `CanUndo`, `CanRedo`, `UndoDescription`, `RedoDescription` as `IObservable<T>` via `BehaviorSubject`. Executing a new action clears the redo stack.
 - **`DanceTreeAction` / `DanceSynonymAction`** — concrete `IEditorAction` implementations using static factory methods. Each captures a `_before` snapshot, applies a pure transform via `Store.UpdateAsync()`, and undoes by restoring `_before`. An optional `_validate` closure is checked before execution.
+- **`DanceListTransforms` / `DanceListAction`** — the dance list equivalents. Categories are addressed by `int[]` path, but **dances are addressed by slug**, because a dance keeps its slug when renamed, respelled or moved, so an edit cannot land on the wrong one. `DanceListAction.UndoAsync` is a no-op when the action was refused, so undoing a rejected edit cannot restore a snapshot it never took.
 - **`DanceTreeTransforms` / `DanceSynonymTransforms`** — static classes containing pure functions that transform immutable data structures. Tree transforms use recursive `ReplaceBranchAtDepth` with `int[]` path-based navigation and record `with` expressions.
 
 **To add a new editor action:**
@@ -159,6 +165,15 @@ The editor system implements **undo/redo** via the Command pattern combined with
 **`App.Services`** is a static `IServiceProvider` property on `App`. Code-behind uses it to resolve services: `App.Services.GetRequiredService<NavigationService>()`.
 
 **To register a new service or ViewModel:** add a line in `ConfigureServices` in `Program.cs`. Use `AddSingleton` for shared state, `AddTransient` for per-resolution instances.
+
+### Setup wizard
+
+`Views/Wizard/` holds a first-run wizard shown when `ApplicationSettings.SetupCompleted` is false (and never during a smoke test, which has nobody to answer it). It is also reachable from Settings -> Troubleshooting -> *Run setup again*.
+
+- A step is a `WizardStepViewModel`: `Title`, `Explanation`, an optional `CanContinue` observable, and `EnterAsync`/`CommitAsync`. `SetupWizardViewModel` owns the ordered list, and its continue command follows `CurrentStep.CanContinue` through `.Switch()` so a step's opinion stops counting the moment it is left.
+- Steps are registered `AddTransient`, so a second run starts from what is on disk rather than from the last visit. Each needs an `IViewFor<T>` registration for `ViewModelViewHost` to resolve it.
+- The wizard is modal over the main window, so it takes over confirmation ownership for as long as it is open (`ConfirmationService.UseOwner`). Without that, a confirmation raised from a step is parented to a window the user cannot reach: it closes immediately and reads as a button that does nothing.
+- Order: build the dance list, edit it, then point at the music. The dance list comes first because it is what everything else has something to say about. The edit step hosts the ordinary `DanceListView`, unchanged, so an imported list can be corrected while it is still obvious that the list is what is being set up.
 
 ### Views & ViewModels
 

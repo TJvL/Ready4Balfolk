@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:wizard="using:Ready4Balfolk.UI.Views.Wizard"
+             mc:Ignorable="d" d:DesignWidth="650" d:DesignHeight="320"
+             x:Class="Ready4Balfolk.UI.Views.Wizard.MusicDirectoryStepView"
+             x:DataType="wizard:MusicDirectoryStepViewModel">
+    <StackPanel Spacing="8" VerticalAlignment="Top">
+        <TextBlock Text="{x:Static res:UiStrings.Settings_MusicDirectory}" />
+        <Grid ColumnDefinitions="*, Auto">
+            <TextBox Grid.Column="0"
+                     Text="{CompiledBinding MusicDirectoryPath, Mode=TwoWay}"
+                     Watermark="{x:Static res:UiStrings.Settings_MusicDirectoryWatermark}"
+                     IsReadOnly="True" />
+            <Button Grid.Column="1"
+                    Content="{x:Static res:UiStrings.Settings_Browse}"
+                    Margin="8,0,0,0"
+                    Click="OnBrowseClick" />
+        </Grid>
+        <TextBlock Text="{x:Static res:UiStrings.Wizard_Music_Note}"
+                   TextWrapping="Wrap"
+                   FontSize="12"
+                   Opacity="0.6"
+                   Margin="0,8,0,0" />
+    </StackPanel>
+</UserControl>

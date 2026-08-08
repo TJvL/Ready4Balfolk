@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AsyncAwaitBestPractices;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
@@ -17,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Reactive;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Synonym;
@@ -26,6 +28,7 @@ using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 using Ready4Balfolk.UI.Views.Presentation;
+using Ready4Balfolk.UI.Views.Wizard;
 using Ready4Balfolk.Web;
 using AvaloniaWindowState = Avalonia.Controls.WindowState;
 using DomainWindowState = Ready4Balfolk.Domain.Models.Settings.WindowState;
@@ -128,12 +131,17 @@ public sealed class App : Application
                 .Take(1)
                 .SelectMany(_ =>
                     Observable.Merge(
+                        RunLoad<IDanceListStore>((s, token) => s.LoadAsync(token), "Failed to load the dance list"),
                         RunLoad<IDanceTreeStore>((s, token) => s.LoadAsync(token), "Failed to load dance tree"),
                         RunLoad<IDanceSynonymStore>((s, token) => s.LoadAsync(token), "Failed to load dance synonyms"),
                         RunLoad<IQueueHistoryStore>((s, token) => s.LoadAsync(token), "Failed to load queue history")
-                    )
+                    // ToList waits for every load to finish before emitting once. The wizard reads
+                    // the dance list to decide what to show, so it cannot open while that load is
+                    // still in flight, or a profile that has a list looks like a fresh one.
+                    ).ToList()
                 )
-                .Subscribe());
+                .ObserveOn(RxSchedulers.MainThreadScheduler)
+                .Subscribe(_ => ShowSetupWizardIfNeeded(mainWindow, settingsStore)));
 
             mainWindow.Closing += (_, e) =>
             {
@@ -234,6 +242,34 @@ public sealed class App : Application
 
         _closing = true;
         mainWindow.Close();
+    }
+
+    /// <summary>Opens the setup wizard on a profile that has never been through it.</summary>
+    /// <remarks>
+    /// Not for the smoke test: it drives the application with nobody there to answer a wizard, and a
+    /// modal window would simply hold it until CI gave up.
+    /// </remarks>
+    internal static void ShowSetupWizardIfNeeded(Window owner, ISettingsStore settingsStore)
+    {
+        if (Program.IsSmokeTest || settingsStore.Current.SetupCompleted)
+        {
+            return;
+        }
+
+        ShowSetupWizard(owner);
+    }
+
+    internal static void ShowSetupWizard(Window owner)
+    {
+        var viewModel = Services.GetRequiredService<SetupWizardViewModel>();
+        var window = new SetupWizardWindow
+        {
+            DataContext = viewModel,
+            ViewModel = viewModel
+        };
+
+        window.ShowDialog(owner).SafeFireAndForget(ex =>
+            Services.GetRequiredService<ILoggerService>().ErrorAsync("Setup wizard failed", ex));
     }
 
     private static WebServerOptions ToWebServerOptions(ApplicationSettings settings) => new(

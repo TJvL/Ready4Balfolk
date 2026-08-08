@@ -243,6 +243,15 @@
                 <TextBlock Text="{x:Static res:UiStrings.Settings_ExportLogDescription}"
                            FontSize="11"
                            Opacity="0.6" />
+                <Button Content="{x:Static res:UiStrings.Settings_RunSetupAgain}"
+                        Click="OnRunSetupClick"
+                        HorizontalAlignment="Left"
+                        Margin="0,8,0,0"
+                        Focusable="False" />
+                <TextBlock Text="{x:Static res:UiStrings.Settings_RunSetupAgainDescription}"
+                           FontSize="11"
+                           Opacity="0.6"
+                           TextWrapping="Wrap" />
             </StackPanel>
 
             <!-- Version info -->

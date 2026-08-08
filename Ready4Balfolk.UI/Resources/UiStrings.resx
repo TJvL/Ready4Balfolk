@@ -900,4 +900,211 @@ Continue with import?</value>
   <data name="Settings_WebServerStopping" xml:space="preserve">
     <value>Stopping</value>
   </data>
+
+  <!-- Setup wizard -->
+  <data name="Wizard_Title" xml:space="preserve">
+    <value>Set up Ready4Balfolk</value>
+  </data>
+  <data name="Wizard_StepFormat" xml:space="preserve">
+    <value>Step {0} of {1}</value>
+  </data>
+  <data name="Wizard_Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Wizard_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Wizard_Finish" xml:space="preserve">
+    <value>Finish</value>
+  </data>
+  <data name="Wizard_DanceList_Title" xml:space="preserve">
+    <value>Your dance list</value>
+  </data>
+  <data name="Wizard_DanceList_Explanation" xml:space="preserve">
+    <value>Ready4Balfolk keeps one list of the dances you play and the names each of them goes by. It is yours: nothing is built in, and nothing is added behind your back. The list is also what the application organises your music by, so this comes first.</value>
+  </data>
+  <data name="Wizard_DanceList_ImportHeading" xml:space="preserve">
+    <value>Import a published list</value>
+  </data>
+  <data name="Wizard_DanceList_ImportDescription" xml:space="preserve">
+    <value>Start from a list somebody has already written, with its regions, families and suites as your categories. You can change all of it afterwards.</value>
+  </data>
+  <data name="Wizard_DanceList_ImportButton" xml:space="preserve">
+    <value>Choose a file to import</value>
+  </data>
+  <data name="Wizard_DanceList_ImportPickerTitle" xml:space="preserve">
+    <value>Select a dance list file</value>
+  </data>
+  <data name="Wizard_DanceList_EmptyHeading" xml:space="preserve">
+    <value>Start empty</value>
+  </data>
+  <data name="Wizard_DanceList_EmptyDescription" xml:space="preserve">
+    <value>Begin with nothing and add the dances you actually play, on the dance list screen.</value>
+  </data>
+  <data name="Wizard_DanceList_StartEmptyButton" xml:space="preserve">
+    <value>Start with an empty list</value>
+  </data>
+  <data name="Wizard_DanceList_SummaryFormat" xml:space="preserve">
+    <value>Your list holds {0} dances in {1} categories.</value>
+  </data>
+  <data name="Wizard_DanceList_EmptySummary" xml:space="preserve">
+    <value>Starting empty. Add dances on the dance list screen whenever you like.</value>
+  </data>
+  <data name="Wizard_DanceList_Source" xml:space="preserve">
+    <value>A list to import is published at</value>
+  </data>
+  <data name="Wizard_DanceList_ImportFailed" xml:space="preserve">
+    <value>That file could not be read.</value>
+  </data>
+  <data name="Wizard_Music_Title" xml:space="preserve">
+    <value>Your music</value>
+  </data>
+  <data name="Wizard_Music_Explanation" xml:space="preserve">
+    <value>Point Ready4Balfolk at the folder your music lives in. Everything below it is included, however it is arranged.</value>
+  </data>
+  <data name="Wizard_Music_Note" xml:space="preserve">
+    <value>You can leave this for now and set it in the settings screen later.</value>
+  </data>
+  <data name="Settings_RunSetupAgain" xml:space="preserve">
+    <value>Run setup again</value>
+  </data>
+  <data name="Settings_RunSetupAgainDescription" xml:space="preserve">
+    <value>Opens the setup wizard. Your dance list and your music folder stay as they are unless you change them there.</value>
+  </data>
+
+  <!-- Dance list editor -->
+  <data name="Wizard_DanceListEdit_Title" xml:space="preserve">
+    <value>Check your dance list</value>
+  </data>
+  <data name="Wizard_DanceListEdit_Explanation" xml:space="preserve">
+    <value>Rename categories, add the dances you play and the spellings you use, remove what you do not, and set how often each should come up. Nothing here is final: the same screen is in the application afterwards.</value>
+  </data>
+  <data name="Wizard_DanceList_SourceUrl" xml:space="preserve">
+    <value>github.com/TJvL/BigBalfolkList</value>
+  </data>
+  <data name="DanceList_Title" xml:space="preserve">
+    <value>Dance list</value>
+  </data>
+  <data name="DanceList_SummaryFormat" xml:space="preserve">
+    <value>{0} dances in {1} categories</value>
+  </data>
+  <data name="DanceList_NothingSelected" xml:space="preserve">
+    <value>Nothing selected</value>
+  </data>
+  <data name="DanceList_SelectSomething" xml:space="preserve">
+    <value>Pick a category or a dance on the left to edit it.</value>
+  </data>
+  <data name="DanceList_AddRootCategory" xml:space="preserve">
+    <value>Add category</value>
+  </data>
+  <data name="DanceList_AddSubCategory" xml:space="preserve">
+    <value>Add a category inside this one</value>
+  </data>
+  <data name="DanceList_AddDanceHere" xml:space="preserve">
+    <value>Add a dance to this category</value>
+  </data>
+  <data name="DanceList_NewDanceWatermark" xml:space="preserve">
+    <value>Name of the dance</value>
+  </data>
+  <data name="DanceList_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="DanceList_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DanceList_Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="DanceList_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="DanceList_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="DanceList_Redo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="DanceList_Import" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="DanceList_Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="DanceList_ImportTitle" xml:space="preserve">
+    <value>Import a dance list</value>
+  </data>
+  <data name="DanceList_ImportConfirmMessage" xml:space="preserve">
+    <value>Importing replaces your whole dance list, and it cannot be undone. Export the current one first if you want to keep it.</value>
+  </data>
+  <data name="DanceList_CategoryName" xml:space="preserve">
+    <value>Category name</value>
+  </data>
+  <data name="DanceList_Names" xml:space="preserve">
+    <value>Names</value>
+  </data>
+  <data name="DanceList_NamesExplanation" xml:space="preserve">
+    <value>All of these mean this dance. The top one is the spelling shown; move another up to read that one instead.</value>
+  </data>
+  <data name="DanceList_NewNameWatermark" xml:space="preserve">
+    <value>Another spelling</value>
+  </data>
+  <data name="DanceList_UseThisSpelling" xml:space="preserve">
+    <value>Show this spelling</value>
+  </data>
+  <data name="DanceList_RemoveName" xml:space="preserve">
+    <value>Remove this spelling</value>
+  </data>
+  <data name="DanceList_Weight" xml:space="preserve">
+    <value>Weight</value>
+  </data>
+  <data name="DanceList_WeightExplanation" xml:space="preserve">
+    <value>How likely a random pick is. A category's weight is multiplied by the dance's; zero means never.</value>
+  </data>
+  <data name="DanceList_WeightBadge" xml:space="preserve">
+    <value>x{0}</value>
+  </data>
+  <data name="DanceList_UndoFormat" xml:space="preserve">
+    <value>Undo: {0}</value>
+  </data>
+  <data name="DanceList_UndoDefault" xml:space="preserve">
+    <value>Nothing to undo</value>
+  </data>
+  <data name="DanceList_RedoFormat" xml:space="preserve">
+    <value>Redo: {0}</value>
+  </data>
+  <data name="DanceList_RedoDefault" xml:space="preserve">
+    <value>Nothing to redo</value>
+  </data>
+  <data name="DanceList_DeleteTitle" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DanceList_DeleteConfirm" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DanceList_DeleteCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="DanceList_DeleteEmptyCategoryMessage" xml:space="preserve">
+    <value>Delete the empty category "{0}"?</value>
+  </data>
+  <data name="DanceList_DeleteCategoryMessage" xml:space="preserve">
+    <value>Delete "{0}" and the {1} dances in it?</value>
+  </data>
+  <data name="DanceList_DeleteDanceMessage" xml:space="preserve">
+    <value>Delete the dance "{0}" and every spelling of it?</value>
+  </data>
+
+  <!-- Setup wizard: emptying the list -->
+  <data name="Wizard_DanceList_ClearTitle" xml:space="preserve">
+    <value>Start with an empty list</value>
+  </data>
+  <data name="Wizard_DanceList_ClearConfirmMessage" xml:space="preserve">
+    <value>This removes all {0} dances you have now, and it cannot be undone. Export the list first if you want to keep it.</value>
+  </data>
+  <data name="Wizard_DanceList_ClearConfirm" xml:space="preserve">
+    <value>Empty the list</value>
+  </data>
+  <data name="Wizard_DanceList_ClearCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
 </root>

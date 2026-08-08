@@ -792,4 +792,208 @@ public static class UiStrings
 
     public static string Settings_WebServerStopping =>
         ResourceManager.GetString("Settings_WebServerStopping", Culture)!;
+
+    // Setup wizard
+    public static string Wizard_Title =>
+        ResourceManager.GetString("Wizard_Title", Culture)!;
+
+    public static string Wizard_StepFormat =>
+        ResourceManager.GetString("Wizard_StepFormat", Culture)!;
+
+    public static string Wizard_Back =>
+        ResourceManager.GetString("Wizard_Back", Culture)!;
+
+    public static string Wizard_Next =>
+        ResourceManager.GetString("Wizard_Next", Culture)!;
+
+    public static string Wizard_Finish =>
+        ResourceManager.GetString("Wizard_Finish", Culture)!;
+
+    public static string Wizard_DanceList_Title =>
+        ResourceManager.GetString("Wizard_DanceList_Title", Culture)!;
+
+    public static string Wizard_DanceList_Explanation =>
+        ResourceManager.GetString("Wizard_DanceList_Explanation", Culture)!;
+
+    public static string Wizard_DanceList_ImportHeading =>
+        ResourceManager.GetString("Wizard_DanceList_ImportHeading", Culture)!;
+
+    public static string Wizard_DanceList_ImportDescription =>
+        ResourceManager.GetString("Wizard_DanceList_ImportDescription", Culture)!;
+
+    public static string Wizard_DanceList_ImportButton =>
+        ResourceManager.GetString("Wizard_DanceList_ImportButton", Culture)!;
+
+    public static string Wizard_DanceList_ImportPickerTitle =>
+        ResourceManager.GetString("Wizard_DanceList_ImportPickerTitle", Culture)!;
+
+    public static string Wizard_DanceList_EmptyHeading =>
+        ResourceManager.GetString("Wizard_DanceList_EmptyHeading", Culture)!;
+
+    public static string Wizard_DanceList_EmptyDescription =>
+        ResourceManager.GetString("Wizard_DanceList_EmptyDescription", Culture)!;
+
+    public static string Wizard_DanceList_StartEmptyButton =>
+        ResourceManager.GetString("Wizard_DanceList_StartEmptyButton", Culture)!;
+
+    public static string Wizard_DanceList_SummaryFormat =>
+        ResourceManager.GetString("Wizard_DanceList_SummaryFormat", Culture)!;
+
+    public static string Wizard_DanceList_EmptySummary =>
+        ResourceManager.GetString("Wizard_DanceList_EmptySummary", Culture)!;
+
+    public static string Wizard_DanceList_Source =>
+        ResourceManager.GetString("Wizard_DanceList_Source", Culture)!;
+
+    public static string Wizard_DanceList_ImportFailed =>
+        ResourceManager.GetString("Wizard_DanceList_ImportFailed", Culture)!;
+
+    public static string Wizard_Music_Title =>
+        ResourceManager.GetString("Wizard_Music_Title", Culture)!;
+
+    public static string Wizard_Music_Explanation =>
+        ResourceManager.GetString("Wizard_Music_Explanation", Culture)!;
+
+    public static string Wizard_Music_Note =>
+        ResourceManager.GetString("Wizard_Music_Note", Culture)!;
+
+    public static string Settings_RunSetupAgain =>
+        ResourceManager.GetString("Settings_RunSetupAgain", Culture)!;
+
+    public static string Settings_RunSetupAgainDescription =>
+        ResourceManager.GetString("Settings_RunSetupAgainDescription", Culture)!;
+
+    // Dance list editor
+    public static string Wizard_DanceListEdit_Title =>
+        ResourceManager.GetString("Wizard_DanceListEdit_Title", Culture)!;
+
+    public static string Wizard_DanceListEdit_Explanation =>
+        ResourceManager.GetString("Wizard_DanceListEdit_Explanation", Culture)!;
+
+    public static string Wizard_DanceList_SourceUrl =>
+        ResourceManager.GetString("Wizard_DanceList_SourceUrl", Culture)!;
+
+    public static string DanceList_Title =>
+        ResourceManager.GetString("DanceList_Title", Culture)!;
+
+    public static string DanceList_SummaryFormat =>
+        ResourceManager.GetString("DanceList_SummaryFormat", Culture)!;
+
+    public static string DanceList_NothingSelected =>
+        ResourceManager.GetString("DanceList_NothingSelected", Culture)!;
+
+    public static string DanceList_SelectSomething =>
+        ResourceManager.GetString("DanceList_SelectSomething", Culture)!;
+
+    public static string DanceList_AddRootCategory =>
+        ResourceManager.GetString("DanceList_AddRootCategory", Culture)!;
+
+    public static string DanceList_AddSubCategory =>
+        ResourceManager.GetString("DanceList_AddSubCategory", Culture)!;
+
+    public static string DanceList_AddDanceHere =>
+        ResourceManager.GetString("DanceList_AddDanceHere", Culture)!;
+
+    public static string DanceList_NewDanceWatermark =>
+        ResourceManager.GetString("DanceList_NewDanceWatermark", Culture)!;
+
+    public static string DanceList_Add =>
+        ResourceManager.GetString("DanceList_Add", Culture)!;
+
+    public static string DanceList_Delete =>
+        ResourceManager.GetString("DanceList_Delete", Culture)!;
+
+    public static string DanceList_Rename =>
+        ResourceManager.GetString("DanceList_Rename", Culture)!;
+
+    public static string DanceList_Apply =>
+        ResourceManager.GetString("DanceList_Apply", Culture)!;
+
+    public static string DanceList_Undo =>
+        ResourceManager.GetString("DanceList_Undo", Culture)!;
+
+    public static string DanceList_Redo =>
+        ResourceManager.GetString("DanceList_Redo", Culture)!;
+
+    public static string DanceList_Import =>
+        ResourceManager.GetString("DanceList_Import", Culture)!;
+
+    public static string DanceList_Export =>
+        ResourceManager.GetString("DanceList_Export", Culture)!;
+
+    public static string DanceList_ImportTitle =>
+        ResourceManager.GetString("DanceList_ImportTitle", Culture)!;
+
+    public static string DanceList_ImportConfirmMessage =>
+        ResourceManager.GetString("DanceList_ImportConfirmMessage", Culture)!;
+
+    public static string DanceList_CategoryName =>
+        ResourceManager.GetString("DanceList_CategoryName", Culture)!;
+
+    public static string DanceList_Names =>
+        ResourceManager.GetString("DanceList_Names", Culture)!;
+
+    public static string DanceList_NamesExplanation =>
+        ResourceManager.GetString("DanceList_NamesExplanation", Culture)!;
+
+    public static string DanceList_NewNameWatermark =>
+        ResourceManager.GetString("DanceList_NewNameWatermark", Culture)!;
+
+    public static string DanceList_UseThisSpelling =>
+        ResourceManager.GetString("DanceList_UseThisSpelling", Culture)!;
+
+    public static string DanceList_RemoveName =>
+        ResourceManager.GetString("DanceList_RemoveName", Culture)!;
+
+    public static string DanceList_Weight =>
+        ResourceManager.GetString("DanceList_Weight", Culture)!;
+
+    public static string DanceList_WeightExplanation =>
+        ResourceManager.GetString("DanceList_WeightExplanation", Culture)!;
+
+    public static string DanceList_WeightBadge =>
+        ResourceManager.GetString("DanceList_WeightBadge", Culture)!;
+
+    public static string DanceList_UndoFormat =>
+        ResourceManager.GetString("DanceList_UndoFormat", Culture)!;
+
+    public static string DanceList_UndoDefault =>
+        ResourceManager.GetString("DanceList_UndoDefault", Culture)!;
+
+    public static string DanceList_RedoFormat =>
+        ResourceManager.GetString("DanceList_RedoFormat", Culture)!;
+
+    public static string DanceList_RedoDefault =>
+        ResourceManager.GetString("DanceList_RedoDefault", Culture)!;
+
+    public static string DanceList_DeleteTitle =>
+        ResourceManager.GetString("DanceList_DeleteTitle", Culture)!;
+
+    public static string DanceList_DeleteConfirm =>
+        ResourceManager.GetString("DanceList_DeleteConfirm", Culture)!;
+
+    public static string DanceList_DeleteCancel =>
+        ResourceManager.GetString("DanceList_DeleteCancel", Culture)!;
+
+    public static string DanceList_DeleteEmptyCategoryMessage =>
+        ResourceManager.GetString("DanceList_DeleteEmptyCategoryMessage", Culture)!;
+
+    public static string DanceList_DeleteCategoryMessage =>
+        ResourceManager.GetString("DanceList_DeleteCategoryMessage", Culture)!;
+
+    public static string DanceList_DeleteDanceMessage =>
+        ResourceManager.GetString("DanceList_DeleteDanceMessage", Culture)!;
+
+    // Setup wizard: emptying the list
+    public static string Wizard_DanceList_ClearTitle =>
+        ResourceManager.GetString("Wizard_DanceList_ClearTitle", Culture)!;
+
+    public static string Wizard_DanceList_ClearConfirmMessage =>
+        ResourceManager.GetString("Wizard_DanceList_ClearConfirmMessage", Culture)!;
+
+    public static string Wizard_DanceList_ClearConfirm =>
+        ResourceManager.GetString("Wizard_DanceList_ClearConfirm", Culture)!;
+
+    public static string Wizard_DanceList_ClearCancel =>
+        ResourceManager.GetString("Wizard_DanceList_ClearCancel", Culture)!;
 }

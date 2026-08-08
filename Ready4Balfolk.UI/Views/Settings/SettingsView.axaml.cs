@@ -41,6 +41,14 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
         }
     }
 
+    private void OnRunSetupClick(object? sender, RoutedEventArgs e)
+    {
+        if (TopLevel.GetTopLevel(this) is Window owner)
+        {
+            App.ShowSetupWizard(owner);
+        }
+    }
+
     private async void OnExportLogClick(object? sender, RoutedEventArgs e)
     {
         var topLevel = TopLevel.GetTopLevel(this);

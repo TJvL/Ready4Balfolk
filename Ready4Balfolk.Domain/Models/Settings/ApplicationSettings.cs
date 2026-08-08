@@ -34,7 +34,10 @@ public sealed record ApplicationSettings(
     // reach it can skip the track a hall full of people is dancing to.
     bool WebRemoteControlEnabled = false,
     // Empty until the remote is first enabled, at which point one is generated.
-    string WebRemoteControlPin = "")
+    string WebRemoteControlPin = "",
+    // False on a settings file written before the wizard existed, which is the right answer: those
+    // profiles have no dance list either, so they get the same first run as a new one.
+    bool SetupCompleted = false)
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [], [])
