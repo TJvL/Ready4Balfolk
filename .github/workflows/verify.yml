@@ -9,7 +9,15 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Both released platforms, because the tests have to run somewhere they could fail differently:
+    # Directory.Build.targets resolves the BASS natives from the host OS, and the paths the stores
+    # write to are not the same shape on Windows.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,7 +36,9 @@ jobs:
       - name: Build Release
         run: dotnet build Ready4Balfolk.sln -c Release --no-restore
 
+      # One platform is enough: .gitattributes normalises line endings, so the answer cannot differ.
       - name: Check formatting
+        if: runner.os == 'Linux'
         run: dotnet format Ready4Balfolk.sln --verify-no-changes --verbosity normal --no-restore
 
       - name: Run tests

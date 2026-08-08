@@ -22,6 +22,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private readonly Subject<TimeSpan> _durationChanged = new();
     private readonly BehaviorSubject<bool> _isAvailable = new(true);
     private readonly ILoggerService _loggerService;
+    private readonly bool _useNoSoundDevice;
 
     private readonly CompositeDisposable _disposables = [];
     private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -37,9 +38,22 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private bool _disposed;
     private EqualizerSettings _equalizerSettings = EqualizerSettings.Flat;
 
-    public ManagedBassAudioPlaybackService(ILoggerService loggerService, ISettingsStore settingsStore)
+    /// <param name="loggerService">Where initialisation results and playback failures are recorded.</param>
+    /// <param name="settingsStore">Supplies the equalizer settings the effect chain starts from.</param>
+    /// <param name="useNoSoundDevice">
+    /// Initialises BASS against its "no sound" device instead of the default output. The library,
+    /// its plugins and the whole effect chain come up exactly as they would against real hardware;
+    /// only the audio goes nowhere. For the CI smoke test, where the runner has no sound card at
+    /// all, this keeps the check measuring what it is there to measure — that the native libraries
+    /// shipped and load — rather than whether the machine can make a noise.
+    /// </param>
+    public ManagedBassAudioPlaybackService(
+        ILoggerService loggerService,
+        ISettingsStore settingsStore,
+        bool useNoSoundDevice = false)
     {
         _loggerService = loggerService;
+        _useNoSoundDevice = useNoSoundDevice;
         _equalizerSettings = settingsStore.Current.Equalizer;
 
         WhenProgressChanged = Observable.Interval(TimeSpan.FromMilliseconds(100))
@@ -349,9 +363,12 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
     private void InitializeBass()
     {
+        // -1 is the default output; 0 is BASS's "no sound" device.
+        var device = _useNoSoundDevice ? 0 : -1;
+
         try
         {
-            if (!Bass.Init())
+            if (!Bass.Init(device))
             {
                 _bassFailed = true;
                 _isAvailable.OnNext(false);

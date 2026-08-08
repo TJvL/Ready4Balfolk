@@ -16,11 +16,12 @@ Download the latest version from the [Releases](../../releases) page.
 |----------|---------|
 | **Windows** | Installer (`.exe`) or portable archive (`.zip`) |
 | **Linux** | Flatpak (`.flatpak`) or portable archive (`.tar.gz`) |
-| **macOS** | Disk image (`.dmg`) or portable archive (`.tar.gz`) |
 
-The portable builds require no installation — just extract and run. The installers add Start Menu/desktop shortcuts (Windows), desktop integration (Linux Flatpak), or a drag-to-Applications experience (macOS).
+The portable builds require no installation — just extract and run. The installers add Start Menu/desktop shortcuts (Windows) or desktop integration (Linux Flatpak).
 
-> **macOS note:** The app is not signed with an Apple Developer certificate. On first launch, right-click the app and choose **Open** to bypass the Gatekeeper warning.
+Every release artifact is launched by CI before it is published, so a build that cannot start never reaches this page.
+
+> **macOS is not supported.** Releases up to and including v1.1.0 shipped an unsigned `.dmg`; there are no newer ones. Nothing in the code is deliberately Windows- and Linux-only, so a `dotnet publish -r osx-arm64` may well still work — under the GPL you are free to build it yourself, but it is neither tested nor released.
 
 ## Documentation
 
