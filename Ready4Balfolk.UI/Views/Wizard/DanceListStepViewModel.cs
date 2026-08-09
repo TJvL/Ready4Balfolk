@@ -17,9 +17,19 @@ namespace Ready4Balfolk.UI.Views.Wizard;
 /// track for can never come up anyway. Never blocks either, because the copy shipped with the
 /// application is a perfectly good list and a hall with no wifi is an ordinary place to start in.
 /// </remarks>
-public sealed partial class DanceListStepViewModel(IDanceListStore store, IDanceListFeed feed)
+public sealed partial class DanceListStepViewModel(
+    IDanceListStore store, IDanceListFeed feed, TimeProvider? timeProvider = null)
     : WizardStepViewModel
 {
+    /// <summary>
+    /// How recently the list must have been fetched for this step to leave it alone. The
+    /// application refreshes at startup, and on a first run this step is reached seconds later:
+    /// without this it would ask BigBalfolkList for the same file twice in one minute.
+    /// </summary>
+    private static readonly TimeSpan RecentlyFetched = TimeSpan.FromMinutes(5);
+
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+
     [Reactive] public partial string SummaryText { get; private set; }
 
     [Reactive] public partial string OriginText { get; private set; }
@@ -35,6 +45,13 @@ public sealed partial class DanceListStepViewModel(IDanceListStore store, IDance
 
     public override async Task EnterAsync()
     {
+        // Stepping back and forward over this page is not a reason to fetch again either.
+        if (WasFetchedRecently(store.Status))
+        {
+            Describe(store.Status);
+            return;
+        }
+
         IsFetching = true;
         try
         {
@@ -48,6 +65,11 @@ public sealed partial class DanceListStepViewModel(IDanceListStore store, IDance
             Describe(store.Status);
         }
     }
+
+    private bool WasFetchedRecently(DanceListStatus status) =>
+        status.Origin is DanceListOrigin.Downloaded or DanceListOrigin.File
+        && status.ObtainedAt is { } obtainedAt
+        && _timeProvider.GetUtcNow() - obtainedAt < RecentlyFetched;
 
     private void Describe(DanceListStatus status)
     {

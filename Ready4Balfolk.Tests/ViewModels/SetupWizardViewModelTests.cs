@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Settings;
@@ -24,6 +25,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
     private readonly IDanceListFeed _feed = Substitute.For<IDanceListFeed>();
     private readonly NavigationService _navigation = new();
     private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
+    private readonly FakeTimeProvider _now = new();
     private readonly SetupWizardViewModel _sut;
     private ApplicationSettings _settings = new();
 
@@ -76,7 +78,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
 
         return new SetupWizardViewModel(
             new WelcomeStepViewModel(),
-            new DanceListStepViewModel(_danceListStore, _feed),
+            new DanceListStepViewModel(_danceListStore, _feed, _now),
             new MusicDirectoryStepViewModel(_settingsStore),
             new TaggingStepViewModel(tagging),
             _settingsStore,
@@ -107,6 +109,29 @@ public sealed class SetupWizardViewModelTests : IDisposable
     [Fact]
     public void TheDanceListStepFetchesTheList()
     {
+        GoTo<DanceListStepViewModel>();
+
+        _danceListStore.Received().RefreshAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void TheDanceListStepDoesNotFetchWhatWasJustFetched()
+    {
+        // The application refreshes at startup and this step is reached seconds later, so asking
+        // BigBalfolkList for the same file again would be two downloads for one answer.
+        _statusSubject.OnNext(new DanceListStatus(113, 40, DanceListOrigin.Downloaded, _now.GetUtcNow()));
+
+        GoTo<DanceListStepViewModel>();
+
+        _danceListStore.DidNotReceive().RefreshAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void TheDanceListStepFetchesAgainOnceThatIsStale()
+    {
+        _statusSubject.OnNext(new DanceListStatus(
+            113, 40, DanceListOrigin.Downloaded, _now.GetUtcNow() - TimeSpan.FromHours(2)));
+
         GoTo<DanceListStepViewModel>();
 
         _danceListStore.Received().RefreshAsync(Arg.Any<CancellationToken>());
