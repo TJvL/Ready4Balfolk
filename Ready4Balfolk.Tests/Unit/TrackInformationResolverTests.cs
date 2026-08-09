@@ -380,11 +380,11 @@ public sealed class TrackInformationResolverTests
     private TrackResolution Decide(IReadOnlyList<Claim> claims) => TrackInformationResolver.Decide(claims, _index);
 
     private TrackResolution Resolve(TrackEvidence evidence, string? folderDance = null)
-        => TrackInformationResolver.Resolve(evidence, _index, folderDance);
+        => TrackInformationResolver.Resolve(evidence, _index, folderDance: folderDance);
 
     private static TrackEvidence Evidence(string fileName, IReadOnlyList<string>? segments = null) => new()
     {
-        FileNameWithoutExtension = fileName,
+        FileName = fileName + ".mp3",
         PathSegments = segments ?? ["Artist"],
         Duration = TimeSpan.FromSeconds(180),
         Format = AudioFormat.Mp3,

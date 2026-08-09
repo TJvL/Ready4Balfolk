@@ -6,6 +6,7 @@ using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
 using DynamicData;
 using Ready4Balfolk.Domain.Helpers;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -35,6 +36,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
     // The root the watcher's files are under, so a file it notices can still be placed relative to
     // it.
     private DirectoryInfo? _musicRoot;
+    // Compiled once and swapped whole, so a scan running over it never sees half a rule change.
+    private DeclaredDiscovery _declared = DeclaredDiscovery.Undeclared;
     private FileSystemWatcher? _watcher;
     private bool _disposed;
 
@@ -91,9 +94,42 @@ public sealed class TrackStore : ITrackStore, IDisposable
             var cancellation = new CancellationTokenSource();
             Interlocked.Exchange(ref _loadCts, cancellation)?.Cancel();
 
-            Task.Run(() => LoadDirectoryAsync(value, cancellation.Token)).SafeFireAndForget(exception => _loggerService.ErrorAsync("Loading directory failed", exception));
+            Task.Run(() => LoadDirectoryAsync(value, reread: false, cancellation.Token)).SafeFireAndForget(exception => _loggerService.ErrorAsync("Loading directory failed", exception));
         }
     }
+
+    /// <summary>
+    /// What the user has declared about their library, which re-reads it when it changes.
+    /// </summary>
+    /// <remarks>
+    /// A re-read rather than a re-resolve, and it is the point of the whole feature: a rule is
+    /// declared so that the files already sitting in the library are answered by it. The index
+    /// cannot answer instead, because what it holds was derived under the rules that just changed.
+    /// </remarks>
+    public DiscoverySettings DiscoverySettings
+    {
+        set
+        {
+            if (field is not null && field == value)
+            {
+                return;
+            }
+
+            field = value;
+            _declared = DeclaredDiscovery.Compile(value);
+
+            if (_musicRoot is not { } root)
+            {
+                return;
+            }
+
+            var cancellation = new CancellationTokenSource();
+            Interlocked.Exchange(ref _loadCts, cancellation)?.Cancel();
+
+            Task.Run(() => LoadDirectoryAsync(root, reread: true, cancellation.Token)).SafeFireAndForget(exception =>
+                _loggerService.ErrorAsync("Reloading after a discovery settings change failed", exception));
+        }
+    } = DiscoverySettings.Undeclared;
 
     public IObservable<IChangeSet<Track>> Connect() => _tracks.Connect();
 
@@ -172,7 +208,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         ];
     }
 
-    private async Task LoadDirectoryAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    private async Task LoadDirectoryAsync(DirectoryInfo directory, bool reread, CancellationToken cancellationToken)
     {
         _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
 
@@ -185,7 +221,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 return;
             }
 
-            await LoadDirectoryCoreAsync(directory, cancellationToken);
+            await LoadDirectoryCoreAsync(directory, reread, cancellationToken);
         }
         finally
         {
@@ -193,7 +229,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private async Task LoadDirectoryCoreAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    private async Task LoadDirectoryCoreAsync(DirectoryInfo directory, bool reread, CancellationToken cancellationToken)
     {
         _watcher?.Dispose();
         _watcher = null;
@@ -223,7 +259,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             var written = new List<ScannedFile>();
             var loaded = audioFiles.ToObservable()
                 .TakeUntil(_ => cancellationToken.IsCancellationRequested)
-                .Select(file => LoadTrackObservable(file, directory, known, scanned))
+                .Select(file => LoadTrackObservable(file, directory, known, scanned, reread))
                 .Merge(MaxAmountOfFileReaderThreads)
                 .Buffer(TimeSpan.FromMilliseconds(200), 50);
 
@@ -282,12 +318,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
     private IObservable<Track> LoadTrackObservable(
         FileInfo file, DirectoryInfo root,
-        IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<ScannedFile> scanned)
+        IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<ScannedFile> scanned, bool reread)
     {
         // Defer keeps the inner observable cold so Merge(MaxAmountOfFileReaderThreads)
         // actually caps how many files are opened at once.
         return Observable
-            .Defer(() => Observable.Start(() => LoadTrack(file, root, known, scanned), TaskPoolScheduler.Default))
+            .Defer(() => Observable.Start(() => LoadTrack(file, root, known, scanned, reread), TaskPoolScheduler.Default))
             .Catch<Track, Exception>(exception =>
             {
                 _ = _loggerService.WarningAsync($"Error loading {file.FullName}: {exception.Message}");
@@ -317,7 +353,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             foreach (var sibling in siblings.Where(s => s.Resolution.DanceSlug is null))
             {
                 var resolution = TrackInformationResolver.Resolve(
-                    sibling.Evidence, _danceListStore.Index, folderDance: agreed);
+                    sibling.Evidence, _danceListStore.Index, _declared, agreed);
                 if (resolution.DanceSlug is null)
                 {
                     continue;
@@ -368,9 +404,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// </remarks>
     private Track LoadTrack(
         FileInfo file, DirectoryInfo root,
-        IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<ScannedFile> scanned)
+        IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<ScannedFile> scanned, bool reread)
     {
-        if (known.TryGetValue(file.FullName, out var entry)
+        // A re-read is asked for when the rules changed, and what the index holds was derived under
+        // the old ones, so the shortcut is exactly what must not fire.
+        if (!reread
+            && known.TryGetValue(file.FullName, out var entry)
             && entry.FileSize == file.Length
             && entry.LastWriteUtc == file.LastWriteTimeUtc)
         {
@@ -390,7 +429,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
 
         var evidence = _discoveryService.Gather(file, root);
-        var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index);
+        var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index, _declared);
 
         scanned.Add(new ScannedFile(file, evidence, resolution));
         return ToTrack(file, evidence, resolution);
@@ -569,7 +608,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     {
         var root = _musicRoot ?? fileInfo.Directory!;
         var evidence = _discoveryService.Gather(fileInfo, root);
-        var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index);
+        var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index, _declared);
 
         _libraryIndex.WriteAsync([
             new LibraryEntry

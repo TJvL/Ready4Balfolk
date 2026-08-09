@@ -1,5 +1,6 @@
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Services.Discovery;
 
@@ -21,12 +22,17 @@ public static class TrackInformationResolver
     /// <summary>Collects what the file says and decides what it is.</summary>
     /// <param name="evidence">What the file offered.</param>
     /// <param name="index">The user's dance list.</param>
+    /// <param name="declared">The rules the user stated, compiled. Undeclared by default.</param>
     /// <param name="folderDance">
     /// What the rest of the folder turned out to be, when it agreed on one dance. Fills a gap only:
     /// it never overrules a dance the file itself named.
     /// </param>
-    public static TrackResolution Resolve(TrackEvidence evidence, DanceListIndex index, string? folderDance = null) =>
-        Decide(TrackClaims.Collect(evidence, index, folderDance), index);
+    public static TrackResolution Resolve(
+        TrackEvidence evidence,
+        DanceListIndex index,
+        DeclaredDiscovery? declared = null,
+        string? folderDance = null) =>
+        Decide(TrackClaims.Collect(evidence, index, declared, folderDance), index);
 
     /// <summary>Decides every field from claims alone, keeping all of them.</summary>
     public static TrackResolution Decide(IReadOnlyList<Claim> claims, DanceListIndex index)
@@ -85,11 +91,11 @@ public static class TrackInformationResolver
             .Select(candidate => (candidate.Claim, Slug: candidate.Slug!))
             .ToList();
 
-        // The folder speaks only about a gap. It is computed from sibling file names, so a folder
+        // A derived claim speaks only about a gap. It is computed from sibling file names, so it
         // agreeing with the file it was derived from is one source counted twice, not two agreeing.
-        if (recognised.Any(candidate => candidate.Claim.Source.Kind is not ClaimSourceKind.Folder))
+        if (recognised.Any(candidate => !candidate.Claim.Source.IsDerived))
         {
-            recognised = [.. recognised.Where(candidate => candidate.Claim.Source.Kind is not ClaimSourceKind.Folder)];
+            recognised = [.. recognised.Where(candidate => !candidate.Claim.Source.IsDerived)];
         }
 
         if (recognised.Count == 0)

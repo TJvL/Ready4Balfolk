@@ -869,4 +869,135 @@
   <data name="Settings_MusicDirectoryChangeHint" xml:space="preserve">
     <value>Dit veranderen leest je hele bibliotheek opnieuw in, dus het hoort bij het instellen en niet bij de losse instellingen.</value>
   </data>
+
+  <!-- Advanced discovery -->
+  <data name="Settings_AdvancedDiscovery" xml:space="preserve">
+    <value>Geavanceerde herkenning</value>
+  </data>
+  <data name="Settings_AdvancedDiscoveryHint" xml:space="preserve">
+    <value>Vertel de applicatie hoe je bestanden heten en geordend zijn. Zolang je dat niet doet, wordt er niets over je bibliotheek aangenomen.</value>
+  </data>
+  <data name="Discovery_Title" xml:space="preserve">
+    <value>Geavanceerde herkenning</value>
+  </data>
+  <data name="Discovery_Intro" xml:space="preserve">
+    <value>Je bibliotheek wordt gelezen zoals hij is: geen map geldt als artiest en geen bestandsnaam wordt in velden opgedeeld. Een regel die je hier opgeeft beantwoordt in één keer elk bestand dat eraan voldoet, dus je ziet eerst wat hij zou doen.</value>
+  </data>
+  <data name="Discovery_PatternsHeader" xml:space="preserve">
+    <value>Patronen voor bestandsnamen</value>
+  </data>
+  <data name="Discovery_PatternsHint" xml:space="preserve">
+    <value>%d dans, %a artiest, %t titel, %n nummer, %i negeren, %ex extensie. Al het andere moet er letterlijk staan. Het eerste patroon dat een hele naam dekt wint, dus zet ze van specifiek naar algemeen.</value>
+  </data>
+  <data name="Discovery_DraftWatermark" xml:space="preserve">
+    <value>%d - %a - %t</value>
+  </data>
+  <data name="Discovery_Declare" xml:space="preserve">
+    <value>Regel toevoegen</value>
+  </data>
+  <data name="Discovery_PatternMatches" xml:space="preserve">
+    <value>Dekt {0} van {1} bestanden en laat er {2} over.</value>
+  </data>
+  <data name="Discovery_Coverage" xml:space="preserve">
+    <value>Je regels dekken {0} van {1} bestanden. Er blijven er {2} voor jou over.</value>
+  </data>
+  <data name="Discovery_SamplesHeader" xml:space="preserve">
+    <value>Wat het ervan maakt</value>
+  </data>
+  <data name="Discovery_MissesHeader" xml:space="preserve">
+    <value>Wat het niet dekt</value>
+  </data>
+  <data name="Discovery_ShowDetails" xml:space="preserve">
+    <value>Laat zien wat het deed</value>
+  </data>
+  <data name="Discovery_Remove" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="Discovery_MoveUp" xml:space="preserve">
+    <value>Eerder</value>
+  </data>
+  <data name="Discovery_MoveDown" xml:space="preserve">
+    <value>Later</value>
+  </data>
+  <data name="Discovery_ProblemUnknownToken" xml:space="preserve">
+    <value>Dat is geen bestaand veld.</value>
+  </data>
+  <data name="Discovery_ProblemNoFields" xml:space="preserve">
+    <value>Dit haalt niets uit de naam, dus het beantwoordt niets.</value>
+  </data>
+  <data name="Discovery_ProblemAdjacentFields" xml:space="preserve">
+    <value>Twee velden zonder iets ertussen: waar het ene ophoudt is niet te bepalen.</value>
+  </data>
+  <data name="Discovery_ProblemDuplicateField" xml:space="preserve">
+    <value>Twee keer hetzelfde veld, dat kan niet allebei kloppen.</value>
+  </data>
+  <data name="Discovery_FoldersHeader" xml:space="preserve">
+    <value>Mapniveaus</value>
+  </data>
+  <data name="Discovery_FoldersHint" xml:space="preserve">
+    <value>Geteld van buiten naar binnen. Een niveau spreekt alleen voor bestanden die daadwerkelijk zo diep zitten.</value>
+  </data>
+  <data name="Discovery_LevelLabel" xml:space="preserve">
+    <value>Niveau {0}</value>
+  </data>
+  <data name="Discovery_LevelDepth" xml:space="preserve">
+    <value>{0} van {1} bestanden zitten zo diep</value>
+  </data>
+  <data name="Discovery_LevelValue" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Discovery_TagsHeader" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Discovery_TagsHint" xml:space="preserve">
+    <value>Welke tagvelden in jouw bibliotheek welke waarde bevatten. Standaard gelden artiest en albumartiest als artiest, het titelveld als titel, en geldt geen enkele tag als dans. Een dansnaam uit je lijst wordt hoe dan ook in elke tag herkend.</value>
+  </data>
+  <data name="Discovery_UseDefault" xml:space="preserve">
+    <value>Laat dit aan de applicatie over</value>
+  </data>
+  <data name="Discovery_ApplyRolesAndTags" xml:space="preserve">
+    <value>Mappen en tags toepassen</value>
+  </data>
+  <data name="Discovery_FieldDance" xml:space="preserve">
+    <value>Dans</value>
+  </data>
+  <data name="Discovery_FieldArtist" xml:space="preserve">
+    <value>Artiest</value>
+  </data>
+  <data name="Discovery_FieldTitle" xml:space="preserve">
+    <value>Titel</value>
+  </data>
+  <data name="Discovery_TagTitle" xml:space="preserve">
+    <value>titel</value>
+  </data>
+  <data name="Discovery_TagArtist" xml:space="preserve">
+    <value>artiest</value>
+  </data>
+  <data name="Discovery_TagAlbumArtist" xml:space="preserve">
+    <value>albumartiest</value>
+  </data>
+  <data name="Discovery_TagAlbum" xml:space="preserve">
+    <value>album</value>
+  </data>
+  <data name="Discovery_TagComment" xml:space="preserve">
+    <value>opmerking</value>
+  </data>
+  <data name="Discovery_RoleUnknown" xml:space="preserve">
+    <value>Niet opgegeven</value>
+  </data>
+  <data name="Discovery_RoleArtist" xml:space="preserve">
+    <value>Artiest</value>
+  </data>
+  <data name="Discovery_RoleAlbum" xml:space="preserve">
+    <value>Album</value>
+  </data>
+  <data name="Discovery_RoleDance" xml:space="preserve">
+    <value>Dans</value>
+  </data>
+  <data name="Discovery_RoleIgnore" xml:space="preserve">
+    <value>Betekent niets</value>
+  </data>
+  <data name="Discovery_NoLibrary" xml:space="preserve">
+    <value>Er is nog niets ingelezen, dus er is niets om een regel aan af te meten.</value>
+  </data>
 </root>

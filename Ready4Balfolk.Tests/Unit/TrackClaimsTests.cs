@@ -1,4 +1,5 @@
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Tests.Helpers;
@@ -138,12 +139,144 @@ public sealed class TrackClaimsTests
             claim => claim.Field == TrackField.Title && claim.Value == "Bal O'Gadjo - Le badaud");
     }
 
-    private IReadOnlyList<Claim> Collect(TrackEvidence evidence, string? folderDance = null) =>
-        TrackClaims.Collect(evidence, _index, folderDance);
+    [Fact]
+    public void ADeclaredPattern_ClaimsWhatItPicksOut()
+    {
+        var claims = Collect(
+            Evidence("Scottish - Bal O'Gadjo - Le badaud"),
+            Declared(patterns: ["%d - %a - %t"]));
+
+        Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "Scottish" && claim.Trust == ClaimTrust.Declared);
+        Assert.Contains(claims, claim => claim.Field == TrackField.Artist && claim.Value == "Bal O'Gadjo" && claim.Trust == ClaimTrust.Declared);
+        Assert.Contains(claims, claim => claim.Field == TrackField.Title && claim.Value == "Le badaud" && claim.Trust == ClaimTrust.Declared);
+    }
+
+    [Fact]
+    public void OnlyTheFirstPatternToMatch_Speaks()
+    {
+        // Order is the user's way of saying which of two overlapping shapes their library means.
+        var claims = Collect(
+            Evidence("Naragonia - Mazurka"),
+            Declared(patterns: ["%a - %t", "%d - %t"]));
+
+        Assert.Contains(claims, claim => claim.Field == TrackField.Artist && claim.Value == "Naragonia");
+        Assert.DoesNotContain(claims, claim => claim.Trust == ClaimTrust.Declared && claim.Field == TrackField.Dance);
+    }
+
+    [Fact]
+    public void APatternThatDoesNotMatch_ClaimsNothing() =>
+        Assert.DoesNotContain(
+            Collect(Evidence("03-Track 3"), Declared(patterns: ["%d - %a - %t"])),
+            claim => claim.Trust == ClaimTrust.Declared);
+
+    [Fact]
+    public void TheObservedReadingSurvivesADeclaration()
+    {
+        // The tags are not argued with, they are outranked, and they stay on the track so a person
+        // can see that the rule disagreed with them.
+        var claims = Collect(
+            Evidence("Naragonia - Mazurka") with { TagArtist = "Toon Van Mierlo" },
+            Declared(patterns: ["%a - %t"]));
+
+        Assert.Contains(claims, claim => claim.Value == "Toon Van Mierlo" && claim.Trust == ClaimTrust.Observed);
+    }
+
+    [Fact]
+    public void ADeclaredFolderRole_ClaimsTheFolderName()
+    {
+        var claims = Collect(
+            Evidence("01 - Something", segments: ["Naragonia", "Idiosyncrasie"]),
+            Declared(roles: [FolderRole.Artist, FolderRole.Album]));
+
+        var artist = Assert.Single(claims, claim => claim.Field == TrackField.Artist);
+        Assert.Equal("Naragonia", artist.Value);
+        Assert.Equal(ClaimTrust.Declared, artist.Trust);
+        Assert.Equal("level 1", artist.Source.Detail);
+
+        // An album level is worth declaring and there is nothing on a track to claim from it.
+        Assert.DoesNotContain(claims, claim => claim.Value == "Idiosyncrasie");
+    }
+
+    [Fact]
+    public void AFolderRole_IsAppliedOnlyWhereTheDepthIsThere()
+    {
+        // Three levels in one corner of a library and one in another is ordinary.
+        var claims = Collect(Evidence("01 - Something", segments: []), Declared(roles: [FolderRole.Artist]));
+
+        Assert.DoesNotContain(claims, claim => claim.Field == TrackField.Artist);
+    }
+
+    [Fact]
+    public void ADeclaredDanceFolder_IsClaimedWhetherOrNotTheListKnowsIt()
+    {
+        var claims = Collect(Evidence("01 - Something", segments: ["Rond de Landéda"]), Declared(roles: [FolderRole.Dance]));
+
+        Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "Rond de Landéda" && claim.Trust == ClaimTrust.Declared);
+    }
+
+    [Fact]
+    public void ADeclaredTagField_IsReadWhole()
+    {
+        // The difference between trusting a field and finding a name in it: a declared field is the
+        // dance even when the list has never heard of it, which is what parks the track.
+        var claims = Collect(
+            Evidence("01 - Something") with { TagComment = "Rond de Landéda" },
+            Declared(trust: new TagTrust { Dance = [TagField.Comment] }));
+
+        Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "Rond de Landéda" && claim.Trust == ClaimTrust.Declared);
+    }
+
+    [Fact]
+    public void ADeclaredTagOrder_IsADeclaration()
+    {
+        var claims = Collect(
+            Evidence("01 - Something") with { TagArtist = "Naragonia" },
+            Declared(trust: new TagTrust { Artist = [TagField.Artist] }));
+
+        Assert.Contains(claims, claim => claim.Field == TrackField.Artist && claim.Trust == ClaimTrust.Declared);
+    }
+
+    [Fact]
+    public void TheDefaultTagOrder_IsAGuessAndIsClaimedAsOne() =>
+        Assert.All(
+            Collect(Evidence("01 - Something") with { TagArtist = "Naragonia" })
+                .Where(claim => claim.Field == TrackField.Artist),
+            claim => Assert.Equal(ClaimTrust.Observed, claim.Trust));
+
+    [Fact]
+    public void ADeclaredTagList_CanSayThatNothingSpeaks() =>
+        Assert.DoesNotContain(
+            Collect(
+                Evidence("01 - Something") with { TagArtist = "Naragonia" },
+                Declared(trust: new TagTrust { Artist = [] })),
+            claim => claim.Field == TrackField.Artist);
+
+    [Fact]
+    public void ANameFromTheListInATag_NeedsNoDeclaration()
+    {
+        // The vocabulary recognising itself is not a guess about what a field means, so it is not
+        // governed by tag trust. It stays observed, and it stays.
+        var claims = Collect(Evidence("01 - Something") with { TagAlbum = "Mazurka" });
+
+        Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "mazurka");
+    }
+
+    private static DeclaredDiscovery Declared(
+        IReadOnlyList<string>? patterns = null, IReadOnlyList<FolderRole>? roles = null, TagTrust? trust = null) =>
+        DeclaredDiscovery.Compile(new DiscoverySettings
+        {
+            FileNamePatterns = patterns ?? [],
+            FolderRoles = roles ?? [],
+            TagTrust = trust ?? new TagTrust()
+        });
+
+    private IReadOnlyList<Claim> Collect(
+        TrackEvidence evidence, DeclaredDiscovery? declared = null, string? folderDance = null) =>
+        TrackClaims.Collect(evidence, _index, declared, folderDance);
 
     private static TrackEvidence Evidence(string fileName, IReadOnlyList<string>? segments = null) => new()
     {
-        FileNameWithoutExtension = fileName,
+        FileName = fileName + ".mp3",
         PathSegments = segments ?? ["Artist"],
         Duration = TimeSpan.FromSeconds(180),
         Format = AudioFormat.Mp3,

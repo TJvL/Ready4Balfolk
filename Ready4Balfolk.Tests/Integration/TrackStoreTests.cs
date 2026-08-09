@@ -189,7 +189,7 @@ public sealed class TrackStoreTests : IDisposable
 
     private static TrackEvidence EvidenceFor(FileInfo fileInfo) => new()
     {
-        FileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileInfo.Name),
+        FileName = fileInfo.Name,
         PathSegments = ["Artist"],
         Duration = TimeSpan.FromSeconds(180),
         Format = AudioFormat.Mp3,

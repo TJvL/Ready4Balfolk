@@ -831,4 +831,134 @@ public static class UiStrings
 
     public static string Settings_MusicDirectoryChangeHint =>
         ResourceManager.GetString("Settings_MusicDirectoryChangeHint", Culture)!;
+
+    // Advanced discovery
+    public static string Settings_AdvancedDiscovery =>
+        ResourceManager.GetString("Settings_AdvancedDiscovery", Culture)!;
+
+    public static string Settings_AdvancedDiscoveryHint =>
+        ResourceManager.GetString("Settings_AdvancedDiscoveryHint", Culture)!;
+
+    public static string Discovery_Title =>
+        ResourceManager.GetString("Discovery_Title", Culture)!;
+
+    public static string Discovery_Intro =>
+        ResourceManager.GetString("Discovery_Intro", Culture)!;
+
+    public static string Discovery_PatternsHeader =>
+        ResourceManager.GetString("Discovery_PatternsHeader", Culture)!;
+
+    public static string Discovery_PatternsHint =>
+        ResourceManager.GetString("Discovery_PatternsHint", Culture)!;
+
+    public static string Discovery_DraftWatermark =>
+        ResourceManager.GetString("Discovery_DraftWatermark", Culture)!;
+
+    public static string Discovery_Declare =>
+        ResourceManager.GetString("Discovery_Declare", Culture)!;
+
+    public static string Discovery_PatternMatches =>
+        ResourceManager.GetString("Discovery_PatternMatches", Culture)!;
+
+    public static string Discovery_Coverage =>
+        ResourceManager.GetString("Discovery_Coverage", Culture)!;
+
+    public static string Discovery_SamplesHeader =>
+        ResourceManager.GetString("Discovery_SamplesHeader", Culture)!;
+
+    public static string Discovery_MissesHeader =>
+        ResourceManager.GetString("Discovery_MissesHeader", Culture)!;
+
+    public static string Discovery_ShowDetails =>
+        ResourceManager.GetString("Discovery_ShowDetails", Culture)!;
+
+    public static string Discovery_Remove =>
+        ResourceManager.GetString("Discovery_Remove", Culture)!;
+
+    public static string Discovery_MoveUp =>
+        ResourceManager.GetString("Discovery_MoveUp", Culture)!;
+
+    public static string Discovery_MoveDown =>
+        ResourceManager.GetString("Discovery_MoveDown", Culture)!;
+
+    public static string Discovery_ProblemUnknownToken =>
+        ResourceManager.GetString("Discovery_ProblemUnknownToken", Culture)!;
+
+    public static string Discovery_ProblemNoFields =>
+        ResourceManager.GetString("Discovery_ProblemNoFields", Culture)!;
+
+    public static string Discovery_ProblemAdjacentFields =>
+        ResourceManager.GetString("Discovery_ProblemAdjacentFields", Culture)!;
+
+    public static string Discovery_ProblemDuplicateField =>
+        ResourceManager.GetString("Discovery_ProblemDuplicateField", Culture)!;
+
+    public static string Discovery_FoldersHeader =>
+        ResourceManager.GetString("Discovery_FoldersHeader", Culture)!;
+
+    public static string Discovery_FoldersHint =>
+        ResourceManager.GetString("Discovery_FoldersHint", Culture)!;
+
+    public static string Discovery_LevelLabel =>
+        ResourceManager.GetString("Discovery_LevelLabel", Culture)!;
+
+    public static string Discovery_LevelDepth =>
+        ResourceManager.GetString("Discovery_LevelDepth", Culture)!;
+
+    public static string Discovery_LevelValue =>
+        ResourceManager.GetString("Discovery_LevelValue", Culture)!;
+
+    public static string Discovery_TagsHeader =>
+        ResourceManager.GetString("Discovery_TagsHeader", Culture)!;
+
+    public static string Discovery_TagsHint =>
+        ResourceManager.GetString("Discovery_TagsHint", Culture)!;
+
+    public static string Discovery_UseDefault =>
+        ResourceManager.GetString("Discovery_UseDefault", Culture)!;
+
+    public static string Discovery_ApplyRolesAndTags =>
+        ResourceManager.GetString("Discovery_ApplyRolesAndTags", Culture)!;
+
+    public static string Discovery_FieldDance =>
+        ResourceManager.GetString("Discovery_FieldDance", Culture)!;
+
+    public static string Discovery_FieldArtist =>
+        ResourceManager.GetString("Discovery_FieldArtist", Culture)!;
+
+    public static string Discovery_FieldTitle =>
+        ResourceManager.GetString("Discovery_FieldTitle", Culture)!;
+
+    public static string Discovery_TagTitle =>
+        ResourceManager.GetString("Discovery_TagTitle", Culture)!;
+
+    public static string Discovery_TagArtist =>
+        ResourceManager.GetString("Discovery_TagArtist", Culture)!;
+
+    public static string Discovery_TagAlbumArtist =>
+        ResourceManager.GetString("Discovery_TagAlbumArtist", Culture)!;
+
+    public static string Discovery_TagAlbum =>
+        ResourceManager.GetString("Discovery_TagAlbum", Culture)!;
+
+    public static string Discovery_TagComment =>
+        ResourceManager.GetString("Discovery_TagComment", Culture)!;
+
+    public static string Discovery_RoleUnknown =>
+        ResourceManager.GetString("Discovery_RoleUnknown", Culture)!;
+
+    public static string Discovery_RoleArtist =>
+        ResourceManager.GetString("Discovery_RoleArtist", Culture)!;
+
+    public static string Discovery_RoleAlbum =>
+        ResourceManager.GetString("Discovery_RoleAlbum", Culture)!;
+
+    public static string Discovery_RoleDance =>
+        ResourceManager.GetString("Discovery_RoleDance", Culture)!;
+
+    public static string Discovery_RoleIgnore =>
+        ResourceManager.GetString("Discovery_RoleIgnore", Culture)!;
+
+    public static string Discovery_NoLibrary =>
+        ResourceManager.GetString("Discovery_NoLibrary", Culture)!;
 }

@@ -36,7 +36,10 @@ public sealed record ApplicationSettings(
     string WebRemoteControlPin = "",
     // False on a settings file written before the wizard existed, which is the right answer: those
     // profiles have no dance list either, so they get the same first run as a new one.
-    bool SetupCompleted = false)
+    bool SetupCompleted = false,
+    // Null rather than an instance, for the same reason as the equalizer: a constructor default has
+    // to be a compile-time constant. Read it through Discovery, never directly.
+    DiscoverySettings? DiscoveryOrNull = null)
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [])
@@ -53,6 +56,10 @@ public sealed record ApplicationSettings(
     /// <remarks>Below 1024 needs root on Linux, which this app will never have.</remarks>
     [JsonIgnore]
     public int WebServerPortClamped => Math.Clamp(WebServerPort, 1024, 65535);
+
+    /// <summary>What the user has declared about the shape of their library, empty until they do.</summary>
+    [JsonIgnore]
+    public DiscoverySettings Discovery => DiscoveryOrNull ?? DiscoverySettings.Undeclared;
 
     /// <summary>Output equalizer, flat when the settings file predates it.</summary>
     /// <remarks>

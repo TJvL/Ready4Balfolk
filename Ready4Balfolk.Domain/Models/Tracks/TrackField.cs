@@ -1,4 +1,4 @@
-namespace Ready4Balfolk.Domain.Services.Discovery;
+namespace Ready4Balfolk.Domain.Models.Tracks;
 
 /// <summary>A field of a track that something can make a claim about.</summary>
 /// <remarks>

@@ -31,6 +31,7 @@ using Ready4Balfolk.UI.Views.Playback;
 using Ready4Balfolk.UI.Views.Presentation;
 using Ready4Balfolk.UI.Views.Queue;
 using Ready4Balfolk.UI.Views.Settings;
+using Ready4Balfolk.UI.Views.Discovery;
 using Ready4Balfolk.UI.Views.Tagging;
 using Ready4Balfolk.UI.Views.Toolbar;
 using Ready4Balfolk.UI.Views.TrackCatalog;
@@ -209,6 +210,7 @@ public static class Program
         services.AddSingleton<HelpViewModel>();
         services.AddSingleton<DanceListViewModel>();
         services.AddSingleton<TaggingViewModel>();
+        services.AddSingleton<DiscoveryViewModel>();
         services.AddSingleton<Lazy<DanceListViewModel>>(sp => new(sp.GetRequiredService<DanceListViewModel>));
 
         // Setup wizard. Transient: it is built when the wizard opens and thrown away when it
@@ -230,10 +232,12 @@ public static class Program
         services.AddSingleton<Lazy<SettingsViewModel>>(sp => new(sp.GetRequiredService<SettingsViewModel>));
         services.AddSingleton<Lazy<HelpViewModel>>(sp => new(sp.GetRequiredService<HelpViewModel>));
         services.AddSingleton<Lazy<TaggingViewModel>>(sp => new(sp.GetRequiredService<TaggingViewModel>));
+        services.AddSingleton<Lazy<DiscoveryViewModel>>(sp => new(sp.GetRequiredService<DiscoveryViewModel>));
         // View registrations for ViewModelViewHost resolution
         services.AddTransient<IViewFor<SettingsViewModel>, SettingsView>();
         services.AddTransient<IViewFor<HelpViewModel>, HelpView>();
         services.AddTransient<IViewFor<TaggingViewModel>, TaggingView>();
+        services.AddTransient<IViewFor<DiscoveryViewModel>, DiscoveryView>();
 
         services.AddSingleton<PresentationDisplayViewModel>();
 

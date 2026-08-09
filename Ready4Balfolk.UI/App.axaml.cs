@@ -80,6 +80,15 @@ public sealed class App : Application
                     .Subscribe(ApplyTheme));
 
                 var trackStore = Services.GetRequiredService<ITrackStore>();
+
+                // Before the music directory, deliberately. The declarations are what a scan reads
+                // with, and setting them second would scan the whole library once under the old
+                // rules and then immediately again under the new ones.
+                _compositeDisposable.Add(settingsStore.Observe()
+                    .Select(s => s.Discovery)
+                    .DistinctUntilChanged()
+                    .Subscribe(discovery => trackStore.DiscoverySettings = discovery));
+
                 _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.MusicDirectoryPath)
                     .Where(path => !string.IsNullOrWhiteSpace(path))

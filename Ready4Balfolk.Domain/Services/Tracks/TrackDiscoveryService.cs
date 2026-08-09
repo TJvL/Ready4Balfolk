@@ -21,7 +21,7 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
 
             var evidence = new TrackEvidence
             {
-                FileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileInfo.Name),
+                FileName = fileInfo.Name,
                 PathSegments = SegmentsBetween(fileInfo, musicRoot),
                 TagTitle = tag.Title,
                 TagArtist = tag.FirstPerformer,

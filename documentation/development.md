@@ -80,6 +80,18 @@ How each field is then decided:
 
 Claims live only as long as the resolution today. Storing them so a review screen can show where a value came from after a restart is the schema work in step 4.
 
+### Declared settings: the informed greenlight
+
+`DiscoverySettings` is what the user has stated about their library: ordered file name patterns, a role per folder level, and which tag fields speak for which field. Empty by default, and that default is the honest one. `DeclaredDiscovery.Compile` turns it into the compiled form a scan runs with, and everything it yields is claimed at `ClaimTrust.Declared`.
+
+- **A declaration is a bulk approval.** Code can measure that strings agree; only a person can say a rule is right. Once they have, the code stops hedging and powers through — which is the only way 2685 files get answered in an evening rather than never.
+- **So the greenlight has to be informed**, and `DeclarationPreview` is what makes it one: how many files a pattern takes, what it makes of a sample of them, and which ones it leaves. The screen measures a draft against the **leftovers** rather than the whole library, because that is the pile the next rule is actually aimed at.
+- **A pattern is refused rather than half-understood** (`PatternProblem`): two fields with no literal between them, the same field twice, a token that is not a token. A rule that quietly means something other than what it looks like is the opposite of the bargain.
+- **Each field stops at the next literal, and the last one takes the rest**, which is the only reading that makes `%a - %t` mean what a person expects of `Bal O'Gadjo - Le badaud - Live`.
+- **The default tag order is a guess and is claimed as one.** `TagTrust` holds null per field for "the built-in default applies", which stays `Observed`; a list the user filled in is a declaration and is claimed at the top tier. An empty list is a real declaration too: "nothing in the tags speaks for this".
+- **Trusting a tag field is not the same as finding a name in it.** A declared field is read whole and is the dance even when the list has never heard of it, which is what parks the track. Scanning any tag for a name from the list needs no declaration: the vocabulary recognising itself is not a guess about what a field means.
+- **Changing the rules re-reads the library** (`TrackStore.DiscoverySettings`), skipping the size-and-mtime shortcut. What the index holds was derived under the rules that just changed, so it cannot answer instead. `App` sets the declarations *before* the music directory for the same reason: the other order scans everything twice.
+
 On a 2685-file library with BigBalfolkList imported and nothing else configured, this answers the dance for something under half of it, a few hundred of those by folder agreement. Everything else answers with nothing, which is a real answer and the reason the review gate exists: the way that number goes up is a user declaring how their library is arranged, not this code guessing harder.
 
 ### Tagging: one report, grouped by value

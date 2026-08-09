@@ -10,7 +10,14 @@ namespace Ready4Balfolk.Domain.Services.Discovery;
 /// </remarks>
 public sealed record TrackEvidence
 {
-    public required string FileNameWithoutExtension { get; init; }
+    /// <summary>The file's own name, extension and all.</summary>
+    /// <remarks>
+    /// Kept whole because a declared pattern may ask about the extension, and derived rather than
+    /// stored twice so the two can never disagree.
+    /// </remarks>
+    public required string FileName { get; init; }
+
+    public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(FileName);
 
     /// <summary>The folders between the music directory and the file, outermost first.</summary>
     public required IReadOnlyList<string> PathSegments { get; init; }

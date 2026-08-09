@@ -20,6 +20,16 @@ Tracks are discovered automatically from your music directory. There is **no req
 
 Anything not answered this way waits for you rather than being filled in with a guess. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
 
+### Advanced discovery
+
+If your library *does* follow a shape, you can say so: **Settings → Advanced discovery**. What you state there outranks everything the application worked out for itself, because you know your library and it does not.
+
+- **File name patterns.** `%d` dance, `%a` artist, `%t` title, `%n` track number, `%i` ignore, `%ex` extension; anything else has to be there exactly. `%d - %a - %t` reads `Mazurka - Naragonia - Idiosyncrasie.mp3`. A pattern has to match a whole name, and the first pattern in the list that does is the one that answers, so put the most specific first.
+- **Folder levels.** Counted from the outside in. Saying level 1 is the artist reads that folder as the artist for every file deep enough to have one, and says nothing about the files that are not.
+- **Tags.** Which tag fields hold which value. Left alone, artist and album artist are read as the artist, the title tag as the title, and no tag is read as the dance. A dance name from your list is still recognised inside any tag whatever you set here.
+
+**A rule is a bulk approval**, which is the point of it: rather than answering two thousand files one at a time, you agree once to the rule that answers them. So you are shown what it does before you add it, in the numbers that matter — how many files it takes, what it makes of them, and how many would be left. Adding, removing or reordering a rule re-reads your library, because a rule is meant to answer the files already sitting in it.
+
 ### Main Screen Layout
 
 The main screen is divided into two columns:

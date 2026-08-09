@@ -4,6 +4,7 @@ using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.DanceList;
+using Ready4Balfolk.UI.Views.Discovery;
 using Ready4Balfolk.UI.Views.Equalizer;
 using Ready4Balfolk.UI.Views.Help;
 using Ready4Balfolk.UI.Views.History;
@@ -31,6 +32,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject
     [Reactive] public partial SettingsViewModel? Settings { get; set; }
     [Reactive] public partial HelpViewModel? Help { get; set; }
     [Reactive] public partial TaggingViewModel? Tagging { get; set; }
+    [Reactive] public partial DiscoveryViewModel? Discovery { get; set; }
     [Reactive] public partial SetupWizardViewModel? Setup { get; set; }
 
     public MainWindowViewModel(
@@ -45,6 +47,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject
         Lazy<SettingsViewModel> lazySettings,
         Lazy<HelpViewModel> lazyHelp,
         Lazy<TaggingViewModel> lazyTagging,
+        Lazy<DiscoveryViewModel> lazyDiscovery,
         Func<SetupWizardViewModel> setupFactory)
     {
         Navigation = navigation;
@@ -77,6 +80,12 @@ public sealed partial class MainWindowViewModel : ReactiveObject
                     Tagging ??= lazyTagging.Value;
                     // Rebuilt on every visit: the index changes underneath it whenever a scan runs.
                     Tagging.RefreshCommand.Execute().Subscribe();
+                }
+                else if (screen is Screen.Discovery)
+                {
+                    Discovery ??= lazyDiscovery.Value;
+                    // Measured against the library as it is now, for the same reason.
+                    Discovery.RefreshCommand.Execute().Subscribe();
                 }
             });
 

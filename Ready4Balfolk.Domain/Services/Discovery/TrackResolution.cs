@@ -1,3 +1,5 @@
+using Ready4Balfolk.Domain.Models.Tracks;
+
 namespace Ready4Balfolk.Domain.Services.Discovery;
 
 /// <summary>What was decided about a track, from what, and on what grounds.</summary>

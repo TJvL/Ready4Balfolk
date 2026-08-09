@@ -30,6 +30,18 @@
             </StackPanel>
 
             <StackPanel Spacing="8">
+                <TextBlock Text="{x:Static res:UiStrings.Settings_AdvancedDiscovery}" />
+                <TextBlock Text="{x:Static res:UiStrings.Settings_AdvancedDiscoveryHint}"
+                           FontSize="11"
+                           Opacity="0.6"
+                           TextWrapping="Wrap" />
+                <Button Content="{x:Static res:UiStrings.Settings_AdvancedDiscovery}"
+                        Click="OnAdvancedDiscoveryClick"
+                        HorizontalAlignment="Left"
+                        Focusable="False" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:UiStrings.Settings_MaxQueueItems}" />
                 <NumericUpDown Value="{Binding MaxQueueItems, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
                                Minimum="1"
