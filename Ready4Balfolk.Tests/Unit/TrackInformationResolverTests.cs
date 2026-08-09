@@ -88,10 +88,13 @@ public sealed class TrackInformationResolverTests
     {
         var resolution = Resolve(Evidence("05 - Some Tune (Mazurka)") with { TagComment = "Mazurka" });
 
+        var sources = resolution.DanceDecision.Chosen.Select(claim => claim.Source.Kind).ToList();
+
         Assert.Equal("mazurka", resolution.DanceSlug);
         Assert.True(resolution.IsCorroborated);
-        Assert.Contains(DanceEvidenceSource.FileName, resolution.AgreeingSources);
-        Assert.Contains(DanceEvidenceSource.Tags, resolution.AgreeingSources);
+        Assert.Equal(DecisionReason.Corroborated, resolution.DanceDecision.Reason);
+        Assert.Contains(ClaimSourceKind.FileName, sources);
+        Assert.Contains(ClaimSourceKind.Tag, sources);
     }
 
     [Fact]
@@ -278,6 +281,103 @@ public sealed class TrackInformationResolverTests
     public void TwoDancesAndNoBrackets_StillResolvesToNothing() =>
         // "03-ej lasko . mazurka_valse": genuinely both, and a person decides.
         Assert.Null(Resolve(Evidence("03-ej lasko . mazurka_valse")).DanceSlug);
+
+    [Fact]
+    public void ADeclaredValue_ReplacesEverythingObserved()
+    {
+        // The user stating the shape has taken responsibility for it, so the code stops hedging.
+        // The tags are not argued with, they are simply not in the running.
+        var resolution = Decide([
+            Claim(TrackField.Artist, "Unknown Artist", ClaimSource.Tag("artist")),
+            Claim(TrackField.Artist, "Naragonia", ClaimSource.FileName, ClaimTrust.Declared)
+        ]);
+
+        Assert.Equal("Naragonia", resolution.Artist);
+        Assert.Equal(ClaimTrust.Declared, Assert.Single(resolution.ArtistDecision.Chosen).Trust);
+    }
+
+    [Fact]
+    public void ADeclaredValue_IsNotCorroboratedByAWeakerOneAgreeing()
+    {
+        // A tier is not a vote. Two tiers agreeing is one tier deciding, and calling it corroborated
+        // would be a stronger claim than anything actually made.
+        var resolution = Decide([
+            Claim(TrackField.Artist, "Naragonia", ClaimSource.Tag("artist")),
+            Claim(TrackField.Artist, "Naragonia", ClaimSource.FileName, ClaimTrust.Declared)
+        ]);
+
+        Assert.Equal("Naragonia", resolution.Artist);
+        Assert.Equal(DecisionReason.SoleValue, resolution.ArtistDecision.Reason);
+    }
+
+    [Fact]
+    public void NothingSaid_AndNothingUsableSaid_AreDifferentAnswers()
+    {
+        // Both read as blank and they are not the same situation: one file needs a value invented,
+        // the other needs a wrong one thrown away. A review screen has to be able to tell them apart.
+        var silent = Decide([]);
+        var useless = Decide([Claim(TrackField.Artist, "Various Artists", ClaimSource.Tag("artist"))]);
+
+        Assert.Equal(DecisionReason.NoClaim, silent.ArtistDecision.Reason);
+        Assert.Equal(DecisionReason.Unusable, useless.ArtistDecision.Reason);
+    }
+
+    [Fact]
+    public void ADanceTheListDoesNotKnow_IsUnusableRatherThanSilence()
+    {
+        var resolution = Resolve(Evidence("05 - A Tune (Rond de Landéda)"));
+
+        Assert.Equal(DecisionReason.Unusable, resolution.DanceDecision.Reason);
+    }
+
+    [Fact]
+    public void TwoDancesWithNothingToSeparateThem_ReadAsContested()
+    {
+        var resolution = Resolve(Evidence("03-ej lasko . mazurka_valse"));
+
+        Assert.Equal(DecisionReason.Contested, resolution.DanceDecision.Reason);
+    }
+
+    [Fact]
+    public void TheClaimsThatLost_AreStillThere()
+    {
+        // Nothing is discarded silently. A wrong source is only visible next to what it beat.
+        var resolution = Resolve(Evidence("Some Tune (Mazurka)") with { TagComment = "Scottish" });
+
+        Assert.Equal("mazurka", resolution.DanceSlug);
+        Assert.Contains(resolution.ClaimsFor(TrackField.Dance), claim => claim.Value == "scottish");
+    }
+
+    [Fact]
+    public void ARefusedArtist_IsStillOnTheTrack()
+    {
+        var resolution = Resolve(Evidence("01 - Something") with { TagArtist = "Unknown Artist" });
+
+        Assert.Equal(string.Empty, resolution.Artist);
+        Assert.Contains(resolution.ClaimsFor(TrackField.Artist), claim => claim.Value == "Unknown Artist");
+    }
+
+    [Fact]
+    public void TwoSourcesAgreeingOnAnArtist_IsCorroborated()
+    {
+        var resolution = Decide([
+            Claim(TrackField.Artist, "Naragonia", ClaimSource.Tag("album artist")),
+            Claim(TrackField.Artist, "naragonia", ClaimSource.FileName)
+        ]);
+
+        Assert.Equal(DecisionReason.Corroborated, resolution.ArtistDecision.Reason);
+    }
+
+    private static Claim Claim(
+        TrackField field, string value, ClaimSource source, ClaimTrust trust = ClaimTrust.Observed) => new()
+        {
+            Field = field,
+            Value = value,
+            Source = source,
+            Trust = trust
+        };
+
+    private TrackResolution Decide(IReadOnlyList<Claim> claims) => TrackInformationResolver.Decide(claims, _index);
 
     private TrackResolution Resolve(TrackEvidence evidence, string? folderDance = null)
         => TrackInformationResolver.Resolve(evidence, _index, folderDance);

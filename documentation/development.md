@@ -54,19 +54,31 @@ Impl:       XxxStore   →  BehaviorSubject<T> + SemaphoreSlim + JSON file I/O
 
 The `TrackStore` is different: it uses a DynamicData `SourceList<Track>` instead of `BehaviorSubject`, exposes `Connect()` for reactive collection binding, integrates a `FileSystemWatcher` for live directory monitoring, and uses `Task.WhenEach()` for streaming track discovery.
 
-### Discovery: candidates and corroboration
+### Discovery: claims and corroboration
 
-`Services/Discovery/` decides what a track is. **Gathering and deciding are separate**: `TrackDiscoveryService.Gather` opens the file, `TrackInformationResolver.Resolve` is a pure function of that evidence plus the dance list, so it re-runs when the list changes and is tested without a file existing.
+`Services/Discovery/` decides what a track is, in three steps that are deliberately separable: `TrackDiscoveryService.Gather` opens the file, `TrackClaims.Collect` asks everything that can speak about it what it says, and `TrackInformationResolver.Decide` answers each field from those claims plus the dance list. Only the first touches a disk, so the other two re-run whenever the list or the settings change and are tested without a file existing.
+
+**Everything is a claim: a field, a value, a source, and a trust.** One currency for all of it, and the whole of `Claim`.
+
+- **Claims are raw.** A dance claim carries the text somebody wrote, not a slug — turning text into a dance is the list's job, and a claim the list does not recognise is still a claim. That unrecognised value is exactly what parks a track in review and what 21 identical misspellings group by.
+- **Nothing is discarded silently.** Losing claims, and values refused as ripper placeholders, stay on the resolution. A wrong source is only visible next to what it beat, and "the artist tag says Unknown Artist" is a different thing to look at than "there is no artist tag".
+- **Three tiers, and the top one that spoke is the only one considered** (`ClaimTrust`): `Declared` (a discovery setting the user filled in), `Measured` (calibration over the library's own strings), `Observed` (this file's tags and name). A tier is not a vote to be weighed — a user who declares a rule has taken responsibility for it, so a declaration replaces the tags rather than arguing with them, and is not "corroborated" by a weaker source agreeing. Only `Observed` is produced today; the tiers above it arrive with declared settings and calibration.
+- **`DecisionReason` keeps the several meanings of a blank apart** — `NoClaim`, `Unusable`, `Contested` are three different situations, and the review screen has to tell a person which one it is looking at.
+- **Independence is per `ClaimSourceKind`**, not per claim: the title tag and the comment tag are one kind between them, because the same ripper wrote both in the same pass and a dance appearing in both proves nothing.
 
 **The library root is a black box.** Nothing about its shape may be assumed: not that the first folder is an artist, not that the deepest one is an album, not that a file name has fields in it, not that there are folders at all. A real library puts the dance in brackets (`10. Hep Harz (Cercle)`), after a trailing dash (`11-La Violette - valse 5tps`), or nowhere at all, and the `Dance - Artist - Title` split this code used to apply produced a dance column of track numbers and band names.
 
-- **Every source offers a candidate**, and `DanceEvidenceSource` values must be genuinely independent, because agreement between two of them is what makes an answer trustworthy: `FileName`, `Tags`, `Folder`.
-- **Two independent sources agreeing wins.** One source alone still resolves but is not corroborated. Two dances with nothing to separate them resolve to **nothing** — inventing a confident answer is the failure the feature exists to prevent.
-- **Brackets break a tie**, and nothing else does. A dance in brackets is something a person wrote on purpose, whereas a dance-shaped word in a sentence is an accident of language. Where the brackets say nothing either, the answer is nothing.
-- **Folder agreement fills gaps only.** It is added as a candidate *only when the file itself named nothing*, so a folder of mazurkas with one scottish in it keeps the scottish. The folder is a grouping and no more: `TrackEvidence.FolderKey` claims nothing about it being an album.
+How each field is then decided:
+
+- **The dance is decided by agreement**, because it is the one field with a real vocabulary behind it. Two independent kinds agreeing wins; one kind alone still answers when nothing contradicts it; two dances with nothing to separate them answer **nothing**, because inventing a confident answer is the failure the feature exists to prevent.
+- **Artist and title are decided in order**, because nothing can check them. An album artist and a performer disagreeing is ordinary rather than a contest, so the first usable claim answers and the order the collector emits them in *is* the trust order (album artist before artist, title tag before file name). Step 3 makes that order declarable.
+- **Brackets break a dance tie**, and nothing else does. `ClaimSource.IsDeliberate` says somebody wrote this as a statement about the track; a dance-shaped word in a sentence is an accident of language. Where the brackets say nothing either, the answer is nothing.
+- **Folder agreement fills gaps only.** A `Folder` claim is dropped the moment any other kind resolves, so a folder of mazurkas with one scottish in it keeps the scottish, and it never corroborates: it is computed from sibling file names, so counting it as a second source is counting one source twice. The folder is a grouping and no more — `TrackEvidence.FolderKey` claims nothing about it being an album.
 - **Matching is on whole words** (`DanceNameScanner`), longest name first: "Bourrée 3 temps" beats the "Bourrée" inside it, and "Andro" must not match inside "Androgyne".
 - **Genre is not evidence.** Measured on the reference library, of 400 resolved tracks only 69 carry a genre at all and the whole set of values is `Music`, `Folk`, `Balfolk`, `Breton`; across ~530 files a genre supplied a dance name once. It is not read at all.
 - **The artist comes from tags, the title from the title tag or the whole file name.** Neither is taken from a path segment or a file name field, because which level or field means what is exactly what an unconfigured library cannot say. `ArtistNames` still blocks ripper placeholders (`Unknown Artist`, `Various Artists`, digits-only) — dances are a closed set the dance list defines and get a whitelist, artists are open and get a blocklist.
+
+Claims live only as long as the resolution today. Storing them so a review screen can show where a value came from after a restart is the schema work in step 4.
 
 On a 2685-file library with BigBalfolkList imported and nothing else configured, this answers the dance for something under half of it, a few hundred of those by folder agreement. Everything else answers with nothing, which is a real answer and the reason the review gate exists: the way that number goes up is a user declaring how their library is arranged, not this code guessing harder.
 
