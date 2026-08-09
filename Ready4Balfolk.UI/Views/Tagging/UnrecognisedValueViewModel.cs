@@ -91,7 +91,7 @@ public sealed partial class UnrecognisedValueViewModel(UnrecognisedValue value) 
     [Reactive] public partial bool IsExpanded { get; set; }
 }
 
-/// <summary>The tracks of one value that sit in a single album folder.</summary>
+/// <summary>The tracks of one value that sit in a single folder.</summary>
 public sealed partial class FolderGroupViewModel(FolderBreakdown breakdown) : DecidableRow
 {
     public FolderBreakdown Breakdown { get; } = breakdown;

@@ -9,7 +9,8 @@ public interface ITrackDiscoveryService
     /// </summary>
     /// <param name="fileInfo">The audio file.</param>
     /// <param name="musicRoot">
-    /// The music directory, so the folders in between can be read as artist and album.
+    /// The music directory, so the folders in between can be recorded. What those folders mean, if
+    /// anything, is not decided here.
     /// </param>
     TrackEvidence Gather(FileInfo fileInfo, DirectoryInfo musicRoot);
 }

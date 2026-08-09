@@ -27,7 +27,6 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
                 TagArtist = tag.FirstPerformer,
                 TagAlbumArtist = tag.FirstAlbumArtist,
                 TagAlbum = tag.Album,
-                TagGenre = tag.FirstGenre,
                 TagComment = tag.Comment,
                 Duration = file.Properties.Duration,
                 Format = format,

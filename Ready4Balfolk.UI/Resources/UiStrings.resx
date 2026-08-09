@@ -853,16 +853,16 @@
     <value>This looks like one dance spelled differently, so one answer settles every track.</value>
   </data>
   <data name="Tagging_TooGeneralExplanation" xml:space="preserve">
-    <value>This fits several dances, so answering it once would invent an answer for every track. Look at the albums instead: one that mostly reads as a single dance can speak for the rest of itself.</value>
+    <value>This fits several dances, so answering it once would invent an answer for every track. Look at the folders instead: one that mostly reads as a single dance can speak for the rest of itself.</value>
   </data>
   <data name="Tagging_NothingLooksLikeIt" xml:space="preserve">
     <value>Nothing in your dance list is near this. It may be a band, a genre, or a dance you have not added yet.</value>
   </data>
   <data name="Tagging_FolderAgrees" xml:space="preserve">
-    <value>{0} waiting here. The rest of this album reads as {1} ({2} tracks).</value>
+    <value>{0} waiting here. The rest of this folder reads as {1} ({2} tracks).</value>
   </data>
   <data name="Tagging_FolderSaysNothing" xml:space="preserve">
-    <value>{0} waiting here, and the rest of the album says nothing either.</value>
+    <value>{0} waiting here, and the rest of the folder says nothing either.</value>
   </data>
   <data name="Tagging_BucketSuggestions" xml:space="preserve">
     <value>One answer each</value>

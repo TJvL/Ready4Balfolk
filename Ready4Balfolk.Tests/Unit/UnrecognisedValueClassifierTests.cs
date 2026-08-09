@@ -74,9 +74,9 @@ public sealed class UnrecognisedValueClassifierTests
     }
 
     [Fact]
-    public void AGenre_IsUnknown()
+    public void AWordThatIsNotADance_IsUnknown()
     {
-        // "Folk" appears on 205 files in a real library and is not a dance. One ignore settles it.
+        // Somebody writes "(Folk)" after a title and means nothing by it. One ignore settles it.
         var (kind, _) = UnrecognisedValueClassifier.Classify("Folk", _index);
 
         Assert.Equal(UnrecognisedKind.Unknown, kind);

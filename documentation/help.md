@@ -10,15 +10,15 @@ Ready4Balfolk is a music queue management application designed for balfolk dance
 
 Before using Ready4Balfolk, you need to configure a music directory. Go to **Settings** and browse to the folder containing your music files.
 
-### File Naming Convention
+### How your files are read
 
-Tracks are discovered automatically from your music directory. Files should follow this naming pattern:
+Tracks are discovered automatically from your music directory. There is **no required naming convention**, and nothing is assumed about how your library is arranged: loose files in one folder and a five-deep tree are both ordinary.
 
-**Dance - Artist - Title.ext**
+- **The dance** is recognised when a name from your dance list appears in the file name or in the tags, wherever it sits: `10. Hep Harz (Cercle).mp3`, `11-La Violette - valse 5tps.mp3`, or a dance written into the tags. Two sources agreeing is what makes an answer trustworthy, and when a file names two dances with nothing to separate them, nothing is assumed.
+- **The artist** comes from the artist tags. A folder name is not read as an artist: the same level is an artist in one library and a country in the next.
+- **The title** comes from the title tag, falling back to the file name with any leading track number taken off.
 
-For example: `Mazurka - Duo Absynthe - La Java Bleue.mp3`
-
-The application splits the file name on dashes to extract the dance name, artist, and title. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
+Anything not answered this way waits for you rather than being filled in with a guess. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
 
 ### Main Screen Layout
 

@@ -58,16 +58,17 @@ The `TrackStore` is different: it uses a DynamicData `SourceList<Track>` instead
 
 `Services/Discovery/` decides what a track is. **Gathering and deciding are separate**: `TrackDiscoveryService.Gather` opens the file, `TrackInformationResolver.Resolve` is a pure function of that evidence plus the dance list, so it re-runs when the list changes and is tested without a file existing.
 
-There is **no naming convention**. A real library puts the dance in brackets (`10. Hep Harz (Cercle)`), after a trailing dash (`11-La Violette - valse 5tps`), or nowhere at all, and the old `Dance - Artist - Title` split produced a dance column of track numbers and band names.
+**The library root is a black box.** Nothing about its shape may be assumed: not that the first folder is an artist, not that the deepest one is an album, not that a file name has fields in it, not that there are folders at all. A real library puts the dance in brackets (`10. Hep Harz (Cercle)`), after a trailing dash (`11-La Violette - valse 5tps`), or nowhere at all, and the `Dance - Artist - Title` split this code used to apply produced a dance column of track numbers and band names.
 
 - **Every source offers a candidate**, and `DanceEvidenceSource` values must be genuinely independent, because agreement between two of them is what makes an answer trustworthy: `FileName`, `Tags`, `Folder`.
 - **Two independent sources agreeing wins.** One source alone still resolves but is not corroborated. Two dances with nothing to separate them resolve to **nothing** — inventing a confident answer is the failure the feature exists to prevent.
-- **The filename pattern is only a tiebreaker**, used to choose between dances the evidence already offered. It is deliberately not a source: it reads the same string the filename scan does, so agreeing with it proves nothing.
-- **Folder agreement fills gaps only.** It is added as a candidate *only when the file itself named nothing*, so an album of mazurkas with one scottish on it keeps the scottish.
+- **Brackets break a tie**, and nothing else does. A dance in brackets is something a person wrote on purpose, whereas a dance-shaped word in a sentence is an accident of language. Where the brackets say nothing either, the answer is nothing.
+- **Folder agreement fills gaps only.** It is added as a candidate *only when the file itself named nothing*, so a folder of mazurkas with one scottish in it keeps the scottish. The folder is a grouping and no more: `TrackEvidence.FolderKey` claims nothing about it being an album.
 - **Matching is on whole words** (`DanceNameScanner`), longest name first: "Bourrée 3 temps" beats the "Bourrée" inside it, and "Andro" must not match inside "Androgyne".
-- **Dances get a whitelist, artists get a blocklist** (`ArtistNames`). Dances are a closed set that the dance list defines; artists are open, so the defence is against ripper placeholders (`Unknown Artist`, `Various Artists`, digits-only). The artist folder beats a tag, because filing an album under a folder is something the user did on purpose.
+- **Genre is not evidence.** Measured on the reference library, of 400 resolved tracks only 69 carry a genre at all and the whole set of values is `Music`, `Folk`, `Balfolk`, `Breton`; across ~530 files a genre supplied a dance name once. It is not read at all.
+- **The artist comes from tags, the title from the title tag or the whole file name.** Neither is taken from a path segment or a file name field, because which level or field means what is exactly what an unconfigured library cannot say. `ArtistNames` still blocks ripper placeholders (`Unknown Artist`, `Various Artists`, digits-only) — dances are a closed set the dance list defines and get a whitelist, artists are open and get a blocklist.
 
-Measured on a 2685-file library with BigBalfolkList imported and nothing else configured: 45% resolved, 269 of those rescued by folder agreement. The rest carry the value the file claimed, which is what the tagging editor groups by.
+On a 2685-file library with BigBalfolkList imported and nothing else configured, this answers the dance for something under half of it, a few hundred of those by folder agreement. Everything else answers with nothing, which is a real answer and the reason the review gate exists: the way that number goes up is a user declaring how their library is arranged, not this code guessing harder.
 
 ### Tagging: one report, grouped by value
 
@@ -77,11 +78,11 @@ Measured on a 2685-file library with BigBalfolkList imported and nothing else co
 
 - **Misspelled** — close to exactly one name, or sitting inside exactly one. One decision settles every track.
 - **Too general** — sits inside several names. `CanMapAsAWhole` is false and the view renders **no map control at all**, not a disabled one: mapping "Bourrée" across 50 tracks would invent 50 confident answers. It offers the album-folder breakdown instead, because a folder where 8 of 11 tracks already read "Bourrée 3 temps" answers for the other three. A value equally near two dances is treated the same way.
-- **Unknown** — nothing is near it. A band, a genre, or a dance not added yet.
+- **Unknown** — nothing is near it. A band, a stray word somebody bracketed, or a dance not added yet.
 
 Other things that are load-bearing:
 
-- **Ignore is first class**, stored in an `ignored_values` table. Without it the badge sits at 137 forever, because a real library is full of genre tags: `Folk` alone accounts for 205 files.
+- **Ignore is first class**, stored in an `ignored_values` table. Without it the badge never reaches zero, because a real library is full of bracketed asides that are not dances and never will be.
 - **Suggestions rank by what the library already resolved to**, not alphabetically, so the dance this user actually plays is first.
 - **Mapping a value assigns the tracks and nothing else.** The dance list is BigBalfolkList's and the application does not write to it, so a spelling worth having belongs in a proposal there rather than in one person's copy. Files already answered stay answered, because the answer lives in the library index; a new file spelled the same way asks again.
 - **The report is built from the index**, so it is identical whether the scan just ran or the application restarted, and the toolbar count is a query.

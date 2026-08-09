@@ -8,9 +8,10 @@ namespace Ready4Balfolk.Domain.Services.Discovery;
 /// <remarks>
 /// <para>
 /// Every source offers a candidate and none of them is trusted by position. Two independent sources
-/// agreeing wins; a single source is accepted only when nothing contradicts it; and the old
-/// <c>Dance - Artist - Title</c> pattern is a tiebreaker rather than the mechanism, because in a
-/// real library that first field is as often a track number or a band name as a dance.
+/// agreeing wins, and a single source is accepted only when nothing contradicts it. Nothing here
+/// assumes a shape: not that a folder is an artist, not that a file name has fields in it. A library
+/// root is whatever somebody's disk happens to contain, and a rule for reading one is something the
+/// user declares rather than something this code guesses.
 /// </para>
 /// <para>
 /// Answering with nothing is a legitimate outcome, and a much better one than answering with
@@ -25,18 +26,20 @@ public static partial class TrackInformationResolver
     /// <param name="evidence">What the file offered.</param>
     /// <param name="index">The user's dance list.</param>
     /// <param name="folderDance">
-    /// What the rest of the album folder turned out to be, when it agreed on one dance. Used only to
-    /// fill a gap: it never overrules a dance the file itself named.
+    /// What the rest of the folder turned out to be, when it agreed on one dance. Used only to fill
+    /// a gap: it never overrules a dance the file itself named.
     /// </param>
     public static TrackResolution Resolve(TrackEvidence evidence, DanceListIndex index, string? folderDance = null)
     {
         var fileNameMatches = DanceNameScanner.Scan(evidence.FileNameWithoutExtension, index);
 
         // Tags are scanned as one body of text: which field a dance was written into varies by
-        // ripper, and none of them is more authoritative than another.
+        // ripper, and none of them is more authoritative than another. Genre is not among them.
+        // Measured on the reference library, a genre supplied a dance name once in 530 files, and
+        // what it supplied the rest of the time was "Folk".
         var tagText = string.Join(
             " | ",
-            new[] { evidence.TagTitle, evidence.TagGenre, evidence.TagAlbum, evidence.TagComment }
+            new[] { evidence.TagTitle, evidence.TagAlbum, evidence.TagComment }
                 .Where(value => !string.IsNullOrWhiteSpace(value)));
         var tagMatches = DanceNameScanner.Scan(tagText, index);
 
@@ -52,7 +55,7 @@ public static partial class TrackInformationResolver
             candidates.Add(new DanceCandidate(folderDance, DanceEvidenceSource.Folder, folderDance));
         }
 
-        var (slug, agreeing) = Decide(candidates, evidence, index);
+        var (slug, agreeing) = Decide(candidates, evidence);
 
         return new TrackResolution
         {
@@ -65,7 +68,7 @@ public static partial class TrackInformationResolver
     }
 
     private static (string? Slug, IReadOnlyList<DanceEvidenceSource> Agreeing) Decide(
-        List<DanceCandidate> candidates, TrackEvidence evidence, DanceListIndex index)
+        List<DanceCandidate> candidates, TrackEvidence evidence)
     {
         if (candidates.Count == 0)
         {
@@ -89,26 +92,21 @@ public static partial class TrackInformationResolver
         {
             // Two dances both corroborated: the file genuinely says two things, so fall to the
             // tiebreaker rather than picking the first.
-            return TieBreak(corroborated, candidates, evidence, index);
+            return TieBreak(corroborated, candidates, evidence);
         }
 
         return bySlug.Count == 1
             ? (bySlug[0].Slug, bySlug[0].Sources)
-            : TieBreak(bySlug, candidates, evidence, index);
+            : TieBreak(bySlug, candidates, evidence);
     }
 
     /// <summary>
-    /// Breaks a tie with the old naming convention: whatever sits before the first " - ".
+    /// Chooses between dances the evidence already offered, or says nothing.
     /// </summary>
-    /// <remarks>
-    /// Only ever used to choose between dances the evidence already offered. Believing this field on
-    /// its own is what produced a dance column full of track numbers and band names.
-    /// </remarks>
     private static (string? Slug, IReadOnlyList<DanceEvidenceSource> Agreeing) TieBreak(
         List<(string Slug, List<DanceEvidenceSource> Sources)> contenders,
         List<DanceCandidate> candidates,
-        TrackEvidence evidence,
-        DanceListIndex index)
+        TrackEvidence evidence)
     {
         // Brackets first. A dance written in brackets is a deliberate statement about the track,
         // whereas an ordinary word in a title is an accident of language: "Tour" is a real dance,
@@ -128,17 +126,6 @@ public static partial class TrackInformationResolver
             }
         }
 
-        var leading = evidence.FileNameWithoutExtension.Split(" - ", 2);
-        if (leading.Length == 2 && index.ResolveSlug(leading[0]) is { } fromPattern)
-        {
-            var (slug, sources) = contenders.FirstOrDefault(entry =>
-                string.Equals(entry.Slug, fromPattern, StringComparison.Ordinal));
-            if (slug is not null)
-            {
-                return (slug, sources);
-            }
-        }
-
         // Nothing to separate them, so say nothing. A person decides in the tagging editor.
         return (null, []);
     }
@@ -147,9 +134,11 @@ public static partial class TrackInformationResolver
     /// The dance-shaped text the file offered, recognised or not.
     /// </summary>
     /// <remarks>
-    /// When a name from the list was found, that is what the file said. When none was, the leading
-    /// field of the old pattern is the best guess at what the file was trying to say, and it is
-    /// exactly the value the tagging editor needs to group 21 identical mistakes into one decision.
+    /// When a name from the list was found, that is what the file said. When none was, a value
+    /// somebody wrote in brackets is a deliberate statement about the track, and it is exactly what
+    /// the tagging editor needs to group 21 identical mistakes into one decision. A field of the
+    /// file name is not: whatever sits before the first " - " is as often a band or a track number
+    /// as a dance, and reading it as one is how the dance column filled with band names.
     /// </remarks>
     private static string? DescribeOriginalDance(
         TrackEvidence evidence, IReadOnlyList<(string Slug, string MatchedName)> fileNameMatches, DanceListIndex index)
@@ -169,54 +158,34 @@ public static partial class TrackInformationResolver
             }
         }
 
-        var parts = evidence.FileNameWithoutExtension.Split(" - ");
-        if (parts.Length >= 3)
-        {
-            var leading = StripTrackNumber(parts[0]).Trim();
-            if (leading.Length > 0)
-            {
-                return leading;
-            }
-        }
-
-        return string.IsNullOrWhiteSpace(evidence.TagGenre) ? null : evidence.TagGenre.Trim();
+        return null;
     }
 
-    /// <summary>
-    /// The artist, preferring the folder the file sits in.
-    /// </summary>
+    /// <summary>The artist, from the tags and nothing else.</summary>
     /// <remarks>
-    /// The library is arranged as <c>Artist/Album/track</c>, so the outermost folder is a statement
-    /// the user made by filing the album there, and it is more reliable than a tag a ripper guessed.
+    /// Where a file sits says nothing on its own. The outermost folder is an artist in one library,
+    /// a country in the next and a year in a third, so until the user declares what a level means,
+    /// the only claim about the artist is a tag written into an artist field.
     /// </remarks>
-    private static string ResolveArtist(TrackEvidence evidence)
-    {
-        var fromPath = evidence.PathSegments.Count > 0 ? evidence.PathSegments[0] : null;
+    private static string ResolveArtist(TrackEvidence evidence) =>
+        ArtistNames.FirstUsable(evidence.TagAlbumArtist, evidence.TagArtist) ?? string.Empty;
 
-        var fromFileName = evidence.FileNameWithoutExtension.Split(" - ") is { Length: >= 3 } parts
-            ? parts[1]
-            : null;
-
-        return ArtistNames.FirstUsable(
-            fromPath,
-            evidence.TagAlbumArtist,
-            evidence.TagArtist,
-            fromFileName) ?? string.Empty;
-    }
-
-    /// <summary>The title, with the track number and any dance in brackets taken off it.</summary>
+    /// <summary>The title, from the title tag, falling back to the whole file name.</summary>
+    /// <remarks>
+    /// The file name is taken whole, because which of its fields is the title is exactly what no
+    /// unconfigured library can be assumed to say. Only a leading track number comes off, since a
+    /// number is not a name in any arrangement.
+    /// </remarks>
     private static string ResolveTitle(TrackEvidence evidence)
     {
-        var parts = evidence.FileNameWithoutExtension.Split(" - ");
-        var raw = parts.Length >= 3
-            ? string.Join(" - ", parts.Skip(2))
-            : evidence.FileNameWithoutExtension;
+        if (ArtistNames.FirstUsable(evidence.TagTitle) is { } tagged)
+        {
+            return tagged;
+        }
 
-        var cleaned = StripTrackNumber(raw).Trim();
+        var cleaned = StripTrackNumber(evidence.FileNameWithoutExtension).Trim();
 
-        return cleaned.Length > 0
-            ? cleaned
-            : ArtistNames.FirstUsable(evidence.TagTitle) ?? evidence.FileNameWithoutExtension;
+        return cleaned.Length > 0 ? cleaned : evidence.FileNameWithoutExtension;
     }
 
     /// <summary>Removes a leading "07", "07.", "07-", "07 - " and the like.</summary>

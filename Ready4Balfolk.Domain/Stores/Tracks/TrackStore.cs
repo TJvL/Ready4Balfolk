@@ -32,8 +32,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
     // cleared them.
     private readonly SemaphoreSlim _loadGate = new(1, 1);
     private CancellationTokenSource? _loadCts;
-    // The root the watcher's files are under, so a file it notices can still be read as
-    // Artist/Album/track.
+    // The root the watcher's files are under, so a file it notices can still be placed relative to
+    // it.
     private DirectoryInfo? _musicRoot;
     private FileSystemWatcher? _watcher;
     private bool _disposed;
@@ -252,7 +252,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             }, cancellationToken);
 
             // Folder agreement runs once the folders are complete, because "what the rest of this
-            // album turned out to be" is not knowable while the album is still being read.
+            // folder turned out to be" is not knowable while the folder is still being read.
             // Anything the last batch left behind.
             while (scanned.TryTake(out var remaining))
             {
@@ -301,7 +301,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private int ApplyFolderAgreement(IReadOnlyCollection<ScannedFile> scanned)
     {
         var byFolder = scanned
-            .GroupBy(file => file.Evidence.AlbumFolderKey ?? string.Empty, StringComparer.Ordinal)
+            .GroupBy(file => file.Evidence.FolderKey ?? string.Empty, StringComparer.Ordinal)
             .ToList();
 
         var rescued = 0;
@@ -412,12 +412,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
         };
 
     /// <summary>
-    /// Gives a track the dance the rest of its album folder turned out to be.
+    /// Gives a track the dance the rest of its folder turned out to be.
     /// </summary>
     /// <remarks>
-    /// Only ever fills a gap. A folder in which most tracks resolved to one dance is real evidence
-    /// about the ones that did not, and it is the cheapest way to rescue an album whose filenames
-    /// name the dance once and then stop.
+    /// Only ever fills a gap. A folder in which every resolved track reads as one dance is real
+    /// evidence about the ones that did not, whatever that folder happens to be, and it is the
+    /// cheapest way to rescue a run of files that name the dance once and then stop.
     /// </remarks>
     private static string? AgreedFolderDance(IReadOnlyCollection<ScannedFile> siblings)
     {

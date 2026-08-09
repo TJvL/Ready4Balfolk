@@ -778,16 +778,16 @@
     <value>Dit lijkt een dans die anders gespeld is, dus een antwoord regelt alle nummers.</value>
   </data>
   <data name="Tagging_TooGeneralExplanation" xml:space="preserve">
-    <value>Dit past bij meerdere dansen, dus het in een keer beantwoorden zou voor elk nummer een antwoord verzinnen. Kijk in plaats daarvan naar de albums: een album dat grotendeels een bepaalde dans is, kan voor de rest van zichzelf spreken.</value>
+    <value>Dit past bij meerdere dansen, dus het in een keer beantwoorden zou voor elk nummer een antwoord verzinnen. Kijk in plaats daarvan naar de mappen: een map die grotendeels een bepaalde dans is, kan voor de rest van zichzelf spreken.</value>
   </data>
   <data name="Tagging_NothingLooksLikeIt" xml:space="preserve">
     <value>Niets in je danslijst lijkt hierop. Het kan een band zijn, een genre, of een dans die je nog niet toegevoegd hebt.</value>
   </data>
   <data name="Tagging_FolderAgrees" xml:space="preserve">
-    <value>{0} wachten hier. De rest van dit album leest als {1} ({2} nummers).</value>
+    <value>{0} wachten hier. De rest van deze map leest als {1} ({2} nummers).</value>
   </data>
   <data name="Tagging_FolderSaysNothing" xml:space="preserve">
-    <value>{0} wachten hier, en de rest van het album zegt ook niets.</value>
+    <value>{0} wachten hier, en de rest van de map zegt ook niets.</value>
   </data>
   <data name="Tagging_BucketSuggestions" xml:space="preserve">
     <value>Een antwoord elk</value>

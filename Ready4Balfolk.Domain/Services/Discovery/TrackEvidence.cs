@@ -23,8 +23,6 @@ public sealed record TrackEvidence
 
     public string? TagAlbum { get; init; }
 
-    public string? TagGenre { get; init; }
-
     public string? TagComment { get; init; }
 
     public required TimeSpan Duration { get; init; }
@@ -33,6 +31,12 @@ public sealed record TrackEvidence
 
     public required byte[] ContentHash { get; init; }
 
-    /// <summary>The album folder, which is what "the rest of this album" is decided over.</summary>
-    public string? AlbumFolderKey => PathSegments.Count == 0 ? null : string.Join('/', PathSegments);
+    /// <summary>
+    /// The folder the file sits in, which is what "the rest of these files" is decided over.
+    /// </summary>
+    /// <remarks>
+    /// A grouping and nothing more. Whether that folder is an album, a compilation, a year or a
+    /// dance is not something the path can say, so nothing here claims it.
+    /// </remarks>
+    public string? FolderKey => PathSegments.Count == 0 ? null : string.Join('/', PathSegments);
 }

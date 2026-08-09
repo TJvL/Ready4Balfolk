@@ -19,7 +19,7 @@ public sealed record UnrecognisedValue
     public IReadOnlyList<DanceSuggestion> Suggestions { get; init; } = [];
 
     /// <summary>
-    /// The album folders these tracks sit in, with what each folder already resolved to.
+    /// The folders these tracks sit in, with what each folder already resolved to.
     /// </summary>
     /// <remarks>
     /// This is where the remaining evidence is for a value that is too general: a folder in which
@@ -39,7 +39,7 @@ public sealed record UnrecognisedValue
     public bool CanMapAsAWhole => Kind is not (UnrecognisedKind.TooGeneral or UnrecognisedKind.Ambiguous);
 }
 
-/// <summary>One album folder holding tracks with an unrecognised value.</summary>
+/// <summary>One folder holding tracks with an unrecognised value.</summary>
 /// <param name="FolderKey">The folder, relative to the music directory.</param>
 /// <param name="Paths">The unresolved tracks in it.</param>
 /// <param name="Suggestions">

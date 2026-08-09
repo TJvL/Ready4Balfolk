@@ -16,7 +16,7 @@ public enum UnrecognisedKind
     /// <summary>
     /// Sits inside several names in the list. "Bourrée" across 50 tracks is some 2 temps, some
     /// 3 temps and some Auvergnate, so mapping the value would invent 50 confident answers. It gets
-    /// no map at all, and is split by album folder instead.
+    /// no map at all, and is split by folder instead.
     /// </summary>
     TooGeneral,
 
