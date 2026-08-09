@@ -10,6 +10,7 @@
         xmlns:history="using:Ready4Balfolk.UI.Views.History"
         xmlns:trackCatalog="using:Ready4Balfolk.UI.Views.TrackCatalog"
         xmlns:danceList="using:Ready4Balfolk.UI.Views.DanceList"
+        xmlns:wizard="using:Ready4Balfolk.UI.Views.Wizard"
         xmlns:notifications="using:Ready4Balfolk.UI.Views.Notifications"
         xmlns:rxui="http://reactiveui.net"
         xmlns:res="using:Ready4Balfolk.UI.Resources"
@@ -97,6 +98,23 @@
             </StackPanel>
             <rxui:ViewModelViewHost ViewModel="{Binding Help}" />
         </DockPanel>
+
+        <!-- Tagging Screen -->
+        <DockPanel IsVisible="{Binding Navigation.IsTaggingScreen}"
+                   Margin="16">
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
+                <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
+                    <controls:ButtonContent Icon="{StaticResource IconArrowLeft}" Text="{x:Static res:UiStrings.MainWindow_BackLabel}" IconSize="16" />
+                </Button>
+                <TextBlock Text="{x:Static res:UiStrings.Tagging_Title}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
+            </StackPanel>
+            <rxui:ViewModelViewHost ViewModel="{Binding Tagging}" />
+        </DockPanel>
+
+        <!-- Setup: the whole window, because its steps are full screens in their own right -->
+        <Panel IsVisible="{Binding Navigation.IsSetupScreen}">
+            <rxui:ViewModelViewHost ViewModel="{Binding Setup}" />
+        </Panel>
 
         <!-- Notification Overlay -->
         <notifications:NotificationOverlayView />

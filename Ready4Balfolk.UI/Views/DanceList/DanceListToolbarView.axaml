@@ -20,18 +20,23 @@
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
-        <!-- What a random pick is scoped to, said out loud: the dice on a row is easy to hit by
-             accident and impossible to notice afterwards. -->
-        <TextBlock Text="{CompiledBinding MarkedDescription}"
+        <!-- What a random pick is drawing from, said out loud: the pool is set by clicking tags in
+             the rail, which is easy to do on the way past and impossible to notice afterwards. -->
+        <PathIcon Data="{StaticResource IconDice}"
+                  Width="14" Height="14"
+                  Opacity="0.7"
+                  VerticalAlignment="Center" />
+        <TextBlock Text="{CompiledBinding PoolDescription}"
                    VerticalAlignment="Center"
                    FontSize="12"
                    Opacity="0.7" />
-        <Button Command="{CompiledBinding MarkWholeListCommand}"
-                ToolTip.Tip="{x:Static res:UiStrings.DanceList_MarkWholeList}"
+        <Button Command="{CompiledBinding ClearPoolCommand}"
+                IsVisible="{CompiledBinding HasPool}"
+                ToolTip.Tip="{x:Static res:UiStrings.DanceList_ClearPoolTip}"
                 Padding="8"
                 Focusable="False">
             <controls:ButtonContent Icon="{StaticResource IconClose}"
-                                    Text="{x:Static res:UiStrings.DanceList_MarkWholeListLabel}"
+                                    Text="{x:Static res:UiStrings.DanceList_ClearPool}"
                                     IconSize="14" />
         </Button>
     </StackPanel>

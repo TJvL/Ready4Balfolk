@@ -23,6 +23,7 @@ public sealed class RemoteHub(
     IQueueService queueService,
     IQueueConsumptionService consumptionService,
     IRandomTrackService randomTrackService,
+    IDancePool dancePool,
     ITrackStore trackStore,
     ISettingsStore settingsStore) : Hub
 {
@@ -56,12 +57,14 @@ public sealed class RemoteHub(
 
     public Task<CommandResultDto> QueueRandom() => dispatcher.InvokeAsync(() =>
     {
+        // The same pool the panel is showing, so the phone and the screen never disagree about
+        // what is being drawn from.
         var track = randomTrackService.PickRandomTrack(
-            new RandomSelectionScope.EntireList(),
+            dancePool.Scope,
             settingsStore.Current.AllowDuplicateTracksInQueue);
 
         return track is null
-            ? new CommandResultDto(false, "No track could be picked from the dance tree")
+            ? new CommandResultDto(false, "No track could be picked from the dance list")
             : Enqueue(new TrackQueueItem(track, true));
     });
 

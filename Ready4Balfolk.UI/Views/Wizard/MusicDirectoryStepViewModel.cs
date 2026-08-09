@@ -1,14 +1,18 @@
+using System;
+using System.IO;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.Wizard;
 
-/// <summary>The wizard's second step: where the music is.</summary>
+/// <summary>The wizard's step for where the music is.</summary>
 /// <remarks>
-/// Not required to move on. A user who has not decided yet is better served by an application they
-/// can look at than by a wizard that will not let them past, and the same picker sits in settings.
+/// Required. Everything after this reads the library, and there is nothing to set up without one:
+/// letting a user past here only produces an application that appears to work and finds nothing.
 /// </remarks>
 public sealed partial class MusicDirectoryStepViewModel(ISettingsStore settingsStore) : WizardStepViewModel
 {
@@ -18,6 +22,12 @@ public sealed partial class MusicDirectoryStepViewModel(ISettingsStore settingsS
     public override string Title => UiStrings.Wizard_Music_Title;
 
     public override string Explanation => UiStrings.Wizard_Music_Explanation;
+
+    public override IObservable<bool> CanContinue =>
+        this.WhenAnyValue(x => x.MusicDirectoryPath)
+            .Select(path => !string.IsNullOrWhiteSpace(path) && Directory.Exists(path));
+
+    public override string BlockedReason => UiStrings.Wizard_Music_Required;
 
     public override Task EnterAsync()
     {

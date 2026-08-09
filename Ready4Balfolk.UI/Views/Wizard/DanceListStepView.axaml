@@ -3,73 +3,32 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              xmlns:wizard="using:Ready4Balfolk.UI.Views.Wizard"
-             mc:Ignorable="d" d:DesignWidth="650" d:DesignHeight="320"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="480"
              x:Class="Ready4Balfolk.UI.Views.Wizard.DanceListStepView"
              x:DataType="wizard:DanceListStepViewModel">
-    <StackPanel Spacing="16">
-        <!-- Two ways of answering, side by side, because neither is the lesser one: importing the
-             published list and starting empty are both a finished answer to this step. -->
-        <Grid ColumnDefinitions="*,16,*">
-            <Border Grid.Column="0"
-                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
-                    BorderThickness="1"
-                    CornerRadius="4"
-                    Padding="16">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="{x:Static res:UiStrings.Wizard_DanceList_ImportHeading}"
-                               FontWeight="SemiBold" />
-                    <TextBlock Text="{x:Static res:UiStrings.Wizard_DanceList_ImportDescription}"
-                               TextWrapping="Wrap"
-                               FontSize="12"
-                               Opacity="0.7" />
-                    <Button Content="{x:Static res:UiStrings.Wizard_DanceList_ImportButton}"
-                            Click="OnImportClick"
-                            HorizontalAlignment="Left" />
-                </StackPanel>
-            </Border>
+    <controls:LoadingContainer IsLoading="{CompiledBinding IsFetching}">
+        <StackPanel Spacing="16" MaxWidth="760" HorizontalAlignment="Left">
+            <TextBlock Text="{CompiledBinding SummaryText}" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="{CompiledBinding OriginText}" Opacity="0.7" />
 
-            <Border Grid.Column="2"
-                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
-                    BorderThickness="1"
-                    CornerRadius="4"
-                    Padding="16">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="{x:Static res:UiStrings.Wizard_DanceList_EmptyHeading}"
-                               FontWeight="SemiBold" />
-                    <TextBlock Text="{x:Static res:UiStrings.Wizard_DanceList_EmptyDescription}"
-                               TextWrapping="Wrap"
-                               FontSize="12"
-                               Opacity="0.7" />
-                    <Button Content="{x:Static res:UiStrings.Wizard_DanceList_StartEmptyButton}"
-                            Command="{CompiledBinding StartEmptyCommand}"
-                            HorizontalAlignment="Left" />
-                </StackPanel>
-            </Border>
-        </Grid>
-
-        <TextBlock Text="{CompiledBinding Summary}"
-                   IsVisible="{CompiledBinding HasAnswered}"
-                   TextWrapping="Wrap"
-                   FontWeight="SemiBold" />
-
-        <StackPanel Orientation="Horizontal" Spacing="4">
-            <TextBlock Text="{x:Static res:UiStrings.Wizard_DanceList_Source}"
+            <TextBlock Text="{x:Static res:UiStrings.Wizard_DanceList_Detail}"
                        TextWrapping="Wrap"
-                       VerticalAlignment="Center"
-                       FontSize="12"
-                       Opacity="0.6" />
-            <!-- A real link: it opens the default browser through the platform launcher, which also
-                 works from inside the Flatpak sandbox, where spawning xdg-open would not. -->
-            <Button Click="OnSourceLinkClick"
-                    Content="{x:Static res:UiStrings.Wizard_DanceList_SourceUrl}"
-                    Classes="link"
-                    Padding="0"
-                    FontSize="12"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Foreground="{DynamicResource SystemAccentColor}"
-                    Cursor="Hand" />
+                       Opacity="0.7" />
+
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="{x:Static res:UiStrings.Wizard_DanceList_Source}"
+                           VerticalAlignment="Center"
+                           Opacity="0.7" />
+                <Button Click="OnSourceLinkClick"
+                        Content="{CompiledBinding SourceUri}"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{DynamicResource SystemAccentColor}"
+                        Cursor="Hand" />
+            </StackPanel>
         </StackPanel>
-    </StackPanel>
+    </controls:LoadingContainer>
 </UserControl>

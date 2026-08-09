@@ -1,28 +1,36 @@
-using System.Globalization;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Text.Json;
 using Ready4Balfolk.Domain.Models.Dances;
-using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.Dances;
 
-/// <summary>Owns <c>dance_list.json</c>, the one place dance names live.</summary>
-public sealed class DanceListStore(IApplicationSettingsDirectory dataDirectory, ILoggerService loggerService)
+/// <summary>Owns the copy of BigBalfolkList the application is working from.</summary>
+/// <remarks>
+/// Three sources, in one order: the cached download on disk, and the copy shipped with the build
+/// when there is none or it cannot be read. An update replaces the file whole, because the list is
+/// somebody else's and there is nothing of the user's in it to merge around.
+/// </remarks>
+public sealed class DanceListStore(
+    IApplicationSettingsDirectory dataDirectory,
+    IDanceListFeed feed,
+    ILoggerService loggerService)
     : IDanceListStore
 {
     private const string DanceListFileName = "dance_list.json";
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true
-    };
-
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly BehaviorSubject<DanceList> _list = new(DanceList.Empty);
+    private readonly BehaviorSubject<DanceListStatus> _status = new(DanceListStatus.Unknown);
     private readonly BehaviorSubject<bool> _isLoading = new(false);
+
+    /// <summary>
+    /// The bytes the current list came from. Compared rather than the parsed list, because the
+    /// published file has a canonical formatting: same bytes means the same list, and it says so
+    /// without walking a hundred dances.
+    /// </summary>
+    private string? _currentJson;
 
     private string DanceListFilePath => Path.Combine(dataDirectory.DirectoryInfoRoot.FullName, DanceListFileName);
 
@@ -32,31 +40,39 @@ public sealed class DanceListStore(IApplicationSettingsDirectory dataDirectory, 
 
     public DanceListIndex Index { get; private set; } = DanceListIndex.Empty;
 
+    public DanceListStatus Status => _status.Value;
+
     public IObservable<DanceList> Observe() => _list.AsObservable();
+
+    public IObservable<DanceListStatus> ObserveStatus() => _status.AsObservable();
 
     public async Task LoadAsync(CancellationToken token)
     {
         _isLoading.OnNext(true);
         try
         {
-            if (!File.Exists(DanceListFilePath))
+            var cachedFileInfo = new FileInfo(DanceListFilePath);
+            if (cachedFileInfo.Exists)
             {
-                // No list yet is the ordinary state before the setup wizard has run, not a failure.
-                return;
+                try
+                {
+                    var json = await File.ReadAllTextAsync(cachedFileInfo.FullName, token);
+                    var cached = DanceListReader.Read(json);
+                    _currentJson = json;
+                    Publish(cached, DanceListOrigin.Cached, cachedFileInfo.LastWriteTimeUtc);
+                    return;
+                }
+                catch (Exception exception) when (exception is InvalidDataException or IOException)
+                {
+                    Discard(cachedFileInfo, exception);
+                }
             }
 
-            await using var stream = new FileStream(DanceListFilePath, FileMode.Open, FileAccess.Read);
-            var list = await JsonSerializer.DeserializeAsync<DanceList>(stream, JsonOptions, token);
-            if (list is not null)
-            {
-                Publish(list);
-                _ = loggerService.InfoAsync(
-                    $"Loaded dance list ({list.Categories.Count} categories, {list.AllDances.Count()} dances)");
-            }
+            Publish(DanceListReader.ReadBuiltIn(), DanceListOrigin.BuiltIn, obtainedAt: null);
         }
-        catch (Exception ex) when (ex is JsonException or IOException)
+        catch (InvalidDataException exception)
         {
-            _ = loggerService.ErrorAsync("Failed to load dance list", ex);
+            _ = loggerService.ErrorAsync("The dance list shipped with the application is unreadable", exception);
         }
         finally
         {
@@ -64,102 +80,121 @@ public sealed class DanceListStore(IApplicationSettingsDirectory dataDirectory, 
         }
     }
 
-    public async Task UpdateAsync(Func<DanceList, DanceList> transform)
+    public async Task<DanceListUpdate> RefreshAsync(CancellationToken token = default)
     {
-        await _gate.WaitAsync();
+        string published;
         try
         {
-            var updated = transform(Current);
-            Publish(updated);
-            await SaveAsync(updated);
+            published = await feed.DownloadAsync(token);
         }
-        finally
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
         {
-            _gate.Release();
+            // Offline is an ordinary state for this application, so it is logged and reported, not
+            // thrown: the list already loaded carries on working.
+            _ = loggerService.InfoAsync($"Could not reach the dance list: {exception.Message}");
+            return DanceListUpdate.Failed(exception.Message);
         }
+
+        return await AdoptAsync(published, DanceListOrigin.Downloaded);
     }
 
-    public Task ReplaceAsync(DanceList list) => UpdateAsync(_ => list);
-
-    public async Task ExportAsync(FileInfo destinationFileInfo)
+    public async Task<DanceListUpdate> UpdateFromFileAsync(
+        FileInfo sourceFileInfo, CancellationToken token = default)
     {
-        await _gate.WaitAsync();
         try
         {
-            destinationFileInfo.Directory?.Create();
-            await using var stream = File.Create(destinationFileInfo.FullName);
-            await JsonSerializer.SerializeAsync(stream, Current, JsonOptions);
-            _ = loggerService.InfoAsync($"Exported dance list to {destinationFileInfo.FullName}");
+            var json = await File.ReadAllTextAsync(sourceFileInfo.FullName, token);
+            return await AdoptAsync(json, DanceListOrigin.File);
         }
-        finally
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _gate.Release();
+            _ = loggerService.ErrorAsync($"Could not read {sourceFileInfo.FullName}", exception);
+            return DanceListUpdate.Failed(exception.Message);
         }
-    }
-
-    public async Task ImportAsync(FileInfo sourceFileInfo)
-    {
-        if (!sourceFileInfo.Exists)
-        {
-            throw new FileNotFoundException(DomainStrings.ImportFileNotFound, sourceFileInfo.FullName);
-        }
-
-        DanceList list;
-        try
-        {
-            await using var stream = File.OpenRead(sourceFileInfo.FullName);
-            list = await JsonSerializer.DeserializeAsync<DanceList>(stream, JsonOptions)
-                   ?? throw new InvalidDataException(DomainStrings.ImportFileContainsNull);
-        }
-        catch (JsonException exception)
-        {
-            throw new InvalidDataException(DomainStrings.DanceListStore_InvalidJson, exception);
-        }
-
-        var problems = DanceListValidation.Validate(list);
-        if (problems.DuplicateNames.Count > 0)
-        {
-            throw new InvalidDataException(string.Format(
-                CultureInfo.CurrentCulture,
-                DomainStrings.DanceListStore_DuplicateNames,
-                string.Join(", ", problems.DuplicateNames.Distinct(StringComparer.Ordinal))));
-        }
-
-        if (problems.Any)
-        {
-            throw new InvalidDataException(DomainStrings.DanceListStore_InvalidJson);
-        }
-
-        await ReplaceAsync(list);
-        _ = loggerService.InfoAsync($"Imported dance list from {sourceFileInfo.FullName}");
     }
 
     public void Dispose()
     {
         _gate.Dispose();
         _list.Dispose();
+        _status.Dispose();
         _isLoading.Dispose();
+    }
+
+    /// <summary>Validates a list, writes it as the cached copy, and publishes it.</summary>
+    private async Task<DanceListUpdate> AdoptAsync(string json, DanceListOrigin origin)
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            DanceList list;
+            try
+            {
+                list = DanceListReader.Read(json);
+            }
+            catch (Exception exception) when (exception is InvalidDataException or FileNotFoundException)
+            {
+                _ = loggerService.ErrorAsync("Refused a dance list", exception);
+                return DanceListUpdate.Failed(exception.Message);
+            }
+
+            var known = Current.Dances.Select(dance => dance.Slug).ToHashSet(StringComparer.Ordinal);
+            var added = list.Dances.Count(dance => !known.Contains(dance.Slug));
+            var identical = string.Equals(json, _currentJson, StringComparison.Ordinal);
+
+            _currentJson = json;
+            await SaveAsync(json);
+            Publish(list, origin, DateTimeOffset.UtcNow);
+
+            return identical ? DanceListUpdate.Unchanged : DanceListUpdate.Updated(added);
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     // The index is set before the list is published, so a subscriber reacting to the new list never
     // reads an index built from the old one.
-    private void Publish(DanceList list)
+    private void Publish(DanceList list, DanceListOrigin origin, DateTimeOffset? obtainedAt)
     {
         Index = DanceListIndex.Build(list);
         _list.OnNext(list);
+        _status.OnNext(new DanceListStatus(list.Dances.Count, list.Tags.Count, origin, obtainedAt));
+        _ = loggerService.InfoAsync(
+            $"Dance list in use: {list.Dances.Count} dances, {list.Tags.Count} tags, from {origin}");
     }
 
-    private async Task SaveAsync(DanceList list)
+    private async Task SaveAsync(string json)
     {
         try
         {
             dataDirectory.DirectoryInfoRoot.Create();
-            await using var stream = File.Create(DanceListFilePath);
-            await JsonSerializer.SerializeAsync(stream, list, JsonOptions);
+            await File.WriteAllTextAsync(DanceListFilePath, json);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _ = loggerService.ErrorAsync("Failed to save dance list", ex);
+            // The list is in hand either way; only the next start pays for this.
+            _ = loggerService.ErrorAsync("Failed to cache the dance list", exception);
+        }
+    }
+
+    /// <summary>
+    /// Throws away a cached copy this build cannot read. Nothing of the user's is in it: it is a
+    /// copy of a published file, and the next fetch replaces it. Keeping it would leave a hidden
+    /// file nobody ever opens.
+    /// </summary>
+    private void Discard(FileInfo cachedFileInfo, Exception reason)
+    {
+        try
+        {
+            cachedFileInfo.Delete();
+            _ = loggerService.InfoAsync(
+                $"The cached dance list could not be read and was discarded: {reason.Message}");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _ = loggerService.ErrorAsync("The cached dance list could not be read or removed", exception);
         }
     }
 }

@@ -11,7 +11,11 @@ public enum Screen
 {
     Main,
     Settings,
-    Help
+    Help,
+    Tagging,
+
+    /// <summary>First-run setup. A screen, not a dialog: its steps need the whole window.</summary>
+    Setup
 }
 
 public sealed partial class NavigationService : ReactiveObject, IDisposable
@@ -25,6 +29,8 @@ public sealed partial class NavigationService : ReactiveObject, IDisposable
     [ObservableAsProperty] public partial bool IsMainScreen { get; }
     [ObservableAsProperty] public partial bool IsSettingsScreen { get; }
     [ObservableAsProperty] public partial bool IsHelpScreen { get; }
+    [ObservableAsProperty] public partial bool IsTaggingScreen { get; }
+    [ObservableAsProperty] public partial bool IsSetupScreen { get; }
 
     public NavigationService()
     {
@@ -42,6 +48,16 @@ public sealed partial class NavigationService : ReactiveObject, IDisposable
             .Select(s => s == Screen.Help)
             .ToProperty(this, x => x.IsHelpScreen);
         _isHelpScreenHelper.DisposeWith(_disposables);
+
+        _isTaggingScreenHelper = this.WhenAnyValue(x => x.CurrentScreen)
+            .Select(s => s == Screen.Tagging)
+            .ToProperty(this, x => x.IsTaggingScreen);
+        _isTaggingScreenHelper.DisposeWith(_disposables);
+
+        _isSetupScreenHelper = this.WhenAnyValue(x => x.CurrentScreen)
+            .Select(s => s == Screen.Setup)
+            .ToProperty(this, x => x.IsSetupScreen);
+        _isSetupScreenHelper.DisposeWith(_disposables);
     }
 
     public void Dispose() => _disposables.Dispose();

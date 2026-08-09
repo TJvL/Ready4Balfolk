@@ -14,7 +14,7 @@ public sealed class DanceListIndexTests
     public void ResolveSlug_OtherName_ReturnsSameSlug() => Assert.Equal("mazurka", _sut.ResolveSlug("Mazurk"));
 
     [Fact]
-    public void ResolveSlug_NestedCategory_IsIndexed() => Assert.Equal("plinn", _sut.ResolveSlug("Plinn"));
+    public void ResolveSlug_EveryDance_IsIndexed() => Assert.Equal("plinn", _sut.ResolveSlug("Plinn"));
 
     [Fact]
     public void ResolveSlug_Unknown_ReturnsNull() => Assert.Null(_sut.ResolveSlug("Bourrée"));
@@ -32,26 +32,14 @@ public sealed class DanceListIndexTests
     public void DisplayNameFor_UnknownSlug_ReturnsTheSlug() => Assert.Equal("nope", _sut.DisplayNameFor("nope"));
 
     [Fact]
-    public void IsNameTaken_ByAnotherDance_IsTrue() => Assert.True(_sut.IsNameTaken("Mazurk", exceptSlug: "scottish"));
-
-    [Fact]
-    public void IsNameTaken_ByTheSameDance_IsFalse() => Assert.False(_sut.IsNameTaken("Mazurk", exceptSlug: "mazurka"));
-
-    [Fact]
-    public void IsNameTaken_Unknown_IsFalse() => Assert.False(_sut.IsNameTaken("Andro"));
-
-    [Fact]
     public void FoldedNamesLongestFirst_PrefersTheLongerName()
     {
         var list = new DanceList
         {
-            Categories =
+            Dances =
             [
-                TestData.CreateCategory("Auvergne", dances:
-                [
-                    TestData.CreateDance("bourree", names: ["Bourrée"]),
-                    TestData.CreateDance("bourree-3-temps", names: ["Bourrée 3 temps"])
-                ])
+                TestData.CreateDance("bourree", names: ["Bourrée"]),
+                TestData.CreateDance("bourree-3-temps", names: ["Bourrée 3 temps"])
             ]
         };
 
@@ -67,13 +55,10 @@ public sealed class DanceListIndexTests
     {
         var list = new DanceList
         {
-            Categories =
+            Dances =
             [
-                TestData.CreateCategory("Somewhere", dances:
-                [
-                    TestData.CreateDance("first", names: ["Shared"]),
-                    TestData.CreateDance("second", names: ["Shared"])
-                ])
+                TestData.CreateDance("first", names: ["Shared"]),
+                TestData.CreateDance("second", names: ["Shared"])
             ]
         };
 

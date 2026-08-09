@@ -16,7 +16,6 @@ using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.DanceList;
 
 namespace Ready4Balfolk.UI.Views.Queue;
 
@@ -26,7 +25,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     private readonly IQueueConsumptionService _consumptionService;
     private readonly ISettingsStore _settingsStore;
     private readonly IRandomTrackService _randomTrackService;
-    private readonly DanceListViewModel _danceListViewModel;
+    private readonly IDancePool _dancePool;
     private readonly IConfirmationService _confirmationService;
     private readonly INotificationService _notificationService;
     private readonly CompositeDisposable _disposables = [];
@@ -61,7 +60,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     [ReactiveCommand]
     private void QueueRandomTrack()
     {
-        var scope = GetMarkedScope();
+        var scope = GetPoolScope();
         var track = _randomTrackService.PickRandomTrack(
             scope, _settingsStore.Current.AllowDuplicateTracksInQueue);
         if (track is not null)
@@ -78,7 +77,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private RandomSelectionScope GetMarkedScope() => _danceListViewModel.CurrentScope;
+    private RandomSelectionScope GetPoolScope() => _dancePool.Scope;
 
     [ReactiveCommand]
     private void EnqueueStop()
@@ -163,7 +162,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         IQueueConsumptionService consumptionService,
         ISettingsStore settingsStore,
         IRandomTrackService randomTrackService,
-        DanceListViewModel danceListViewModel,
+        IDancePool dancePool,
         IConfirmationService confirmationService,
         INotificationService notificationService)
     {
@@ -171,7 +170,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         _consumptionService = consumptionService;
         _settingsStore = settingsStore;
         _randomTrackService = randomTrackService;
-        _danceListViewModel = danceListViewModel;
+        _dancePool = dancePool;
         _confirmationService = confirmationService;
         _notificationService = notificationService;
         ItemCountText = UiStrings.Queue_Empty;
@@ -379,7 +378,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        var scope = GetMarkedScope();
+        var scope = GetPoolScope();
         var track = _randomTrackService.PickRandomTrack(scope, _settingsStore.Current.AllowDuplicateTracksInQueue);
         if (track is null)
         {
@@ -402,7 +401,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         _queueService.RemoveWhere(i => i is AutoTrackQueueItem);
         _suppressAutoEnqueue = false;
 
-        var scope = GetMarkedScope();
+        var scope = GetPoolScope();
         var allowDuplicates = _settingsStore.Current.AllowDuplicateTracksInQueue;
         var track = _randomTrackService.PickRandomTrack(scope, allowDuplicates);
 

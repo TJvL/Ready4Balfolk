@@ -1,17 +1,14 @@
 using System.Reactive.Subjects;
 using DynamicData;
 using NSubstitute;
-using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
-using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.DanceList;
 using Ready4Balfolk.UI.Views.Queue;
 using RxUnit = System.Reactive.Unit;
 
@@ -21,7 +18,7 @@ public sealed class QueueViewModelTests : IDisposable
 {
     private readonly IQueueService _queueService;
     private readonly IRandomTrackService _randomTrackService;
-    private readonly DanceListViewModel _danceListVm;
+    private readonly IDancePool _dancePool = new DancePool();
     private readonly IConfirmationService _confirmation;
     private readonly INotificationService _notification;
     private readonly QueueViewModel _sut;
@@ -106,29 +103,9 @@ public sealed class QueueViewModelTests : IDisposable
             Arg.Any<string>(), Arg.Any<string>()).Returns(true);
         _notification = Substitute.For<INotificationService>();
 
-        _danceListVm = CreateMinimalDanceListVm();
-
         _sut = new QueueViewModel(
             _queueService, consumption, settingsStore,
-            _randomTrackService, _danceListVm, _confirmation, _notification);
-    }
-
-    private DanceListViewModel CreateMinimalDanceListVm()
-    {
-        var danceListStore = Substitute.For<Domain.Stores.Dances.IDanceListStore>();
-        danceListStore.Current.Returns(TestData.CreateSimpleDanceList());
-        danceListStore.Index.Returns(DanceListIndex.Build(TestData.CreateSimpleDanceList()));
-        danceListStore.Observe().Returns(new BehaviorSubject<DanceList>(TestData.CreateSimpleDanceList()));
-        danceListStore.IsLoading.Returns(new BehaviorSubject<bool>(false));
-
-        var editorHistory = Substitute.For<Domain.Services.Editor.IEditorHistoryService>();
-        editorHistory.CanUndo.Returns(new BehaviorSubject<bool>(false));
-        editorHistory.CanRedo.Returns(new BehaviorSubject<bool>(false));
-        editorHistory.UndoDescription.Returns(new BehaviorSubject<string?>(null));
-        editorHistory.RedoDescription.Returns(new BehaviorSubject<string?>(null));
-
-        return new DanceListViewModel(danceListStore, editorHistory, _notification,
-            _confirmation, new NoOpLoggerService());
+            _randomTrackService, _dancePool, _confirmation, _notification);
     }
 
     // --- QueueRandomTrack ---
@@ -433,7 +410,6 @@ public sealed class QueueViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
-        _danceListVm.Dispose();
         _queueSource.Dispose();
         _currentItem.Dispose();
         _elapsed.Dispose();

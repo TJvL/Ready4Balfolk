@@ -69,18 +69,20 @@ public sealed class DanceListValidationTests
     }
 
     [Fact]
-    public void Validate_CategoryWithoutAName_IsReported()
+    public void Validate_TagNotDeclaredAtTheTop_IsReported()
     {
         var list = new DanceList
         {
-            Categories = [TestData.CreateCategory("Region", categories: [TestData.CreateCategory(" ")])]
+            Tags = ["bretagne"],
+            Dances = [TestData.CreateDance("andro", ["bretagne", "invented"], "Andro")]
         };
 
         var problems = DanceListValidation.Validate(list);
 
-        Assert.Single(problems.UnnamedCategories);
+        // Every tag a dance carries has to appear in the list's own tag array; BigBalfolkList's
+        // build enforces it, so a file arriving without it has been edited by hand.
+        Assert.Contains("invented", problems.UndeclaredTags);
     }
 
-    private static DanceList ListOf(params Dance[] dances)
-        => new() { Categories = [TestData.CreateCategory("Region", dances: dances)] };
+    private static DanceList ListOf(params Dance[] dances) => new() { Dances = dances };
 }

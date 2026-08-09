@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:danceList="using:Ready4Balfolk.UI.Views.DanceList"
+             xmlns:tagging="using:Ready4Balfolk.UI.Views.Tagging"
              xmlns:wizard="using:Ready4Balfolk.UI.Views.Wizard"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="480"
-             x:Class="Ready4Balfolk.UI.Views.Wizard.DanceListEditStepView"
-             x:DataType="wizard:DanceListEditStepViewModel">
-    <danceList:DanceListView DataContext="{CompiledBinding Editor}" />
+             x:Class="Ready4Balfolk.UI.Views.Wizard.TaggingStepView"
+             x:DataType="wizard:TaggingStepViewModel">
+    <tagging:TaggingView DataContext="{CompiledBinding Editor}" />
 </UserControl>

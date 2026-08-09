@@ -13,18 +13,18 @@ public sealed class TrackInformationResolverTests
 {
     private readonly DanceListIndex _index = DanceListIndex.Build(new DanceList
     {
-        Categories =
+        Dances =
         [
-            TestData.CreateCategory("Common", dances:
-            [
-                TestData.CreateDance("mazurka", names: ["Mazurka", "Mazurk"]),
-                TestData.CreateDance("scottish", names: ["Scottish", "Schottische"]),
-                TestData.CreateDance("waltz", names: ["Valse", "Waltz"]),
-                TestData.CreateDance("cercle-circassien", names: ["Cercle Circassien", "Cercle"]),
-                TestData.CreateDance("bourree", names: ["Bourrée"]),
-                TestData.CreateDance("bourree-3-temps", names: ["Bourrée 3 temps"]),
-                TestData.CreateDance("andro", names: ["An dro", "Andro"])
-            ])
+            TestData.CreateDance("mazurka", names: ["Mazurka", "Mazurk"]),
+            TestData.CreateDance("scottish", names: ["Scottish", "Schottische"]),
+            TestData.CreateDance("waltz", names: ["Valse", "Waltz"]),
+            TestData.CreateDance("cercle-circassien", names: ["Cercle Circassien", "Cercle"]),
+            TestData.CreateDance("bourree", names: ["Bourrée"]),
+            TestData.CreateDance("bourree-3-temps", names: ["Bourrée 3 temps"]),
+            TestData.CreateDance("andro", names: ["An dro", "Andro"]),
+            // A real dance whose name is also an ordinary French word, which is exactly the
+            // collision that made "La fille du roi dans la tour" ambiguous.
+            TestData.CreateDance("tour", names: ["Tour"])
         ]
     });
 
@@ -104,10 +104,21 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void TwoDancesAndNothingToSeparateThem_ResolvesToNothing()
     {
-        // Inventing a confident answer here is the failure this issue exists to prevent.
-        var resolution = Resolve(Evidence("Some Tune (Mazurka)") with { TagGenre = "Scottish" });
+        // Neither is bracketed and neither leads the filename, so there is genuinely nothing to
+        // choose between them. Inventing a confident answer here is the failure this exists to
+        // prevent.
+        var resolution = Resolve(Evidence("Some Mazurka Tune") with { TagGenre = "Scottish" });
 
         Assert.Null(resolution.DanceSlug);
+    }
+
+    [Fact]
+    public void ADanceInBrackets_BeatsAGenreTag()
+    {
+        // A genre tag is what a ripper guessed; brackets in a filename are what a person wrote.
+        var resolution = Resolve(Evidence("Some Tune (Mazurka)") with { TagGenre = "Scottish" });
+
+        Assert.Equal("mazurka", resolution.DanceSlug);
     }
 
     [Fact]
@@ -214,6 +225,33 @@ public sealed class TrackInformationResolverTests
 
         Assert.NotEqual("1997", resolution.OriginalDance);
     }
+
+    [Fact]
+    public void ADanceInBrackets_BeatsAnOrdinaryWordThatHappensToBeADance()
+    {
+        // Real case: "Tour" is a dance, and it collided with the word "tour" in the title. What
+        // somebody wrote in brackets is a deliberate statement; a word in a sentence is not.
+        var resolution = Resolve(Evidence("07-La fille du roi dans la tour (Mazurka)")
+            with
+        { TagTitle = "La fille du roi dans la tour (Mazurka)" });
+
+        Assert.Equal("mazurka", resolution.DanceSlug);
+    }
+
+    [Fact]
+    public void TwoDancesBothInBrackets_StillResolvesToNothing()
+    {
+        // "09. Thijsjes Doopwals (valse 3 temps, mazurka)" names two dances on purpose. Brackets
+        // cannot separate them, so nothing is assumed.
+        var resolution = Resolve(Evidence("09. Thijsjes Doopwals (valse, mazurka)"));
+
+        Assert.Null(resolution.DanceSlug);
+    }
+
+    [Fact]
+    public void TwoDancesAndNoBrackets_StillResolvesToNothing() =>
+        // "03-ej lasko . mazurka_valse": genuinely both, and a person decides.
+        Assert.Null(Resolve(Evidence("03-ej lasko . mazurka_valse")).DanceSlug);
 
     private TrackResolution Resolve(TrackEvidence evidence, string? folderDance = null)
         => TrackInformationResolver.Resolve(evidence, _index, folderDance);

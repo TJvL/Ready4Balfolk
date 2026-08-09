@@ -57,17 +57,46 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SameAudioAtANewPath_MovesTheRowRatherThanAddingOne()
+    public async Task TheSameAudioInTwoPlaces_IsOneTrackKnownAtBothPaths()
     {
-        // A rename or a tag edit is the same audio, so it is the same row, and whatever the user
-        // decided about it comes along.
-        await _sut.WriteAsync([Entry("/music/old.mp3", [9, 9], slug: "plinn")], Token);
-        await _sut.WriteAsync([Entry("/music/new.mp3", [9, 9], slug: "plinn")], Token);
+        // Real libraries hold the same album twice, loose and in a folder. Both copies have to be
+        // known, or the forgotten one is read from disk on every single startup; and one decision
+        // about the recording covers both, because it is the same recording.
+        await _sut.WriteAsync([Entry("/music/loose.mp3", [9, 9], slug: "plinn")], Token);
+        await _sut.WriteAsync([Entry("/music/album/track.mp3", [9, 9], slug: "plinn")], Token);
 
         var snapshot = await _sut.SnapshotByPathAsync(Token);
 
+        Assert.Equal(2, snapshot.Count);
+        Assert.Equal("plinn", snapshot["/music/loose.mp3"].DanceSlug);
+        Assert.Equal("plinn", snapshot["/music/album/track.mp3"].DanceSlug);
+    }
+
+    [Fact]
+    public async Task AnsweringOneCopy_AnswersTheOther()
+    {
+        await _sut.WriteAsync([
+            Entry("/music/loose.mp3", [9, 9], slug: null),
+            Entry("/music/album/track.mp3", [9, 9], slug: null)
+        ], Token);
+
+        await _sut.AssignDanceAsync(["/music/loose.mp3"], "mazurka", Token);
+
+        var snapshot = await _sut.SnapshotByPathAsync(Token);
+        Assert.Equal("mazurka", snapshot["/music/album/track.mp3"].DanceSlug);
+    }
+
+    [Fact]
+    public async Task ARenamedFile_KeepsWhatWasDecidedAboutIt()
+    {
+        await _sut.WriteAsync([Entry("/music/old.mp3", [9, 9], slug: "plinn")], Token);
+
+        await _sut.WriteAsync([Entry("/music/new.mp3", [9, 9], slug: "plinn")], Token);
+        await _sut.DeleteMissingAsync(["/music/new.mp3"], Token);
+
+        var snapshot = await _sut.SnapshotByPathAsync(Token);
         Assert.Single(snapshot);
-        Assert.True(snapshot.ContainsKey("/music/new.mp3"));
+        Assert.Equal("plinn", snapshot["/music/new.mp3"].DanceSlug);
     }
 
     [Fact]

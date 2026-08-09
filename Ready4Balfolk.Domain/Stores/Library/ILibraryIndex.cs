@@ -18,6 +18,22 @@ public interface ILibraryIndex : IDisposable
     /// <summary>Forgets every row whose path is not in the set, after a scan has been through.</summary>
     Task DeleteMissingAsync(IReadOnlyCollection<string> existingPaths, CancellationToken token = default);
 
+    /// <summary>
+    /// The values the user has said not to ask about again, folded for comparison.
+    /// </summary>
+    /// <remarks>
+    /// Ignoring is a first-class answer, not a way of putting something off. Without it the badge
+    /// sits at 137 forever, because a library always contains values that are genuinely not dances.
+    /// </remarks>
+    Task<IReadOnlySet<string>> GetIgnoredValuesAsync(CancellationToken token = default);
+
+    Task IgnoreValueAsync(string value, CancellationToken token = default);
+
+    Task StopIgnoringValueAsync(string value, CancellationToken token = default);
+
+    /// <summary>Points a set of files at a dance, by path.</summary>
+    Task AssignDanceAsync(IReadOnlyCollection<string> paths, string? danceSlug, CancellationToken token = default);
+
     /// <summary>How many files the dance list has nothing to say about.</summary>
     /// <remarks>
     /// A query rather than a number held in memory, so the count survives a restart for free and

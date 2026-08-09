@@ -73,14 +73,6 @@
 
   <!-- Default names -->
 
-  <!-- Import errors -->
-  <data name="ImportFileNotFound" xml:space="preserve">
-    <value>Importbestand niet gevonden.</value>
-  </data>
-  <data name="ImportFileContainsNull" xml:space="preserve">
-    <value>Importbestand bevat null.</value>
-  </data>
-
   <!-- Queue item descriptions -->
   <data name="StopQueueItem_Description" xml:space="preserve">
     <value>Stop</value>
@@ -90,83 +82,22 @@
   </data>
 
   <!-- Dance list -->
-  <data name="DanceList_UncategorisedCategory" xml:space="preserve">
-    <value>Zonder categorie</value>
+  <data name="DanceList_BuiltInMissing" xml:space="preserve">
+    <value>De dansenlijst die met deze versie is meegeleverd ontbreekt.</value>
   </data>
-  <data name="BigBalfolkList_InvalidJson" xml:space="preserve">
-    <value>Importbestand is geen geldige JSON-structuur voor BigBalfolkList.</value>
+  <data name="DanceList_InvalidJson" xml:space="preserve">
+    <value>Dat is geen dansenlijst: het bestand is geen leesbare JSON.</value>
   </data>
-  <data name="BigBalfolkList_NotADanceFile" xml:space="preserve">
-    <value>Importbestand lijkt geen danslijst van BigBalfolkList te zijn.</value>
+  <data name="DanceList_NoDances" xml:space="preserve">
+    <value>Dat bestand bevat geen dansen, dus overnemen zou je met niets achterlaten.</value>
   </data>
-  <data name="BigBalfolkList_DuplicateNames" xml:space="preserve">
-    <value>Importbestand gebruikt dezelfde naam voor meer dan een dans: {0}.</value>
+  <data name="DanceList_WrongFormatVersion" xml:space="preserve">
+    <value>Die dansenlijst is versie {0}, en deze versie van Ready4Balfolk leest versie {1}.</value>
   </data>
-  <data name="DanceListStore_InvalidJson" xml:space="preserve">
-    <value>Importbestand is geen geldige JSON-structuur voor een danslijst.</value>
+  <data name="DanceList_DuplicateNames" xml:space="preserve">
+    <value>Die dansenlijst gebruikt dezelfde naam voor meer dan één dans: {0}.</value>
   </data>
-  <data name="DanceListStore_DuplicateNames" xml:space="preserve">
-    <value>Importbestand gebruikt dezelfde naam voor meer dan een dans: {0}.</value>
+  <data name="DanceList_Invalid" xml:space="preserve">
+    <value>Die dansenlijst breekt de regels waarop de lijst gebouwd is, dus hij is niet overgenomen.</value>
   </data>
-
-  <!-- Dance list editing -->
-  <data name="DanceListTransforms_NewCategory" xml:space="preserve">
-    <value>Nieuwe categorie</value>
-  </data>
-  <data name="DanceListAction_AddCategory" xml:space="preserve">
-    <value>Categorie toevoegen</value>
-  </data>
-  <data name="DanceListAction_RenameCategory" xml:space="preserve">
-    <value>Categorie hernoemen naar "{0}"</value>
-  </data>
-  <data name="DanceListAction_ReweightCategory" xml:space="preserve">
-    <value>Categoriegewicht op {0} zetten</value>
-  </data>
-  <data name="DanceListAction_DeleteCategory" xml:space="preserve">
-    <value>Categorie "{0}" verwijderen</value>
-  </data>
-  <data name="DanceListAction_CategoryNameEmpty" xml:space="preserve">
-    <value>Een categorie heeft een naam nodig.</value>
-  </data>
-  <data name="DanceListAction_CategoryNameExists" xml:space="preserve">
-    <value>Een andere categorie hier heet al "{0}".</value>
-  </data>
-  <data name="DanceListAction_AddDance" xml:space="preserve">
-    <value>Dans "{0}" toevoegen</value>
-  </data>
-  <data name="DanceListAction_DeleteDance" xml:space="preserve">
-    <value>Dans "{0}" verwijderen</value>
-  </data>
-  <data name="DanceListAction_MoveDance" xml:space="preserve">
-    <value>Dans "{0}" verplaatsen</value>
-  </data>
-  <data name="DanceListAction_ReweightDance" xml:space="preserve">
-    <value>Dansgewicht op {0} zetten</value>
-  </data>
-  <data name="DanceListAction_DanceNeedsACategory" xml:space="preserve">
-    <value>Een dans moet in een categorie staan.</value>
-  </data>
-  <data name="DanceListAction_AddName" xml:space="preserve">
-    <value>Naam "{0}" toevoegen</value>
-  </data>
-  <data name="DanceListAction_RemoveName" xml:space="preserve">
-    <value>Naam "{0}" verwijderen</value>
-  </data>
-  <data name="DanceListAction_MoveName" xml:space="preserve">
-    <value>Namen herordenen</value>
-  </data>
-  <data name="DanceListAction_NameEmpty" xml:space="preserve">
-    <value>Een naam mag niet leeg zijn.</value>
-  </data>
-  <data name="DanceListAction_NameBelongsToAnotherDance" xml:space="preserve">
-    <value>"{0}" hoort al bij {1}. Een naam kan maar een dans betekenen.</value>
-  </data>
-  <data name="DanceListAction_LastNameCannotGo" xml:space="preserve">
-    <value>Een dans moet minstens een naam houden.</value>
-  </data>
-  <data name="DanceListAction_WeightMustNotBeNegative" xml:space="preserve">
-    <value>Een gewicht mag niet negatief zijn.</value>
-  </data>
-
-  <!-- unused -->
 </root>

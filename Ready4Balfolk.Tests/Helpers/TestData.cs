@@ -19,47 +19,29 @@ public static class TestData
             DanceSlug = slug == string.Empty ? dance.ToLowerInvariant() : slug
         };
 
-    public static Dance CreateDance(string slug, int weight = 1, params string[] names)
+    public static Dance CreateDance(string slug, string[]? tags = null, params string[] names)
         => new()
         {
             Slug = slug,
             Names = names.Length > 0 ? names : [slug],
-            Weight = weight
-        };
-
-    public static DanceCategory CreateCategory(string name, int weight = 1,
-        IEnumerable<Dance>? dances = null, IEnumerable<DanceCategory>? categories = null)
-        => new()
-        {
-            Name = name,
-            Weight = weight,
-            Dances = dances?.ToList() ?? [],
-            Categories = categories?.ToList() ?? []
+            Tags = tags ?? []
         };
 
     /// <summary>
-    /// Standard dance list:
-    /// Common (weight 2)
-    ///   ├─ mazurka [Mazurka, Mazurk] (weight 1)
-    ///   └─ scottish [Scottish, Schottische] (weight 1)
-    /// Bretagne (weight 1)
-    ///   └─ Suite plinn (weight 3)
-    ///       └─ plinn [Plinn] (weight 2)
+    /// Standard dance list, in the shape BigBalfolkList publishes:
+    /// mazurka [Mazurka, Mazurk]      common
+    /// scottish [Scottish, Schottische] common
+    /// plinn [Plinn]                  bretagne, suite
     /// </summary>
     public static DanceList CreateSimpleDanceList()
         => new()
         {
-            Categories =
+            Tags = ["bretagne", "common", "suite"],
+            Dances =
             [
-                CreateCategory("Common", 2, dances:
-                [
-                    CreateDance("mazurka", names: ["Mazurka", "Mazurk"]),
-                    CreateDance("scottish", names: ["Scottish", "Schottische"])
-                ]),
-                CreateCategory("Bretagne", categories:
-                [
-                    CreateCategory("Suite plinn", 3, dances: [CreateDance("plinn", 2, "Plinn")])
-                ])
+                CreateDance("mazurka", ["common"], "Mazurka", "Mazurk"),
+                CreateDance("scottish", ["common"], "Scottish", "Schottische"),
+                CreateDance("plinn", ["bretagne", "suite"], "Plinn")
             ]
         };
 }

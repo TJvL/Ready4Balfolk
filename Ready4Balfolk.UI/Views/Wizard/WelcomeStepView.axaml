@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:wizard="using:Ready4Balfolk.UI.Views.Wizard"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="480"
+             x:Class="Ready4Balfolk.UI.Views.Wizard.WelcomeStepView"
+             x:DataType="wizard:WelcomeStepViewModel">
+    <StackPanel Spacing="20" MaxWidth="760" HorizontalAlignment="Left">
+        <ItemsControl>
+            <ItemsControl.Styles>
+                <Style Selector="TextBlock.stage">
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="FontSize" Value="15" />
+                </Style>
+                <Style Selector="TextBlock.detail">
+                    <Setter Property="Opacity" Value="0.7" />
+                    <Setter Property="TextWrapping" Value="Wrap" />
+                </Style>
+            </ItemsControl.Styles>
+            <StackPanel Spacing="16">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="stage" Text="{x:Static res:UiStrings.Wizard_Welcome_Stage1}" />
+                    <TextBlock Classes="detail" Text="{x:Static res:UiStrings.Wizard_Welcome_Stage1Detail}" />
+                </StackPanel>
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="stage" Text="{x:Static res:UiStrings.Wizard_Welcome_Stage2}" />
+                    <TextBlock Classes="detail" Text="{x:Static res:UiStrings.Wizard_Welcome_Stage2Detail}" />
+                </StackPanel>
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="stage" Text="{x:Static res:UiStrings.Wizard_Welcome_Stage3}" />
+                    <TextBlock Classes="detail" Text="{x:Static res:UiStrings.Wizard_Welcome_Stage3Detail}" />
+                </StackPanel>
+            </StackPanel>
+        </ItemsControl>
+
+        <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="{x:Static res:UiStrings.Wizard_Welcome_Source}"
+                       VerticalAlignment="Center"
+                       Opacity="0.7"
+                       TextWrapping="Wrap" />
+            <Button Click="OnSourceLinkClick"
+                    Content="{x:Static res:UiStrings.Wizard_DanceList_SourceUrl}"
+                    Padding="0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Foreground="{DynamicResource SystemAccentColor}"
+                    Cursor="Hand" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

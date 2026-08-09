@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:rxui="http://reactiveui.net"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:wizard="using:Ready4Balfolk.UI.Views.Wizard"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
+             x:Class="Ready4Balfolk.UI.Views.Wizard.SetupWizardView"
+             x:DataType="wizard:SetupWizardViewModel">
+    <!-- The whole window, not a dialog. The dance list editor and the tagging report are full
+         screens in their own right, and running them inside a box gave them a fraction of the space
+         they need. -->
+    <DockPanel Margin="24">
+        <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,20">
+            <TextBlock Text="{CompiledBinding ProgressText}" FontSize="12" Opacity="0.6" />
+            <TextBlock Text="{CompiledBinding CurrentStep.Title}" FontSize="26" FontWeight="Bold" />
+            <TextBlock Text="{CompiledBinding CurrentStep.Explanation}"
+                       TextWrapping="Wrap"
+                       Opacity="0.8"
+                       MaxWidth="1000"
+                       HorizontalAlignment="Left"
+                       Margin="0,4,0,0" />
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,20,0,0">
+            <TextBlock Text="{CompiledBinding BlockedReason}"
+                       IsVisible="{CompiledBinding IsBlocked}"
+                       VerticalAlignment="Center"
+                       Opacity="0.7"
+                       Margin="0,0,8,0" />
+            <Button Content="{x:Static res:UiStrings.Wizard_Back}"
+                    Command="{CompiledBinding BackCommand}"
+                    IsVisible="{CompiledBinding !IsFirstStep}"
+                    MinWidth="100" />
+            <!-- The accent class is provided by FluentAvalonia at runtime, so this is a false positive. -->
+            <!-- ReSharper disable once Xaml.StyleClassNotFound -->
+            <Button Content="{CompiledBinding ContinueLabel}"
+                    Command="{CompiledBinding ContinueCommand}"
+                    Classes="accent"
+                    MinWidth="100"
+                    IsDefault="True" />
+        </StackPanel>
+
+        <rxui:ViewModelViewHost ViewModel="{CompiledBinding CurrentStep}" />
+    </DockPanel>
+</UserControl>

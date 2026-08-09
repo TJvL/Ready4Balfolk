@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Dances;
 
 namespace Ready4Balfolk.Domain.Services.Discovery;
@@ -88,12 +89,12 @@ public static partial class TrackInformationResolver
         {
             // Two dances both corroborated: the file genuinely says two things, so fall to the
             // tiebreaker rather than picking the first.
-            return TieBreak(corroborated, evidence, index);
+            return TieBreak(corroborated, candidates, evidence, index);
         }
 
         return bySlug.Count == 1
             ? (bySlug[0].Slug, bySlug[0].Sources)
-            : TieBreak(bySlug, evidence, index);
+            : TieBreak(bySlug, candidates, evidence, index);
     }
 
     /// <summary>
@@ -104,8 +105,29 @@ public static partial class TrackInformationResolver
     /// its own is what produced a dance column full of track numbers and band names.
     /// </remarks>
     private static (string? Slug, IReadOnlyList<DanceEvidenceSource> Agreeing) TieBreak(
-        List<(string Slug, List<DanceEvidenceSource> Sources)> contenders, TrackEvidence evidence, DanceListIndex index)
+        List<(string Slug, List<DanceEvidenceSource> Sources)> contenders,
+        List<DanceCandidate> candidates,
+        TrackEvidence evidence,
+        DanceListIndex index)
     {
+        // Brackets first. A dance written in brackets is a deliberate statement about the track,
+        // whereas an ordinary word in a title is an accident of language: "Tour" is a real dance,
+        // and it should not be able to tie with the "(Mazurka)" somebody wrote on purpose.
+        var bracketed = BracketedGroups(evidence.FileNameWithoutExtension);
+        if (bracketed.Count > 0)
+        {
+            var inBrackets = contenders
+                .Where(entry => candidates.Any(candidate =>
+                    string.Equals(candidate.Slug, entry.Slug, StringComparison.Ordinal)
+                    && bracketed.Any(group => group.Contains(candidate.MatchedName, StringComparison.Ordinal))))
+                .ToList();
+
+            if (inBrackets.Count == 1)
+            {
+                return (inBrackets[0].Slug, inBrackets[0].Sources);
+            }
+        }
+
         var leading = evidence.FileNameWithoutExtension.Split(" - ", 2);
         if (leading.Length == 2 && index.ResolveSlug(leading[0]) is { } fromPattern)
         {
@@ -206,6 +228,17 @@ public static partial class TrackInformationResolver
     [GeneratedRegex(@"^\s*\d{1,3}\s*[-._)\]]?\s*", RegexOptions.CultureInvariant)]
     private static partial Regex TrackNumberPrefix();
 
+    /// <summary>The folded contents of every bracketed group in the name.</summary>
+    private static List<string> BracketedGroups(string fileName) =>
+    [
+        .. AnyBrackets().Matches(fileName)
+            .Select(match => StringNormalizer.Normalize(match.Groups[1].Value))
+            .Where(text => text.Length > 0)
+    ];
+
     [GeneratedRegex(@"\(([^)]*)\)\s*$", RegexOptions.CultureInvariant)]
     private static partial Regex BracketedText();
+
+    [GeneratedRegex(@"[(\[]([^)\]]*)[)\]]", RegexOptions.CultureInvariant)]
+    private static partial Regex AnyBrackets();
 }

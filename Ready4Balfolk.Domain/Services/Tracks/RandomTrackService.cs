@@ -8,10 +8,11 @@ using Ready4Balfolk.Domain.Stores.Tracks;
 
 namespace Ready4Balfolk.Domain.Services.Tracks;
 
-/// <summary>Picks a track at random, weighted by the user's dance list.</summary>
+/// <summary>Picks a track at random from the dances a scope reaches.</summary>
 /// <remarks>
-/// The list is read directly: a category's weight multiplied by a dance's, with a marked category
-/// narrowing the pick to what is inside it. There is no second structure to keep in step with it.
+/// Every dance in the pool is equally likely, and a dance's own tracks share its share. So a dance
+/// with forty recordings is no likelier to come up than one with four, which is what stops a
+/// well-stocked waltz drowning out everything else in the pool.
 /// </remarks>
 public sealed class RandomTrackService(
     IDanceListStore danceListStore,
@@ -25,8 +26,8 @@ public sealed class RandomTrackService(
 
     public Models.Tracks.Track? PickRandomTrack(RandomSelectionScope scope, bool allowDuplicates)
     {
-        var weightedDances = CollectWeightedDances(danceListStore.Current, scope);
-        if (weightedDances.Count == 0)
+        var slugs = CollectDanceSlugs(danceListStore.Current, scope);
+        if (slugs.Count == 0)
         {
             return null;
         }
@@ -39,16 +40,16 @@ public sealed class RandomTrackService(
             .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
 
         var candidates = new List<(Models.Tracks.Track Track, double Weight)>();
-        foreach (var (slug, weight) in weightedDances)
+        foreach (var slug in slugs)
         {
             if (!tracksBySlug.TryGetValue(slug, out var matching))
             {
+                // A dance nobody owns a track for simply cannot come up, which is why the list
+                // needs no notion of the dances this user plays.
                 continue;
             }
 
-            // Split across the tracks, so a dance with forty recordings is no likelier to come up
-            // than one with four.
-            var weightPerTrack = weight / matching.Count;
+            var weightPerTrack = 1.0 / matching.Count;
             candidates.AddRange(matching.Select(track => (track, weightPerTrack)));
         }
 
@@ -83,85 +84,19 @@ public sealed class RandomTrackService(
         return candidates[^1].Track;
     }
 
-    private static List<(string Slug, double Weight)> CollectWeightedDances(
-        DanceList list, RandomSelectionScope scope)
-    {
-        switch (scope)
+    private static List<string> CollectDanceSlugs(DanceList list, RandomSelectionScope scope) =>
+        scope switch
         {
-            case RandomSelectionScope.EntireList:
-                return CollectFrom(list.Categories, parentWeight: 1.0);
+            RandomSelectionScope.Pool pool =>
+                [.. list.WithAnyTag(pool.Tags).Select(dance => dance.Slug)],
 
-            case RandomSelectionScope.Category category:
-            {
-                var resolved = ResolveCategory(list.Categories, category.Path);
-                // The marked category is the root of the pick, so its own weight no longer
-                // says anything: everything under it is being compared with everything else
-                // under it.
-                return resolved is null ? [] : CollectWithin(resolved, weight: 1.0);
-            }
+            // Named outright, so it stands whether or not the dance is in the pool: asking for a
+            // hanter dro is an answer, not a filter.
+            RandomSelectionScope.SingleDance single =>
+                list.FindDance(single.Slug) is null ? [] : [single.Slug],
 
-            case RandomSelectionScope.SingleDance single:
-            {
-                var dance = list.AllDances.FirstOrDefault(
-                    d => string.Equals(d.Slug, single.Slug, StringComparison.Ordinal));
-                return dance is null || dance.Weight <= 0 ? [] : [(dance.Slug, dance.Weight)];
-            }
-
-            default:
-                return [];
-        }
-    }
-
-    private static List<(string Slug, double Weight)> CollectFrom(
-        IReadOnlyList<DanceCategory> categories, double parentWeight)
-    {
-        var result = new List<(string, double)>();
-        foreach (var category in categories)
-        {
-            var categoryWeight = parentWeight * category.Weight;
-            if (categoryWeight <= 0)
-            {
-                // Weight zero means never, and it takes everything under it with it.
-                continue;
-            }
-
-            result.AddRange(CollectWithin(category, categoryWeight));
-        }
-
-        return result;
-    }
-
-    private static List<(string Slug, double Weight)> CollectWithin(DanceCategory category, double weight)
-    {
-        var result = category.Dances
-            .Where(dance => dance.Weight > 0)
-            .Select(dance => (dance.Slug, weight * dance.Weight))
-            .ToList();
-
-        result.AddRange(CollectFrom(category.Categories, weight));
-        return result;
-    }
-
-    private static DanceCategory? ResolveCategory(IReadOnlyList<DanceCategory> categories, int[] path)
-    {
-        var level = categories;
-        for (var i = 0; i < path.Length; i++)
-        {
-            if (path[i] < 0 || path[i] >= level.Count)
-            {
-                return null;
-            }
-
-            if (i == path.Length - 1)
-            {
-                return level[path[i]];
-            }
-
-            level = level[path[i]].Categories;
-        }
-
-        return null;
-    }
+            _ => []
+        };
 
     private HashSet<string> GetExcludedFilePaths()
     {

@@ -30,7 +30,7 @@ All models are **sealed records** with `[JsonPropertyName]` attributes for persi
 |-----------|----------|
 | `Tracks/` | `Track` — file path, dance, artist, title, length. Carries `OriginalDance` for re-resolution. |
 | `QueueItems/` | `IQueueItem` interface + five implementations: `TrackQueueItem`, `DelayQueueItem`, `MessageQueueItem`, `StopQueueItem`, `AutoTrackQueueItem`. |
-| `Dances/` | `DanceList` -> recursive `DanceCategory` -> `Dance`. A dance's identity is its `Slug`; its `Names` are a flat set of equals whose first entry is what gets displayed. Both categories and dances carry a `Weight`. `DanceListIndex` is the folded-name-to-slug lookup built over a list; `DanceListProblems` is what validation reports. |
+| `Dances/` | `DanceList` -> `Dance`, exactly as BigBalfolkList publishes it: a top-level `Tags` vocabulary and a flat list of `{slug, names, tags}`. A dance's identity is its `Slug`; its `Names` are a flat set of equals whose first entry is what gets displayed; everything else is a tag, so nothing is filed under one grouping at the expense of another. There is no hierarchy and no weight. `DanceListIndex` is the folded-name-to-slug lookup built over a list, `DanceListProblems` is what validation reports, and `DanceListStatus`/`DanceListUpdate` say where the list came from and what came of asking for a newer one. |
 | `Settings/` | `ApplicationSettings`, `ApplicationTheme` enum, `WindowState`. |
 | `History/` | `QueueHistoryEntry` (abstract, `[JsonPolymorphic]`) with `TrackHistoryEntry`, `MessageHistoryEntry`, `DelayHistoryEntry`, `StopHistoryEntry`. `QueueHistory` wraps the entry list. |
 
@@ -69,6 +69,25 @@ There is **no naming convention**. A real library puts the dance in brackets (`1
 
 Measured on a 2685-file library with BigBalfolkList imported and nothing else configured: 45% resolved, 269 of those rescued by folder agreement. The rest carry the value the file claimed, which is what the tagging editor groups by.
 
+### Tagging: one report, grouped by value
+
+`Services/Tagging/` turns what the index does not know into a list of decisions. **The unit of work is the distinct value, not the track** — 21 files claiming "Ar Re Yaouank" are one decision, and 1465 unresolved files in a real library become 169.
+
+`UnrecognisedValueClassifier` decides what can be done about a value, and the distinction it draws is the point of the whole screen:
+
+- **Misspelled** — close to exactly one name, or sitting inside exactly one. One decision settles every track.
+- **Too general** — sits inside several names. `CanMapAsAWhole` is false and the view renders **no map control at all**, not a disabled one: mapping "Bourrée" across 50 tracks would invent 50 confident answers. It offers the album-folder breakdown instead, because a folder where 8 of 11 tracks already read "Bourrée 3 temps" answers for the other three. A value equally near two dances is treated the same way.
+- **Unknown** — nothing is near it. A band, a genre, or a dance not added yet.
+
+Other things that are load-bearing:
+
+- **Ignore is first class**, stored in an `ignored_values` table. Without it the badge sits at 137 forever, because a real library is full of genre tags: `Folk` alone accounts for 205 files.
+- **Suggestions rank by what the library already resolved to**, not alphabetically, so the dance this user actually plays is first.
+- **Mapping a value assigns the tracks and nothing else.** The dance list is BigBalfolkList's and the application does not write to it, so a spelling worth having belongs in a proposal there rather than in one person's copy. Files already answered stay answered, because the answer lives in the library index; a new file spelled the same way asks again.
+- **The report is built from the index**, so it is identical whether the scan just ran or the application restarted, and the toolbar count is a query.
+- **The watcher never announces anything** — a count on a button, no dialog and no toast. The application runs in front of a room.
+- **Preview refuses while the queue is playing.** There is one output and the room is on it, so this is preparation work by construction rather than by discipline.
+
 ### Library index
 
 `Stores/Library/` is the index of what is in the music directory, in SQLite (`library.sqlite`). It replaced a JSON duration cache, and its job is that **a startup which finds nothing changed opens no audio files at all** — verified on a 345-track library: first run 345 files read, second run 0.
@@ -97,11 +116,13 @@ Services hold **ephemeral runtime state** and operational logic — queue manage
 | `QueueService` | In-memory queue backed by `SourceList<IQueueItem>`. Delegates all validation to a `QueueGuard` (see below). |
 | `QueueConsumptionService` | Dequeues items, drives playback, tracks elapsed time, records history. |
 | `AudioPlaybackService` | ManagedBass wrapper for audio playback (play, pause, seek, volume). |
-| `RandomTrackService` | Weighted random selection straight from the dance list (category weight x dance weight), with deduplication against queue + history + currently playing. Groups tracks by slug, so an unresolved track never takes part. |
+| `RandomTrackService` | Random selection over the dances a `RandomSelectionScope` reaches: a `Pool` of tags (empty means every dance) or one `SingleDance`. Every dance in the pool is equally likely and a dance's tracks share its share, so forty recordings of one waltz do not drown out the rest. Deduplicates against queue + history + currently playing, and groups tracks by slug so an unresolved track never takes part. |
+| `DancePool` | The tags a pick draws from, held in memory and read by the dance panel, the auto-queue and the phone remote alike. Not persisted: it is a decision about tonight. |
 | `TrackDiscoveryService` | Opens a file once and reports what it says about itself (`TrackEvidence`): filename, path segments, tags, duration, format, content hash. It decides nothing. |
 | `AudioContentHasher` | SHA-256 over the audio between the tags, so the application's own tag edits do not move a row in the library index. |
-| `BigBalfolkListImporter` | One-time read of the `dances.json` BigBalfolkList publishes. Region becomes a category, family or suite a sub-category, everything weight 1. Static, because it is a pure function of a file. |
-| `DanceListValidation` | Checks the one invariant everything else rests on: a name belongs to exactly one dance. |
+| `DanceListReader` | The one door the list comes through, from all four sources: the copy shipped in `Domain/Assets/dances.json`, the cached download, a fetch, and a file the user picked. Refuses anything that is not format version 3, is empty, or breaks validation. Static, because it is a pure function of the bytes. |
+| `DanceListFeed` | Downloads the raw `dances.json` from the BigBalfolkList repository. Caching off: the reason to press update is that something was merged a minute ago. |
+| `DanceListValidation` | Checks the invariants everything else rests on: a name belongs to exactly one dance, slugs are unique, and every tag a dance carries is declared at the top of the file. |
 
 **To add a new service:**
 
@@ -145,24 +166,6 @@ The `QueueService` does not contain any validation logic itself. Instead, it del
 3. Add unit tests for the rule in isolation (see `AutoTrackRuleTests`, `DuplicateTrackRuleTests`, `MaxItemsRuleTests` for examples).
 4. If the rule interacts with other rules during eviction, add a combined test in `QueueGuardTests`.
 
-### Editor System
-
-The editor system implements **undo/redo** via the Command pattern combined with immutable transforms.
-
-**Components:**
-
-- **`IEditorAction`** — interface with `ExecuteAsync()`, `UndoAsync()`, and `Description`.
-- **`EditorHistoryService`** — manages two stacks (`_undoStack`, `_redoStack`). Exposes `CanUndo`, `CanRedo`, `UndoDescription`, `RedoDescription` as `IObservable<T>` via `BehaviorSubject`. Executing a new action clears the redo stack.
-- **`DanceListAction`** — the concrete `IEditorAction`, built through static factory methods. Each captures a `_before` snapshot, applies a pure transform via `Store.UpdateAsync()`, and undoes by restoring it. An optional `_validate` closure runs first; a refused action never becomes undoable.
-- **`DanceListTransforms`** — pure functions over an immutable `DanceList`. Categories are addressed by `int[]` path, but **dances are addressed by slug**, because a dance keeps its slug when renamed, respelled or moved, so an edit cannot land on the wrong one. `DanceListAction.UndoAsync` is a no-op when the action was refused, so undoing a rejected edit cannot restore a snapshot it never took.
-
-**To add a new editor action:**
-
-1. Add a static factory method on `DanceListAction` (e.g. `public static DanceListAction MoveDance(...)`).
-2. Write the pure transform function in the corresponding `*Transforms` class.
-3. Optionally add a `_validate` closure for pre-execution validation.
-4. Call it from the ViewModel via `editorHistoryService.DoActionAsync(DanceListAction.MoveDance(store, ...))`.
-
 ### Helpers
 
 `StringNormalizer.Normalize(string)` — decomposes Unicode (FormD), strips diacritics (non-spacing marks), keeps only letters/digits/spaces, lowercases, and collapses whitespace. Used throughout for case-insensitive, accent-insensitive name matching (resolving a name to a dance, uniqueness checks, search filtering).
@@ -195,7 +198,7 @@ The editor system implements **undo/redo** via the Command pattern combined with
 - A step is a `WizardStepViewModel`: `Title`, `Explanation`, an optional `CanContinue` observable, and `EnterAsync`/`CommitAsync`. `SetupWizardViewModel` owns the ordered list, and its continue command follows `CurrentStep.CanContinue` through `.Switch()` so a step's opinion stops counting the moment it is left.
 - Steps are registered `AddTransient`, so a second run starts from what is on disk rather than from the last visit. Each needs an `IViewFor<T>` registration for `ViewModelViewHost` to resolve it.
 - The wizard is modal over the main window, so it takes over confirmation ownership for as long as it is open (`ConfirmationService.UseOwner`). Without that, a confirmation raised from a step is parented to a window the user cannot reach: it closes immediately and reads as a button that does nothing.
-- Order: build the dance list, edit it, then point at the music. The dance list comes first because it is what everything else has something to say about. The edit step hosts the ordinary `DanceListView`, unchanged, so an imported list can be corrected while it is still obvious that the list is what is being set up.
+- Order: explain, fetch the dance list, point at the music, then answer what could not be placed. The dance list comes first because it is the vocabulary everything else is said in, and its step asks nothing: it fetches the published list and shows what arrived. It never blocks either, because the copy shipped with the build is a perfectly good list and a hall with no wifi is an ordinary place to start in.
 
 ### Views & ViewModels
 
@@ -207,7 +210,7 @@ Every feature lives in `Views/{Feature}/` containing:
 
 Namespace: `Ready4Balfolk.UI.Views.{Feature}`.
 
-Some features also include sub-item ViewModels (e.g. `TrackViewModel`, `DanceNameRow`, `HistoryItemViewModel`), node types (e.g. `DanceCategoryNode`, `DanceNode`), and converters. Converters used by more than one feature live in `Converters/`.
+Some features also include sub-item ViewModels (e.g. `TrackViewModel`, `DanceCardViewModel`, `TagChipViewModel`, `HistoryItemViewModel`) and converters. Converters used by more than one feature live in `Converters/`.
 
 **MainWindow** is the shell. Its `MainWindowViewModel` receives all sub-ViewModels via constructor injection. Navigation uses `IsVisible` bindings on `Panel` children — one panel per screen, all stacked. The `NotificationOverlayView` is always visible on top.
 
@@ -393,4 +396,4 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 7. **Register ViewModel** — add to `Program.cs` as singleton. Add as a property on `MainWindowViewModel` if it is a top-level screen.
 8. **Navigation** — add to `Screen` enum, wire `IsXxxScreen`, add `IsVisible` panel in `MainWindow.axaml`, add toolbar button.
 9. **Converters** — if needed, add with the static `Instance` pattern in the feature folder.
-10. **Editor actions** — if the feature edits the dance list, add factory methods on `DanceListAction` and pure transforms in `DanceListTransforms`.
+10. **Strings** — add the English text to `UiStrings.resx`, the Dutch to `UiStrings.nl.resx`, and the property to `UiStrings.Designer.cs`. The three are kept in step by hand.

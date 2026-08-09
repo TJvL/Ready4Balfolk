@@ -2,6 +2,10 @@ using Ready4Balfolk.Domain.Models.Dances;
 
 namespace Ready4Balfolk.Domain.Stores.Dances;
 
+/// <summary>
+/// Holds the published dance list. Read-only on purpose: the list is shared vocabulary, so the
+/// application takes it as it is published and has no opinion to store about it.
+/// </summary>
 public interface IDanceListStore : ILoadableStore, IDisposable
 {
     /// <summary>The list as it stands.</summary>
@@ -10,16 +14,18 @@ public interface IDanceListStore : ILoadableStore, IDisposable
     /// <summary>A lookup over <see cref="Current"/>, rebuilt with it and never separately.</summary>
     DanceListIndex Index { get; }
 
+    DanceListStatus Status { get; }
+
     IObservable<DanceList> Observe();
 
+    IObservable<DanceListStatus> ObserveStatus();
+
+    /// <summary>The cached copy if there is a usable one, otherwise the copy shipped with the app.</summary>
     Task LoadAsync(CancellationToken token);
 
-    Task UpdateAsync(Func<DanceList, DanceList> transform);
+    /// <summary>Downloads the published list and takes it whole if it is newer.</summary>
+    Task<DanceListUpdate> RefreshAsync(CancellationToken token = default);
 
-    /// <summary>Replaces the list wholesale, as the setup wizard does when it builds one.</summary>
-    Task ReplaceAsync(DanceList list);
-
-    Task ExportAsync(FileInfo destinationFileInfo);
-
-    Task ImportAsync(FileInfo sourceFileInfo);
+    /// <summary>Takes a list from a file, for a machine that never reaches the internet.</summary>
+    Task<DanceListUpdate> UpdateFromFileAsync(FileInfo sourceFileInfo, CancellationToken token = default);
 }

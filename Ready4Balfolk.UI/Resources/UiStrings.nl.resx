@@ -608,43 +608,13 @@
     <value>Klaar</value>
   </data>
   <data name="Wizard_DanceList_Title" xml:space="preserve">
-    <value>Jouw danslijst</value>
+    <value>De dansenlijst</value>
   </data>
   <data name="Wizard_DanceList_Explanation" xml:space="preserve">
-    <value>Ready4Balfolk houdt een lijst bij van de dansen die je draait en de namen waaronder elke dans bekend staat. Die lijst is van jou: er zit niets ingebouwd en er wordt niets stiekem aan toegevoegd. De lijst bepaalt ook hoe de applicatie je muziek ordent, dus die komt eerst.</value>
-  </data>
-  <data name="Wizard_DanceList_ImportHeading" xml:space="preserve">
-    <value>Een gepubliceerde lijst importeren</value>
-  </data>
-  <data name="Wizard_DanceList_ImportDescription" xml:space="preserve">
-    <value>Begin met een lijst die iemand al geschreven heeft, met de regio's, families en suites als jouw categorieen. Je kunt er daarna alles aan veranderen.</value>
-  </data>
-  <data name="Wizard_DanceList_ImportButton" xml:space="preserve">
-    <value>Kies een bestand om te importeren</value>
-  </data>
-  <data name="Wizard_DanceList_ImportPickerTitle" xml:space="preserve">
-    <value>Kies een danslijstbestand</value>
-  </data>
-  <data name="Wizard_DanceList_EmptyHeading" xml:space="preserve">
-    <value>Leeg beginnen</value>
-  </data>
-  <data name="Wizard_DanceList_EmptyDescription" xml:space="preserve">
-    <value>Begin met niets en voeg de dansen toe die je echt draait, op het danslijstscherm.</value>
-  </data>
-  <data name="Wizard_DanceList_StartEmptyButton" xml:space="preserve">
-    <value>Met een lege lijst beginnen</value>
-  </data>
-  <data name="Wizard_DanceList_SummaryFormat" xml:space="preserve">
-    <value>Je lijst bevat {0} dansen in {1} categorieen.</value>
-  </data>
-  <data name="Wizard_DanceList_EmptySummary" xml:space="preserve">
-    <value>Je begint leeg. Voeg dansen toe op het danslijstscherm wanneer je wilt.</value>
+    <value>Elke dans die op de balfolkscene gedanst wordt, en elke naam die zo'n dans heeft. De lijst komt van BigBalfolkList en wordt gebruikt zoals hij gepubliceerd is, dus hier valt niets in te vullen: de namen in je bestandsnamen worden ermee vergeleken, en een willekeurige keuze wordt eruit getrokken.</value>
   </data>
   <data name="Wizard_DanceList_Source" xml:space="preserve">
-    <value>Een lijst om te importeren staat op</value>
-  </data>
-  <data name="Wizard_DanceList_ImportFailed" xml:space="preserve">
-    <value>Dat bestand kon niet gelezen worden.</value>
+    <value>Hij komt van</value>
   </data>
   <data name="Wizard_Music_Title" xml:space="preserve">
     <value>Jouw muziek</value>
@@ -662,12 +632,72 @@
     <value>Opent de instelwizard. Je danslijst en je muziekmap blijven zoals ze zijn, tenzij je ze daar verandert.</value>
   </data>
 
-  <!-- Dance list editor -->
-  <data name="Wizard_DanceListEdit_Title" xml:space="preserve">
-    <value>Controleer je danslijst</value>
+  <!-- Dance panel -->
+  <data name="Wizard_DanceList_Summary" xml:space="preserve">
+    <value>{0} dansen, {1} labels</value>
   </data>
-  <data name="Wizard_DanceListEdit_Explanation" xml:space="preserve">
-    <value>Hernoem categorieen, voeg de dansen toe die je draait en de spellingen die je gebruikt, haal weg wat je niet gebruikt, en stel in hoe vaak iets aan de beurt komt. Niets hiervan is definitief: hetzelfde scherm zit daarna gewoon in de applicatie.</value>
+  <data name="Wizard_DanceList_Detail" xml:space="preserve">
+    <value>Er wordt een kopie met de applicatie meegeleverd, dus dit werkt ook zonder internet. Bij het starten wordt hij ververst, en je kunt in het dansenpaneel altijd om een nieuwere vragen.</value>
+  </data>
+  <data name="DanceList_SearchWatermark" xml:space="preserve">
+    <value>Zoek in elke schrijfwijze…</value>
+  </data>
+  <data name="DanceList_TagsHeader" xml:space="preserve">
+    <value>Labels</value>
+  </data>
+  <data name="DanceList_PoolEverything" xml:space="preserve">
+    <value>Trekt uit alle dansen</value>
+  </data>
+  <data name="DanceList_PoolFormat" xml:space="preserve">
+    <value>Trekt uit {0} · {1} dansen</value>
+  </data>
+  <data name="DanceList_ClearPool" xml:space="preserve">
+    <value>Alles</value>
+  </data>
+  <data name="DanceList_ClearPoolTip" xml:space="preserve">
+    <value>Weer uit alle dansen trekken</value>
+  </data>
+  <data name="DanceList_Summary" xml:space="preserve">
+    <value>{0} van {1} dansen</value>
+  </data>
+  <data name="DanceList_Obtained" xml:space="preserve">
+    <value>opgehaald {0:d MMMM yyyy}</value>
+  </data>
+  <data name="DanceList_ObtainedBuiltIn" xml:space="preserve">
+    <value>meegeleverd met deze versie</value>
+  </data>
+  <data name="DanceList_Update" xml:space="preserve">
+    <value>Bijwerken</value>
+  </data>
+  <data name="DanceList_UpdateTip" xml:space="preserve">
+    <value>Haal de lijst op zoals BigBalfolkList hem nu publiceert</value>
+  </data>
+  <data name="DanceList_UpdateFromFile" xml:space="preserve">
+    <value>Uit een bestand</value>
+  </data>
+  <data name="DanceList_UpdateFromFileTip" xml:space="preserve">
+    <value>Neem de lijst over uit een dances.json op deze computer</value>
+  </data>
+  <data name="DanceList_Updated" xml:space="preserve">
+    <value>Dansenlijst bijgewerkt. {0} dansen zijn nieuw.</value>
+  </data>
+  <data name="DanceList_AlreadyCurrent" xml:space="preserve">
+    <value>De dansenlijst was al de gepubliceerde versie.</value>
+  </data>
+  <data name="DanceList_UpdateFailed" xml:space="preserve">
+    <value>De dansenlijst kon niet bijgewerkt worden: {0}. Die je hebt blijft in gebruik.</value>
+  </data>
+  <data name="DanceList_TrackCount" xml:space="preserve">
+    <value>{0} nummers</value>
+  </data>
+  <data name="DanceList_NoTracks" xml:space="preserve">
+    <value>geen nummers</value>
+  </data>
+  <data name="DanceList_PickThisDance" xml:space="preserve">
+    <value>Zet een willekeurig nummer van deze dans in de wachtrij</value>
+  </data>
+  <data name="DanceList_NoTrackForDance" xml:space="preserve">
+    <value>Je hebt geen nummer voor {0}.</value>
   </data>
   <data name="Wizard_DanceList_SourceUrl" xml:space="preserve">
     <value>github.com/TJvL/BigBalfolkList</value>
@@ -675,145 +705,10 @@
   <data name="DanceList_Title" xml:space="preserve">
     <value>Danslijst</value>
   </data>
-  <data name="DanceList_SummaryFormat" xml:space="preserve">
-    <value>{0} dansen in {1} categorieen</value>
-  </data>
-  <data name="DanceList_NothingSelected" xml:space="preserve">
-    <value>Niets geselecteerd</value>
-  </data>
-  <data name="DanceList_SelectSomething" xml:space="preserve">
-    <value>Kies links een categorie of een dans om die te bewerken.</value>
-  </data>
-  <data name="DanceList_AddRootCategory" xml:space="preserve">
-    <value>Categorie toevoegen</value>
-  </data>
-  <data name="DanceList_AddSubCategory" xml:space="preserve">
-    <value>Categorie hierbinnen toevoegen</value>
-  </data>
-  <data name="DanceList_AddDanceHere" xml:space="preserve">
-    <value>Dans aan deze categorie toevoegen</value>
-  </data>
-  <data name="DanceList_NewDanceWatermark" xml:space="preserve">
-    <value>Naam van de dans</value>
-  </data>
-  <data name="DanceList_Add" xml:space="preserve">
-    <value>Toevoegen</value>
-  </data>
-  <data name="DanceList_Delete" xml:space="preserve">
-    <value>Verwijderen</value>
-  </data>
-  <data name="DanceList_Rename" xml:space="preserve">
-    <value>Hernoemen</value>
-  </data>
-  <data name="DanceList_Apply" xml:space="preserve">
-    <value>Toepassen</value>
-  </data>
-  <data name="DanceList_Undo" xml:space="preserve">
-    <value>Ongedaan maken</value>
-  </data>
-  <data name="DanceList_Redo" xml:space="preserve">
-    <value>Opnieuw</value>
-  </data>
-  <data name="DanceList_Import" xml:space="preserve">
-    <value>Importeren</value>
-  </data>
-  <data name="DanceList_Export" xml:space="preserve">
-    <value>Exporteren</value>
-  </data>
-  <data name="DanceList_ImportTitle" xml:space="preserve">
-    <value>Danslijst importeren</value>
-  </data>
-  <data name="DanceList_ImportConfirmMessage" xml:space="preserve">
-    <value>Importeren vervangt je hele danslijst en kan niet ongedaan gemaakt worden. Exporteer eerst de huidige lijst als je die wilt bewaren.</value>
-  </data>
-  <data name="DanceList_CategoryName" xml:space="preserve">
-    <value>Categorienaam</value>
-  </data>
-  <data name="DanceList_Names" xml:space="preserve">
-    <value>Namen</value>
-  </data>
-  <data name="DanceList_NamesExplanation" xml:space="preserve">
-    <value>Deze betekenen allemaal deze dans. De bovenste is de spelling die getoond wordt; zet een andere bovenaan om die te lezen.</value>
-  </data>
-  <data name="DanceList_NewNameWatermark" xml:space="preserve">
-    <value>Nog een spelling</value>
-  </data>
-  <data name="DanceList_UseThisSpelling" xml:space="preserve">
-    <value>Deze spelling tonen</value>
-  </data>
-  <data name="DanceList_RemoveName" xml:space="preserve">
-    <value>Deze spelling verwijderen</value>
-  </data>
-  <data name="DanceList_Weight" xml:space="preserve">
-    <value>Gewicht</value>
-  </data>
-  <data name="DanceList_WeightExplanation" xml:space="preserve">
-    <value>Hoe waarschijnlijk een willekeurige keuze is. Het gewicht van een categorie wordt vermenigvuldigd met dat van de dans; nul betekent nooit.</value>
-  </data>
-  <data name="DanceList_WeightBadge" xml:space="preserve">
-    <value>x{0}</value>
-  </data>
-  <data name="DanceList_UndoFormat" xml:space="preserve">
-    <value>Ongedaan maken: {0}</value>
-  </data>
-  <data name="DanceList_UndoDefault" xml:space="preserve">
-    <value>Niets om ongedaan te maken</value>
-  </data>
-  <data name="DanceList_RedoFormat" xml:space="preserve">
-    <value>Opnieuw: {0}</value>
-  </data>
-  <data name="DanceList_RedoDefault" xml:space="preserve">
-    <value>Niets om opnieuw te doen</value>
-  </data>
-  <data name="DanceList_DeleteTitle" xml:space="preserve">
-    <value>Verwijderen</value>
-  </data>
-  <data name="DanceList_DeleteConfirm" xml:space="preserve">
-    <value>Verwijderen</value>
-  </data>
-  <data name="DanceList_DeleteCancel" xml:space="preserve">
-    <value>Annuleren</value>
-  </data>
-  <data name="DanceList_DeleteEmptyCategoryMessage" xml:space="preserve">
-    <value>De lege categorie "{0}" verwijderen?</value>
-  </data>
-  <data name="DanceList_DeleteCategoryMessage" xml:space="preserve">
-    <value>"{0}" en de {1} dansen erin verwijderen?</value>
-  </data>
-  <data name="DanceList_DeleteDanceMessage" xml:space="preserve">
-    <value>De dans "{0}" en al zijn spellingen verwijderen?</value>
-  </data>
 
   <!-- Setup wizard: emptying the list -->
-  <data name="Wizard_DanceList_ClearTitle" xml:space="preserve">
-    <value>Met een lege lijst beginnen</value>
-  </data>
-  <data name="Wizard_DanceList_ClearConfirmMessage" xml:space="preserve">
-    <value>Dit verwijdert alle {0} dansen die je nu hebt en kan niet ongedaan gemaakt worden. Exporteer de lijst eerst als je die wilt bewaren.</value>
-  </data>
-  <data name="Wizard_DanceList_ClearConfirm" xml:space="preserve">
-    <value>Lijst legen</value>
-  </data>
-  <data name="Wizard_DanceList_ClearCancel" xml:space="preserve">
-    <value>Annuleren</value>
-  </data>
 
   <!-- Dance list scope -->
-  <data name="DanceList_MarkForRandom" xml:space="preserve">
-    <value>Willekeurig kiezen vanaf hier</value>
-  </data>
-  <data name="DanceList_MarkWholeList" xml:space="preserve">
-    <value>Weer uit de hele lijst kiezen</value>
-  </data>
-  <data name="DanceList_MarkWholeListLabel" xml:space="preserve">
-    <value>Hele lijst</value>
-  </data>
-  <data name="DanceList_MarkedWholeList" xml:space="preserve">
-    <value>Willekeurig uit: hele lijst</value>
-  </data>
-  <data name="DanceList_MarkedFormat" xml:space="preserve">
-    <value>Willekeurig uit: {0}</value>
-  </data>
   <data name="DanceListToolbar_SwitchToTrackList" xml:space="preserve">
     <value>Naar de nummerlijst</value>
   </data>
@@ -825,5 +720,153 @@
   </data>
   <data name="TrackCatalog_DancesLabel" xml:space="preserve">
     <value>Dansen</value>
+  </data>
+
+  <!-- Tagging editor -->
+  <data name="Tagging_Title" xml:space="preserve">
+    <value>Taggen</value>
+  </data>
+  <data name="Toolbar_Tagging" xml:space="preserve">
+    <value>Nog te taggen</value>
+  </data>
+  <data name="Toolbar_TaggingLabel" xml:space="preserve">
+    <value>Taggen</value>
+  </data>
+  <data name="Tagging_Summary" xml:space="preserve">
+    <value>{0} nummers herkend. {1} nummers wachten op {2} beslissingen, en {3} zeggen helemaal niets over een dans.</value>
+  </data>
+  <data name="Tagging_NothingToDo" xml:space="preserve">
+    <value>Er wacht niets. Elk nummer heeft een dans of is al afgehandeld.</value>
+  </data>
+  <data name="Tagging_TrackCount" xml:space="preserve">
+    <value>{0} nummers</value>
+  </data>
+  <data name="Tagging_MapTo" xml:space="preserve">
+    <value>Dit betekent...</value>
+  </data>
+  <data name="Tagging_MapFolder" xml:space="preserve">
+    <value>Deze map is...</value>
+  </data>
+  <data name="Tagging_MapTrack" xml:space="preserve">
+    <value>Dit nummer is...</value>
+  </data>
+  <data name="Tagging_Ignore" xml:space="preserve">
+    <value>Geen dans</value>
+  </data>
+  <data name="Tagging_IgnoreTooltip" xml:space="preserve">
+    <value>Vraag hier niet meer naar. Het blijft weg tot je anders zegt.</value>
+  </data>
+  <data name="Tagging_Ignored" xml:space="preserve">
+    <value>Er wordt niet meer naar "{0}" gevraagd.</value>
+  </data>
+  <data name="Tagging_ShowTracks" xml:space="preserve">
+    <value>Toon de nummers</value>
+  </data>
+  <data name="Tagging_Preview" xml:space="preserve">
+    <value>Naar dit nummer luisteren</value>
+  </data>
+  <data name="Tagging_StopPreview" xml:space="preserve">
+    <value>Stoppen met luisteren</value>
+  </data>
+  <data name="Tagging_PreviewRefused" xml:space="preserve">
+    <value>Niet terwijl er iets speelt. De zaal hoort alles wat afgespeeld wordt, dus voorbeluisteren is voor de voorbereiding.</value>
+  </data>
+  <data name="Tagging_SuggestionWithCount" xml:space="preserve">
+    <value>{0} ({1} nummers)</value>
+  </data>
+  <data name="Tagging_LooksLikeAMisspelling" xml:space="preserve">
+    <value>Dit lijkt een dans die anders gespeld is, dus een antwoord regelt alle nummers.</value>
+  </data>
+  <data name="Tagging_TooGeneralExplanation" xml:space="preserve">
+    <value>Dit past bij meerdere dansen, dus het in een keer beantwoorden zou voor elk nummer een antwoord verzinnen. Kijk in plaats daarvan naar de albums: een album dat grotendeels een bepaalde dans is, kan voor de rest van zichzelf spreken.</value>
+  </data>
+  <data name="Tagging_NothingLooksLikeIt" xml:space="preserve">
+    <value>Niets in je danslijst lijkt hierop. Het kan een band zijn, een genre, of een dans die je nog niet toegevoegd hebt.</value>
+  </data>
+  <data name="Tagging_FolderAgrees" xml:space="preserve">
+    <value>{0} wachten hier. De rest van dit album leest als {1} ({2} nummers).</value>
+  </data>
+  <data name="Tagging_FolderSaysNothing" xml:space="preserve">
+    <value>{0} wachten hier, en de rest van het album zegt ook niets.</value>
+  </data>
+  <data name="Tagging_BucketSuggestions" xml:space="preserve">
+    <value>Een antwoord elk</value>
+  </data>
+  <data name="Tagging_BucketSuggestionsHint" xml:space="preserve">
+    <value>Elk hiervan lijkt een dans die anders gespeld is. Een antwoord regelt al zijn nummers.</value>
+  </data>
+  <data name="Tagging_BucketUnrecognised" xml:space="preserve">
+    <value>Vragen om aandacht</value>
+  </data>
+  <data name="Tagging_BucketUnrecognisedHint" xml:space="preserve">
+    <value>Deze gaan over meerdere nummers en kunnen niet in een keer beantwoord worden, of niets in je lijst lijkt erop.</value>
+  </data>
+  <data name="Tagging_BucketOneOffs" xml:space="preserve">
+    <value>Een nummer elk</value>
+  </data>
+  <data name="Tagging_BucketOneOffsHint" xml:space="preserve">
+    <value>Bij elk hiervan hoort een enkel nummer, dus ze zijn je tijd het minst waard.</value>
+  </data>
+  <data name="Wizard_Tagging_Title" xml:space="preserve">
+    <value>Wat niet herkend kon worden</value>
+  </data>
+  <data name="Wizard_Tagging_Explanation" xml:space="preserve">
+    <value>Alles wat Ready4Balfolk niet kan plaatsen staat hier gegroepeerd, een regel per unieke waarde in plaats van een per bestand. Je kunt dit nu beantwoorden of laten staan: hetzelfde scherm zit in de applicatie, en niets hiervan hoeft af te zijn voor je hem gebruikt.</value>
+  </data>
+  <data name="Toolbar_TaggingCount" xml:space="preserve">
+    <value>{0} wachten om getagd te worden</value>
+  </data>
+  <data name="Tagging_StillReading" xml:space="preserve">
+    <value>Je muziek wordt nog ingelezen. De lijst verschijnt zodra dat klaar is.</value>
+  </data>
+  <data name="Tagging_AmbiguousExplanation" xml:space="preserve">
+    <value>Deze nummers noemen deze dans en nog een andere, dus er is niets aangenomen. Klap ze open en kies per nummer.</value>
+  </data>
+  <data name="Tagging_ScanProgress" xml:space="preserve">
+    <value>{0} nummers tot nu toe.</value>
+  </data>
+  <data name="Tagging_SearchDances" xml:space="preserve">
+    <value>Typ om een dans te zoeken</value>
+  </data>
+  <data name="Tagging_DecidedAs" xml:space="preserve">
+    <value>✓ {0}</value>
+  </data>
+  <data name="Tagging_DecidedNotADance" xml:space="preserve">
+    <value>✓ geen dans</value>
+  </data>
+
+  <!-- Setup: welcome -->
+  <data name="Wizard_Welcome_Title" xml:space="preserve">
+    <value>Ready4Balfolk instellen</value>
+  </data>
+  <data name="Wizard_Welcome_Explanation" xml:space="preserve">
+    <value>Dit duurt een paar minuten. Niets hiervan is definitief: al deze schermen zitten daarna in de applicatie, en je kunt hier vanuit de instellingen altijd naar terug.</value>
+  </data>
+  <data name="Wizard_Welcome_Stage1" xml:space="preserve">
+    <value>1. De dansenlijst</value>
+  </data>
+  <data name="Wizard_Welcome_Stage1Detail" xml:space="preserve">
+    <value>Elke balfolkdans en elke naam die hij heeft, gepubliceerd door BigBalfolkList en gebruikt zoals hij is. Hij wordt voor je opgehaald, er valt niets in te vullen, en je muziek wordt ermee vergeleken.</value>
+  </data>
+  <data name="Wizard_Welcome_Stage2" xml:space="preserve">
+    <value>2. Waar je muziek staat</value>
+  </data>
+  <data name="Wizard_Welcome_Stage2Detail" xml:space="preserve">
+    <value>Een map. Alles daaronder telt mee, hoe het ook geordend is, en er is geen bepaalde naamgeving voor nodig.</value>
+  </data>
+  <data name="Wizard_Welcome_Stage3" xml:space="preserve">
+    <value>3. Wat niet herkend kon worden</value>
+  </data>
+  <data name="Wizard_Welcome_Stage3Detail" xml:space="preserve">
+    <value>Je muziek wordt een keer ingelezen, wat de eerste keer een paar minuten duurt. Alles wat niet geplaatst kan worden wordt voor je gegroepeerd, een regel per unieke waarde in plaats van een per bestand, en je kunt er zoveel of zo weinig van beantwoorden als je wilt.</value>
+  </data>
+  <data name="Wizard_Welcome_Source" xml:space="preserve">
+    <value>De dansenlijst wordt gepubliceerd op</value>
+  </data>
+  <data name="Wizard_Music_Required" xml:space="preserve">
+    <value>Kies een map om verder te gaan.</value>
+  </data>
+  <data name="Settings_MusicDirectoryChangeHint" xml:space="preserve">
+    <value>Dit veranderen leest je hele bibliotheek opnieuw in, dus het hoort bij het instellen en niet bij de losse instellingen.</value>
   </data>
 </root>

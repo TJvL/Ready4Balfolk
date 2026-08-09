@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
 
@@ -70,9 +71,10 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
 
             await using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT content_hash, path, file_size, last_write_utc, duration_ticks, format,
-                       dance_slug, original_dance, artist, title
-                FROM tracks;
+                SELECT p.content_hash, p.path, p.file_size, p.last_write_utc,
+                       t.duration_ticks, t.format, t.dance_slug, t.original_dance, t.artist, t.title
+                FROM track_paths p
+                JOIN tracks t ON t.content_hash = p.content_hash;
                 """;
 
             await using var reader = await command.ExecuteReaderAsync(token);
@@ -138,6 +140,21 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                     title = excluded.title;
                 """;
 
+            await using var pathCommand = connection.CreateCommand();
+            pathCommand.Transaction = (SqliteTransaction)transaction;
+            pathCommand.CommandText = """
+                INSERT INTO track_paths (path, content_hash, file_size, last_write_utc)
+                VALUES ($path, $hash, $size, $written)
+                ON CONFLICT(path) DO UPDATE SET
+                    content_hash = excluded.content_hash,
+                    file_size = excluded.file_size,
+                    last_write_utc = excluded.last_write_utc;
+                """;
+            var pathPath = pathCommand.Parameters.Add("$path", SqliteType.Text);
+            var pathHash = pathCommand.Parameters.Add("$hash", SqliteType.Blob);
+            var pathSize = pathCommand.Parameters.Add("$size", SqliteType.Integer);
+            var pathWritten = pathCommand.Parameters.Add("$written", SqliteType.Integer);
+
             var hash = command.Parameters.Add("$hash", SqliteType.Blob);
             var path = command.Parameters.Add("$path", SqliteType.Text);
             var size = command.Parameters.Add("$size", SqliteType.Integer);
@@ -163,6 +180,12 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                 title.Value = (object?)entry.Title ?? DBNull.Value;
 
                 await command.ExecuteNonQueryAsync(token);
+
+                pathPath.Value = entry.Path;
+                pathHash.Value = entry.ContentHash;
+                pathSize.Value = entry.FileSize;
+                pathWritten.Value = entry.LastWriteUtc.Ticks;
+                await pathCommand.ExecuteNonQueryAsync(token);
             }
 
             await transaction.CommitAsync(token);
@@ -200,8 +223,110 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             }
 
             await ExecuteAsync(connection,
-                "DELETE FROM tracks WHERE path NOT IN (SELECT path FROM present);", token,
+                "DELETE FROM track_paths WHERE path NOT IN (SELECT path FROM present);", token,
                 (SqliteTransaction)transaction);
+
+            // An audio nothing points at any more is gone, along with whatever was decided about it.
+            await ExecuteAsync(connection,
+                "DELETE FROM tracks WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
+                token, (SqliteTransaction)transaction);
+
+            await transaction.CommitAsync(token);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task<IReadOnlySet<string>> GetIgnoredValuesAsync(CancellationToken token = default)
+    {
+        await _gate.WaitAsync(token);
+        try
+        {
+            await using var command = Require().CreateCommand();
+            command.CommandText = "SELECT folded_value FROM ignored_values;";
+
+            var values = new HashSet<string>(StringComparer.Ordinal);
+            await using var reader = await command.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token))
+            {
+                values.Add(reader.GetString(0));
+            }
+
+            return values;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task IgnoreValueAsync(string value, CancellationToken token = default)
+    {
+        await _gate.WaitAsync(token);
+        try
+        {
+            await using var command = Require().CreateCommand();
+            command.CommandText =
+                "INSERT OR IGNORE INTO ignored_values (folded_value, value) VALUES ($folded, $value);";
+            command.Parameters.AddWithValue("$folded", StringNormalizer.Normalize(value));
+            command.Parameters.AddWithValue("$value", value);
+            await command.ExecuteNonQueryAsync(token);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task StopIgnoringValueAsync(string value, CancellationToken token = default)
+    {
+        await _gate.WaitAsync(token);
+        try
+        {
+            await using var command = Require().CreateCommand();
+            command.CommandText = "DELETE FROM ignored_values WHERE folded_value = $folded;";
+            command.Parameters.AddWithValue("$folded", StringNormalizer.Normalize(value));
+            await command.ExecuteNonQueryAsync(token);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task AssignDanceAsync(
+        IReadOnlyCollection<string> paths, string? danceSlug, CancellationToken token = default)
+    {
+        if (paths.Count == 0)
+        {
+            return;
+        }
+
+        await _gate.WaitAsync(token);
+        try
+        {
+            var connection = Require();
+            await using var transaction = await connection.BeginTransactionAsync(token);
+            await using var command = connection.CreateCommand();
+            command.Transaction = (SqliteTransaction)transaction;
+            // By path, but it lands on the audio, so both copies of a duplicated track get the
+            // answer rather than only the one that happened to be clicked.
+            command.CommandText = """
+                UPDATE tracks SET dance_slug = $slug
+                WHERE content_hash = (SELECT content_hash FROM track_paths WHERE path = $path);
+                """;
+
+            var slug = command.Parameters.Add("$slug", SqliteType.Text);
+            var path = command.Parameters.Add("$path", SqliteType.Text);
+            slug.Value = (object?)danceSlug ?? DBNull.Value;
+
+            foreach (var target in paths)
+            {
+                path.Value = target;
+                await command.ExecuteNonQueryAsync(token);
+            }
 
             await transaction.CommitAsync(token);
         }
@@ -217,7 +342,12 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         try
         {
             await using var command = Require().CreateCommand();
-            command.CommandText = "SELECT COUNT(*) FROM tracks WHERE dance_slug IS NULL;";
+            // Counted over paths, because that is what the user sees in their library.
+            command.CommandText = """
+                SELECT COUNT(*) FROM track_paths p
+                JOIN tracks t ON t.content_hash = p.content_hash
+                WHERE t.dance_slug IS NULL;
+                """;
             return Convert.ToInt32(await command.ExecuteScalarAsync(token), provider: null);
         }
         finally
@@ -265,6 +395,23 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             title          TEXT    NULL
         );
         CREATE INDEX IF NOT EXISTS ix_tracks_path ON tracks (path);
+
+        -- One audio, many places it lives. The same recording on two compilations is not an error
+        -- and not a collision: it is one track with two copies, and a decision about it applies to
+        -- both. Without this table only one copy was ever remembered, so the other was re-read from
+        -- disk on every single startup.
+        CREATE TABLE IF NOT EXISTS track_paths (
+            path           TEXT    PRIMARY KEY,
+            content_hash   BLOB    NOT NULL,
+            file_size      INTEGER NOT NULL,
+            last_write_utc INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS ix_track_paths_hash ON track_paths (content_hash);
         CREATE INDEX IF NOT EXISTS ix_tracks_unresolved ON tracks (dance_slug) WHERE dance_slug IS NULL;
+
+        CREATE TABLE IF NOT EXISTS ignored_values (
+            folded_value TEXT PRIMARY KEY,
+            value        TEXT NOT NULL
+        );
         """;
 }

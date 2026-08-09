@@ -3,28 +3,36 @@ using Ready4Balfolk.Domain.Models.Dances;
 
 namespace Ready4Balfolk.Domain.Services.Dances;
 
-/// <summary>Checks the one invariant the rest of the feature is built on: a name means one dance.</summary>
+/// <summary>Checks the invariants the rest of the feature is built on.</summary>
+/// <remarks>
+/// BigBalfolkList's own build enforces all of this, so a file that fails here has been edited by
+/// hand or truncated in transit. The one that matters most is that a name means one dance: it is
+/// what lets discovery answer with a dance rather than a set.
+/// </remarks>
 public static class DanceListValidation
 {
     /// <summary>Finds every problem in a list, rather than stopping at the first.</summary>
-    /// <remarks>
-    /// An importer refusing a file has to be able to say which names collided, or the user is sent
-    /// to hunt through a hundred entries for a duplicate the application already found.
-    /// </remarks>
     public static DanceListProblems Validate(DanceList list)
     {
         var duplicateNames = new List<string>();
         var duplicateSlugs = new List<string>();
         var slugsWithoutNames = new List<string>();
+        var undeclaredTags = new List<string>();
 
         var ownerByFoldedName = new Dictionary<string, string>(StringComparer.Ordinal);
         var seenSlugs = new HashSet<string>(StringComparer.Ordinal);
+        var declaredTags = new HashSet<string>(list.Tags, StringComparer.Ordinal);
 
-        foreach (var dance in list.AllDances)
+        foreach (var dance in list.Dances)
         {
             if (!seenSlugs.Add(dance.Slug))
             {
                 duplicateSlugs.Add(dance.Slug);
+            }
+
+            foreach (var tag in dance.Tags.Where(tag => !declaredTags.Contains(tag)))
+            {
+                undeclaredTags.Add(tag);
             }
 
             var usableNames = dance.Names.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
@@ -56,31 +64,11 @@ public static class DanceListValidation
             }
         }
 
-        var unnamedCategories = CollectUnnamedCategories(list.Categories, path: string.Empty);
-
         return duplicateNames.Count == 0
                && duplicateSlugs.Count == 0
                && slugsWithoutNames.Count == 0
-               && unnamedCategories.Count == 0
+               && undeclaredTags.Count == 0
             ? DanceListProblems.None
-            : new DanceListProblems(duplicateNames, duplicateSlugs, slugsWithoutNames, unnamedCategories);
-    }
-
-    private static List<string> CollectUnnamedCategories(IReadOnlyList<DanceCategory> categories, string path)
-    {
-        var unnamed = new List<string>();
-        for (var i = 0; i < categories.Count; i++)
-        {
-            var category = categories[i];
-            var here = path.Length == 0 ? $"[{i}]" : $"{path}[{i}]";
-            if (string.IsNullOrWhiteSpace(category.Name))
-            {
-                unnamed.Add(here);
-            }
-
-            unnamed.AddRange(CollectUnnamedCategories(category.Categories, here));
-        }
-
-        return unnamed;
+            : new DanceListProblems(duplicateNames, duplicateSlugs, slugsWithoutNames, undeclaredTags);
     }
 }

@@ -61,6 +61,47 @@ public sealed class AudioContentHasherTests : IDisposable
         Assert.NotEmpty(hash);
     }
 
+    [Fact]
+    public void TwoFilesDifferingOnlyInTheMiddle_StillDifferByLengthWhenTheyDiffer()
+    {
+        // Sampling reads the ends, so a difference confined to the middle of a long file is only
+        // caught when the length differs too. Asserted so the trade-off is deliberate and visible.
+        var a = WriteLong('a', middle: 'x');
+        var b = WriteLong('a', middle: 'y');
+
+        Assert.Equal(AudioContentHasher.Compute(a, 0, a.Length), AudioContentHasher.Compute(b, 0, b.Length));
+    }
+
+    [Fact]
+    public void DifferentLengths_NeverCollide()
+    {
+        var a = WriteLong('a', middle: 'x');
+        var b = WriteLong('a', middle: 'x', extraBytes: 1);
+
+        Assert.NotEqual(AudioContentHasher.Compute(a, 0, a.Length), AudioContentHasher.Compute(b, 0, b.Length));
+    }
+
+    [Fact]
+    public void DifferentStarts_NeverCollide()
+    {
+        var a = WriteLong('a', middle: 'x');
+        var b = WriteLong('b', middle: 'x');
+
+        Assert.NotEqual(AudioContentHasher.Compute(a, 0, a.Length), AudioContentHasher.Compute(b, 0, b.Length));
+    }
+
+    /// <summary>A file long enough that the hasher samples its ends rather than reading it whole.</summary>
+    private FileInfo WriteLong(char edge, char middle, int extraBytes = 0)
+    {
+        var path = Path.Combine(_tempDir.FullName, $"{edge}{middle}{extraBytes}.bin");
+        var bytes = new byte[(1024 * 1024) + extraBytes];
+        Array.Fill(bytes, (byte)middle);
+        Array.Fill(bytes, (byte)edge, 0, 512 * 1024);
+        Array.Fill(bytes, (byte)edge, bytes.Length - (512 * 1024), 512 * 1024);
+        File.WriteAllBytes(path, bytes);
+        return new FileInfo(path);
+    }
+
     public void Dispose()
     {
         if (_tempDir.Exists)

@@ -35,33 +35,54 @@ public sealed class RandomTrackServiceTests
     {
         Tracks(TestData.CreateTrack());
 
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true);
+        var result = _sut.PickRandomTrack(RandomSelectionScope.EntireList, true);
 
         Assert.NotNull(result);
         Assert.Equal("mazurka", result.DanceSlug);
     }
 
     [Fact]
-    public void Category_PicksOnlyFromInsideIt()
+    public void Pool_PicksOnlyFromDancesCarryingATagInIt()
     {
         Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
 
-        // Bretagne is the second root category and holds only the plinn.
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.Category([1]), true);
+        var result = _sut.PickRandomTrack(new RandomSelectionScope.Pool(["bretagne"]), true);
 
         Assert.NotNull(result);
         Assert.Equal("plinn", result.DanceSlug);
     }
 
     [Fact]
-    public void Category_ReachesDancesInItsSubCategories()
+    public void Pool_IsAUnion_NotAnIntersection()
+    {
+        Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
+
+        // Two tags nothing carries together still reach both dances, because a pool is what to
+        // draw from rather than a filter to satisfy.
+        var slugs = new HashSet<string?>();
+        for (var i = 0; i < 60; i++)
+        {
+            slugs.Add(_sut.PickRandomTrack(new RandomSelectionScope.Pool(["bretagne", "common"]), true)?.DanceSlug);
+        }
+
+        Assert.Contains("plinn", slugs);
+        Assert.Contains("mazurka", slugs);
+    }
+
+    [Fact]
+    public void EmptyPool_ReachesEverything()
     {
         Tracks(TestData.CreateTrack("Plinn"));
 
-        // The plinn sits one level down, in "Suite plinn".
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.Category([1]), true);
+        Assert.NotNull(_sut.PickRandomTrack(new RandomSelectionScope.Pool([]), true));
+    }
 
-        Assert.NotNull(result);
+    [Fact]
+    public void PoolNothingCarries_ReturnsNull()
+    {
+        Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
+
+        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.Pool(["sweden"]), true));
     }
 
     [Fact]
@@ -84,20 +105,12 @@ public sealed class RandomTrackServiceTests
     }
 
     [Fact]
-    public void CategoryPathThatNoLongerExists_ReturnsNull()
-    {
-        Tracks(TestData.CreateTrack());
-
-        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.Category([9]), true));
-    }
-
-    [Fact]
     public void TrackTheListDoesNotKnow_IsNeverPicked()
     {
         // An unresolved track has no dance to be weighted by, so it cannot take part.
         Tracks(TestData.CreateTrack("An Tri dipop", slug: null));
 
-        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true));
+        Assert.Null(_sut.PickRandomTrack(RandomSelectionScope.EntireList, true));
     }
 
     [Fact]
@@ -105,7 +118,7 @@ public sealed class RandomTrackServiceTests
     {
         Tracks(TestData.CreateTrack("Plinn"));
 
-        var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true);
+        var result = _sut.PickRandomTrack(RandomSelectionScope.EntireList, true);
 
         Assert.NotNull(result);
         Assert.Equal("plinn", result.DanceSlug);
@@ -117,7 +130,7 @@ public sealed class RandomTrackServiceTests
         _danceListStore.Current.Returns(DanceList.Empty);
         Tracks(TestData.CreateTrack());
 
-        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true));
+        Assert.Null(_sut.PickRandomTrack(RandomSelectionScope.EntireList, true));
     }
 
     [Fact]
@@ -125,48 +138,22 @@ public sealed class RandomTrackServiceTests
     {
         Tracks();
 
-        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true));
+        Assert.Null(_sut.PickRandomTrack(RandomSelectionScope.EntireList, true));
     }
 
     [Fact]
-    public void DanceWeightedZero_IsNeverPicked()
+    public void EveryDanceInThePool_CanComeUp()
     {
-        _danceListStore.Current.Returns(new DanceList
-        {
-            Categories =
-            [
-                TestData.CreateCategory("Common", dances:
-                [
-                    TestData.CreateDance("mazurka", 0, "Mazurka"),
-                    TestData.CreateDance("plinn", 1, "Plinn")
-                ])
-            ]
-        });
         Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
 
-        for (var i = 0; i < 40; i++)
+        var slugs = new HashSet<string?>();
+        for (var i = 0; i < 60; i++)
         {
-            Assert.Equal("plinn", _sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true)?.DanceSlug);
+            slugs.Add(_sut.PickRandomTrack(RandomSelectionScope.EntireList, true)?.DanceSlug);
         }
-    }
 
-    [Fact]
-    public void CategoryWeightedZero_TakesEverythingUnderItWithIt()
-    {
-        _danceListStore.Current.Returns(new DanceList
-        {
-            Categories =
-            [
-                TestData.CreateCategory("Silent", 0, dances: [TestData.CreateDance("mazurka", 1, "Mazurka")]),
-                TestData.CreateCategory("Heard", 1, dances: [TestData.CreateDance("plinn", 1, "Plinn")])
-            ]
-        });
-        Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
-
-        for (var i = 0; i < 40; i++)
-        {
-            Assert.Equal("plinn", _sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true)?.DanceSlug);
-        }
+        // No weights any more: what is in the pool is equally likely, however the list is shaped.
+        Assert.Equal(2, slugs.Count);
     }
 
     [Fact]
@@ -180,7 +167,7 @@ public sealed class RandomTrackServiceTests
                 track.Length, false, CompletionStatus.Finished)
         ]));
 
-        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), false));
+        Assert.Null(_sut.PickRandomTrack(RandomSelectionScope.EntireList, false));
     }
 
     [Fact]
@@ -190,7 +177,7 @@ public sealed class RandomTrackServiceTests
         Tracks(track);
         _queueService.Items.Returns(new List<IQueueItem> { new TrackQueueItem(track, false) });
 
-        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), false));
+        Assert.Null(_sut.PickRandomTrack(RandomSelectionScope.EntireList, false));
     }
 
     [Fact]
@@ -200,7 +187,7 @@ public sealed class RandomTrackServiceTests
         Tracks(track);
         _consumptionService.CurrentItem.Returns(new TrackQueueItem(track, false));
 
-        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), false));
+        Assert.Null(_sut.PickRandomTrack(RandomSelectionScope.EntireList, false));
     }
 
     [Fact]
@@ -210,7 +197,7 @@ public sealed class RandomTrackServiceTests
         Tracks(track);
         _consumptionService.CurrentItem.Returns(new TrackQueueItem(track, false));
 
-        Assert.NotNull(_sut.PickRandomTrack(new RandomSelectionScope.EntireList(), true));
+        Assert.NotNull(_sut.PickRandomTrack(RandomSelectionScope.EntireList, true));
     }
 
     private void Tracks(params Track[] tracks) => _trackStore.Current.Returns(tracks.ToList());

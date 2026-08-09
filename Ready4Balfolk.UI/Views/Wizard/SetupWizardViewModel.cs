@@ -13,6 +13,7 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Wizard;
 
@@ -21,6 +22,7 @@ namespace Ready4Balfolk.UI.Views.Wizard;
 public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
 {
     private readonly ISettingsStore _settingsStore;
+    private readonly NavigationService _navigation;
     private readonly ILoggerService _loggerService;
     private readonly CompositeDisposable _disposables = [];
     private readonly Subject<Unit> _finished = new();
@@ -36,25 +38,34 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
     [ObservableAsProperty] public partial bool IsLastStep { get; }
     [ObservableAsProperty] public partial string ContinueLabel { get; }
 
+    /// <summary>True when the current step will not let the wizard move on.</summary>
+    [ObservableAsProperty] public partial bool IsBlocked { get; }
+
+    /// <summary>Why, so a disabled button is never a dead end.</summary>
+    [ObservableAsProperty] public partial string BlockedReason { get; }
+
     public IReadOnlyList<WizardStepViewModel> Steps { get; }
 
     /// <summary>Fires once, when the last step has been committed. The window closes on it.</summary>
     public IObservable<Unit> Finished => _finished.AsObservable();
 
     public SetupWizardViewModel(
+        WelcomeStepViewModel welcomeStep,
         DanceListStepViewModel danceListStep,
-        DanceListEditStepViewModel danceListEditStep,
         MusicDirectoryStepViewModel musicDirectoryStep,
+        TaggingStepViewModel taggingStep,
         ISettingsStore settingsStore,
+        NavigationService navigation,
         ILoggerService loggerService)
     {
         _settingsStore = settingsStore;
+        _navigation = navigation;
         _loggerService = loggerService;
 
-        // The dance list comes first deliberately: it is what everything else in the application
-        // then has something to say about. Editing it is a step of its own rather than something to
-        // discover later, because an imported list is somebody else's answer and arrives needing work.
-        Steps = [danceListStep, danceListEditStep, musicDirectoryStep];
+        // An explanation first, then the dance list, because the vocabulary is what everything
+        // else in the application is said in. Nothing on that step needs answering: it fetches the
+        // published list and shows what arrived.
+        Steps = [welcomeStep, danceListStep, musicDirectoryStep, taggingStep];
 
         _currentStepHelper = this.WhenAnyValue(x => x.CurrentIndex)
             .Select(index => Steps[Math.Clamp(index, 0, Steps.Count - 1)])
@@ -81,6 +92,18 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
             .Select(last => last ? UiStrings.Wizard_Finish : UiStrings.Wizard_Next)
             .ToProperty(this, x => x.ContinueLabel);
         _continueLabelHelper.DisposeWith(_disposables);
+
+        _isBlockedHelper = this.WhenAnyValue(x => x.CurrentStep)
+            .Select(step => step.CanContinue)
+            .Switch()
+            .Select(can => !can)
+            .ToProperty(this, x => x.IsBlocked);
+        _isBlockedHelper.DisposeWith(_disposables);
+
+        _blockedReasonHelper = this.WhenAnyValue(x => x.CurrentStep)
+            .Select(step => step.BlockedReason)
+            .ToProperty(this, x => x.BlockedReason);
+        _blockedReasonHelper.DisposeWith(_disposables);
 
         Steps[0].EnterAsync().SafeFireAndForget(
             exception => _loggerService.ErrorAsync("Failed to enter the first setup step", exception));
@@ -129,6 +152,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
 
             await _settingsStore.UpdateAsync(settings => settings with { SetupCompleted = true });
             await _loggerService.InfoAsync("Setup wizard completed");
+            _navigation.CurrentScreen = Screen.Main;
             _finished.OnNext(Unit.Default);
         }
         catch (Exception exception)

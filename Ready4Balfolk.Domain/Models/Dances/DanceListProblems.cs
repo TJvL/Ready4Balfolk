@@ -5,7 +5,7 @@ public sealed record DanceListProblems(
     IReadOnlyList<string> DuplicateNames,
     IReadOnlyList<string> DuplicateSlugs,
     IReadOnlyList<string> SlugsWithoutNames,
-    IReadOnlyList<string> UnnamedCategories)
+    IReadOnlyList<string> UndeclaredTags)
 {
     public static DanceListProblems None { get; } = new([], [], [], []);
 
@@ -13,5 +13,5 @@ public sealed record DanceListProblems(
         DuplicateNames.Count > 0
         || DuplicateSlugs.Count > 0
         || SlugsWithoutNames.Count > 0
-        || UnnamedCategories.Count > 0;
+        || UndeclaredTags.Count > 0;
 }

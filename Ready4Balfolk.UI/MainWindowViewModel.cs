@@ -10,8 +10,10 @@ using Ready4Balfolk.UI.Views.History;
 using Ready4Balfolk.UI.Views.Playback;
 using Ready4Balfolk.UI.Views.Queue;
 using Ready4Balfolk.UI.Views.Settings;
+using Ready4Balfolk.UI.Views.Tagging;
 using Ready4Balfolk.UI.Views.Toolbar;
 using Ready4Balfolk.UI.Views.TrackCatalog;
+using Ready4Balfolk.UI.Views.Wizard;
 
 namespace Ready4Balfolk.UI;
 
@@ -28,6 +30,8 @@ public sealed partial class MainWindowViewModel : ReactiveObject
     [Reactive] public partial DanceListViewModel? DanceList { get; set; }
     [Reactive] public partial SettingsViewModel? Settings { get; set; }
     [Reactive] public partial HelpViewModel? Help { get; set; }
+    [Reactive] public partial TaggingViewModel? Tagging { get; set; }
+    [Reactive] public partial SetupWizardViewModel? Setup { get; set; }
 
     public MainWindowViewModel(
         NavigationService navigation,
@@ -39,7 +43,9 @@ public sealed partial class MainWindowViewModel : ReactiveObject
         Lazy<HistoryViewModel> lazyHistory,
         Lazy<DanceListViewModel> lazyDanceList,
         Lazy<SettingsViewModel> lazySettings,
-        Lazy<HelpViewModel> lazyHelp)
+        Lazy<HelpViewModel> lazyHelp,
+        Lazy<TaggingViewModel> lazyTagging,
+        Func<SetupWizardViewModel> setupFactory)
     {
         Navigation = navigation;
         Toolbar = toolbar;
@@ -59,6 +65,18 @@ public sealed partial class MainWindowViewModel : ReactiveObject
                 else if (screen is Screen.Help && Help is null)
                 {
                     Help = lazyHelp.Value;
+                }
+                else if (screen is Screen.Setup)
+                {
+                    // Built fresh each time, so running setup again starts from what is on disk
+                    // rather than from where the last visit left off.
+                    Setup = setupFactory();
+                }
+                else if (screen is Screen.Tagging)
+                {
+                    Tagging ??= lazyTagging.Value;
+                    // Rebuilt on every visit: the index changes underneath it whenever a scan runs.
+                    Tagging.RefreshCommand.Execute().Subscribe();
                 }
             });
 

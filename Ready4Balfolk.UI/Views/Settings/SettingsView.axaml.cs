@@ -21,33 +21,7 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
         InitializeComponent();
     }
 
-    private async void OnBrowseButtonClick(object? sender, RoutedEventArgs e)
-    {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-        {
-            return;
-        }
-
-        var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = UiStrings.Settings_SelectMusicDirectory,
-            AllowMultiple = false
-        });
-
-        if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } path)
-        {
-            ViewModel!.MusicDirectoryPath = path;
-        }
-    }
-
-    private void OnRunSetupClick(object? sender, RoutedEventArgs e)
-    {
-        if (TopLevel.GetTopLevel(this) is Window owner)
-        {
-            App.ShowSetupWizard(owner);
-        }
-    }
+    private void OnRunSetupClick(object? sender, RoutedEventArgs e) => App.ShowSetup();
 
     private async void OnExportLogClick(object? sender, RoutedEventArgs e)
     {

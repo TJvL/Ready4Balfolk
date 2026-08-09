@@ -27,7 +27,6 @@ using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 using Ready4Balfolk.UI.Views.Presentation;
-using Ready4Balfolk.UI.Views.Wizard;
 using Ready4Balfolk.Web;
 using AvaloniaWindowState = Avalonia.Controls.WindowState;
 using DomainWindowState = Ready4Balfolk.Domain.Models.Settings.WindowState;
@@ -141,7 +140,11 @@ public sealed class App : Application
                     ).ToList()
                 )
                 .ObserveOn(RxSchedulers.MainThreadScheduler)
-                .Subscribe(_ => ShowSetupWizardIfNeeded(mainWindow, settingsStore)));
+                .Subscribe(_ =>
+                {
+                    ShowSetupIfNeeded(settingsStore);
+                    RefreshDanceListInTheBackground();
+                }));
 
             mainWindow.Closing += (_, e) =>
             {
@@ -244,28 +247,23 @@ public sealed class App : Application
     /// Not for the smoke test: it drives the application with nobody there to answer a wizard, and a
     /// modal window would simply hold it until CI gave up.
     /// </remarks>
-    internal static void ShowSetupWizardIfNeeded(Window owner, ISettingsStore settingsStore)
+    /// <summary>Sends a profile that has never been through setup to it.</summary>
+    /// <remarks>
+    /// Not for the smoke test: it drives the application with nobody there to answer a wizard, and
+    /// it would simply sit on the first step until CI gave up.
+    /// </remarks>
+    internal static void ShowSetupIfNeeded(ISettingsStore settingsStore)
     {
         if (Program.IsSmokeTest || settingsStore.Current.SetupCompleted)
         {
             return;
         }
 
-        ShowSetupWizard(owner);
+        ShowSetup();
     }
 
-    internal static void ShowSetupWizard(Window owner)
-    {
-        var viewModel = Services.GetRequiredService<SetupWizardViewModel>();
-        var window = new SetupWizardWindow
-        {
-            DataContext = viewModel,
-            ViewModel = viewModel
-        };
-
-        window.ShowDialog(owner).SafeFireAndForget(ex =>
-            Services.GetRequiredService<ILoggerService>().ErrorAsync("Setup wizard failed", ex));
-    }
+    internal static void ShowSetup() =>
+        Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Setup;
 
     private static WebServerOptions ToWebServerOptions(ApplicationSettings settings) => new(
         settings.WebServerEnabled,
@@ -277,6 +275,15 @@ public sealed class App : Application
         server.ApplyAsync(ToWebServerOptions(settings)).SafeFireAndForget(ex =>
             Services.GetRequiredService<ILoggerService>()
                 .ErrorAsync("Failed to start the presentation server", ex));
+
+    /// <summary>
+    /// Asks BigBalfolkList for a newer list, without anybody waiting for the answer. The window is
+    /// already open on the list it has, and a hall with no wifi must cost nothing but a log line.
+    /// </summary>
+    private static void RefreshDanceListInTheBackground() =>
+        Services.GetRequiredService<IDanceListStore>().RefreshAsync().SafeFireAndForget(exception =>
+            Services.GetRequiredService<ILoggerService>()
+                .ErrorAsync("Failed to refresh the dance list", exception));
 
     private static IObservable<Unit> RunLoad<T>(Func<T, CancellationToken, Task> loader, string errorMessage) where T : notnull
     {

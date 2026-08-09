@@ -21,6 +21,10 @@ public abstract class WizardStepViewModel : ReactiveObject
     /// <summary>Whether the wizard may move past this step yet.</summary>
     public virtual IObservable<bool> CanContinue => Observable.Return(true);
 
+    /// <summary>Why the wizard will not move on, shown next to a disabled continue button.</summary>
+    /// <remarks>A disabled button with no reason beside it is the most common way to strand a user.</remarks>
+    public virtual string BlockedReason => string.Empty;
+
     /// <summary>Runs when the step is shown, so it can pick up state a previous step wrote.</summary>
     public virtual Task EnterAsync() => Task.CompletedTask;
 

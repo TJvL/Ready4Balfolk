@@ -11,7 +11,7 @@ using ReactiveUI;
 using ReactiveUI.Avalonia.Reactive.Splat;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
-using Ready4Balfolk.Domain.Services.Editor;
+using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
@@ -31,6 +31,7 @@ using Ready4Balfolk.UI.Views.Playback;
 using Ready4Balfolk.UI.Views.Presentation;
 using Ready4Balfolk.UI.Views.Queue;
 using Ready4Balfolk.UI.Views.Settings;
+using Ready4Balfolk.UI.Views.Tagging;
 using Ready4Balfolk.UI.Views.Toolbar;
 using Ready4Balfolk.UI.Views.TrackCatalog;
 using Ready4Balfolk.UI.Views.Wizard;
@@ -167,14 +168,16 @@ public static class Program
         });
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
         services.AddSingleton<IApplicationSettingsDirectory, ApplicationSettingsDirectory>();
-        services.AddTransient<IEditorHistoryService, EditorHistoryService>();
         services.AddSingleton<ILibraryIndex, SqliteLibraryIndex>();
         services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<IPresentationStateService, PresentationStateService>();
+        services.AddSingleton<IPreviewPlaybackService, PreviewPlaybackService>();
 
         // Stores
         services.AddSingleton<IDanceListStore, DanceListStore>();
+        services.AddSingleton<IDanceListFeed, DanceListFeed>();
+        services.AddSingleton<IDancePool, DancePool>();
         services.AddSingleton<ISettingsStore, SettingsStore>();
         services.AddSingleton<IQueueHistoryStore, QueueHistoryStore>();
         services.AddSingleton<ITrackStore, TrackStore>();
@@ -205,25 +208,32 @@ public static class Program
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<HelpViewModel>();
         services.AddSingleton<DanceListViewModel>();
+        services.AddSingleton<TaggingViewModel>();
         services.AddSingleton<Lazy<DanceListViewModel>>(sp => new(sp.GetRequiredService<DanceListViewModel>));
 
         // Setup wizard. Transient: it is built when the wizard opens and thrown away when it
         // closes, so a second run starts from what is on disk rather than from the last visit.
+        services.AddTransient<WelcomeStepViewModel>();
         services.AddTransient<DanceListStepViewModel>();
-        services.AddTransient<DanceListEditStepViewModel>();
+        services.AddTransient<TaggingStepViewModel>();
         services.AddTransient<MusicDirectoryStepViewModel>();
         services.AddTransient<SetupWizardViewModel>();
+        services.AddSingleton<Func<SetupWizardViewModel>>(sp => sp.GetRequiredService<SetupWizardViewModel>);
+        services.AddTransient<IViewFor<SetupWizardViewModel>, SetupWizardView>();
+        services.AddTransient<IViewFor<WelcomeStepViewModel>, WelcomeStepView>();
         services.AddTransient<IViewFor<DanceListStepViewModel>, DanceListStepView>();
-        services.AddTransient<IViewFor<DanceListEditStepViewModel>, DanceListEditStepView>();
+        services.AddTransient<IViewFor<TaggingStepViewModel>, TaggingStepView>();
         services.AddTransient<IViewFor<MusicDirectoryStepViewModel>, MusicDirectoryStepView>();
 
         // Lazy wrappers — defers ViewModel creation until first navigation/toggle
         services.AddSingleton<Lazy<HistoryViewModel>>(sp => new(sp.GetRequiredService<HistoryViewModel>));
         services.AddSingleton<Lazy<SettingsViewModel>>(sp => new(sp.GetRequiredService<SettingsViewModel>));
         services.AddSingleton<Lazy<HelpViewModel>>(sp => new(sp.GetRequiredService<HelpViewModel>));
+        services.AddSingleton<Lazy<TaggingViewModel>>(sp => new(sp.GetRequiredService<TaggingViewModel>));
         // View registrations for ViewModelViewHost resolution
         services.AddTransient<IViewFor<SettingsViewModel>, SettingsView>();
         services.AddTransient<IViewFor<HelpViewModel>, HelpView>();
+        services.AddTransient<IViewFor<TaggingViewModel>, TaggingView>();
 
         services.AddSingleton<PresentationDisplayViewModel>();
 

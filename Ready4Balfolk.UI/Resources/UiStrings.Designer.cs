@@ -393,31 +393,6 @@ public static class UiStrings
     public static string Playback_AudioUnavailable =>
         ResourceManager.GetString("Playback_AudioUnavailable", Culture)!;
 
-    // Equalizer
-    public static string Equalizer_Title =>
-        ResourceManager.GetString("Equalizer_Title", Culture)!;
-
-    public static string Equalizer_On =>
-        ResourceManager.GetString("Equalizer_On", Culture)!;
-
-    public static string Equalizer_Off =>
-        ResourceManager.GetString("Equalizer_Off", Culture)!;
-
-    public static string Equalizer_Enable =>
-        ResourceManager.GetString("Equalizer_Enable", Culture)!;
-
-    public static string Equalizer_LowCut =>
-        ResourceManager.GetString("Equalizer_LowCut", Culture)!;
-
-    public static string Equalizer_Preamp =>
-        ResourceManager.GetString("Equalizer_Preamp", Culture)!;
-
-    public static string Equalizer_Reset =>
-        ResourceManager.GetString("Equalizer_Reset", Culture)!;
-
-    public static string Equalizer_Unavailable =>
-        ResourceManager.GetString("Equalizer_Unavailable", Culture)!;
-
     // Track Catalog
     public static string TrackCatalog_ColumnDance =>
         ResourceManager.GetString("TrackCatalog_ColumnDance", Culture)!;
@@ -515,6 +490,30 @@ public static class UiStrings
     public static string Dialog_Restart =>
         ResourceManager.GetString("Dialog_Restart", Culture)!;
 
+    public static string Equalizer_Title =>
+        ResourceManager.GetString("Equalizer_Title", Culture)!;
+
+    public static string Equalizer_On =>
+        ResourceManager.GetString("Equalizer_On", Culture)!;
+
+    public static string Equalizer_Off =>
+        ResourceManager.GetString("Equalizer_Off", Culture)!;
+
+    public static string Equalizer_Enable =>
+        ResourceManager.GetString("Equalizer_Enable", Culture)!;
+
+    public static string Equalizer_LowCut =>
+        ResourceManager.GetString("Equalizer_LowCut", Culture)!;
+
+    public static string Equalizer_Preamp =>
+        ResourceManager.GetString("Equalizer_Preamp", Culture)!;
+
+    public static string Equalizer_Reset =>
+        ResourceManager.GetString("Equalizer_Reset", Culture)!;
+
+    public static string Equalizer_Unavailable =>
+        ResourceManager.GetString("Equalizer_Unavailable", Culture)!;
+
     public static string Settings_WebServerSection =>
         ResourceManager.GetString("Settings_WebServerSection", Culture)!;
 
@@ -526,8 +525,6 @@ public static class UiStrings
 
     public static string Settings_WebServerPort =>
         ResourceManager.GetString("Settings_WebServerPort", Culture)!;
-
-
 
     public static string Settings_WebRemoteControlEnabled =>
         ResourceManager.GetString("Settings_WebRemoteControlEnabled", Culture)!;
@@ -584,38 +581,8 @@ public static class UiStrings
     public static string Wizard_DanceList_Explanation =>
         ResourceManager.GetString("Wizard_DanceList_Explanation", Culture)!;
 
-    public static string Wizard_DanceList_ImportHeading =>
-        ResourceManager.GetString("Wizard_DanceList_ImportHeading", Culture)!;
-
-    public static string Wizard_DanceList_ImportDescription =>
-        ResourceManager.GetString("Wizard_DanceList_ImportDescription", Culture)!;
-
-    public static string Wizard_DanceList_ImportButton =>
-        ResourceManager.GetString("Wizard_DanceList_ImportButton", Culture)!;
-
-    public static string Wizard_DanceList_ImportPickerTitle =>
-        ResourceManager.GetString("Wizard_DanceList_ImportPickerTitle", Culture)!;
-
-    public static string Wizard_DanceList_EmptyHeading =>
-        ResourceManager.GetString("Wizard_DanceList_EmptyHeading", Culture)!;
-
-    public static string Wizard_DanceList_EmptyDescription =>
-        ResourceManager.GetString("Wizard_DanceList_EmptyDescription", Culture)!;
-
-    public static string Wizard_DanceList_StartEmptyButton =>
-        ResourceManager.GetString("Wizard_DanceList_StartEmptyButton", Culture)!;
-
-    public static string Wizard_DanceList_SummaryFormat =>
-        ResourceManager.GetString("Wizard_DanceList_SummaryFormat", Culture)!;
-
-    public static string Wizard_DanceList_EmptySummary =>
-        ResourceManager.GetString("Wizard_DanceList_EmptySummary", Culture)!;
-
     public static string Wizard_DanceList_Source =>
         ResourceManager.GetString("Wizard_DanceList_Source", Culture)!;
-
-    public static string Wizard_DanceList_ImportFailed =>
-        ResourceManager.GetString("Wizard_DanceList_ImportFailed", Culture)!;
 
     public static string Wizard_Music_Title =>
         ResourceManager.GetString("Wizard_Music_Title", Culture)!;
@@ -632,12 +599,72 @@ public static class UiStrings
     public static string Settings_RunSetupAgainDescription =>
         ResourceManager.GetString("Settings_RunSetupAgainDescription", Culture)!;
 
-    // Dance list editor
-    public static string Wizard_DanceListEdit_Title =>
-        ResourceManager.GetString("Wizard_DanceListEdit_Title", Culture)!;
+    // Dance panel
+    public static string Wizard_DanceList_Summary =>
+        ResourceManager.GetString("Wizard_DanceList_Summary", Culture)!;
 
-    public static string Wizard_DanceListEdit_Explanation =>
-        ResourceManager.GetString("Wizard_DanceListEdit_Explanation", Culture)!;
+    public static string Wizard_DanceList_Detail =>
+        ResourceManager.GetString("Wizard_DanceList_Detail", Culture)!;
+
+    public static string DanceList_SearchWatermark =>
+        ResourceManager.GetString("DanceList_SearchWatermark", Culture)!;
+
+    public static string DanceList_TagsHeader =>
+        ResourceManager.GetString("DanceList_TagsHeader", Culture)!;
+
+    public static string DanceList_PoolEverything =>
+        ResourceManager.GetString("DanceList_PoolEverything", Culture)!;
+
+    public static string DanceList_PoolFormat =>
+        ResourceManager.GetString("DanceList_PoolFormat", Culture)!;
+
+    public static string DanceList_ClearPool =>
+        ResourceManager.GetString("DanceList_ClearPool", Culture)!;
+
+    public static string DanceList_ClearPoolTip =>
+        ResourceManager.GetString("DanceList_ClearPoolTip", Culture)!;
+
+    public static string DanceList_Summary =>
+        ResourceManager.GetString("DanceList_Summary", Culture)!;
+
+    public static string DanceList_Obtained =>
+        ResourceManager.GetString("DanceList_Obtained", Culture)!;
+
+    public static string DanceList_ObtainedBuiltIn =>
+        ResourceManager.GetString("DanceList_ObtainedBuiltIn", Culture)!;
+
+    public static string DanceList_Update =>
+        ResourceManager.GetString("DanceList_Update", Culture)!;
+
+    public static string DanceList_UpdateTip =>
+        ResourceManager.GetString("DanceList_UpdateTip", Culture)!;
+
+    public static string DanceList_UpdateFromFile =>
+        ResourceManager.GetString("DanceList_UpdateFromFile", Culture)!;
+
+    public static string DanceList_UpdateFromFileTip =>
+        ResourceManager.GetString("DanceList_UpdateFromFileTip", Culture)!;
+
+    public static string DanceList_Updated =>
+        ResourceManager.GetString("DanceList_Updated", Culture)!;
+
+    public static string DanceList_AlreadyCurrent =>
+        ResourceManager.GetString("DanceList_AlreadyCurrent", Culture)!;
+
+    public static string DanceList_UpdateFailed =>
+        ResourceManager.GetString("DanceList_UpdateFailed", Culture)!;
+
+    public static string DanceList_TrackCount =>
+        ResourceManager.GetString("DanceList_TrackCount", Culture)!;
+
+    public static string DanceList_NoTracks =>
+        ResourceManager.GetString("DanceList_NoTracks", Culture)!;
+
+    public static string DanceList_PickThisDance =>
+        ResourceManager.GetString("DanceList_PickThisDance", Culture)!;
+
+    public static string DanceList_NoTrackForDance =>
+        ResourceManager.GetString("DanceList_NoTrackForDance", Culture)!;
 
     public static string Wizard_DanceList_SourceUrl =>
         ResourceManager.GetString("Wizard_DanceList_SourceUrl", Culture)!;
@@ -645,143 +672,8 @@ public static class UiStrings
     public static string DanceList_Title =>
         ResourceManager.GetString("DanceList_Title", Culture)!;
 
-    public static string DanceList_SummaryFormat =>
-        ResourceManager.GetString("DanceList_SummaryFormat", Culture)!;
-
-    public static string DanceList_NothingSelected =>
-        ResourceManager.GetString("DanceList_NothingSelected", Culture)!;
-
-    public static string DanceList_SelectSomething =>
-        ResourceManager.GetString("DanceList_SelectSomething", Culture)!;
-
-    public static string DanceList_AddRootCategory =>
-        ResourceManager.GetString("DanceList_AddRootCategory", Culture)!;
-
-    public static string DanceList_AddSubCategory =>
-        ResourceManager.GetString("DanceList_AddSubCategory", Culture)!;
-
-    public static string DanceList_AddDanceHere =>
-        ResourceManager.GetString("DanceList_AddDanceHere", Culture)!;
-
-    public static string DanceList_NewDanceWatermark =>
-        ResourceManager.GetString("DanceList_NewDanceWatermark", Culture)!;
-
-    public static string DanceList_Add =>
-        ResourceManager.GetString("DanceList_Add", Culture)!;
-
-    public static string DanceList_Delete =>
-        ResourceManager.GetString("DanceList_Delete", Culture)!;
-
-    public static string DanceList_Rename =>
-        ResourceManager.GetString("DanceList_Rename", Culture)!;
-
-    public static string DanceList_Apply =>
-        ResourceManager.GetString("DanceList_Apply", Culture)!;
-
-    public static string DanceList_Undo =>
-        ResourceManager.GetString("DanceList_Undo", Culture)!;
-
-    public static string DanceList_Redo =>
-        ResourceManager.GetString("DanceList_Redo", Culture)!;
-
-    public static string DanceList_Import =>
-        ResourceManager.GetString("DanceList_Import", Culture)!;
-
-    public static string DanceList_Export =>
-        ResourceManager.GetString("DanceList_Export", Culture)!;
-
-    public static string DanceList_ImportTitle =>
-        ResourceManager.GetString("DanceList_ImportTitle", Culture)!;
-
-    public static string DanceList_ImportConfirmMessage =>
-        ResourceManager.GetString("DanceList_ImportConfirmMessage", Culture)!;
-
-    public static string DanceList_CategoryName =>
-        ResourceManager.GetString("DanceList_CategoryName", Culture)!;
-
-    public static string DanceList_Names =>
-        ResourceManager.GetString("DanceList_Names", Culture)!;
-
-    public static string DanceList_NamesExplanation =>
-        ResourceManager.GetString("DanceList_NamesExplanation", Culture)!;
-
-    public static string DanceList_NewNameWatermark =>
-        ResourceManager.GetString("DanceList_NewNameWatermark", Culture)!;
-
-    public static string DanceList_UseThisSpelling =>
-        ResourceManager.GetString("DanceList_UseThisSpelling", Culture)!;
-
-    public static string DanceList_RemoveName =>
-        ResourceManager.GetString("DanceList_RemoveName", Culture)!;
-
-    public static string DanceList_Weight =>
-        ResourceManager.GetString("DanceList_Weight", Culture)!;
-
-    public static string DanceList_WeightExplanation =>
-        ResourceManager.GetString("DanceList_WeightExplanation", Culture)!;
-
-    public static string DanceList_WeightBadge =>
-        ResourceManager.GetString("DanceList_WeightBadge", Culture)!;
-
-    public static string DanceList_UndoFormat =>
-        ResourceManager.GetString("DanceList_UndoFormat", Culture)!;
-
-    public static string DanceList_UndoDefault =>
-        ResourceManager.GetString("DanceList_UndoDefault", Culture)!;
-
-    public static string DanceList_RedoFormat =>
-        ResourceManager.GetString("DanceList_RedoFormat", Culture)!;
-
-    public static string DanceList_RedoDefault =>
-        ResourceManager.GetString("DanceList_RedoDefault", Culture)!;
-
-    public static string DanceList_DeleteTitle =>
-        ResourceManager.GetString("DanceList_DeleteTitle", Culture)!;
-
-    public static string DanceList_DeleteConfirm =>
-        ResourceManager.GetString("DanceList_DeleteConfirm", Culture)!;
-
-    public static string DanceList_DeleteCancel =>
-        ResourceManager.GetString("DanceList_DeleteCancel", Culture)!;
-
-    public static string DanceList_DeleteEmptyCategoryMessage =>
-        ResourceManager.GetString("DanceList_DeleteEmptyCategoryMessage", Culture)!;
-
-    public static string DanceList_DeleteCategoryMessage =>
-        ResourceManager.GetString("DanceList_DeleteCategoryMessage", Culture)!;
-
-    public static string DanceList_DeleteDanceMessage =>
-        ResourceManager.GetString("DanceList_DeleteDanceMessage", Culture)!;
-
     // Setup wizard: emptying the list
-    public static string Wizard_DanceList_ClearTitle =>
-        ResourceManager.GetString("Wizard_DanceList_ClearTitle", Culture)!;
-
-    public static string Wizard_DanceList_ClearConfirmMessage =>
-        ResourceManager.GetString("Wizard_DanceList_ClearConfirmMessage", Culture)!;
-
-    public static string Wizard_DanceList_ClearConfirm =>
-        ResourceManager.GetString("Wizard_DanceList_ClearConfirm", Culture)!;
-
-    public static string Wizard_DanceList_ClearCancel =>
-        ResourceManager.GetString("Wizard_DanceList_ClearCancel", Culture)!;
-
     // Dance list scope
-    public static string DanceList_MarkForRandom =>
-        ResourceManager.GetString("DanceList_MarkForRandom", Culture)!;
-
-    public static string DanceList_MarkWholeList =>
-        ResourceManager.GetString("DanceList_MarkWholeList", Culture)!;
-
-    public static string DanceList_MarkWholeListLabel =>
-        ResourceManager.GetString("DanceList_MarkWholeListLabel", Culture)!;
-
-    public static string DanceList_MarkedWholeList =>
-        ResourceManager.GetString("DanceList_MarkedWholeList", Culture)!;
-
-    public static string DanceList_MarkedFormat =>
-        ResourceManager.GetString("DanceList_MarkedFormat", Culture)!;
-
     public static string DanceListToolbar_SwitchToTrackList =>
         ResourceManager.GetString("DanceListToolbar_SwitchToTrackList", Culture)!;
 
@@ -793,4 +685,150 @@ public static class UiStrings
 
     public static string TrackCatalog_DancesLabel =>
         ResourceManager.GetString("TrackCatalog_DancesLabel", Culture)!;
+
+    // Tagging editor
+    public static string Tagging_Title =>
+        ResourceManager.GetString("Tagging_Title", Culture)!;
+
+    public static string Toolbar_Tagging =>
+        ResourceManager.GetString("Toolbar_Tagging", Culture)!;
+
+    public static string Toolbar_TaggingLabel =>
+        ResourceManager.GetString("Toolbar_TaggingLabel", Culture)!;
+
+    public static string Tagging_Summary =>
+        ResourceManager.GetString("Tagging_Summary", Culture)!;
+
+    public static string Tagging_NothingToDo =>
+        ResourceManager.GetString("Tagging_NothingToDo", Culture)!;
+
+    public static string Tagging_TrackCount =>
+        ResourceManager.GetString("Tagging_TrackCount", Culture)!;
+
+    public static string Tagging_MapTo =>
+        ResourceManager.GetString("Tagging_MapTo", Culture)!;
+
+    public static string Tagging_MapFolder =>
+        ResourceManager.GetString("Tagging_MapFolder", Culture)!;
+
+    public static string Tagging_MapTrack =>
+        ResourceManager.GetString("Tagging_MapTrack", Culture)!;
+
+    public static string Tagging_Ignore =>
+        ResourceManager.GetString("Tagging_Ignore", Culture)!;
+
+    public static string Tagging_IgnoreTooltip =>
+        ResourceManager.GetString("Tagging_IgnoreTooltip", Culture)!;
+
+    public static string Tagging_Ignored =>
+        ResourceManager.GetString("Tagging_Ignored", Culture)!;
+
+    public static string Tagging_ShowTracks =>
+        ResourceManager.GetString("Tagging_ShowTracks", Culture)!;
+
+    public static string Tagging_Preview =>
+        ResourceManager.GetString("Tagging_Preview", Culture)!;
+
+    public static string Tagging_StopPreview =>
+        ResourceManager.GetString("Tagging_StopPreview", Culture)!;
+
+    public static string Tagging_PreviewRefused =>
+        ResourceManager.GetString("Tagging_PreviewRefused", Culture)!;
+
+    public static string Tagging_SuggestionWithCount =>
+        ResourceManager.GetString("Tagging_SuggestionWithCount", Culture)!;
+
+    public static string Tagging_LooksLikeAMisspelling =>
+        ResourceManager.GetString("Tagging_LooksLikeAMisspelling", Culture)!;
+
+    public static string Tagging_TooGeneralExplanation =>
+        ResourceManager.GetString("Tagging_TooGeneralExplanation", Culture)!;
+
+    public static string Tagging_NothingLooksLikeIt =>
+        ResourceManager.GetString("Tagging_NothingLooksLikeIt", Culture)!;
+
+    public static string Tagging_FolderAgrees =>
+        ResourceManager.GetString("Tagging_FolderAgrees", Culture)!;
+
+    public static string Tagging_FolderSaysNothing =>
+        ResourceManager.GetString("Tagging_FolderSaysNothing", Culture)!;
+
+    public static string Tagging_BucketSuggestions =>
+        ResourceManager.GetString("Tagging_BucketSuggestions", Culture)!;
+
+    public static string Tagging_BucketSuggestionsHint =>
+        ResourceManager.GetString("Tagging_BucketSuggestionsHint", Culture)!;
+
+    public static string Tagging_BucketUnrecognised =>
+        ResourceManager.GetString("Tagging_BucketUnrecognised", Culture)!;
+
+    public static string Tagging_BucketUnrecognisedHint =>
+        ResourceManager.GetString("Tagging_BucketUnrecognisedHint", Culture)!;
+
+    public static string Tagging_BucketOneOffs =>
+        ResourceManager.GetString("Tagging_BucketOneOffs", Culture)!;
+
+    public static string Tagging_BucketOneOffsHint =>
+        ResourceManager.GetString("Tagging_BucketOneOffsHint", Culture)!;
+
+    public static string Wizard_Tagging_Title =>
+        ResourceManager.GetString("Wizard_Tagging_Title", Culture)!;
+
+    public static string Wizard_Tagging_Explanation =>
+        ResourceManager.GetString("Wizard_Tagging_Explanation", Culture)!;
+
+    public static string Toolbar_TaggingCount =>
+        ResourceManager.GetString("Toolbar_TaggingCount", Culture)!;
+
+    public static string Tagging_StillReading =>
+        ResourceManager.GetString("Tagging_StillReading", Culture)!;
+
+    public static string Tagging_AmbiguousExplanation =>
+        ResourceManager.GetString("Tagging_AmbiguousExplanation", Culture)!;
+
+    public static string Tagging_ScanProgress =>
+        ResourceManager.GetString("Tagging_ScanProgress", Culture)!;
+
+    public static string Tagging_SearchDances =>
+        ResourceManager.GetString("Tagging_SearchDances", Culture)!;
+
+    public static string Tagging_DecidedAs =>
+        ResourceManager.GetString("Tagging_DecidedAs", Culture)!;
+
+    public static string Tagging_DecidedNotADance =>
+        ResourceManager.GetString("Tagging_DecidedNotADance", Culture)!;
+
+    // Setup: welcome
+    public static string Wizard_Welcome_Title =>
+        ResourceManager.GetString("Wizard_Welcome_Title", Culture)!;
+
+    public static string Wizard_Welcome_Explanation =>
+        ResourceManager.GetString("Wizard_Welcome_Explanation", Culture)!;
+
+    public static string Wizard_Welcome_Stage1 =>
+        ResourceManager.GetString("Wizard_Welcome_Stage1", Culture)!;
+
+    public static string Wizard_Welcome_Stage1Detail =>
+        ResourceManager.GetString("Wizard_Welcome_Stage1Detail", Culture)!;
+
+    public static string Wizard_Welcome_Stage2 =>
+        ResourceManager.GetString("Wizard_Welcome_Stage2", Culture)!;
+
+    public static string Wizard_Welcome_Stage2Detail =>
+        ResourceManager.GetString("Wizard_Welcome_Stage2Detail", Culture)!;
+
+    public static string Wizard_Welcome_Stage3 =>
+        ResourceManager.GetString("Wizard_Welcome_Stage3", Culture)!;
+
+    public static string Wizard_Welcome_Stage3Detail =>
+        ResourceManager.GetString("Wizard_Welcome_Stage3Detail", Culture)!;
+
+    public static string Wizard_Welcome_Source =>
+        ResourceManager.GetString("Wizard_Welcome_Source", Culture)!;
+
+    public static string Wizard_Music_Required =>
+        ResourceManager.GetString("Wizard_Music_Required", Culture)!;
+
+    public static string Settings_MusicDirectoryChangeHint =>
+        ResourceManager.GetString("Settings_MusicDirectoryChangeHint", Culture)!;
 }

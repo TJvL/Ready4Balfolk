@@ -1,8 +1,10 @@
 # Ready4Balfolk
 
-A desktop application for managing a balfolk dance night with recorded music. Build a queue of tracks, organise dances into categories, and display what's playing to your dancers on a presentation screen.
+A desktop application for managing a balfolk dance night with recorded music. Build a queue of tracks, draw at random from the dances you feel like playing, and display what's playing to your dancers on a presentation screen.
 
-Tracks are discovered from a music directory without requiring any naming convention: Ready4Balfolk looks for the dances you have listed anywhere in a filename or its tags, reads the artist from the folder the file is filed under, and asks you about whatever it does not recognise rather than guessing. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
+The dances themselves come from [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/), used exactly as published: every dance and every name it goes by, with tags for where it comes from, which family it belongs to and whether it is danced in a suite. Ready4Balfolk fetches it for you and never edits it, so there is no list to build before you start.
+
+Tracks are discovered from a music directory without requiring any naming convention: Ready4Balfolk looks for those dance names anywhere in a filename or its tags, reads the artist from the folder the file is filed under, and asks you about whatever it does not recognise rather than guessing. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
 
 ## Audio Backend
 

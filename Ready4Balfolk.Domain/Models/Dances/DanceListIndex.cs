@@ -40,7 +40,7 @@ public sealed class DanceListIndex
         var slugByFoldedName = new Dictionary<string, string>(StringComparer.Ordinal);
         var danceBySlug = new Dictionary<string, Dance>(StringComparer.Ordinal);
 
-        foreach (var dance in list.AllDances)
+        foreach (var dance in list.Dances)
         {
             if (!danceBySlug.TryAdd(dance.Slug, dance))
             {
@@ -71,15 +71,4 @@ public sealed class DanceListIndex
 
     /// <summary>The name to show for a slug, or the slug itself when the list no longer has it.</summary>
     public string DisplayNameFor(string slug) => FindBySlug(slug)?.DisplayName ?? slug;
-
-    /// <summary>
-    /// True when the name is taken by a dance other than <paramref name="exceptSlug"/>. This is what
-    /// the list screen asks before accepting a spelling, so that a name never comes to mean two
-    /// dances.
-    /// </summary>
-    public bool IsNameTaken(string name, string? exceptSlug = null)
-    {
-        var owner = ResolveSlug(name);
-        return owner is not null && !string.Equals(owner, exceptSlug, StringComparison.Ordinal);
-    }
 }

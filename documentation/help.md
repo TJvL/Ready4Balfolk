@@ -146,7 +146,7 @@ The queue can contain several types of items, each with a distinct appearance:
 The toolbar above the queue provides these actions:
 
 - **Toggle to History**: Switch the left panel to show the history view
-- **Queue Random Track**: Add a randomly selected track, from whatever the dance list is currently scoped to. Weights are respected.
+- **Queue Random Track**: Add a randomly selected track, drawn from the tags currently in the pool. With nothing chosen it draws from every dance you own a track for.
 - **Enqueue Stop**: Insert a stop marker into the queue
 - **Enqueue Delay**: Insert a delay marker with the duration configured in settings
 - **Request Message**: Opens a dialog where you can type a message and optionally set a duration
@@ -220,47 +220,60 @@ Use the toggle button in the toolbar to switch the right panel to the dance list
 
 ## Dance List
 
-The dance list is your own list of the dances you play and the names each one goes by. Nothing is built into the application: you build the list once when you first run Ready4Balfolk, by importing a published list or starting empty, and after that it is yours to edit. The list is also what random selection reads, so there is no second structure to keep in step with it.
+The dance list is every balfolk dance and every name each one goes by. It comes from
+[BigBalfolkList](https://tjvl.github.io/BigBalfolkList/) and Ready4Balfolk uses it exactly as
+published: there is nothing to build, nothing to fill in, and nothing in the application edits it.
 
-### Categories and dances
+A copy is shipped with Ready4Balfolk, so it works the first time you open it with no internet. It
+checks for a newer one each time it starts.
 
-- **Categories** hold dances and other categories. An imported list starts with a category per region, and a category inside it for a family or suite.
-- **Dances** live in a category. Each one carries the names it goes by; the first is the one shown everywhere in the application.
+### What is in it
 
-Select anything on the left to edit it on the right.
-
-### Names
-
-A dance can go by several names, because the spelling of a balfolk dance is genuinely contested. All of them mean the same dance, and none is treated as the correct one.
-
-- **Add a spelling**: type it in the box under the list of names and press Enter.
-- **Choose which one is shown**: click the **up arrow** next to a spelling to move it to the top. Nothing else moves, because everything in the application refers to the dance itself rather than to its name.
-- **Remove a spelling**: click the **trash** icon. A dance always keeps at least one name.
-
-**A name can only ever mean one dance.** Adding a spelling that another dance already answers to is refused, and the message says which dance has it. That is what lets Ready4Balfolk answer with one dance when it recognises a name in a filename.
-
-### Weights
-
-Categories and dances both carry a **weight**, and a random pick is weighted by the category's weight multiplied by the dance's. A higher weight comes up more often; **zero means never**, and a category weighted zero takes everything inside it with it.
+- **The names of a dance are equals.** Spelling is contested and this list does not take sides; the
+  first name is simply the one shown in the application. A name belongs to exactly one dance, which
+  is what lets Ready4Balfolk answer with one dance when it recognises a name in a filename.
+- **Everything else is a tag**: where a dance comes from, which family it belongs to, whether it is
+  danced as part of a suite. A dance can be Breton *and* a gavotte *and* part of a suite without
+  being filed under one of them.
 
 ### Choosing what random picks from
 
-Click the **dice** icon on any row to scope random selection to it:
+The tags in the left-hand rail are the **pool**: click a tag to put it in, click it again to take it
+out. A random pick, and the auto-queue, draw from the dances carrying any tag in the pool. With
+nothing chosen the pool is every dance.
 
-- **A category**: picks from the dances in it and in everything under it.
-- **A single dance**: picks only tracks for that dance.
-- Click the dice again, or use **Whole list** in the toolbar, to go back to picking from everything.
+The toolbar always says what is being drawn from, because a tag is easy to click on the way past and
+hard to notice afterwards. **Everything** empties the pool again.
 
-The toolbar always says what the current scope is, because the dice is easy to hit by accident and hard to notice afterwards.
+Tags are sized by how many dances carry them, and clicking a tag on a card does the same thing as
+clicking it in the rail.
 
-### Editing
+### One particular dance
 
-- **Add category**: creates a new top-level category. With a category selected, **Add a category inside this one** nests one.
-- **Add a dance**: type its name in the box on a selected category and press Enter.
-- **Rename**: edit the name of the selected category and press Enter. Two categories in the same place cannot share a name.
-- **Delete**: removes the selected category or dance. Deleting a category takes the dances in it with it, and it says how many first.
-- **Undo** / **Redo**: every edit can be undone. Hover a button to see which change it will undo.
-- **Import** / **Export**: replace the whole list from a file, or save it for backup or sharing. Importing cannot be undone, so it asks first.
+Click the **dice** on a dance to queue a random track of that dance, whatever the pool is set to.
+A dance you own no tracks for says so instead, and can never come up in a random pick either.
+
+### Searching
+
+The search box matches every spelling of every dance, ignoring case, accents and punctuation, so
+`hanterdro` finds *Hanter dro*.
+
+### Keeping it up to date
+
+- **Update**: fetches the list as BigBalfolkList publishes it right now. Useful when you know
+  something was just added.
+- **From a file**: takes the list from a `dances.json` on this computer, for a machine that never
+  reaches the internet.
+
+Either way the list is replaced whole and checked first; if it cannot be read, the one you already
+have stays in use.
+
+### Something missing or misspelled?
+
+Propose it at [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/). The site lets you add a
+spelling, fix one, tag a dance or add a dance that is missing, and it turns what you did into a
+proposal for someone to look at. Everyone using the list gets your correction, which is the point of
+there being one list.
 
 ---
 

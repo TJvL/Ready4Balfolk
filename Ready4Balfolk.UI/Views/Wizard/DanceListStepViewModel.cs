@@ -1,137 +1,65 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Services.Dances;
-using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.UI.Resources;
-using Ready4Balfolk.UI.Services;
-// Views.DanceList is a sibling namespace of this one, so the model needs a name of its own here.
-using DanceListModel = Ready4Balfolk.Domain.Models.Dances.DanceList;
 
 namespace Ready4Balfolk.UI.Views.Wizard;
 
-/// <summary>The wizard's first step: building the dance list.</summary>
+/// <summary>The wizard's dance list step: fetch the published list, and show what arrived.</summary>
 /// <remarks>
-/// Nothing ships with the application, so this is where the list comes into existence. Either the
-/// user imports the one BigBalfolkList publishes, or they start empty and add dances by hand on the
-/// dance list screen. Both are real answers, so neither is offered as the lesser one.
+/// Nothing to answer. The list is BigBalfolkList's shared vocabulary rather than the user's own
+/// list, so there is no subset to choose and no spelling to settle here: a dance nobody owns a
+/// track for can never come up anyway. Never blocks either, because the copy shipped with the
+/// application is a perfectly good list and a hall with no wifi is an ordinary place to start in.
 /// </remarks>
-public sealed partial class DanceListStepViewModel(
-    IDanceListStore store,
-    ILoggerService loggerService,
-    INotificationService notifications,
-    IConfirmationService confirmations) : WizardStepViewModel
+public sealed partial class DanceListStepViewModel(IDanceListStore store, IDanceListFeed feed)
+    : WizardStepViewModel
 {
-    /// <summary>Where a list to import is published. Opened in the user's own browser.</summary>
-    public const string SourceUrl = "https://github.com/TJvL/BigBalfolkList";
+    [Reactive] public partial string SummaryText { get; private set; }
 
-    /// <summary>
-    /// True once the user has actually answered, by importing or by choosing to start empty. An
-    /// empty list is a legitimate answer but an unanswered step is not, so the wizard waits.
-    /// </summary>
-    [Reactive] public partial bool HasAnswered { get; private set; }
+    [Reactive] public partial string OriginText { get; private set; }
 
-    /// <summary>What the list looks like now, or null before the step has been answered.</summary>
-    [Reactive] public partial string? Summary { get; private set; }
+    [Reactive] public partial bool IsFetching { get; private set; }
+
+    /// <summary>Where the list comes from, opened in the user's own browser.</summary>
+    public Uri SourceUri { get; } = feed.HomePage;
 
     public override string Title => UiStrings.Wizard_DanceList_Title;
 
     public override string Explanation => UiStrings.Wizard_DanceList_Explanation;
 
-    public override IObservable<bool> CanContinue => this.WhenAnyValue(x => x.HasAnswered);
-
-    public override Task EnterAsync()
+    public override async Task EnterAsync()
     {
-        // Re-running the wizard on a profile that already has a list must not read as a fresh
-        // start, or the obvious move is to import again over a list the user has since edited.
-        if (!store.Current.IsEmpty)
-        {
-            HasAnswered = true;
-            Summary = DescribeCurrentList();
-        }
-
-        return Task.CompletedTask;
-    }
-
-    /// <summary>Reads a BigBalfolkList export and makes it the user's list.</summary>
-    public async Task ImportAsync(FileInfo fileInfo)
-    {
+        IsFetching = true;
         try
         {
-            var list = await BigBalfolkListImporter.ReadAsync(fileInfo);
-            await store.ReplaceAsync(list);
-
-            HasAnswered = true;
-            Summary = DescribeCurrentList();
-            await loggerService.InfoAsync(
-                $"Setup imported {list.AllDances.Count()} dances from {fileInfo.FullName}");
+            // Whatever comes back, there is a list: the fetch either replaces the built-in copy or
+            // leaves it standing.
+            await store.RefreshAsync();
         }
-        catch (Exception exception) when (exception is InvalidDataException or FileNotFoundException)
+        finally
         {
-            // A refused file is a message, not an error: the import said exactly what was wrong
-            // with it and the user can pick a different one.
-            notifications.Show(exception.Message, NotificationSeverity.Warning);
-        }
-        catch (IOException exception)
-        {
-            await loggerService.ErrorAsync("Failed to import a dance list", exception);
-            notifications.Show(UiStrings.Wizard_DanceList_ImportFailed, NotificationSeverity.Error);
+            IsFetching = false;
+            Describe(store.Status);
         }
     }
 
-    /// <summary>
-    /// Empties the list, for a user who would rather add only the dances they actually play.
-    /// </summary>
-    /// <remarks>
-    /// It really does empty it. Treating this as "do not import" instead would make the button do
-    /// nothing at all on a profile that already has a list, which is exactly what it looks like it
-    /// should undo.
-    /// </remarks>
-    [ReactiveCommand]
-    private async Task StartEmptyAsync()
+    private void Describe(DanceListStatus status)
     {
-        if (!store.Current.IsEmpty)
-        {
-            var message = string.Format(
-                CultureInfo.CurrentCulture,
-                UiStrings.Wizard_DanceList_ClearConfirmMessage,
-                store.Current.AllDances.Count());
-
-            if (!await confirmations.ConfirmAsync(
-                    UiStrings.Wizard_DanceList_ClearTitle,
-                    message,
-                    UiStrings.Wizard_DanceList_ClearConfirm,
-                    UiStrings.Wizard_DanceList_ClearCancel))
-            {
-                return;
-            }
-
-            await store.ReplaceAsync(DanceListModel.Empty);
-            await loggerService.InfoAsync("Setup emptied the dance list");
-        }
-
-        HasAnswered = true;
-        Summary = UiStrings.Wizard_DanceList_EmptySummary;
-    }
-
-    private string DescribeCurrentList()
-    {
-        var list = store.Current;
-        return string.Format(
+        SummaryText = string.Format(
             CultureInfo.CurrentCulture,
-            UiStrings.Wizard_DanceList_SummaryFormat,
-            list.AllDances.Count(),
-            CountCategories(list.Categories));
-    }
+            UiStrings.Wizard_DanceList_Summary,
+            status.DanceCount,
+            status.TagCount);
 
-    private static int CountCategories(IReadOnlyList<DanceCategory> categories) =>
-        categories.Sum(category => 1 + CountCategories(category.Categories));
+        OriginText = status.ObtainedAt is { } obtainedAt
+            ? string.Format(
+                CultureInfo.CurrentCulture, UiStrings.DanceList_Obtained, obtainedAt.ToLocalTime().DateTime)
+            : UiStrings.DanceList_ObtainedBuiltIn;
+    }
 }

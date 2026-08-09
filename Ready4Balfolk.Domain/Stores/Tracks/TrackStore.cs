@@ -219,6 +219,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
             _ = _loggerService.DebugAsync($"Found {audioFiles.Count} audio files to load");
 
             var scanned = new ConcurrentBag<ScannedFile>();
+            // Everything that has been read, kept for the folder pass once the scan is complete.
+            var written = new List<ScannedFile>();
             var loaded = audioFiles.ToObservable()
                 .TakeUntil(_ => cancellationToken.IsCancellationRequested)
                 .Select(file => LoadTrackObservable(file, directory, known, scanned))
@@ -229,21 +231,45 @@ public sealed class TrackStore : ITrackStore, IDisposable
             {
                 _tracks.Edit(innerList => innerList.AddRange(tracksBatch));
 
+                // Written as the scan goes rather than all at the end. Indexing a large library on
+                // a network mount takes minutes, and a run that is interrupted at 78% must not
+                // throw away 78% of the work: incremental upserts are the reason this is a database
+                // and not a file.
+                var pending = new List<ScannedFile>();
+                while (scanned.TryTake(out var entry))
+                {
+                    pending.Add(entry);
+                    written.Add(entry);
+                }
+
+                if (pending.Count > 0)
+                {
+                    _libraryIndex.WriteAsync([.. pending.Select(ToEntry)], cancellationToken).SafeFireAndForget(exception =>
+                        _loggerService.ErrorAsync("Failed to write a batch to the library index", exception));
+                }
+
                 _ = _loggerService.DebugAsync($"Added batch of '{tracksBatch.Count:N0}' tracks");
             }, cancellationToken);
 
             // Folder agreement runs once the folders are complete, because "what the rest of this
             // album turned out to be" is not knowable while the album is still being read.
-            var rescued = ApplyFolderAgreement(scanned);
+            // Anything the last batch left behind.
+            while (scanned.TryTake(out var remaining))
+            {
+                written.Add(remaining);
+            }
+
+            var rescued = ApplyFolderAgreement(written);
             if (rescued > 0)
             {
                 await _loggerService.DebugAsync($"Folder agreement resolved {rescued:N0} more tracks");
             }
 
             await _loggerService.DebugAsync(
-                $"Loaded '{_tracks.Count:N0}' tracks, {scanned.Count:N0} of them read from disk");
+                $"Loaded '{_tracks.Count:N0}' tracks, {written.Count:N0} of them read from disk");
 
-            await _libraryIndex.WriteAsync([.. scanned.Select(ToEntry)], cancellationToken);
+            // Written again, because folder agreement changed some of them after the fact.
+            await _libraryIndex.WriteAsync([.. written.Select(ToEntry)], cancellationToken);
             await _libraryIndex.DeleteMissingAsync([.. audioFiles.Select(file => file.FullName)], cancellationToken);
 
             StartWatching(directory, cancellationToken);
@@ -272,7 +298,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// <summary>
     /// Re-resolves the tracks a folder can now speak for, and reports how many were rescued.
     /// </summary>
-    private int ApplyFolderAgreement(ConcurrentBag<ScannedFile> scanned)
+    private int ApplyFolderAgreement(IReadOnlyCollection<ScannedFile> scanned)
     {
         var byFolder = scanned
             .GroupBy(file => file.Evidence.AlbumFolderKey ?? string.Empty, StringComparer.Ordinal)

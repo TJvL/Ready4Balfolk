@@ -5,262 +5,199 @@
              xmlns:res="using:Ready4Balfolk.UI.Resources"
              xmlns:controls="using:Ready4Balfolk.UI.Controls"
              xmlns:danceList="using:Ready4Balfolk.UI.Views.DanceList"
-             xmlns:conv="using:Ready4Balfolk.UI.Converters"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="520"
              x:Class="Ready4Balfolk.UI.Views.DanceList.DanceListView"
              x:DataType="danceList:DanceListViewModel">
-    <Grid ColumnDefinitions="*,12,360" RowDefinitions="Auto,*">
-        <!-- Toolbar -->
-        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                    Orientation="Horizontal" Spacing="4" Margin="0,0,0,8">
-            <Button Command="{CompiledBinding AddRootCategoryCommand}"
-                    ToolTip.Tip="{x:Static res:UiStrings.DanceList_AddRootCategory}"
-                    Padding="8" Focusable="False">
-                <controls:ButtonContent Icon="{StaticResource IconPlus}"
-                                        Text="{x:Static res:UiStrings.DanceList_AddRootCategory}"
-                                        IconSize="16" />
-            </Button>
-            <Button Command="{CompiledBinding DeleteSelectedCommand}"
-                    ToolTip.Tip="{x:Static res:UiStrings.DanceList_Delete}"
-                    Padding="8" Focusable="False">
-                <controls:ButtonContent Icon="{StaticResource IconDelete}"
-                                        Text="{x:Static res:UiStrings.DanceList_Delete}"
-                                        IconSize="16" />
-            </Button>
-            <Rectangle Width="1" Margin="4,2" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
-            <Button Command="{CompiledBinding UndoCommand}"
-                    ToolTip.Tip="{CompiledBinding UndoTooltip}"
-                    Padding="8" Focusable="False">
-                <controls:ButtonContent Icon="{StaticResource IconUndo}"
-                                        Text="{x:Static res:UiStrings.DanceList_Undo}"
-                                        IconSize="16" />
-            </Button>
-            <Button Command="{CompiledBinding RedoCommand}"
-                    ToolTip.Tip="{CompiledBinding RedoTooltip}"
-                    Padding="8" Focusable="False">
-                <controls:ButtonContent Icon="{StaticResource IconRedo}"
-                                        Text="{x:Static res:UiStrings.DanceList_Redo}"
-                                        IconSize="16" />
-            </Button>
-            <Rectangle Width="1" Margin="4,2" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
-            <Button Click="OnImportClick"
-                    ToolTip.Tip="{x:Static res:UiStrings.DanceList_Import}"
-                    Padding="8" Focusable="False">
-                <controls:ButtonContent Icon="{StaticResource IconFileImport}"
-                                        Text="{x:Static res:UiStrings.DanceList_Import}"
-                                        IconSize="16" />
-            </Button>
-            <Button Click="OnExportClick"
-                    ToolTip.Tip="{x:Static res:UiStrings.DanceList_Export}"
-                    Padding="8" Focusable="False">
-                <controls:ButtonContent Icon="{StaticResource IconFileExport}"
-                                        Text="{x:Static res:UiStrings.DanceList_Export}"
-                                        IconSize="16" />
-            </Button>
-            <TextBlock Text="{CompiledBinding SummaryText}"
+    <UserControl.Styles>
+        <!-- A tag reads as a chip wherever it appears: in the rail, and on a card. Both put it in
+             the pool, so both have to look like the same thing. -->
+        <Style Selector="Button.chip">
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Focusable" Value="False" />
+        </Style>
+        <Style Selector="Button.chip.pooled">
+            <Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
+        </Style>
+        <Style Selector="Button.chip.dimmed">
+            <Setter Property="Opacity" Value="0.35" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid ColumnDefinitions="240,12,*" RowDefinitions="Auto,*">
+        <!-- Search, over both columns: it narrows the cards, and dims the rail to match -->
+        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+              ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+            <TextBox Grid.Column="0"
+                     Text="{CompiledBinding SearchText, Mode=TwoWay}"
+                     Watermark="{x:Static res:UiStrings.DanceList_SearchWatermark}" />
+            <TextBlock Grid.Column="1"
+                       Text="{CompiledBinding SummaryText}"
                        VerticalAlignment="Center"
                        Margin="12,0,0,0"
                        Opacity="0.6"
                        FontSize="12" />
-        </StackPanel>
+        </Grid>
 
-        <!-- The list itself -->
+        <!-- The rail: every tag, sized by how many dances carry it. What is picked here is the
+             pool a random pick and the auto-queue draw from. -->
         <Border Grid.Row="1" Grid.Column="0"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                 BorderThickness="1"
                 CornerRadius="4">
-            <controls:LoadingContainer IsLoading="{CompiledBinding IsLoading}">
-                <TreeView ItemsSource="{CompiledBinding Nodes}"
-                          SelectedItem="{CompiledBinding SelectedNode, Mode=TwoWay}"
-                          FontSize="18">
-                    <TreeView.Styles>
-                        <!-- ReflectionBinding: a style setter has no data type to compile against,
-                             and both node kinds carry IsExpanded. -->
-                        <Style Selector="TreeViewItem">
-                            <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
-                        </Style>
-                    </TreeView.Styles>
-                    <TreeView.DataTemplates>
-                        <TreeDataTemplate DataType="danceList:DanceCategoryNode" ItemsSource="{Binding Children}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Button Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).ToggleMarkCommand}"
-                                        CommandParameter="{Binding}"
-                                        ToolTip.Tip="{x:Static res:UiStrings.DanceList_MarkForRandom}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="2"
-                                        Focusable="False">
-                                    <PathIcon Data="{StaticResource IconDice}"
-                                              Width="14" Height="14"
-                                              Foreground="{Binding IsMarked, Converter={x:Static danceList:MarkedBrushConverter.Instance}}" />
+            <DockPanel Margin="8">
+                <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,8">
+                    <TextBlock Text="{x:Static res:UiStrings.DanceList_TagsHeader}"
+                               FontSize="11"
+                               Opacity="0.6" />
+                    <TextBlock Text="{CompiledBinding PoolDescription}"
+                               TextWrapping="Wrap"
+                               FontSize="12" />
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="0,8,0,0">
+                    <Button Command="{CompiledBinding ClearPoolCommand}"
+                            IsVisible="{CompiledBinding HasPool}"
+                            HorizontalAlignment="Stretch"
+                            Padding="8"
+                            Focusable="False">
+                        <controls:ButtonContent Icon="{StaticResource IconClose}"
+                                                Text="{x:Static res:UiStrings.DanceList_ClearPool}"
+                                                IconSize="14" />
+                    </Button>
+
+                    <Rectangle Height="1" Margin="0,4"
+                               Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+
+                    <TextBlock Text="{CompiledBinding OriginText}"
+                               TextWrapping="Wrap"
+                               FontSize="11"
+                               Opacity="0.6" />
+                    <Button Command="{CompiledBinding UpdateCommand}"
+                            IsEnabled="{CompiledBinding !IsUpdating}"
+                            ToolTip.Tip="{x:Static res:UiStrings.DanceList_UpdateTip}"
+                            HorizontalAlignment="Stretch"
+                            Padding="8"
+                            Focusable="False">
+                        <controls:ButtonContent Icon="{StaticResource IconDownload}"
+                                                Text="{x:Static res:UiStrings.DanceList_Update}"
+                                                IconSize="14" />
+                    </Button>
+                    <Button Click="OnUpdateFromFileClick"
+                            IsEnabled="{CompiledBinding !IsUpdating}"
+                            ToolTip.Tip="{x:Static res:UiStrings.DanceList_UpdateFromFileTip}"
+                            HorizontalAlignment="Stretch"
+                            Padding="8"
+                            Focusable="False">
+                        <controls:ButtonContent Icon="{StaticResource IconFileImport}"
+                                                Text="{x:Static res:UiStrings.DanceList_UpdateFromFile}"
+                                                IconSize="14" />
+                    </Button>
+                </StackPanel>
+
+                <ScrollViewer>
+                    <ItemsControl ItemsSource="{CompiledBinding Tags}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="danceList:TagChipViewModel">
+                                <Button Classes="chip"
+                                        Classes.pooled="{Binding IsInPool}"
+                                        Classes.dimmed="{Binding IsDimmed}"
+                                        Margin="0,0,4,4"
+                                        FontSize="{Binding Size}"
+                                        Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).ToggleTagCommand}"
+                                        CommandParameter="{Binding Tag}">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="{Binding Tag}" />
+                                        <TextBlock Text="{Binding Count}" Opacity="0.5" />
+                                    </StackPanel>
                                 </Button>
-                                <PathIcon Data="{StaticResource IconTreeStructure}"
-                                          Width="14" Height="14"
-                                          Opacity="0.7"
-                                          VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Weight, StringFormat={x:Static res:UiStrings.DanceList_WeightBadge}}"
-                                           VerticalAlignment="Center"
-                                           FontSize="12"
-                                           Opacity="0.5" />
-                            </StackPanel>
-                        </TreeDataTemplate>
-                        <DataTemplate DataType="danceList:DanceNode">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Button Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).ToggleMarkCommand}"
-                                        CommandParameter="{Binding}"
-                                        ToolTip.Tip="{x:Static res:UiStrings.DanceList_MarkForRandom}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="2"
-                                        Focusable="False">
-                                    <PathIcon Data="{StaticResource IconDice}"
-                                              Width="14" Height="14"
-                                              Foreground="{Binding IsMarked, Converter={x:Static danceList:MarkedBrushConverter.Instance}}" />
-                                </Button>
-                                <PathIcon Data="{StaticResource IconLeaf}"
-                                          Width="14" Height="14"
-                                          Opacity="0.7"
-                                          VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OtherNames}"
-                                           VerticalAlignment="Center"
-                                           FontSize="12"
-                                           Opacity="0.5" />
-                                <TextBlock Text="{Binding Weight, StringFormat={x:Static res:UiStrings.DanceList_WeightBadge}}"
-                                           VerticalAlignment="Center"
-                                           FontSize="12"
-                                           Opacity="0.5" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </TreeView.DataTemplates>
-                </TreeView>
-            </controls:LoadingContainer>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
         </Border>
 
-        <!-- Details for whatever is selected -->
+        <!-- The cards: names as equals, the tags they carry, and the dice that asks for this one
+             dance whatever the pool is set to. -->
         <Border Grid.Row="1" Grid.Column="2"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                 BorderThickness="1"
-                CornerRadius="4"
-                Padding="12">
-            <ScrollViewer>
-                <StackPanel Spacing="12">
-                    <TextBlock Text="{CompiledBinding SelectionHeader}"
-                               FontWeight="Bold"
-                               FontSize="16"
-                               TextWrapping="Wrap" />
-
-                    <TextBlock Text="{x:Static res:UiStrings.DanceList_SelectSomething}"
-                               IsVisible="{CompiledBinding !HasSelection}"
-                               TextWrapping="Wrap"
-                               Opacity="0.6"
-                               FontSize="12" />
-
-                    <!-- Category -->
-                    <StackPanel Spacing="8" IsVisible="{CompiledBinding IsCategorySelected}">
-                        <TextBlock Text="{x:Static res:UiStrings.DanceList_CategoryName}" FontSize="12" Opacity="0.7" />
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Grid.Column="0"
-                                     Text="{CompiledBinding EditedCategoryName, Mode=TwoWay}"
-                                     KeyDown="OnCategoryNameKeyDown" />
-                            <Button Grid.Column="1"
-                                    Command="{CompiledBinding RenameCategoryCommand}"
-                                    Content="{x:Static res:UiStrings.DanceList_Rename}"
-                                    Margin="8,0,0,0" />
-                        </Grid>
-
-                        <TextBlock Text="{x:Static res:UiStrings.DanceList_AddDanceHere}" FontSize="12" Opacity="0.7" Margin="0,8,0,0" />
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Grid.Column="0"
-                                     Text="{CompiledBinding NewDanceName, Mode=TwoWay}"
-                                     Watermark="{x:Static res:UiStrings.DanceList_NewDanceWatermark}"
-                                     KeyDown="OnNewDanceKeyDown" />
-                            <Button Grid.Column="1"
-                                    Command="{CompiledBinding AddDanceCommand}"
-                                    Content="{x:Static res:UiStrings.DanceList_Add}"
-                                    Margin="8,0,0,0" />
-                        </Grid>
-
-                        <Button Command="{CompiledBinding AddSubCategoryCommand}"
-                                Content="{x:Static res:UiStrings.DanceList_AddSubCategory}"
-                                HorizontalAlignment="Left"
-                                Margin="0,4,0,0" />
-                    </StackPanel>
-
-                    <!-- Dance -->
-                    <StackPanel Spacing="8" IsVisible="{CompiledBinding IsDanceSelected}">
-                        <TextBlock Text="{x:Static res:UiStrings.DanceList_Names}" FontSize="12" Opacity="0.7" />
-                        <TextBlock Text="{x:Static res:UiStrings.DanceList_NamesExplanation}"
-                                   FontSize="11"
-                                   Opacity="0.6"
-                                   TextWrapping="Wrap" />
-                        <ItemsControl ItemsSource="{CompiledBinding Names}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="danceList:DanceNameRow">
-                                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,2">
-                                        <TextBlock Grid.Column="0"
-                                                   Text="{Binding Name}"
-                                                   VerticalAlignment="Center"
+                CornerRadius="4">
+            <controls:LoadingContainer IsLoading="{CompiledBinding IsLoading}">
+                <ScrollViewer Padding="8">
+                    <ItemsControl ItemsSource="{CompiledBinding Dances}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="danceList:DanceCardViewModel">
+                                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="4,8">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+                                        <TextBlock Grid.Row="0" Grid.Column="0"
+                                                   Text="{Binding NamesText}"
+                                                   FontSize="16"
                                                    TextWrapping="Wrap"
-                                                   FontWeight="{Binding IsDisplayed, Converter={x:Static danceList:DisplayedNameWeightConverter.Instance}}" />
-                                        <Button Grid.Column="1"
-                                                Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).UseNameCommand}"
-                                                CommandParameter="{Binding}"
-                                                IsVisible="{Binding CanMoveUp}"
-                                                ToolTip.Tip="{x:Static res:UiStrings.DanceList_UseThisSpelling}"
-                                                Padding="6,2"
+                                                   VerticalAlignment="Center" />
+
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="{Binding TrackCount, StringFormat={x:Static res:UiStrings.DanceList_TrackCount}}"
+                                                   IsVisible="{Binding HasTracks}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="8,0"
+                                                   FontSize="12"
+                                                   Opacity="0.5" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="{x:Static res:UiStrings.DanceList_NoTracks}"
+                                                   IsVisible="{Binding !HasTracks}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="8,0"
+                                                   FontSize="12"
+                                                   Opacity="0.35" />
+
+                                        <Button Grid.Row="0" Grid.Column="2"
+                                                Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).PickDanceCommand}"
+                                                CommandParameter="{Binding Slug}"
+                                                IsVisible="{Binding HasTracks}"
+                                                ToolTip.Tip="{x:Static res:UiStrings.DanceList_PickThisDance}"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="6"
                                                 Focusable="False">
-                                            <PathIcon Data="{StaticResource IconArrowUp}" Width="12" Height="12" />
+                                            <PathIcon Data="{StaticResource IconDice}" Width="16" Height="16" />
                                         </Button>
-                                        <Button Grid.Column="2"
-                                                Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).RemoveNameCommand}"
-                                                CommandParameter="{Binding}"
-                                                IsEnabled="{Binding CanRemove}"
-                                                ToolTip.Tip="{x:Static res:UiStrings.DanceList_RemoveName}"
-                                                Padding="6,2"
-                                                Margin="4,0,0,0"
-                                                Focusable="False">
-                                            <PathIcon Data="{StaticResource IconDelete}" Width="12" Height="12" />
-                                        </Button>
+
+                                        <ItemsControl Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                                      ItemsSource="{Binding Tags}"
+                                                      IsVisible="{Binding HasTags}"
+                                                      Margin="0,4,0,0">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="x:String">
+                                                    <Button Classes="chip"
+                                                            Margin="0,0,4,0"
+                                                            Content="{Binding}"
+                                                            Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).ToggleTagCommand}"
+                                                            CommandParameter="{Binding}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
                                     </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Grid.Column="0"
-                                     Text="{CompiledBinding NewNameText, Mode=TwoWay}"
-                                     Watermark="{x:Static res:UiStrings.DanceList_NewNameWatermark}"
-                                     KeyDown="OnNewNameKeyDown" />
-                            <Button Grid.Column="1"
-                                    Command="{CompiledBinding AddNameCommand}"
-                                    Content="{x:Static res:UiStrings.DanceList_Add}"
-                                    Margin="8,0,0,0" />
-                        </Grid>
-                    </StackPanel>
-
-                    <!-- Weight, for either -->
-                    <StackPanel Spacing="8" IsVisible="{CompiledBinding HasSelection}">
-                        <TextBlock Text="{x:Static res:UiStrings.DanceList_Weight}" FontSize="12" Opacity="0.7" />
-                        <Grid ColumnDefinitions="*,Auto">
-                            <NumericUpDown Grid.Column="0"
-                                           Value="{CompiledBinding EditedWeight, Mode=TwoWay, Converter={x:Static conv:WeightConverter.Instance}}"
-                                           Minimum="0"
-                                           Maximum="100"
-                                           Increment="1" />
-                            <Button Grid.Column="1"
-                                    Command="{CompiledBinding ApplyWeightCommand}"
-                                    Content="{x:Static res:UiStrings.DanceList_Apply}"
-                                    Margin="8,0,0,0" />
-                        </Grid>
-                        <TextBlock Text="{x:Static res:UiStrings.DanceList_WeightExplanation}"
-                                   FontSize="11"
-                                   Opacity="0.6"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                </StackPanel>
-            </ScrollViewer>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </controls:LoadingContainer>
         </Border>
     </Grid>
 </UserControl>

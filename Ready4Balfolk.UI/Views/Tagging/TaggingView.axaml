@@ -1,0 +1,248 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
+             xmlns:tagging="using:Ready4Balfolk.UI.Views.Tagging"
+             xmlns:queue="using:Ready4Balfolk.UI.Views.Queue"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="Ready4Balfolk.UI.Views.Tagging.TaggingView"
+             x:DataType="tagging:TaggingViewModel">
+    <UserControl.Resources>
+        <!-- One track. Play is on the row because nobody can tell a Berry from an Auvergnate by
+             reading a filename. -->
+        <DataTemplate x:Key="TrackRowTemplate" DataType="tagging:PreviewRowViewModel">
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+                <Button Grid.Column="0"
+                        Click="OnPreviewClick"
+                        Tag="{Binding}"
+                        ToolTip.Tip="{x:Static res:UiStrings.Tagging_Preview}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="4">
+                    <PathIcon Data="{StaticResource IconPlay}"
+                              Width="12" Height="12"
+                              Foreground="{Binding IsPreviewing, Converter={x:Static tagging:PreviewingBrushConverter.Instance}}" />
+                </Button>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding FileName}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{Binding FolderName}" FontSize="10" Opacity="0.5" />
+                        <TextBlock Text="{Binding DecisionText}"
+                                   IsVisible="{Binding IsDecided}"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SystemAccentColor}" />
+                    </StackPanel>
+                </StackPanel>
+                <AutoCompleteBox Grid.Column="2"
+                                 ItemsSource="{Binding $parent[UserControl].((tagging:TaggingViewModel)DataContext).AllDances}"
+                                 ValueMemberBinding="{Binding Label}"
+                                 FilterMode="ContainsOrdinal"
+                                 MinimumPrefixLength="0"
+                                 SelectionChanged="OnTrackSelectionChanged"
+                                 Tag="{Binding}"
+                                 Watermark="{x:Static res:UiStrings.Tagging_SearchDances}"
+                                 MinWidth="180" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- One template, used by all three buckets: the difference between them is which values
+             land in each, not how a value is presented. -->
+        <DataTemplate x:Key="ValueTemplate" DataType="tagging:UnrecognisedValueViewModel">
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="0,0,0,1"
+                    Padding="0,8">
+                <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{Binding Text}" FontWeight="SemiBold" FontSize="15" />
+                                <TextBlock Text="{Binding TrackCountText}"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Opacity="0.6" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding Explanation}"
+                                       TextWrapping="Wrap"
+                                       FontSize="11"
+                                       Opacity="0.6" />
+                        </StackPanel>
+
+                        <!-- No map control at all when the value is too general. Not a disabled one:
+                             the question itself is wrong, and offering it invites 50 wrong answers. -->
+                        <!-- Every dance, searchable. The suggestions are only a ranking, not a
+                             restriction: the right answer may be a dance nothing suggested. -->
+                        <AutoCompleteBox Grid.Column="1"
+                                         ItemsSource="{Binding $parent[UserControl].((tagging:TaggingViewModel)DataContext).AllDances}"
+                                         ValueMemberBinding="{Binding Label}"
+                                         FilterMode="ContainsOrdinal"
+                                         MinimumPrefixLength="0"
+                                         SelectionChanged="OnMapSelectionChanged"
+                                         Tag="{Binding}"
+                                         Watermark="{x:Static res:UiStrings.Tagging_SearchDances}"
+                                         MinWidth="200"
+                                         Margin="8,0,0,0"
+                                         IsVisible="{Binding CanMapAsAWhole}" />
+
+                        <Button Grid.Column="2"
+                                Click="OnIgnoreClick"
+                                Tag="{Binding}"
+                                Content="{x:Static res:UiStrings.Tagging_Ignore}"
+                                ToolTip.Tip="{x:Static res:UiStrings.Tagging_IgnoreTooltip}"
+                                Margin="8,0,0,0" />
+
+                        <!-- Answered rows stay put and say so, so a mis-click can be corrected. -->
+                        <Border Grid.Column="3"
+                                IsVisible="{Binding IsDecided}"
+                                Background="{DynamicResource SystemAccentColor}"
+                                CornerRadius="4"
+                                Padding="8,3"
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="{Binding DecisionText}" FontSize="12" FontWeight="SemiBold" />
+                        </Border>
+                    </Grid>
+
+                    <ToggleButton Content="{x:Static res:UiStrings.Tagging_ShowTracks}"
+                                  IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                  HorizontalAlignment="Left"
+                                  Padding="6,2"
+                                  FontSize="11" />
+
+                    <StackPanel Spacing="6" IsVisible="{Binding IsExpanded}" Margin="12,0,0,0">
+                        <!-- Split by album folder, which is where the remaining evidence is. -->
+                        <ItemsControl ItemsSource="{Binding Folders}" IsVisible="{Binding IsTooGeneral}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="tagging:FolderGroupViewModel">
+                                    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="8"
+                                            Margin="0,0,0,6">
+                                        <StackPanel Spacing="4">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Grid.Column="0">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="{Binding FolderName}" FontWeight="SemiBold" FontSize="13" />
+                                                        <TextBlock Text="{Binding DecisionText}"
+                                                                   IsVisible="{Binding IsDecided}"
+                                                                   FontSize="11"
+                                                                   FontWeight="SemiBold"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource SystemAccentColor}" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Summary}" FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <AutoCompleteBox Grid.Column="1"
+                                                                 ItemsSource="{Binding $parent[UserControl].((tagging:TaggingViewModel)DataContext).AllDances}"
+                                                                 ValueMemberBinding="{Binding Label}"
+                                                                 FilterMode="ContainsOrdinal"
+                                                                 MinimumPrefixLength="0"
+                                                                 SelectionChanged="OnFolderSelectionChanged"
+                                                                 Tag="{Binding}"
+                                                                 Watermark="{x:Static res:UiStrings.Tagging_SearchDances}"
+                                                                 MinWidth="190" />
+                                            </Grid>
+                                            <ItemsControl ItemsSource="{Binding Tracks}"
+                                                          ItemTemplate="{StaticResource TrackRowTemplate}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <ItemsControl ItemsSource="{Binding Tracks}"
+                                      IsVisible="{Binding !IsTooGeneral}"
+                                      ItemTemplate="{StaticResource TrackRowTemplate}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- Preview strip: one at a time, and a close that stops it. -->
+        <Border DockPanel.Dock="Bottom"
+                IsVisible="{Binding IsPreviewing}"
+                Background="{DynamicResource SystemControlBackgroundListLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8"
+                Margin="0,8,0,0">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <PathIcon Grid.Column="0" Data="{StaticResource IconPlay}" Width="14" Height="14"
+                          VerticalAlignment="Center" Margin="0,0,8,0" />
+                <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock Text="{Binding PreviewingName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <!-- A ProgressBar with a click handler, the same as the playback bar. A Slider
+                         looks right but its thumb swallows the pointer, so clicking the track does
+                         nothing and the position fights the progress updates. -->
+                    <ProgressBar x:Name="PreviewProgressBar"
+                                 Minimum="0"
+                                 Maximum="{Binding PreviewDurationSeconds}"
+                                 Value="{Binding PreviewPositionSeconds}"
+                                 Height="8"
+                                 VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock Grid.Column="2"
+                           Text="{Binding PreviewPosition, Converter={x:Static queue:DurationFormatConverter.Instance}}"
+                           VerticalAlignment="Center"
+                           Margin="8,0" />
+                <Button Grid.Column="3"
+                        Command="{Binding StopPreviewCommand}"
+                        ToolTip.Tip="{x:Static res:UiStrings.Tagging_StopPreview}"
+                        Padding="8">
+                    <PathIcon Data="{StaticResource IconClose}" Width="14" Height="14" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- While the library is being read there is nothing true to say about it yet, so the
+             only thing shown is that it is being read. A count of zero and "nothing is waiting"
+             are both lies until the scan has finished. -->
+        <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsScanning}">
+                <ProgressBar IsIndeterminate="True" Width="120" Height="4" VerticalAlignment="Center" />
+                <TextBlock Text="{x:Static res:UiStrings.Tagging_StillReading}" Opacity="0.7" />
+                <TextBlock Text="{Binding ScanProgressText}" Opacity="0.7" />
+            </StackPanel>
+            <TextBlock Text="{Binding SummaryText}"
+                       TextWrapping="Wrap"
+                       Opacity="0.8"
+                       IsVisible="{Binding !IsScanning}" />
+            <!-- Only claimed once the scan is over: until then "nothing is waiting" is just a
+                 statement about how far the scan has got. -->
+            <TextBlock Text="{x:Static res:UiStrings.Tagging_NothingToDo}"
+                       IsVisible="{Binding ShowNothingWaiting}"
+                       Opacity="0.6" />
+        </StackPanel>
+
+        <controls:LoadingContainer IsLoading="{Binding IsBusy}" IsVisible="{Binding !IsScanning}">
+            <!-- The scrollbar floats over the content, so the content is inset by its width.
+                 Without this it sits on top of the right-hand edge of every row. -->
+            <ScrollViewer Padding="0,0,14,0">
+                <StackPanel Spacing="16">
+                    <StackPanel Spacing="4" IsVisible="{Binding Suggestions.Count}">
+                        <TextBlock Text="{x:Static res:UiStrings.Tagging_BucketSuggestions}" FontSize="16" FontWeight="Bold" />
+                        <TextBlock Text="{x:Static res:UiStrings.Tagging_BucketSuggestionsHint}" FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+                        <ItemsControl ItemsSource="{Binding Suggestions}" ItemTemplate="{StaticResource ValueTemplate}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4" IsVisible="{Binding Unrecognised.Count}">
+                        <TextBlock Text="{x:Static res:UiStrings.Tagging_BucketUnrecognised}" FontSize="16" FontWeight="Bold" />
+                        <TextBlock Text="{x:Static res:UiStrings.Tagging_BucketUnrecognisedHint}" FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+                        <ItemsControl ItemsSource="{Binding Unrecognised}" ItemTemplate="{StaticResource ValueTemplate}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4" IsVisible="{Binding OneOffs.Count}">
+                        <TextBlock Text="{x:Static res:UiStrings.Tagging_BucketOneOffs}" FontSize="16" FontWeight="Bold" />
+                        <TextBlock Text="{x:Static res:UiStrings.Tagging_BucketOneOffsHint}" FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+                        <ItemsControl ItemsSource="{Binding OneOffs}" ItemTemplate="{StaticResource ValueTemplate}" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </controls:LoadingContainer>
+    </DockPanel>
+</UserControl>

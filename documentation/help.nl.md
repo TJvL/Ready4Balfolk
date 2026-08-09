@@ -147,7 +147,7 @@ De wachtrij kan verschillende soorten items bevatten, elk met een uniek uiterlij
 De werkbalk boven de wachtrij biedt deze acties:
 
 - **Schakel naar Geschiedenis**: Schakel het linkerpaneel om de geschiedenisweergave te tonen
-- **Willekeurig nummer in wachtrij plaatsen**: Voeg een willekeurig geselecteerd nummer toe, uit waar de danslijst op dat moment op ingesteld staat. Gewichten worden gerespecteerd.
+- **Willekeurig nummer in wachtrij plaatsen**: Voeg een willekeurig geselecteerd nummer toe, getrokken uit de labels die op dat moment in de pool zitten. Zonder keuze trekt hij uit elke dans waarvan je een nummer hebt.
 - **Stop in wachtrij plaatsen**: Voeg een stopmarkering toe aan de wachtrij
 - **Pauze in wachtrij plaatsen**: Voeg een pauzemarkering toe met de duur die is geconfigureerd in instellingen
 - **Bericht aanvragen**: Opent een dialoog waar u een bericht kunt typen en optioneel een duur kunt instellen
@@ -221,47 +221,63 @@ Gebruik de schakelknop in de werkbalk om het rechterpaneel om te schakelen naar 
 
 ## Danslijst
 
-De danslijst is uw eigen lijst van de dansen die u draait en de namen waaronder elke dans bekend staat. Er zit niets ingebouwd in de applicatie: u bouwt de lijst eenmalig op wanneer u Ready4Balfolk voor het eerst start, door een gepubliceerde lijst te importeren of leeg te beginnen, en daarna is die van u. De lijst is ook wat de willekeurige selectie leest, dus er is geen tweede structuur die u bij moet houden.
+De danslijst is elke balfolkdans en elke naam die zo'n dans heeft. Hij komt van
+[BigBalfolkList](https://tjvl.github.io/BigBalfolkList/) en Ready4Balfolk gebruikt hem precies zoals
+hij gepubliceerd is: er valt niets op te bouwen, niets in te vullen, en niets in de applicatie
+bewerkt hem.
 
-### Categorieen en dansen
+Er wordt een kopie met Ready4Balfolk meegeleverd, dus de eerste keer werkt het ook zonder internet.
+Bij elke start wordt gekeken of er een nieuwere is.
 
-- **Categorieen** bevatten dansen en andere categorieen. Een geimporteerde lijst begint met een categorie per regio, en daarbinnen een categorie voor een familie of suite.
-- **Dansen** staan in een categorie. Elke dans draagt de namen waaronder hij bekend staat; de eerste is degene die overal in de applicatie getoond wordt.
+### Wat erin staat
 
-Selecteer links iets om het rechts te bewerken.
+- **De namen van een dans zijn gelijkwaardig.** Over spelling wordt getwist en deze lijst kiest geen
+  partij; de eerste naam is simpelweg degene die de applicatie toont. Een naam hoort bij precies een
+  dans, en dat is wat Ready4Balfolk in staat stelt om een dans te noemen als hij een naam in een
+  bestandsnaam herkent.
+- **Al het andere is een label**: waar een dans vandaan komt, tot welke familie hij hoort, of hij in
+  een suite gedanst wordt. Een dans kan Bretons *en* een gavotte *en* deel van een suite zijn zonder
+  onder een daarvan gearchiveerd te worden.
 
-### Namen
+### Kiezen waar willekeurig uit getrokken wordt
 
-Een dans kan meerdere namen hebben, omdat de spelling van een balfolkdans echt omstreden is. Ze betekenen allemaal dezelfde dans, en geen enkele wordt als de juiste behandeld.
+De labels in de linkerkolom vormen de **pool**: klik een label om het erin te zetten, klik nog eens
+om het eruit te halen. Een willekeurige keuze, en de automatische wachtrij, trekken uit de dansen die
+een van de labels in de pool dragen. Zonder keuze is de pool elke dans.
 
-- **Spelling toevoegen**: typ die in het vak onder de lijst met namen en druk op Enter.
-- **Kiezen welke getoond wordt**: klik op de **pijl omhoog** naast een spelling om die bovenaan te zetten. Er verandert verder niets, omdat alles in de applicatie naar de dans zelf verwijst en niet naar zijn naam.
-- **Spelling verwijderen**: klik op het **prullenbak**-icoon. Een dans houdt altijd minstens een naam.
+De werkbalk zegt altijd waaruit getrokken wordt, want een label is zo aangeklikt en daarna niet meer
+op te merken. **Alles** maakt de pool weer leeg.
 
-**Een naam kan maar een dans betekenen.** Een spelling toevoegen die al bij een andere dans hoort wordt geweigerd, en het bericht zegt bij welke dans die hoort. Dat is wat Ready4Balfolk in staat stelt om met een dans te antwoorden wanneer het een naam in een bestandsnaam herkent.
+Labels worden getoond op grootte van het aantal dansen dat ze draagt, en een label op een kaart
+aanklikken doet hetzelfde als een label in de kolom.
 
-### Gewichten
+### Een bepaalde dans
 
-Categorieen en dansen dragen allebei een **gewicht**, en een willekeurige keuze wordt gewogen met het gewicht van de categorie maal dat van de dans. Een hoger gewicht komt vaker aan de beurt; **nul betekent nooit**, en een categorie met gewicht nul neemt alles erbinnen mee.
+Klik op de **dobbelsteen** bij een dans om een willekeurig nummer van die dans in de wachtrij te
+zetten, wat de pool ook is. Bij een dans waarvan je geen nummers hebt staat dat er in plaats daarvan,
+en zo'n dans kan ook nooit uit een willekeurige keuze komen.
 
-### Kiezen waaruit willekeurig gekozen wordt
+### Zoeken
 
-Klik op het **dobbelsteen**-icoon op een regel om de willekeurige selectie daartoe te beperken:
+Het zoekveld doorzoekt elke schrijfwijze van elke dans, ongeacht hoofdletters, accenten en
+leestekens, dus `hanterdro` vindt *Hanter dro*.
 
-- **Een categorie**: kiest uit de dansen erin en in alles eronder.
-- **Een enkele dans**: kiest alleen nummers voor die dans.
-- Klik de dobbelsteen nogmaals, of gebruik **Hele lijst** in de werkbalk, om weer uit alles te kiezen.
+### Bijhouden
 
-De werkbalk zegt altijd wat het huidige bereik is, want de dobbelsteen is makkelijk per ongeluk te raken en achteraf moeilijk op te merken.
+- **Bijwerken**: haalt de lijst op zoals BigBalfolkList hem op dit moment publiceert. Handig als je
+  weet dat er net iets aan toegevoegd is.
+- **Uit een bestand**: neemt de lijst over uit een `dances.json` op deze computer, voor een machine
+  die nooit online komt.
 
-### Bewerken
+In beide gevallen wordt de lijst in zijn geheel vervangen en eerst gecontroleerd; als hij niet te
+lezen is, blijft die je al had in gebruik.
 
-- **Categorie toevoegen**: maakt een nieuwe categorie op het hoogste niveau. Met een categorie geselecteerd nestelt **Categorie hierbinnen toevoegen** er een.
-- **Een dans toevoegen**: typ de naam in het vak bij een geselecteerde categorie en druk op Enter.
-- **Hernoemen**: pas de naam van de geselecteerde categorie aan en druk op Enter. Twee categorieen op dezelfde plek kunnen niet dezelfde naam hebben.
-- **Verwijderen**: verwijdert de geselecteerde categorie of dans. Een categorie verwijderen neemt de dansen erin mee, en er wordt eerst gezegd hoeveel.
-- **Ongedaan maken** / **Opnieuw**: elke bewerking kan ongedaan gemaakt worden. Beweeg over een knop om te zien welke wijziging teruggedraaid wordt.
-- **Importeren** / **Exporteren**: vervang de hele lijst vanuit een bestand, of sla die op als back-up of om te delen. Importeren kan niet ongedaan gemaakt worden, dus er wordt eerst om bevestiging gevraagd.
+### Iets dat ontbreekt of verkeerd gespeld is?
+
+Stel het voor op [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/). Op die site kun je een
+schrijfwijze toevoegen of verbeteren, een dans van een label voorzien of een ontbrekende dans
+toevoegen, en wat je gedaan hebt wordt een voorstel waar iemand naar kijkt. Iedereen die de lijst
+gebruikt krijgt jouw correctie, en dat is nou juist waarom er een lijst is.
 
 ---
 

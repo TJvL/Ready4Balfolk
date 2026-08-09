@@ -2,44 +2,42 @@ using System.Text.Json.Serialization;
 
 namespace Ready4Balfolk.Domain.Models.Dances;
 
-/// <summary>The user's own list of dances: the one place dance names live.</summary>
+/// <summary>The dance list, exactly as BigBalfolkList publishes it.</summary>
 /// <remarks>
-/// Nothing ships with the application and nothing layers on top of this. The list is built once, by
-/// hand or by importing the format BigBalfolkList publishes, and after that it belongs to the user.
+/// This is shared vocabulary, not user content: the application reads it and never writes it. The
+/// file on disk is a copy of somebody else's file, byte for byte, so an update is a replacement
+/// rather than a merge and there is nothing of the user's in it to lose.
 /// </remarks>
 public sealed record DanceList
 {
-    /// <summary>Bumped when the on-disk shape changes in a way older files cannot be read as.</summary>
-    public const int CurrentFormatVersion = 1;
+    /// <summary>The format version BigBalfolkList publishes. Anything else is refused.</summary>
+    public const int CurrentFormatVersion = 3;
 
     public static DanceList Empty { get; } = new();
 
     [JsonPropertyName("formatVersion")]
     public int FormatVersion { get; init; } = CurrentFormatVersion;
 
-    [JsonPropertyName("categories")]
-    public IReadOnlyList<DanceCategory> Categories { get; init; } = [];
+    /// <summary>Every tag that exists, including ones no dance carries yet.</summary>
+    [JsonPropertyName("tags")]
+    public IReadOnlyList<string> Tags { get; init; } = [];
 
-    /// <summary>Every dance in the list, in category order, however deeply nested.</summary>
+    [JsonPropertyName("dances")]
+    public IReadOnlyList<Dance> Dances { get; init; } = [];
+
     [JsonIgnore]
-    public IEnumerable<Dance> AllDances => EnumerateDances(Categories);
+    public bool IsEmpty => Dances.Count == 0;
 
-    [JsonIgnore]
-    public bool IsEmpty => !AllDances.Any();
+    public Dance? FindDance(string slug) =>
+        Dances.FirstOrDefault(dance => string.Equals(dance.Slug, slug, StringComparison.Ordinal));
 
-    private static IEnumerable<Dance> EnumerateDances(IReadOnlyList<DanceCategory> categories)
-    {
-        foreach (var category in categories)
-        {
-            foreach (var dance in category.Dances)
-            {
-                yield return dance;
-            }
+    /// <summary>How many dances carry a tag, which is what sizes it in the tag cloud.</summary>
+    public int CountOf(string tag) => Dances.Count(dance => dance.HasTag(tag));
 
-            foreach (var dance in EnumerateDances(category.Categories))
-            {
-                yield return dance;
-            }
-        }
-    }
+    /// <summary>
+    /// The dances a set of tags reaches. An empty set reaches everything, which is what makes the
+    /// empty pool mean "anything at all" rather than "nothing".
+    /// </summary>
+    public IEnumerable<Dance> WithAnyTag(IReadOnlyCollection<string> tags) =>
+        tags.Count == 0 ? Dances : Dances.Where(dance => tags.Any(dance.HasTag));
 }
