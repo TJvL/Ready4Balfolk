@@ -1,4 +1,5 @@
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Discovery;
 
 namespace Ready4Balfolk.Domain.Stores.Library;
 
@@ -35,4 +36,34 @@ public sealed record LibraryEntry
     public string? Artist { get; init; }
 
     public string? Title { get; init; }
+
+    /// <summary>
+    /// What answered each field, and how well.
+    /// </summary>
+    /// <remarks>
+    /// Kept because review has to show a value next to where it came from: a wrong artist is only
+    /// obvious when it says it was read off a folder name. It is also what orders the queue, since
+    /// a corroborated value and a lone guess are not equally worth a person's attention.
+    /// </remarks>
+    public DerivedFrom Dance { get; init; } = DerivedFrom.Nothing;
+
+    public DerivedFrom ArtistFrom { get; init; } = DerivedFrom.Nothing;
+
+    public DerivedFrom TitleFrom { get; init; } = DerivedFrom.Nothing;
+
+    public DerivedFrom From(TrackField field) => field switch
+    {
+        TrackField.Dance => Dance,
+        TrackField.Artist => ArtistFrom,
+        _ => TitleFrom
+    };
+}
+
+/// <summary>Where a derived value came from, and on what grounds.</summary>
+/// <param name="Kind">Which independent reading answered, if any did.</param>
+/// <param name="Detail">Which part of it, in the words the collector used.</param>
+/// <param name="Reason">How it was decided, which is the whole of how confident it is.</param>
+public sealed record DerivedFrom(ClaimSourceKind? Kind, string? Detail, DecisionReason Reason)
+{
+    public static readonly DerivedFrom Nothing = new(null, null, DecisionReason.NoClaim);
 }

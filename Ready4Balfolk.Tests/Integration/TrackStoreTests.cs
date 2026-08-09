@@ -11,6 +11,7 @@ using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Tracks;
+using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Integration;
 
@@ -38,18 +39,55 @@ public sealed class TrackStoreTests : IDisposable
         discoveryService.Gather(Arg.Any<FileInfo>(), Arg.Any<DirectoryInfo>())
             .Returns(call => EvidenceFor(call.Arg<FileInfo>()!));
 
-        // An empty list: every track stays unresolved, keeping the name the file gave it, which is
-        // what these tests assert on.
+        // A list with the one dance these tests use, because a track only reaches the library with a
+        // dance the published list knows.
+        var danceList = new DanceList { Dances = [TestData.CreateDance("mazurka", names: ["Mazurka"])] };
         var danceListStore = Substitute.For<IDanceListStore>();
-        danceListStore.Current.Returns(DanceList.Empty);
-        danceListStore.Index.Returns(DanceListIndex.Empty);
+        danceListStore.Current.Returns(danceList);
+        danceListStore.Index.Returns(DanceListIndex.Build(danceList));
         danceListStore.Observe().Returns(Observable.Never<DanceList>());
 
-        // An index that knows nothing, so every file is read: these tests are about the store's
-        // discovery and watching, not about what the index remembers.
+        // An index that remembers what it is written, and says every track was approved. These
+        // tests are about the store's discovery and watching; the gate has its own.
         _libraryIndex = Substitute.For<ILibraryIndex>();
+        // A copy, as the real one hands back, so a scan reading it cannot trip over a watcher
+        // writing to it.
         _libraryIndex.SnapshotByPathAsync(Arg.Any<CancellationToken>())
-            .Returns(_ => _indexSnapshot);
+            .Returns(_ =>
+            {
+                lock (_indexSnapshot)
+                {
+                    return new Dictionary<string, LibraryEntry>(_indexSnapshot, StringComparer.Ordinal);
+                }
+            });
+        _libraryIndex.WriteAsync(Arg.Any<IReadOnlyCollection<LibraryEntry>>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                lock (_indexSnapshot)
+                {
+                    foreach (var entry in call.Arg<IReadOnlyCollection<LibraryEntry>>()!)
+                    {
+                        _indexSnapshot[entry.Path] = entry;
+                    }
+                }
+
+                return Task.CompletedTask;
+            });
+        _libraryIndex.DeleteMissingAsync(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var present = call.Arg<IReadOnlyCollection<string>>()!.ToHashSet(StringComparer.Ordinal);
+                lock (_indexSnapshot)
+                {
+                    foreach (var gone in _indexSnapshot.Keys.Where(path => !present.Contains(path)).ToList())
+                    {
+                        _indexSnapshot.Remove(gone);
+                    }
+                }
+
+                return Task.CompletedTask;
+            });
+        _libraryIndex.ApprovalsAsync(Arg.Any<CancellationToken>()).Returns(_ => Approved());
 
         _sut = new TrackStore(_loggerService, discoveryService, danceListStore, _libraryIndex);
     }
@@ -81,6 +119,22 @@ public sealed class TrackStoreTests : IDisposable
         // after the switch has to show up in the store.
         await File.WriteAllTextAsync(
             Path.Combine(_tempDirB.FullName, "c.mp3"), "", TestContext.Current.CancellationToken);
+        try
+        {
+            await WaitUntilAsync(() =>
+            {
+                lock (_indexSnapshot)
+                {
+                    return _indexSnapshot.Keys.Any(path => path.EndsWith("c.mp3", StringComparison.Ordinal));
+                }
+            });
+        }
+        catch (Exception)
+        {
+            var messages = string.Join(" | ", _loggerService.ReceivedCalls()
+                .Select(call => call.GetMethodInfo().Name + ":" + string.Join(",", call.GetArguments().Take(1))));
+            throw new InvalidOperationException("no c.mp3 indexed. log: " + messages);
+        }
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "c.mp3"));
     }
 
@@ -245,6 +299,37 @@ public sealed class TrackStoreTests : IDisposable
         await _libraryIndex.ReceivedWithAnyArgs().WriteAsync(default!, TestContext.Current.CancellationToken);
     }
 
+    /// <summary>Every indexed track, answered on all three fields, so the gate is not the subject.</summary>
+    private IReadOnlyDictionary<string, IReadOnlyList<TrackApproval>> Approved()
+    {
+        lock (_indexSnapshot)
+        {
+            return _indexSnapshot.Values
+                .GroupBy(entry => LibraryKey.For(entry.ContentHash), StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => (IReadOnlyList<TrackApproval>)
+                    [
+                        Approval(group.First(), TrackField.Dance, "Mazurka"),
+                        Approval(group.First(), TrackField.Artist, Or(group.First().Artist, "Artist")),
+                        Approval(group.First(), TrackField.Title, Or(group.First().Title, "Title"))
+                    ],
+                    StringComparer.Ordinal);
+        }
+    }
+
+    private static string Or(string? value, string fallback) =>
+        string.IsNullOrWhiteSpace(value) ? fallback : value;
+
+    private static TrackApproval Approval(LibraryEntry entry, TrackField field, string value) => new()
+    {
+        ContentHash = entry.ContentHash,
+        Field = field,
+        Value = value,
+        Kind = ApprovalKind.Individual,
+        FileWriteUtc = entry.LastWriteUtc
+    };
+
     private static LibraryEntry IndexedAs(FileInfo file, string dance) => new()
     {
         ContentHash = [7],
@@ -265,7 +350,9 @@ public sealed class TrackStoreTests : IDisposable
         PathSegments = ["Artist"],
         Duration = TimeSpan.FromSeconds(180),
         Format = AudioFormat.Mp3,
-        ContentHash = [1, 2, 3]
+        // Distinct per file, as a real content hash is: sharing one hash would make every file the
+        // same recording, and an approval of one an approval of all.
+        ContentHash = System.Text.Encoding.UTF8.GetBytes(fileInfo.Name)
     };
 
     [Fact]
@@ -282,7 +369,11 @@ public sealed class TrackStoreTests : IDisposable
         _sut.MusicDirectory = _tempDirA;
         _sut.MusicDirectory = _tempDirB;
 
+        var isLoading = true;
+        using var loadingSubscription = _sut.IsLoading.Subscribe(value => isLoading = value);
+
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));
+        await WaitUntilAsync(() => !isLoading);
 
         await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
         Assert.DoesNotContain(_sut.Current, t => t.FileInfo.Name == "a.mp3");

@@ -5,6 +5,7 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.DanceList;
 using Ready4Balfolk.UI.Views.Discovery;
+using Ready4Balfolk.UI.Views.Review;
 using Ready4Balfolk.UI.Views.Equalizer;
 using Ready4Balfolk.UI.Views.Help;
 using Ready4Balfolk.UI.Views.History;
@@ -33,6 +34,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject
     [Reactive] public partial HelpViewModel? Help { get; set; }
     [Reactive] public partial TaggingViewModel? Tagging { get; set; }
     [Reactive] public partial DiscoveryViewModel? Discovery { get; set; }
+    [Reactive] public partial ReviewViewModel? Review { get; set; }
     [Reactive] public partial SetupWizardViewModel? Setup { get; set; }
 
     public MainWindowViewModel(
@@ -48,6 +50,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject
         Lazy<HelpViewModel> lazyHelp,
         Lazy<TaggingViewModel> lazyTagging,
         Lazy<DiscoveryViewModel> lazyDiscovery,
+        Lazy<ReviewViewModel> lazyReview,
         Func<SetupWizardViewModel> setupFactory)
     {
         Navigation = navigation;
@@ -86,6 +89,13 @@ public sealed partial class MainWindowViewModel : ReactiveObject
                     Discovery ??= lazyDiscovery.Value;
                     // Measured against the library as it is now, for the same reason.
                     Discovery.RefreshCommand.Execute().Subscribe();
+                }
+                else if (screen is Screen.Review)
+                {
+                    Review ??= lazyReview.Value;
+                    // Rebuilt on every visit, which is what makes the queue resumable: it is
+                    // derived from the index rather than remembered from the last time.
+                    Review.RefreshCommand.Execute().Subscribe();
                 }
             });
 

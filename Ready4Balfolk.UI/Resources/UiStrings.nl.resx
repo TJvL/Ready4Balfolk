@@ -1000,4 +1000,87 @@
   <data name="Discovery_NoLibrary" xml:space="preserve">
     <value>Er is nog niets ingelezen, dus er is niets om een regel aan af te meten.</value>
   </data>
+
+  <!-- Review -->
+  <data name="Review_Title" xml:space="preserve">
+    <value>Nakijken</value>
+  </data>
+  <data name="Review_Intro" xml:space="preserve">
+    <value>Er wacht niets. Nieuwe bestanden, hertagde bestanden en hernoemde bestanden komen hier vanzelf terug.</value>
+  </data>
+  <data name="Review_Keys" xml:space="preserve">
+    <value>Omhoog en omlaag om te bewegen, Enter om een nummer te beantwoorden, A voor alles wat er in die map nog open staat. Het minst zekere staat bovenaan, dus eerder stoppen laat je bibliotheek alsnog beter achter.</value>
+  </data>
+  <data name="Review_Waiting" xml:space="preserve">
+    <value>{0} nummers wachten, in {1} mappen.</value>
+  </data>
+  <data name="Review_NothingWaiting" xml:space="preserve">
+    <value>Er wacht niets.</value>
+  </data>
+  <data name="Review_Approve" xml:space="preserve">
+    <value>Beantwoorden (Enter)</value>
+  </data>
+  <data name="Review_ApproveFolder" xml:space="preserve">
+    <value>Hele map beantwoorden (A)</value>
+  </data>
+  <data name="Review_Dance" xml:space="preserve">
+    <value>Dans</value>
+  </data>
+  <data name="Review_Artist" xml:space="preserve">
+    <value>Artiest</value>
+  </data>
+  <data name="Review_TitleField" xml:space="preserve">
+    <value>Titel</value>
+  </data>
+  <data name="Review_RootFolder" xml:space="preserve">
+    <value>De muziekmap zelf</value>
+  </data>
+  <data name="Review_FromTag" xml:space="preserve">
+    <value>uit de tag {0}</value>
+  </data>
+  <data name="Review_FromFileName" xml:space="preserve">
+    <value>uit de bestandsnaam ({0})</value>
+  </data>
+  <data name="Review_FromFolder" xml:space="preserve">
+    <value>uit de map ({0})</value>
+  </data>
+  <data name="Review_FromRule" xml:space="preserve">
+    <value>door je regel {0}</value>
+  </data>
+  <data name="Review_FromYou" xml:space="preserve">
+    <value>door jou beantwoord</value>
+  </data>
+  <data name="Review_FromNothing" xml:space="preserve">
+    <value>niets zei er iets over</value>
+  </data>
+  <data name="Review_ReasonMissing" xml:space="preserve">
+    <value>er ontbreekt iets</value>
+  </data>
+  <data name="Review_ReasonUnapproved" xml:space="preserve">
+    <value>wacht op jou</value>
+  </data>
+  <data name="Review_ReasonUnknownDance" xml:space="preserve">
+    <value>die dans staat niet in de lijst</value>
+  </data>
+  <data name="Review_ReasonChanged" xml:space="preserve">
+    <value>het bestand is veranderd nadat je het beantwoordde</value>
+  </data>
+  <data name="Review_Answered" xml:space="preserve">
+    <value>beantwoord</value>
+  </data>
+  <data name="Review_ParkedOnUnknownDance" xml:space="preserve">
+    <value>beantwoord, wacht tot "{0}" in de lijst staat</value>
+  </data>
+  <data name="Review_UnknownDanceHint" xml:space="preserve">
+    <value>De danslijst is gedeeld, dus een ontbrekende dans is een voorstel bij BigBalfolkList en niet iets om hier toe te voegen. Je antwoord blijft bewaard en het nummer gaat de bibliotheek in zodra de lijst de naam kent.</value>
+  </data>
+  <data name="Toolbar_Review" xml:space="preserve">
+    <value>Nakijken</value>
+  </data>
+  <data name="Toolbar_ReviewLabel" xml:space="preserve">
+    <value>Nakijken</value>
+  </data>
+  <data name="Toolbar_ReviewCount" xml:space="preserve">
+    <value>{0} wachten</value>
+  </data>
 </root>

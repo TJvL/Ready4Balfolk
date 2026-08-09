@@ -124,7 +124,20 @@ Everything in `tracks` is derived and is meant to be overwritten by the newest r
 
 `ReviewGate.Evaluate` is the gate itself, and it is a pure function of the entry, its approvals and the dance list: an artist, a title, a dance the list knows, and an approval of each. `ReviewReason` keeps the ways of not being in the library apart — `Missing`, `Unapproved`, `UnknownDance`, `ChangedSinceApproval` — because a person has to be told which one they are looking at.
 
-**Not yet wired:** the track list, the dance panel counts and the random pool still show everything the index holds rather than only what is in the library, and the toolbar badge still counts unresolved values rather than tracks in review (`CountInReviewAsync` exists and is unused). Flipping those over belongs with the screen that lets a person clear the queue, in step 5 — doing it first would leave a library that correctly reads as empty and no way to fix it.
+### Review: the gate, and the only way across it
+
+`ReviewQueue.Build` is the queue and `Views/Review/` is the screen. **The unit is the track, not the distinct value**: a value-shaped list can only hold the files that said something wrong, and the 786 files in the reference library that say nothing at all have nowhere to appear in one. Grouping identical mistakes into a single decision is an optimisation on top of this, not the shape of it.
+
+- **Ordered least confident first**, from what each field was decided by (`DerivedFrom`, now persisted per field): nothing said at all sorts above a lone guess, which sorts above two independent sources agreeing. Stopping halfway through then leaves the library better rather than differently.
+- **Grouped by whatever grouping the library has** — folders — and flat when it has none. A group is as unsure as its least sure track, so a folder holding one hopeless file is not buried behind easy ones.
+- **Each field shows its value next to where it came from**, which is the only way a wrong source is visible rather than merely wrong.
+- **Keyboard first.** Enter answers a track, `A` answers the rest of its folder, arrows walk the queue. The folder shortcut is deliberately dead while a field is being typed into, or writing "Mazurka" would approve a folder halfway through the word.
+- **Answered rows stay exactly where they are**, marked. Removing them leaves no way to see what was decided or to fix a mis-click, and makes every row below jump under the pointer.
+- **Resumable by construction**: the queue is derived from the index on every visit rather than remembered, so closing the screen loses nothing.
+
+**The gate is now wired.** `TrackStore` publishes only what is in the library, built from the index through `ReviewGate` and opening no audio files, so an approval becomes a track immediately (`RefreshLibraryAsync`). The dance panel counts and the random pool read that same list, so an unreviewed library correctly reads as a library with no music. The toolbar carries the review count (`CountInReviewAsync`) — unreviewed, not unresolved.
+
+The tagging editor is still there and still works: its value-grouping answers a misspelling across 34 files in one act, which the review queue cannot do yet. That capability belongs *inside* review, and the editor goes when it is there.
 
 ### Library index
 

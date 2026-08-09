@@ -1075,4 +1075,87 @@
   <data name="Discovery_NoLibrary" xml:space="preserve">
     <value>Er is nog niets ingelezen, dus er is niets om een regel aan af te meten.</value>
   </data>
+
+  <!-- Review -->
+  <data name="Review_Title" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Review_Intro" xml:space="preserve">
+    <value>Nothing is waiting. New files, retagged files and renamed ones come back here on their own.</value>
+  </data>
+  <data name="Review_Keys" xml:space="preserve">
+    <value>Up and down to move, Enter to answer a track, A to answer everything left in its folder. The least certain come first, so stopping early still leaves your library better.</value>
+  </data>
+  <data name="Review_Waiting" xml:space="preserve">
+    <value>{0} tracks waiting, in {1} folders.</value>
+  </data>
+  <data name="Review_NothingWaiting" xml:space="preserve">
+    <value>Nothing is waiting.</value>
+  </data>
+  <data name="Review_Approve" xml:space="preserve">
+    <value>Answer (Enter)</value>
+  </data>
+  <data name="Review_ApproveFolder" xml:space="preserve">
+    <value>Answer this folder (A)</value>
+  </data>
+  <data name="Review_Dance" xml:space="preserve">
+    <value>Dance</value>
+  </data>
+  <data name="Review_Artist" xml:space="preserve">
+    <value>Artist</value>
+  </data>
+  <data name="Review_TitleField" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Review_RootFolder" xml:space="preserve">
+    <value>The music folder itself</value>
+  </data>
+  <data name="Review_FromTag" xml:space="preserve">
+    <value>from the {0} tag</value>
+  </data>
+  <data name="Review_FromFileName" xml:space="preserve">
+    <value>from the file name ({0})</value>
+  </data>
+  <data name="Review_FromFolder" xml:space="preserve">
+    <value>from the folder ({0})</value>
+  </data>
+  <data name="Review_FromRule" xml:space="preserve">
+    <value>by your rule {0}</value>
+  </data>
+  <data name="Review_FromYou" xml:space="preserve">
+    <value>you answered this</value>
+  </data>
+  <data name="Review_FromNothing" xml:space="preserve">
+    <value>nothing said anything</value>
+  </data>
+  <data name="Review_ReasonMissing" xml:space="preserve">
+    <value>something is missing</value>
+  </data>
+  <data name="Review_ReasonUnapproved" xml:space="preserve">
+    <value>waiting for you</value>
+  </data>
+  <data name="Review_ReasonUnknownDance" xml:space="preserve">
+    <value>that dance is not in the list</value>
+  </data>
+  <data name="Review_ReasonChanged" xml:space="preserve">
+    <value>the file changed after you answered it</value>
+  </data>
+  <data name="Review_Answered" xml:space="preserve">
+    <value>answered</value>
+  </data>
+  <data name="Review_ParkedOnUnknownDance" xml:space="preserve">
+    <value>answered, and waiting for "{0}" to be in the list</value>
+  </data>
+  <data name="Review_UnknownDanceHint" xml:space="preserve">
+    <value>The dance list is shared, so a missing dance is a proposal at BigBalfolkList rather than something to add here. Your answer is kept, and the track goes into the library the moment the list carries the name.</value>
+  </data>
+  <data name="Toolbar_Review" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Toolbar_ReviewLabel" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Toolbar_ReviewCount" xml:space="preserve">
+    <value>{0} waiting</value>
+  </data>
 </root>

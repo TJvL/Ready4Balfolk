@@ -9,6 +9,7 @@ using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
+using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
@@ -231,6 +232,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
             await LoadDirectoryCoreAsync(directory, reread, cancellationToken);
         }
+        catch (OperationCanceledException)
+        {
+            // Superseded mid-flight by a newer load. The expected end of this one, not a failure,
+            // and the load that replaced it owns the result.
+            _ = _loggerService.DebugAsync($"Load of '{directory.FullName}' was superseded");
+        }
         finally
         {
             _loadGate.Release();
@@ -271,10 +278,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 .Merge(MaxAmountOfFileReaderThreads)
                 .Buffer(TimeSpan.FromMilliseconds(200), 50);
 
+            // Nothing is published from here. What a scan produces is derived, and derived is not
+            // the same as in the library: the list is rebuilt through the gate once the scan and its
+            // approvals are on disk.
             await loaded.Where(batch => batch.Any()).ForEachAsync(tracksBatch =>
             {
-                _tracks.Edit(innerList => innerList.AddRange(tracksBatch));
-
                 // Written as the scan goes rather than all at the end. Indexing a large library on
                 // a network mount takes minutes, and a run that is interrupted at 78% must not
                 // throw away 78% of the work: incremental upserts are the reason this is a database
@@ -313,19 +321,70 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 await _loggerService.DebugAsync($"Folder agreement resolved {rescued:N0} more tracks");
             }
 
-            await _loggerService.DebugAsync(
-                $"Loaded '{_tracks.Count:N0}' tracks, {written.Count:N0} of them read from disk");
-
             // Written again, because folder agreement changed some of them after the fact.
             await _libraryIndex.WriteAsync([.. written.Select(ToEntry)], cancellationToken);
+            await _libraryIndex.ApproveAsync([.. written.SelectMany(ByRuleApprovals)], cancellationToken);
             await _libraryIndex.DeleteMissingAsync([.. audioFiles.Select(file => file.FullName)], cancellationToken);
 
+            // Watching starts before the library is published, so a file dropped in during the last
+            // moments of a scan is noticed rather than waiting for the next start.
             StartWatching(directory, cancellationToken);
+
+            await RebuildFromIndexAsync(cancellationToken);
+
+            await _loggerService.DebugAsync(
+                $"Loaded '{_tracks.Count:N0}' tracks into the library, {written.Count:N0} files read from disk");
         }
         finally
         {
             _isLoading.OnNext(false);
         }
+    }
+
+    /// <summary>
+    /// Rebuilds the published list from the index, through the gate.
+    /// </summary>
+    /// <remarks>
+    /// The library is what a person has agreed to, not what a scan derived, so this is the only
+    /// place tracks are published. It opens no audio files: everything it needs is in the index,
+    /// which is what lets an approval show up in the library the moment it is given.
+    /// </remarks>
+    public async Task RefreshLibraryAsync(CancellationToken cancellationToken = default) =>
+        await RebuildFromIndexAsync(cancellationToken);
+
+    private async Task RebuildFromIndexAsync(CancellationToken cancellationToken)
+    {
+        var entries = await _libraryIndex.SnapshotByPathAsync(cancellationToken);
+        var approvals = await _libraryIndex.ApprovalsAsync(cancellationToken);
+        var dances = _danceListStore.Index;
+
+        var inLibrary = new List<Track>();
+        foreach (var entry in entries.Values)
+        {
+            var review = ReviewGate.Evaluate(
+                entry, approvals.GetValueOrDefault(LibraryKey.For(entry.ContentHash), []), dances);
+
+            if (review.IsInLibrary && review.DanceSlug is { } slug)
+            {
+                inLibrary.Add(new Track(
+                    dances.DisplayNameFor(slug),
+                    review.Artist.Value ?? string.Empty,
+                    review.Title.Value ?? string.Empty,
+                    new FileInfo(entry.Path),
+                    entry.Duration,
+                    entry.Format)
+                {
+                    OriginalDance = entry.OriginalDance ?? string.Empty,
+                    DanceSlug = slug
+                });
+            }
+        }
+
+        _tracks.Edit(list =>
+        {
+            list.Clear();
+            list.AddRange(inLibrary);
+        });
     }
 
     private IObservable<Track> LoadTrackObservable(
@@ -372,26 +431,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 }
 
                 sibling.Resolution = resolution;
-                ReplaceTrack(sibling.File, ToTrack(sibling.File, sibling.Evidence, resolution));
                 rescued++;
             }
         }
 
         return rescued;
     }
-
-    private void ReplaceTrack(FileInfo file, Track replacement) =>
-        _tracks.Edit(list =>
-        {
-            for (var i = 0; i < list.Count; i++)
-            {
-                if (string.Equals(list[i].FileInfo.FullName, file.FullName, StringComparison.Ordinal))
-                {
-                    list[i] = replacement;
-                    return;
-                }
-            }
-        });
 
     /// <summary>
     /// What the user's own rules answered on this file, which they approved by declaring them.
@@ -445,8 +490,20 @@ public sealed class TrackStore : ITrackStore, IDisposable
         DanceSlug = scanned.Resolution.DanceSlug,
         OriginalDance = scanned.Resolution.OriginalDance,
         Artist = scanned.Resolution.Artist,
-        Title = scanned.Resolution.Title
+        Title = scanned.Resolution.Title,
+        Dance = SourceOf(scanned.Resolution, TrackField.Dance),
+        ArtistFrom = SourceOf(scanned.Resolution, TrackField.Artist),
+        TitleFrom = SourceOf(scanned.Resolution, TrackField.Title)
     };
+
+    /// <summary>What answered a field, kept so review can show it next to the value.</summary>
+    private static DerivedFrom SourceOf(TrackResolution resolution, TrackField field)
+    {
+        var decision = resolution.For(field);
+        var claim = decision.Chosen.FirstOrDefault();
+
+        return new DerivedFrom(claim?.Source.Kind, claim?.Source.Detail, decision.Reason);
+    }
 
     /// <summary>
     /// Builds a track from the index when the file has not changed, and reads it when it has.
@@ -566,9 +623,9 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 h => watcher.Created += h,
                 h => watcher.Created -= h
             )
-                .Select(fromEvent => OnFileCreated(fromEvent.EventArgs))
-                .Where(r => r != null)
-                .Subscribe(track => _tracks.Edit(e => e.Add(track!)));
+                // Indexed, not published: what a watcher noticed goes through the same gate as
+                // everything else, and the rebuild that follows is what puts it in the library.
+                .Subscribe(fromEvent => OnFileCreated(fromEvent.EventArgs));
         _fileWatcherSubscriptions.Add(createdObs);
 
         var deletedObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
@@ -582,31 +639,27 @@ public sealed class TrackStore : ITrackStore, IDisposable
                     h => watcher.Renamed += h,
                     h => watcher.Renamed -= h
                 )
-                .Select(evt => OnFileRenamed(evt.EventArgs))
-                .Where(r => r != null)
-                .Subscribe(track => _tracks.Edit(e => e.Add(track!)));
+                .Subscribe(evt => OnFileRenamed(evt.EventArgs));
         _fileWatcherSubscriptions.Add(renamedObs);
 
         watcher.EnableRaisingEvents = true;
     }
 
-    private Track? OnFileCreated(FileSystemEventArgs fileSystemEventArgs)
+    private void OnFileCreated(FileSystemEventArgs fileSystemEventArgs)
     {
         if (!SupportedAudioFormats.IsSupported(fileSystemEventArgs.FullPath))
         {
-            return null;
+            return;
         }
 
         try
         {
-            return IndexAndResolve(new FileInfo(fileSystemEventArgs.FullPath));
+            IndexAndResolve(new FileInfo(fileSystemEventArgs.FullPath));
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
             _ = _loggerService.ErrorAsync(ex.Message, ex);
         }
-
-        return null;
     }
 
     private void OnFileDeleted(FileSystemEventArgs fileSystemEventArgs)
@@ -624,7 +677,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private Track? OnFileRenamed(RenamedEventArgs renamedEventArgs)
+    private void OnFileRenamed(RenamedEventArgs renamedEventArgs)
     {
         var oldTrack = _tracks.Items.FirstOrDefault(t =>
             string.Equals(t.FileInfo.FullName, renamedEventArgs.OldFullPath, StringComparison.Ordinal));
@@ -635,19 +688,19 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         if (!SupportedAudioFormats.IsSupported(renamedEventArgs.FullPath))
         {
-            return null;
+            return;
         }
 
         try
         {
-            return IndexAndResolve(new FileInfo(renamedEventArgs.FullPath));
+            // The audio is unchanged, so its content hash and everything approved about it are too.
+            // A rename is a path changing, not a track appearing.
+            IndexAndResolve(new FileInfo(renamedEventArgs.FullPath));
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
             _ = _loggerService.ErrorAsync(ex.Message, ex);
         }
-
-        return null;
     }
 
     /// <summary>
@@ -657,36 +710,22 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// No dialog and no toast, whatever it turns out to be. The application runs in front of a room,
     /// and a tagging question during a bal is the worst possible moment to ask one.
     /// </remarks>
-    private Track IndexAndResolve(FileInfo fileInfo)
+    private void IndexAndResolve(FileInfo fileInfo)
     {
         var root = _musicRoot ?? fileInfo.Directory!;
         var evidence = _discoveryService.Gather(fileInfo, root);
         var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index, _declared);
+        var scanned = new ScannedFile(fileInfo, evidence, resolution);
 
-        _libraryIndex.WriteAsync([
-            new LibraryEntry
-            {
-                ContentHash = evidence.ContentHash,
-                Path = fileInfo.FullName,
-                FileSize = fileInfo.Length,
-                LastWriteUtc = fileInfo.LastWriteTimeUtc,
-                Duration = evidence.Duration,
-                Format = evidence.Format,
-                DanceSlug = resolution.DanceSlug,
-                OriginalDance = resolution.OriginalDance,
-                Artist = resolution.Artist,
-                Title = resolution.Title
-            }
-        ]).SafeFireAndForget(exception =>
-            _loggerService.ErrorAsync("Failed to index a new file", exception));
-
-        // A file the watcher noticed is answered by the rules exactly as one found by a scan is,
-        // and matching a rule means approved by it and into the library.
-        _libraryIndex.ApproveAsync([.. ByRuleApprovals(new ScannedFile(fileInfo, evidence, resolution))])
-            .SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to record what the rules approved", exception));
-
-        return ToTrack(fileInfo, evidence, resolution);
+        // In order and once: written, approved by whatever rule answered it, and only then does the
+        // library get rebuilt, or the rebuild would run against a row that is not there yet.
+        Task.Run(async () =>
+        {
+            await _libraryIndex.WriteAsync([ToEntry(scanned)]);
+            await _libraryIndex.ApproveAsync([.. ByRuleApprovals(scanned)]);
+            await RefreshLibraryAsync();
+        }).SafeFireAndForget(exception =>
+            _loggerService.ErrorAsync("Failed to index a file the watcher noticed", exception));
     }
 
     private static Func<Track, bool> CreateSearchFilter(string search)

@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.Library;
@@ -72,7 +73,10 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             await using var command = connection.CreateCommand();
             command.CommandText = """
                 SELECT p.content_hash, p.path, p.file_size, p.last_write_utc,
-                       t.duration_ticks, t.format, t.dance_slug, t.original_dance, t.artist, t.title
+                       t.duration_ticks, t.format, t.dance_slug, t.original_dance, t.artist, t.title,
+                       t.dance_kind, t.dance_detail, t.dance_reason,
+                       t.artist_kind, t.artist_detail, t.artist_reason,
+                       t.title_kind, t.title_detail, t.title_reason
                 FROM track_paths p
                 JOIN tracks t ON t.content_hash = p.content_hash;
                 """;
@@ -91,7 +95,10 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                     DanceSlug = reader.IsDBNull(6) ? null : reader.GetString(6),
                     OriginalDance = reader.IsDBNull(7) ? null : reader.GetString(7),
                     Artist = reader.IsDBNull(8) ? null : reader.GetString(8),
-                    Title = reader.IsDBNull(9) ? null : reader.GetString(9)
+                    Title = reader.IsDBNull(9) ? null : reader.GetString(9),
+                    Dance = ReadSource(reader, 10),
+                    ArtistFrom = ReadSource(reader, 13),
+                    TitleFrom = ReadSource(reader, 16)
                 };
 
                 entries[entry.Path] = entry;
@@ -127,9 +134,15 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             command.CommandText = """
                 INSERT INTO tracks
                     (content_hash, path, file_size, last_write_utc, duration_ticks, format,
-                     dance_slug, original_dance, artist, title)
+                     dance_slug, original_dance, artist, title,
+                     dance_kind, dance_detail, dance_reason,
+                     artist_kind, artist_detail, artist_reason,
+                     title_kind, title_detail, title_reason)
                 VALUES ($hash, $path, $size, $written, $duration, $format,
-                        $slug, $originalDance, $artist, $title)
+                        $slug, $originalDance, $artist, $title,
+                        $danceKind, $danceDetail, $danceReason,
+                        $artistKind, $artistDetail, $artistReason,
+                        $titleKind, $titleDetail, $titleReason)
                 ON CONFLICT(content_hash) DO UPDATE SET
                     path = excluded.path,
                     file_size = excluded.file_size,
@@ -139,7 +152,16 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                     dance_slug = excluded.dance_slug,
                     original_dance = excluded.original_dance,
                     artist = excluded.artist,
-                    title = excluded.title;
+                    title = excluded.title,
+                    dance_kind = excluded.dance_kind,
+                    dance_detail = excluded.dance_detail,
+                    dance_reason = excluded.dance_reason,
+                    artist_kind = excluded.artist_kind,
+                    artist_detail = excluded.artist_detail,
+                    artist_reason = excluded.artist_reason,
+                    title_kind = excluded.title_kind,
+                    title_detail = excluded.title_detail,
+                    title_reason = excluded.title_reason;
                 """;
 
             await using var pathCommand = connection.CreateCommand();
@@ -167,6 +189,12 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             var originalDance = command.Parameters.Add("$originalDance", SqliteType.Text);
             var artist = command.Parameters.Add("$artist", SqliteType.Text);
             var title = command.Parameters.Add("$title", SqliteType.Text);
+            var sources = new[] { "dance", "artist", "title" }
+                .Select(field => (
+                    Kind: command.Parameters.Add($"${field}Kind", SqliteType.Integer),
+                    Detail: command.Parameters.Add($"${field}Detail", SqliteType.Text),
+                    Reason: command.Parameters.Add($"${field}Reason", SqliteType.Integer)))
+                .ToList();
 
             foreach (var entry in entries)
             {
@@ -180,6 +208,15 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                 originalDance.Value = (object?)entry.OriginalDance ?? DBNull.Value;
                 artist.Value = (object?)entry.Artist ?? DBNull.Value;
                 title.Value = (object?)entry.Title ?? DBNull.Value;
+
+                foreach (var (source, from) in sources.Zip<
+                    (SqliteParameter Kind, SqliteParameter Detail, SqliteParameter Reason), DerivedFrom>(
+                        [entry.Dance, entry.ArtistFrom, entry.TitleFrom]))
+                {
+                    source.Kind.Value = from.Kind is { } kind ? (int)kind : DBNull.Value;
+                    source.Detail.Value = (object?)from.Detail ?? DBNull.Value;
+                    source.Reason.Value = (int)from.Reason;
+                }
 
                 await command.ExecuteNonQueryAsync(token);
 
@@ -580,6 +617,12 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         _gate.Dispose();
     }
 
+    /// <summary>Where one value came from, read from the three columns that hold it.</summary>
+    private static DerivedFrom ReadSource(SqliteDataReader reader, int at) => new(
+        reader.IsDBNull(at) ? null : (ClaimSourceKind)reader.GetInt32(at),
+        reader.IsDBNull(at + 1) ? null : reader.GetString(at + 1),
+        (DecisionReason)reader.GetInt32(at + 2));
+
     private SqliteConnection Require() =>
         _connection ?? throw new InvalidOperationException("The library index has not been opened.");
 
@@ -609,7 +652,18 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             dance_slug     TEXT    NULL,
             original_dance TEXT    NULL,
             artist         TEXT    NULL,
-            title          TEXT    NULL
+            title          TEXT    NULL,
+            -- Where each value came from and how it was decided. Review shows a value next to its
+            -- source, because a wrong artist is only obvious when it says it was read off a folder.
+            dance_kind     INTEGER NULL,
+            dance_detail   TEXT    NULL,
+            dance_reason   INTEGER NOT NULL DEFAULT 0,
+            artist_kind    INTEGER NULL,
+            artist_detail  TEXT    NULL,
+            artist_reason  INTEGER NOT NULL DEFAULT 0,
+            title_kind     INTEGER NULL,
+            title_detail   TEXT    NULL,
+            title_reason   INTEGER NOT NULL DEFAULT 0
         );
         CREATE INDEX IF NOT EXISTS ix_tracks_path ON tracks (path);
 

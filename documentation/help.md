@@ -18,7 +18,9 @@ Tracks are discovered automatically from your music directory. There is **no req
 - **The artist** comes from the artist tags. A folder name is not read as an artist: the same level is an artist in one library and a country in the next.
 - **The title** comes from the title tag, falling back to the file name with any leading track number taken off.
 
-Anything not answered this way waits for you rather than being filled in with a guess. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
+Anything not answered this way waits for you in **Review** rather than being filled in with a guess. A track is in your library or in review, never both: crossing over needs an artist, a title, a dance from the published list, and you having agreed to all three. An unreviewed library correctly shows no music.
+
+Review is a fixture rather than a step of setup. Retag a file, rename one or drop new ones in and they come back on their own, with what you answered before kept. It is built for the keyboard: the least certain tracks come first, Enter answers one, and A answers everything left in its folder. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
 
 ### Advanced discovery
 

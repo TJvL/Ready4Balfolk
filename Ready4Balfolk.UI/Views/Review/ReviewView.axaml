@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Ready4Balfolk.UI.Views.Review"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="Ready4Balfolk.UI.Views.Review.ReviewView"
+             x:DataType="local:ReviewViewModel">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
+            <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" />
+            <TextBlock Text="{x:Static res:UiStrings.Review_Keys}"
+                       FontSize="11"
+                       Opacity="0.7"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{x:Static res:UiStrings.Review_Intro}"
+                       FontSize="11"
+                       Opacity="0.7"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding IsEmpty}" />
+        </StackPanel>
+
+        <ListBox ItemsSource="{Binding Rows}"
+                 SelectedItem="{Binding Selected, Mode=TwoWay}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="local:ReviewRowViewModel">
+                    <StackPanel Spacing="4">
+                        <!-- The folder header rides on its first row, so it costs no list entry of
+                             its own and arrow keys never land on something unanswerable. -->
+                        <TextBlock Text="{Binding FolderText}"
+                                   FontWeight="Bold"
+                                   Margin="0,8,0,2"
+                                   IsVisible="{Binding IsFirstOfGroup}" />
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding FileName}"
+                                       FontSize="11"
+                                       Opacity="0.7"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding StatusText}"
+                                       FontSize="11"
+                                       Opacity="0.8" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*,*,Auto" ColumnSpacing="8">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <AutoCompleteBox Text="{Binding Dance, Mode=TwoWay}"
+                                                 ItemsSource="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).AllDances}"
+                                                 FilterMode="ContainsOrdinal"
+                                                 MinimumPrefixLength="0"
+                                                 Watermark="{x:Static res:UiStrings.Review_Dance}" />
+                                <TextBlock Text="{Binding DanceSource}" FontSize="10" Opacity="0.6" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBox Text="{Binding Artist, Mode=TwoWay}"
+                                         Watermark="{x:Static res:UiStrings.Review_Artist}" />
+                                <TextBlock Text="{Binding ArtistSource}" FontSize="10" Opacity="0.6" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Spacing="2">
+                                <TextBox Text="{Binding Title, Mode=TwoWay}"
+                                         Watermark="{x:Static res:UiStrings.Review_TitleField}" />
+                                <TextBlock Text="{Binding TitleSource}" FontSize="10" Opacity="0.6" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="3" Spacing="4" VerticalAlignment="Top">
+                                <Button Content="{x:Static res:UiStrings.Review_Approve}"
+                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveCommand}"
+                                        CommandParameter="{Binding}"
+                                        Focusable="False" />
+                                <Button Content="{x:Static res:UiStrings.Review_ApproveFolder}"
+                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveFolderCommand}"
+                                        CommandParameter="{Binding}"
+                                        Focusable="False"
+                                        FontSize="11" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="{x:Static res:UiStrings.Review_UnknownDanceHint}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding IsParked}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</UserControl>

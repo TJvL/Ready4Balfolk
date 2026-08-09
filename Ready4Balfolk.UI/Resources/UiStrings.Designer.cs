@@ -961,4 +961,86 @@ public static class UiStrings
 
     public static string Discovery_NoLibrary =>
         ResourceManager.GetString("Discovery_NoLibrary", Culture)!;
+
+    // Review
+    public static string Review_Title =>
+        ResourceManager.GetString("Review_Title", Culture)!;
+
+    public static string Review_Intro =>
+        ResourceManager.GetString("Review_Intro", Culture)!;
+
+    public static string Review_Keys =>
+        ResourceManager.GetString("Review_Keys", Culture)!;
+
+    public static string Review_Waiting =>
+        ResourceManager.GetString("Review_Waiting", Culture)!;
+
+    public static string Review_NothingWaiting =>
+        ResourceManager.GetString("Review_NothingWaiting", Culture)!;
+
+    public static string Review_Approve =>
+        ResourceManager.GetString("Review_Approve", Culture)!;
+
+    public static string Review_ApproveFolder =>
+        ResourceManager.GetString("Review_ApproveFolder", Culture)!;
+
+    public static string Review_Dance =>
+        ResourceManager.GetString("Review_Dance", Culture)!;
+
+    public static string Review_Artist =>
+        ResourceManager.GetString("Review_Artist", Culture)!;
+
+    public static string Review_TitleField =>
+        ResourceManager.GetString("Review_TitleField", Culture)!;
+
+    public static string Review_RootFolder =>
+        ResourceManager.GetString("Review_RootFolder", Culture)!;
+
+    public static string Review_FromTag =>
+        ResourceManager.GetString("Review_FromTag", Culture)!;
+
+    public static string Review_FromFileName =>
+        ResourceManager.GetString("Review_FromFileName", Culture)!;
+
+    public static string Review_FromFolder =>
+        ResourceManager.GetString("Review_FromFolder", Culture)!;
+
+    public static string Review_FromRule =>
+        ResourceManager.GetString("Review_FromRule", Culture)!;
+
+    public static string Review_FromYou =>
+        ResourceManager.GetString("Review_FromYou", Culture)!;
+
+    public static string Review_FromNothing =>
+        ResourceManager.GetString("Review_FromNothing", Culture)!;
+
+    public static string Review_ReasonMissing =>
+        ResourceManager.GetString("Review_ReasonMissing", Culture)!;
+
+    public static string Review_ReasonUnapproved =>
+        ResourceManager.GetString("Review_ReasonUnapproved", Culture)!;
+
+    public static string Review_ReasonUnknownDance =>
+        ResourceManager.GetString("Review_ReasonUnknownDance", Culture)!;
+
+    public static string Review_ReasonChanged =>
+        ResourceManager.GetString("Review_ReasonChanged", Culture)!;
+
+    public static string Review_Answered =>
+        ResourceManager.GetString("Review_Answered", Culture)!;
+
+    public static string Review_ParkedOnUnknownDance =>
+        ResourceManager.GetString("Review_ParkedOnUnknownDance", Culture)!;
+
+    public static string Review_UnknownDanceHint =>
+        ResourceManager.GetString("Review_UnknownDanceHint", Culture)!;
+
+    public static string Toolbar_Review =>
+        ResourceManager.GetString("Toolbar_Review", Culture)!;
+
+    public static string Toolbar_ReviewLabel =>
+        ResourceManager.GetString("Toolbar_ReviewLabel", Culture)!;
+
+    public static string Toolbar_ReviewCount =>
+        ResourceManager.GetString("Toolbar_ReviewCount", Culture)!;
 }
