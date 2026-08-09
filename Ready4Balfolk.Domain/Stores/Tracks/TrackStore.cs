@@ -126,7 +126,15 @@ public sealed class TrackStore : ITrackStore, IDisposable
             var cancellation = new CancellationTokenSource();
             Interlocked.Exchange(ref _loadCts, cancellation)?.Cancel();
 
-            Task.Run(() => LoadDirectoryAsync(root, reread: true, cancellation.Token)).SafeFireAndForget(exception =>
+            Task.Run(async () =>
+            {
+                // Every approval a rule gave goes with the rules. The user vouched for the rule and
+                // not for the two thousand files it touched, so fixing one greenlit by mistake has
+                // to undo its work. What they answered one at a time is untouched.
+                await _libraryIndex.OpenAsync(cancellation.Token);
+                await _libraryIndex.RevokeRuleApprovalsAsync(cancellation.Token);
+                await LoadDirectoryAsync(root, reread: true, cancellation.Token);
+            }).SafeFireAndForget(exception =>
                 _loggerService.ErrorAsync("Reloading after a discovery settings change failed", exception));
         }
     } = DiscoverySettings.Undeclared;
@@ -282,6 +290,10 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 {
                     _libraryIndex.WriteAsync([.. pending.Select(ToEntry)], cancellationToken).SafeFireAndForget(exception =>
                         _loggerService.ErrorAsync("Failed to write a batch to the library index", exception));
+
+                    _libraryIndex.ApproveAsync([.. pending.SelectMany(ByRuleApprovals)], cancellationToken)
+                        .SafeFireAndForget(exception =>
+                            _loggerService.ErrorAsync("Failed to record what the rules approved", exception));
                 }
 
                 _ = _loggerService.DebugAsync($"Added batch of '{tracksBatch.Count:N0}' tracks");
@@ -380,6 +392,47 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 }
             }
         });
+
+    /// <summary>
+    /// What the user's own rules answered on this file, which they approved by declaring them.
+    /// </summary>
+    /// <remarks>
+    /// A field whose answer came from a declared claim is approved by that rule, and the rule is
+    /// recorded so review can say which one. The dance keeps the text rather than a slug when the
+    /// list does not know it: the rule did answer, the track parks on the value, and an import that
+    /// carries the name releases it without anybody being asked.
+    /// </remarks>
+    private static IEnumerable<TrackApproval> ByRuleApprovals(ScannedFile scanned)
+    {
+        foreach (var field in AllFields)
+        {
+            var decision = scanned.Resolution.For(field);
+            var chosen = decision.Chosen.FirstOrDefault(claim => claim.Trust is ClaimTrust.Declared);
+
+            var (value, rule) = chosen is not null
+                ? (decision.Value, chosen.Source.Detail)
+                : decision.Reason is DecisionReason.Unusable
+                    && scanned.Resolution.ClaimsFor(field).FirstOrDefault(claim => claim.Trust is ClaimTrust.Declared)
+                        is { } parked
+                    ? (parked.Value, parked.Source.Detail)
+                    : (null, null);
+
+            if (value is not null && rule is not null)
+            {
+                yield return new TrackApproval
+                {
+                    ContentHash = scanned.Evidence.ContentHash,
+                    Field = field,
+                    Value = value,
+                    Kind = ApprovalKind.ByRule,
+                    Rule = rule,
+                    FileWriteUtc = scanned.File.LastWriteTimeUtc
+                };
+            }
+        }
+    }
+
+    private static readonly TrackField[] AllFields = [TrackField.Dance, TrackField.Artist, TrackField.Title];
 
     private static LibraryEntry ToEntry(ScannedFile scanned) => new()
     {
@@ -626,6 +679,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
             }
         ]).SafeFireAndForget(exception =>
             _loggerService.ErrorAsync("Failed to index a new file", exception));
+
+        // A file the watcher noticed is answered by the rules exactly as one found by a scan is,
+        // and matching a rule means approved by it and into the library.
+        _libraryIndex.ApproveAsync([.. ByRuleApprovals(new ScannedFile(fileInfo, evidence, resolution))])
+            .SafeFireAndForget(exception =>
+                _loggerService.ErrorAsync("Failed to record what the rules approved", exception));
 
         return ToTrack(fileInfo, evidence, resolution);
     }

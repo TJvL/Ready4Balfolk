@@ -3,6 +3,7 @@ using System.Reactive.Linq;
 using NSubstitute;
 using Ready4Balfolk.Domain;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -98,6 +99,77 @@ public sealed class TrackStoreTests : IDisposable
             .Any(c => c.GetMethodInfo().Name == nameof(ILoggerService.WarningAsync)));
         Assert.False(isLoading);
         Assert.Empty(_sut.Current);
+    }
+
+    [Fact]
+    public async Task ADeclaredRule_ApprovesEveryFileItAnswers()
+    {
+        // The bargain of a declaration: the user vouches for the rule once, and the files it matches
+        // are answered and approved without being looked at one at a time.
+        await File.WriteAllTextAsync(
+            Path.Combine(_tempDirA.FullName, "Naragonia - Mazurka.mp3"), "", TestContext.Current.CancellationToken);
+
+        var approved = new List<TrackApproval>();
+        _libraryIndex.ApproveAsync(Arg.Any<IReadOnlyCollection<TrackApproval>>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                lock (approved)
+                {
+                    approved.AddRange(call.Arg<IReadOnlyCollection<TrackApproval>>()!);
+                }
+
+                return Task.CompletedTask;
+            });
+
+        _sut.DiscoverySettings = new DiscoverySettings { FileNamePatterns = ["%a - %t"] };
+        _sut.MusicDirectory = _tempDirA;
+
+        await WaitUntilAsync(() =>
+        {
+            lock (approved)
+            {
+                return approved.Count >= 2;
+            }
+        });
+
+        lock (approved)
+        {
+            Assert.Contains(approved, approval =>
+                approval.Field == TrackField.Artist
+                && approval.Value == "Naragonia"
+                && approval.Kind == ApprovalKind.ByRule
+                && approval.Rule == "%a - %t");
+            Assert.Contains(approved, approval => approval.Field == TrackField.Title && approval.Value == "Mazurka");
+        }
+    }
+
+    [Fact]
+    public async Task WhatNoRuleAnswered_IsApprovedByNothing()
+    {
+        await File.WriteAllTextAsync(
+            Path.Combine(_tempDirA.FullName, "a.mp3"), "", TestContext.Current.CancellationToken);
+
+        _sut.MusicDirectory = _tempDirA;
+        await WaitUntilAsync(() => _sut.Current.Any(track => track.FileInfo.Name == "a.mp3"));
+
+        await _libraryIndex.DidNotReceive().ApproveAsync(
+            Arg.Is<IReadOnlyCollection<TrackApproval>>(approvals => approvals.Count > 0),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ChangingTheRules_TakesBackWhatTheyApproved()
+    {
+        await File.WriteAllTextAsync(
+            Path.Combine(_tempDirA.FullName, "Naragonia - Mazurka.mp3"), "", TestContext.Current.CancellationToken);
+
+        _sut.MusicDirectory = _tempDirA;
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        _sut.DiscoverySettings = new DiscoverySettings { FileNamePatterns = ["%a - %t"] };
+
+        await WaitUntilAsync(() => _libraryIndex.ReceivedCalls()
+            .Any(call => call.GetMethodInfo().Name == nameof(ILibraryIndex.RevokeRuleApprovalsAsync)));
     }
 
     public void Dispose()

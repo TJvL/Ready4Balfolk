@@ -113,6 +113,19 @@ Other things that are load-bearing:
 - **The watcher never announces anything** — a count on a button, no dialog and no toast. The application runs in front of a room.
 - **Preview refuses while the queue is playing.** There is one output and the room is on it, so this is preparation work by construction rather than by discipline.
 
+### Approval: what a person agreed to, kept apart from what was derived
+
+Everything in `tracks` is derived and is meant to be overwritten by the newest reading. What a person agreed to lives in `approvals`, which no scan touches. That separation *is* the fix for the row that used to promise it kept "whatever the user has decided about it" and then overwrote it on the next upsert.
+
+- **Keyed on the content hash**, which covers the audio alone, so an answer follows a track through a retag or a rename, and lands on every copy of a duplicated recording rather than the one that happened to be clicked.
+- **Two kinds** (`ApprovalKind`). `ByRule` is what a declaration answered: the user vouched for the rule and not for the two thousand files it touched, so changing the rules revokes every one of them and the files return to review. `Individual` is somebody looking at a track and saying yes, and nothing overwrites it — not a rescan, not a rule change, not this application writing the file's own tags.
+- **The dance is approved as text, not as a slug.** A rule that answered `Rond de Landéda` on twenty files keeps its approval while the published list has never heard of it, and `ReviewGate` resolves the value against the list every time. The day a proposal is merged and the list is imported, those twenty cross on their own. That is the whole of "reimporting sweeps the parked tracks" — there is no sweep code.
+- **A retag does not lose a decision.** `TrackApproval.FileWriteUtc` is the file as it stood when it was approved; a newer write time reads as `ChangedSinceApproval`, so the track comes back for reconfirmation with its value intact. It is read off the file rather than off a clock, so it means the same thing on every machine.
+
+`ReviewGate.Evaluate` is the gate itself, and it is a pure function of the entry, its approvals and the dance list: an artist, a title, a dance the list knows, and an approval of each. `ReviewReason` keeps the ways of not being in the library apart — `Missing`, `Unapproved`, `UnknownDance`, `ChangedSinceApproval` — because a person has to be told which one they are looking at.
+
+**Not yet wired:** the track list, the dance panel counts and the random pool still show everything the index holds rather than only what is in the library, and the toolbar badge still counts unresolved values rather than tracks in review (`CountInReviewAsync` exists and is unused). Flipping those over belongs with the screen that lets a person clear the queue, in step 5 — doing it first would leave a library that correctly reads as empty and no way to fix it.
+
 ### Library index
 
 `Stores/Library/` is the index of what is in the music directory, in SQLite (`library.sqlite`). It replaced a JSON duration cache, and its job is that **a startup which finds nothing changed opens no audio files at all** — verified on a 345-track library: first run 345 files read, second run 0.

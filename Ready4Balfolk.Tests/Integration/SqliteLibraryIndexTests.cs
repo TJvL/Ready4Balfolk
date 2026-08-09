@@ -189,6 +189,136 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         return directory;
     }
 
+    [Fact]
+    public async Task AnApproval_SurvivesTheScanThatRewritesTheTrack()
+    {
+        // The bug this whole table exists for: the row is upserted on every rescan, and the answer a
+        // person gave used to be one of the columns it overwrote.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: "mazurka")], Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Dance, "scottish", Token);
+
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: "waltz")], Token);
+
+        var approval = Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+        Assert.Equal("scottish", approval.Value);
+        Assert.Equal(ApprovalKind.Individual, approval.Kind);
+    }
+
+    [Fact]
+    public async Task AnApproval_FollowsTheAudioThroughARename()
+    {
+        // Same audio, new path. The content hash is what the answer hangs on, so nobody is asked
+        // again because a file was renamed or retagged.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [7])], Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Artist, "Naragonia", Token);
+
+        await _sut.WriteAsync([Entry("/music/renamed.mp3", [7])], Token);
+
+        var approvals = await _sut.ApprovalsAsync(Token);
+        Assert.Equal("Naragonia", Assert.Single(approvals[LibraryKey.For([7])]).Value);
+    }
+
+    [Fact]
+    public async Task ApprovingAField_ReplacesWhateverWasAgreedToBefore()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Title, "First", Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Title, "Second", Token);
+
+        var approval = Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+        Assert.Equal("Second", approval.Value);
+    }
+
+    [Fact]
+    public async Task AnApprovalLandsOnTheAudio_SoBothCopiesOfATrackGetIt()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9]), Entry("/music/compilation/a.mp3", [9])], Token);
+
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Dance, "mazurka", Token);
+
+        Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([9])]);
+    }
+
+    [Fact]
+    public async Task RevokingRules_LeavesWhatAPersonAnsweredThemselves()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+        await _sut.ApproveAsync([ByRule([1], TrackField.Artist, "Naragonia")], Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Title, "Le badaud", Token);
+
+        await _sut.RevokeRuleApprovalsAsync(Token);
+
+        var approval = Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+        Assert.Equal(TrackField.Title, approval.Field);
+    }
+
+    [Fact]
+    public async Task AByRuleApproval_RemembersWhichRuleDidIt()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+
+        await _sut.ApproveAsync([ByRule([1], TrackField.Artist, "Naragonia")], Token);
+
+        Assert.Equal("%d - %a - %t", Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]).Rule);
+    }
+
+    [Fact]
+    public async Task AssigningADance_IsAPersonAnswering()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: null)], Token);
+
+        await _sut.AssignDanceAsync(["/music/a.mp3"], "mazurka", Token);
+
+        var approval = Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+        Assert.Equal(ApprovalKind.Individual, approval.Kind);
+        Assert.Equal("mazurka", approval.Value);
+    }
+
+    [Fact]
+    public async Task ClearingADance_TakesTheAnswerBack()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+        await _sut.AssignDanceAsync(["/music/a.mp3"], "mazurka", Token);
+
+        await _sut.AssignDanceAsync(["/music/a.mp3"], null, Token);
+
+        Assert.Empty(await _sut.ApprovalsAsync(Token));
+    }
+
+    [Fact]
+    public async Task AudioNothingPointsAtAnyMore_TakesItsApprovalsWithIt()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Dance, "mazurka", Token);
+
+        await _sut.DeleteMissingAsync([], Token);
+
+        Assert.Empty(await _sut.ApprovalsAsync(Token));
+    }
+
+    [Fact]
+    public async Task InReview_CountsWhatIsNotAnsweredOnEveryField()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2])], Token);
+        foreach (var field in new[] { TrackField.Dance, TrackField.Artist, TrackField.Title })
+        {
+            await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], field, "answered", Token);
+        }
+
+        Assert.Equal(1, await _sut.CountInReviewAsync(Token));
+    }
+
+    private static TrackApproval ByRule(byte[] hash, TrackField field, string value) => new()
+    {
+        ContentHash = hash,
+        Field = field,
+        Value = value,
+        Kind = ApprovalKind.ByRule,
+        Rule = "%d - %a - %t",
+        FileWriteUtc = new DateTime(2026, 8, 8, 20, 0, 0, DateTimeKind.Utc)
+    };
+
     private static LibraryEntry Entry(string path, byte[] hash, string? slug = "mazurka")
         => new()
         {

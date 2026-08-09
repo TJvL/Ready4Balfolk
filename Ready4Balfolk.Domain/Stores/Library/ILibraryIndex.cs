@@ -1,3 +1,5 @@
+using Ready4Balfolk.Domain.Models.Tracks;
+
 namespace Ready4Balfolk.Domain.Stores.Library;
 
 /// <summary>The index of what is in the music directory, so a startup can avoid opening files.</summary>
@@ -13,7 +15,37 @@ public interface ILibraryIndex : IDisposable
     Task<IReadOnlyDictionary<string, LibraryEntry>> SnapshotByPathAsync(CancellationToken token = default);
 
     /// <summary>Inserts or updates rows, in one transaction.</summary>
+    /// <remarks>
+    /// Only ever derived values. What a person agreed to lives in its own table and is not touched
+    /// by a scan, which is the whole reason the two are kept apart.
+    /// </remarks>
     Task WriteAsync(IReadOnlyCollection<LibraryEntry> entries, CancellationToken token = default);
+
+    /// <summary>
+    /// What a person has agreed to, by content hash.
+    /// </summary>
+    /// <remarks>
+    /// Keyed by <see cref="LibraryKey.For(byte[])"/> rather than by the bytes, because two equal
+    /// hashes are two different arrays and a dictionary would not agree that they are the same
+    /// track.
+    /// </remarks>
+    Task<IReadOnlyDictionary<string, IReadOnlyList<TrackApproval>>> ApprovalsAsync(CancellationToken token = default);
+
+    /// <summary>Records what was agreed to, replacing any earlier answer for the same field.</summary>
+    Task ApproveAsync(IReadOnlyCollection<TrackApproval> approvals, CancellationToken token = default);
+
+    /// <summary>
+    /// Takes back every approval that a rule gave, leaving the ones a person gave one at a time.
+    /// </summary>
+    /// <remarks>
+    /// The user vouched for the rule rather than for each file it touched, so changing the rules has
+    /// to undo their work. What somebody looked at and answered themselves is untouched.
+    /// </remarks>
+    Task RevokeRuleApprovalsAsync(CancellationToken token = default);
+
+    /// <summary>Approves one field of the tracks at these paths, as a person deciding.</summary>
+    Task ApproveIndividuallyAsync(
+        IReadOnlyCollection<string> paths, TrackField field, string value, CancellationToken token = default);
 
     /// <summary>Forgets every row whose path is not in the set, after a scan has been through.</summary>
     Task DeleteMissingAsync(IReadOnlyCollection<string> existingPaths, CancellationToken token = default);
@@ -33,6 +65,13 @@ public interface ILibraryIndex : IDisposable
 
     /// <summary>Points a set of files at a dance, by path.</summary>
     Task AssignDanceAsync(IReadOnlyCollection<string> paths, string? danceSlug, CancellationToken token = default);
+
+    /// <summary>How many files are waiting for a person rather than sitting in the library.</summary>
+    /// <remarks>
+    /// Over paths, because that is what the user sees. A track is in the library or in review and
+    /// never both, so this is the number the review badge is for.
+    /// </remarks>
+    Task<int> CountInReviewAsync(CancellationToken token = default);
 
     /// <summary>How many files the dance list has nothing to say about.</summary>
     /// <remarks>
