@@ -1064,4 +1064,14 @@ public static class UiStrings
 
     public static string Discovery_Scanning =>
         ResourceManager.GetString("Discovery_Scanning", Culture)!;
+
+    public static string Discovery_ApplyHint =>
+        ResourceManager.GetString("Discovery_ApplyHint", Culture)!;
+
+    public static string Review_Preview =>
+        ResourceManager.GetString("Review_Preview", Culture)!;
+    public static string Review_StopPreview =>
+        ResourceManager.GetString("Review_StopPreview", Culture)!;
+    public static string Review_PreviewRefused =>
+        ResourceManager.GetString("Review_PreviewRefused", Culture)!;
 }

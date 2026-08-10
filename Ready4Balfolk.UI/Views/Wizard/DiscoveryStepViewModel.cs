@@ -24,4 +24,18 @@ public sealed class DiscoveryStepViewModel(DiscoveryViewModel discovery) : Wizar
     public override string Explanation => UiStrings.Wizard_Discovery_Explanation;
 
     public override Task EnterAsync() => Discovery.RefreshCommand.Execute().FirstAsync().ToTask();
+
+    /// <summary>
+    /// Next is what saves the folder levels and the tags here.
+    /// </summary>
+    /// <remarks>
+    /// The screen keeps a save button of its own for the settings, where nothing else would commit
+    /// it. Inside a wizard that button is a second way to do what the continue button already means,
+    /// and two buttons that both look like the way forward is how a step gets left half applied.
+    /// </remarks>
+    public override async Task<bool> CommitAsync()
+    {
+        await Discovery.ApplyRolesAndTagsCommand.Execute().FirstAsync().ToTask();
+        return true;
+    }
 }

@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Tracks;
+using AsyncAwaitBestPractices;
+using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Dances;
@@ -18,6 +20,7 @@ using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Review;
 
@@ -42,6 +45,8 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
     private readonly IDanceListStore _danceListStore;
     private readonly ISettingsStore _settingsStore;
     private readonly ITrackStore _trackStore;
+    private readonly IPreviewPlaybackService _preview;
+    private readonly INotificationService _notifications;
     private readonly ILoggerService _loggerService;
     private readonly CompositeDisposable _disposables = [];
 
@@ -50,17 +55,46 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         IDanceListStore danceListStore,
         ISettingsStore settingsStore,
         ITrackStore trackStore,
+        IPreviewPlaybackService preview,
+        INotificationService notifications,
         ILoggerService loggerService)
     {
         _libraryIndex = libraryIndex;
         _danceListStore = danceListStore;
         _settingsStore = settingsStore;
         _trackStore = trackStore;
+        _preview = preview;
+        _notifications = notifications;
         _loggerService = loggerService;
 
         Summary = string.Empty;
         ScanProgressText = string.Empty;
         AllDances = [];
+
+        _previewPositionSecondsHelper = this.WhenAnyValue(x => x.PreviewPosition)
+            .Select(position => position.TotalSeconds)
+            .ToProperty(this, x => x.PreviewPositionSeconds);
+        _previewPositionSecondsHelper.DisposeWith(_disposables);
+
+        _previewDurationSecondsHelper = this.WhenAnyValue(x => x.PreviewDuration)
+            .Select(duration => duration.TotalSeconds)
+            .ToProperty(this, x => x.PreviewDurationSeconds);
+        _previewDurationSecondsHelper.DisposeWith(_disposables);
+
+        preview.WhenPreviewChanged
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(OnPreviewChanged)
+            .DisposeWith(_disposables);
+
+        preview.WhenProgressChanged
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(position => PreviewPosition = position)
+            .DisposeWith(_disposables);
+
+        preview.WhenDurationChanged
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(duration => PreviewDuration = duration)
+            .DisposeWith(_disposables);
 
         // The queue waits for the scan and then builds itself. A first run reaches this screen while
         // thousands of files are still being read, and "nothing is waiting" over a half-read index
@@ -118,6 +152,15 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
 
     /// <summary>Every name the published list knows, for the picker. The only vocabulary there is.</summary>
     [Reactive] public partial IReadOnlyList<string> AllDances { get; private set; }
+
+    [Reactive] public partial TimeSpan PreviewPosition { get; private set; }
+
+    [Reactive] public partial TimeSpan PreviewDuration { get; private set; }
+
+    /// <summary>Seconds, because a progress bar cannot be bound to a TimeSpan.</summary>
+    [ObservableAsProperty] public partial double PreviewPositionSeconds { get; }
+
+    [ObservableAsProperty] public partial double PreviewDurationSeconds { get; }
 
     /// <summary>Rebuilds the queue from the index, which is what makes it resumable.</summary>
     [ReactiveCommand]
@@ -205,7 +248,49 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         Selected = NextAfter(row);
     }
 
-    public void Dispose() => _disposables.Dispose();
+    /// <summary>
+    /// Plays a few seconds of a track, or stops it when it is already the one playing.
+    /// </summary>
+    /// <remarks>
+    /// Hearing it is often the only way to answer "which dance is this", and it is refused while the
+    /// queue is playing: there is one output and a room is on it, so this is preparation work by
+    /// construction rather than by discipline.
+    /// </remarks>
+    public async Task TogglePreviewAsync(ReviewRowViewModel row)
+    {
+        if (string.Equals(_preview.Previewing, row.Path, StringComparison.Ordinal))
+        {
+            await _preview.StopAsync();
+            return;
+        }
+
+        if (!await _preview.PlayAsync(row.Path))
+        {
+            _notifications.Show(UiStrings.Review_PreviewRefused, NotificationSeverity.Warning);
+        }
+    }
+
+    [ReactiveCommand]
+    private void StopPreview() => _preview.StopAsync().SafeFireAndForget(
+        exception => _loggerService.ErrorAsync("Failed to stop the preview", exception));
+
+    public Task SeekPreviewAsync(TimeSpan position) => _preview.SeekAsync(position);
+
+    /// <summary>One row at a time carries the playing state, so the strip lives on the row itself.</summary>
+    private void OnPreviewChanged(string? path)
+    {
+        foreach (var row in Rows)
+        {
+            row.IsPreviewing = string.Equals(row.Path, path, StringComparison.Ordinal);
+        }
+    }
+
+    public void Dispose()
+    {
+        _preview.StopAsync().SafeFireAndForget(
+            exception => _loggerService.ErrorAsync("Failed to stop the preview", exception));
+        _disposables.Dispose();
+    }
 
     private async Task ApproveRowAsync(ReviewRowViewModel row)
     {

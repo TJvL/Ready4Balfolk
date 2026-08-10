@@ -7,5 +7,5 @@
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="480"
              x:Class="Ready4Balfolk.UI.Views.Wizard.DiscoveryStepView"
              x:DataType="wizard:DiscoveryStepViewModel">
-    <discovery:DiscoveryView DataContext="{CompiledBinding Discovery}" />
+    <discovery:DiscoveryView DataContext="{CompiledBinding Discovery}" ShowSaveButton="False" />
 </UserControl>

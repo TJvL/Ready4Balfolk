@@ -48,6 +48,26 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         }
     }
 
+    private async void OnPreviewClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { Tag: ReviewRowViewModel row } && ViewModel is { } viewModel)
+        {
+            await viewModel.TogglePreviewAsync(row);
+        }
+    }
+
+    /// <summary>Seeking by clicking the bar, which is what makes skimming a track possible.</summary>
+    private void OnPreviewBarPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not ProgressBar bar || ViewModel is not { PreviewDurationSeconds: > 0 } viewModel)
+        {
+            return;
+        }
+
+        var ratio = Math.Clamp(e.GetPosition(bar).X / bar.Bounds.Width, 0, 1);
+        _ = viewModel.SeekPreviewAsync(TimeSpan.FromSeconds(ratio * viewModel.PreviewDurationSeconds));
+    }
+
     /// <summary>True while the focus sits in something a letter belongs in.</summary>
     private bool IsTyping() =>
         TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox or AutoCompleteBox;

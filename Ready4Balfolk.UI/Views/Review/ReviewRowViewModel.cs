@@ -79,6 +79,16 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
     /// <summary>True when the answer cannot let it into the library, so the row says why.</summary>
     [Reactive] public partial bool IsParked { get; private set; }
 
+    /// <summary>
+    /// True while this is the track playing.
+    /// </summary>
+    /// <remarks>
+    /// One at a time, and on the row itself: the fastest way to answer "which dance is this" is to
+    /// hear eight seconds of it, and walking to a separate player to do that is the difference
+    /// between answering forty rows and answering four.
+    /// </remarks>
+    [Reactive] public partial bool IsPreviewing { get; set; }
+
     public bool CanApprove =>
         !string.IsNullOrWhiteSpace(Dance)
         && !string.IsNullOrWhiteSpace(Artist)

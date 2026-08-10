@@ -1025,7 +1025,7 @@
     <value>Leave this to the application</value>
   </data>
   <data name="Discovery_ApplyRolesAndTags" xml:space="preserve">
-    <value>Apply folders and tags</value>
+    <value>Save folders and tags</value>
   </data>
   <data name="Discovery_FieldDance" xml:space="preserve">
     <value>Dance</value>
@@ -1178,5 +1178,17 @@
   </data>
   <data name="Discovery_Scanning" xml:space="preserve">
     <value>Reading your library. A rule can be measured once that is done.</value>
+  </data>
+  <data name="Discovery_ApplyHint" xml:space="preserve">
+    <value>The folder levels and tags above do nothing until you save them. Your library is read again afterwards, so a rule answers the files already in it.</value>
+  </data>
+  <data name="Review_Preview" xml:space="preserve">
+    <value>Listen to a bit of this</value>
+  </data>
+  <data name="Review_StopPreview" xml:space="preserve">
+    <value>Stop listening</value>
+  </data>
+  <data name="Review_PreviewRefused" xml:space="preserve">
+    <value>The room is listening to the queue, so nothing is played here.</value>
   </data>
 </root>

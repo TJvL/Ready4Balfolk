@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Review"
+             xmlns:tagging="using:Ready4Balfolk.UI.Views.Tagging"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Ready4Balfolk.UI.Views.Review.ReviewView"
@@ -44,15 +45,52 @@
                                    Margin="0,8,0,2"
                                    IsVisible="{Binding IsFirstOfGroup}" />
 
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Grid.Column="0"
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
+                            <!-- Hearing eight seconds of it is often the whole answer, so the
+                                 player is on the row rather than somewhere else on the screen. -->
+                            <Button Grid.Column="0"
+                                    Click="OnPreviewClick"
+                                    Tag="{Binding}"
+                                    ToolTip.Tip="{x:Static res:UiStrings.Review_Preview}"
+                                    Padding="6,2"
+                                    Focusable="False">
+                                <PathIcon Data="{StaticResource IconPlay}"
+                                          Width="12"
+                                          Height="12"
+                                          Foreground="{Binding IsPreviewing, Converter={x:Static tagging:PreviewingBrushConverter.Instance}}" />
+                            </Button>
+
+                            <TextBlock Grid.Column="1"
                                        Text="{Binding FileName}"
                                        FontSize="11"
                                        Opacity="0.7"
+                                       VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="1"
+
+                            <!-- A ProgressBar with a click handler, never a Slider: its thumb
+                                 swallows the pointer, so clicking the track does nothing. -->
+                            <ProgressBar Grid.Column="2"
+                                         Minimum="0"
+                                         Maximum="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).PreviewDurationSeconds}"
+                                         Value="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).PreviewPositionSeconds}"
+                                         Height="8"
+                                         VerticalAlignment="Center"
+                                         IsVisible="{Binding IsPreviewing}"
+                                         PointerPressed="OnPreviewBarPressed" />
+
+                            <Button Grid.Column="3"
+                                    Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).StopPreviewCommand}"
+                                    ToolTip.Tip="{x:Static res:UiStrings.Review_StopPreview}"
+                                    IsVisible="{Binding IsPreviewing}"
+                                    Padding="6,2"
+                                    Focusable="False">
+                                <PathIcon Data="{StaticResource IconClose}" Width="12" Height="12" />
+                            </Button>
+
+                            <TextBlock Grid.Column="4"
                                        Text="{Binding StatusText}"
                                        FontSize="11"
+                                       VerticalAlignment="Center"
                                        Opacity="0.8" />
                         </Grid>
 

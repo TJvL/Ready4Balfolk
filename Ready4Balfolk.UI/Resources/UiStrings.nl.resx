@@ -950,7 +950,7 @@
     <value>Laat dit aan de applicatie over</value>
   </data>
   <data name="Discovery_ApplyRolesAndTags" xml:space="preserve">
-    <value>Mappen en tags toepassen</value>
+    <value>Mappen en tags opslaan</value>
   </data>
   <data name="Discovery_FieldDance" xml:space="preserve">
     <value>Dans</value>
@@ -1103,5 +1103,17 @@
   </data>
   <data name="Discovery_Scanning" xml:space="preserve">
     <value>Je bibliotheek wordt ingelezen. Zodra dat klaar is kan een regel gemeten worden.</value>
+  </data>
+  <data name="Discovery_ApplyHint" xml:space="preserve">
+    <value>De mapniveaus en tags hierboven doen niets tot je ze opslaat. Daarna wordt je bibliotheek opnieuw ingelezen, zodat een regel de bestanden beantwoordt die er al in staan.</value>
+  </data>
+  <data name="Review_Preview" xml:space="preserve">
+    <value>Even beluisteren</value>
+  </data>
+  <data name="Review_StopPreview" xml:space="preserve">
+    <value>Stoppen met luisteren</value>
+  </data>
+  <data name="Review_PreviewRefused" xml:space="preserve">
+    <value>De zaal luistert naar de wachtrij, dus hier wordt niets afgespeeld.</value>
   </data>
 </root>

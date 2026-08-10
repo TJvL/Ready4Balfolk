@@ -229,10 +229,17 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <Button Content="{x:Static res:UiStrings.Discovery_ApplyRolesAndTags}"
-                        Command="{Binding ApplyRolesAndTagsCommand}"
-                        HorizontalAlignment="Left"
-                        Focusable="False" />
+                <StackPanel Spacing="8"
+                            IsVisible="{Binding $parent[local:DiscoveryView].ShowSaveButton}">
+                    <TextBlock Text="{x:Static res:UiStrings.Discovery_ApplyHint}"
+                               FontSize="11"
+                               Opacity="0.7"
+                               TextWrapping="Wrap" />
+                    <Button Content="{x:Static res:UiStrings.Discovery_ApplyRolesAndTags}"
+                            Command="{Binding ApplyRolesAndTagsCommand}"
+                            HorizontalAlignment="Left"
+                            Focusable="False" />
+                </StackPanel>
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

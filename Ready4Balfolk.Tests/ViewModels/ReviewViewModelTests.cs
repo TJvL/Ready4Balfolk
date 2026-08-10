@@ -3,12 +3,14 @@ using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
+using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Review;
 
 namespace Ready4Balfolk.Tests.ViewModels;
@@ -52,8 +54,14 @@ public sealed class ReviewViewModelTests : IDisposable
                 return Task.CompletedTask;
             });
 
+        var preview = Substitute.For<IPreviewPlaybackService>();
+        preview.WhenPreviewChanged.Returns(Observable.Never<string?>());
+        preview.WhenProgressChanged.Returns(Observable.Never<TimeSpan>());
+        preview.WhenDurationChanged.Returns(Observable.Never<TimeSpan>());
+
         _sut = new ReviewViewModel(
-            _libraryIndex, danceListStore, settingsStore, _trackStore, Substitute.For<ILoggerService>());
+            _libraryIndex, danceListStore, settingsStore, _trackStore, preview,
+            Substitute.For<INotificationService>(), Substitute.For<ILoggerService>());
     }
 
     public void Dispose() => _sut.Dispose();

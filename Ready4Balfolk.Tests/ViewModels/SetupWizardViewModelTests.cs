@@ -74,7 +74,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.IsLoading.Returns(Observable.Return(false));
 
-        var review = new ReviewViewModel(libraryIndex, _danceListStore, _settingsStore, trackStore, logger);
+        var review = new ReviewViewModel(libraryIndex, _danceListStore, _settingsStore, trackStore, preview, notifications, logger);
         var discovery = new DiscoveryViewModel(_settingsStore, libraryIndex, trackStore, logger);
 
         return new SetupWizardViewModel(
