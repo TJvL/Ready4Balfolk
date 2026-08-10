@@ -270,10 +270,6 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         }
     }
 
-    [ReactiveCommand]
-    private void StopPreview() => _preview.StopAsync().SafeFireAndForget(
-        exception => _loggerService.ErrorAsync("Failed to stop the preview", exception));
-
     public Task SeekPreviewAsync(TimeSpan position) => _preview.SeekAsync(position);
 
     /// <summary>One row at a time carries the playing state, so the strip lives on the row itself.</summary>

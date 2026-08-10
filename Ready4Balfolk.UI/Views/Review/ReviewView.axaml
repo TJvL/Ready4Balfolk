@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Review"
-             xmlns:tagging="using:Ready4Balfolk.UI.Views.Tagging"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Ready4Balfolk.UI.Views.Review.ReviewView"
@@ -45,57 +44,60 @@
                                    Margin="0,8,0,2"
                                    IsVisible="{Binding IsFirstOfGroup}" />
 
-                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
-                            <!-- Hearing eight seconds of it is often the whole answer, so the
-                                 player is on the row rather than somewhere else on the screen. -->
-                            <Button Grid.Column="0"
-                                    Click="OnPreviewClick"
-                                    Tag="{Binding}"
-                                    ToolTip.Tip="{x:Static res:UiStrings.Review_Preview}"
-                                    Padding="6,2"
-                                    Focusable="False">
-                                <PathIcon Data="{StaticResource IconPlay}"
-                                          Width="12"
-                                          Height="12"
-                                          Foreground="{Binding IsPreviewing, Converter={x:Static tagging:PreviewingBrushConverter.Instance}}" />
-                            </Button>
+                        <!-- One grid for the row, so the player above lines up with the fields
+                             below: the bar ends where the title box ends rather than running on
+                             under the buttons. -->
+                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,*,Auto"
+                              ColumnSpacing="8" RowSpacing="4">
+                            <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                                  ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                                <!-- One button in two states: the thing that starts it is the thing
+                                     that stops it, in the place the eye already is. -->
+                                <Button Grid.Column="0"
+                                        Click="OnPreviewClick"
+                                        Tag="{Binding}"
+                                        ToolTip.Tip="{x:Static res:UiStrings.Review_Preview}"
+                                        IsVisible="{Binding !IsPreviewing}"
+                                        Padding="6,2"
+                                        Focusable="False">
+                                    <PathIcon Data="{StaticResource IconPlay}" Width="12" Height="12" />
+                                </Button>
+                                <Button Grid.Column="0"
+                                        Click="OnPreviewClick"
+                                        Tag="{Binding}"
+                                        ToolTip.Tip="{x:Static res:UiStrings.Review_StopPreview}"
+                                        IsVisible="{Binding IsPreviewing}"
+                                        Padding="6,2"
+                                        Focusable="False">
+                                    <PathIcon Data="{StaticResource IconClose}" Width="12" Height="12" />
+                                </Button>
 
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding FileName}"
-                                       FontSize="11"
-                                       Opacity="0.7"
-                                       VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding FileName}"
+                                           FontSize="11"
+                                           Opacity="0.7"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
 
-                            <!-- A ProgressBar with a click handler, never a Slider: its thumb
-                                 swallows the pointer, so clicking the track does nothing. -->
-                            <ProgressBar Grid.Column="2"
-                                         Minimum="0"
-                                         Maximum="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).PreviewDurationSeconds}"
-                                         Value="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).PreviewPositionSeconds}"
-                                         Height="8"
-                                         VerticalAlignment="Center"
-                                         IsVisible="{Binding IsPreviewing}"
-                                         PointerPressed="OnPreviewBarPressed" />
+                                <!-- A ProgressBar with a click handler, never a Slider: its thumb
+                                     swallows the pointer, so clicking the track does nothing. -->
+                                <ProgressBar Grid.Column="2"
+                                             Minimum="0"
+                                             Maximum="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).PreviewDurationSeconds}"
+                                             Value="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).PreviewPositionSeconds}"
+                                             Height="8"
+                                             VerticalAlignment="Center"
+                                             IsVisible="{Binding IsPreviewing}"
+                                             PointerPressed="OnPreviewBarPressed" />
+                            </Grid>
 
-                            <Button Grid.Column="3"
-                                    Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).StopPreviewCommand}"
-                                    ToolTip.Tip="{x:Static res:UiStrings.Review_StopPreview}"
-                                    IsVisible="{Binding IsPreviewing}"
-                                    Padding="6,2"
-                                    Focusable="False">
-                                <PathIcon Data="{StaticResource IconClose}" Width="12" Height="12" />
-                            </Button>
-
-                            <TextBlock Grid.Column="4"
+                            <TextBlock Grid.Row="0" Grid.Column="3"
                                        Text="{Binding StatusText}"
                                        FontSize="11"
                                        VerticalAlignment="Center"
                                        Opacity="0.8" />
-                        </Grid>
 
-                        <Grid ColumnDefinitions="*,*,*,Auto" ColumnSpacing="8">
-                            <StackPanel Grid.Column="0" Spacing="2">
+                            <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2">
                                 <AutoCompleteBox Text="{Binding Dance, Mode=TwoWay}"
                                                  ItemsSource="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).AllDances}"
                                                  FilterMode="ContainsOrdinal"
@@ -104,19 +106,19 @@
                                 <TextBlock Text="{Binding DanceSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
 
-                            <StackPanel Grid.Column="1" Spacing="2">
+                            <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
                                 <TextBox Text="{Binding Artist, Mode=TwoWay}"
                                          Watermark="{x:Static res:UiStrings.Review_Artist}" />
                                 <TextBlock Text="{Binding ArtistSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
 
-                            <StackPanel Grid.Column="2" Spacing="2">
+                            <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2">
                                 <TextBox Text="{Binding Title, Mode=TwoWay}"
                                          Watermark="{x:Static res:UiStrings.Review_TitleField}" />
                                 <TextBlock Text="{Binding TitleSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
 
-                            <StackPanel Grid.Column="3" Spacing="4" VerticalAlignment="Top">
+                            <StackPanel Grid.Row="1" Grid.Column="3" Spacing="4" VerticalAlignment="Top">
                                 <Button Content="{x:Static res:UiStrings.Review_Approve}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveCommand}"
                                         CommandParameter="{Binding}"
