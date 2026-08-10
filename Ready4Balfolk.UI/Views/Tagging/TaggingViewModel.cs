@@ -165,8 +165,12 @@ public sealed partial class TaggingViewModel : ReactiveObject, IDisposable
                 : Observable.Empty<System.Reactive.Unit>())
             .Switch()
             .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(_ => ScanProgressText = string.Format(
-                CultureInfo.CurrentCulture, UiStrings.Tagging_ScanProgress, trackStore.Current.Count))
+            // Counted from the index, not from the library: nothing reaches the library during a
+            // scan, so counting that would sit at nil however much had been read.
+            .SelectMany(_ => Observable.FromAsync(() => _libraryIndex.CountUnresolvedAsync()))
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(count => ScanProgressText = string.Format(
+                CultureInfo.CurrentCulture, UiStrings.Tagging_ScanProgress, count))
             .DisposeWith(_disposables);
 
         // The list is deliberately not rebuilt when the dance list changes. Answering a value adds

@@ -12,6 +12,7 @@ using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Services;
+using Ready4Balfolk.UI.Views.Discovery;
 using Ready4Balfolk.UI.Views.Review;
 using Ready4Balfolk.UI.Views.Wizard;
 
@@ -74,11 +75,13 @@ public sealed class SetupWizardViewModelTests : IDisposable
         trackStore.IsLoading.Returns(Observable.Return(false));
 
         var review = new ReviewViewModel(libraryIndex, _danceListStore, _settingsStore, trackStore, logger);
+        var discovery = new DiscoveryViewModel(_settingsStore, libraryIndex, trackStore, logger);
 
         return new SetupWizardViewModel(
             new WelcomeStepViewModel(),
             new DanceListStepViewModel(_danceListStore, _feed, _now),
             new MusicDirectoryStepViewModel(_settingsStore),
+            new DiscoveryStepViewModel(discovery),
             new ReviewStepViewModel(review),
             _settingsStore,
             _navigation,
@@ -182,7 +185,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ProgressText_CountsTheSteps() => Assert.Equal("Step 1 of 4", _sut.ProgressText);
+    public void ProgressText_CountsTheSteps() => Assert.Equal("Step 1 of 5", _sut.ProgressText);
 
     [Fact]
     public void ContinueLabel_SaysFinishOnlyOnTheLastStep()
@@ -192,6 +195,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
         _sut.ContinueCommand.Execute().Subscribe();
         Assert.Equal("Next", _sut.ContinueLabel);
 
+        _sut.ContinueCommand.Execute().Subscribe();
         _sut.ContinueCommand.Execute().Subscribe();
         _sut.ContinueCommand.Execute().Subscribe();
 

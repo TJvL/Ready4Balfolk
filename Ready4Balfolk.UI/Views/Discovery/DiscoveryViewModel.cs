@@ -16,6 +16,7 @@ using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.Discovery;
@@ -49,7 +50,10 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     private IReadOnlyList<IReadOnlyList<string>> _folders = [];
 
     public DiscoveryViewModel(
-        ISettingsStore settingsStore, ILibraryIndex libraryIndex, ILoggerService loggerService)
+        ISettingsStore settingsStore,
+        ILibraryIndex libraryIndex,
+        ITrackStore trackStore,
+        ILoggerService loggerService)
     {
         _settingsStore = settingsStore;
         _libraryIndex = libraryIndex;
@@ -60,6 +64,22 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         CoverageSummary = string.Empty;
         DraftSamples = [];
         DraftMisses = [];
+        ScanProgressText = string.Empty;
+
+        // A rule is measured against the library, so measuring one while the library is still being
+        // read would put a number in front of the user that is not the number they are agreeing to.
+        trackStore.IsLoading
+            .DistinctUntilChanged()
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(loading =>
+            {
+                IsScanning = loading;
+                if (!loading)
+                {
+                    RefreshCommand.Execute().Subscribe();
+                }
+            })
+            .DisposeWith(_disposables);
 
         TagFields =
         [
@@ -78,6 +98,11 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     }
 
     [Reactive] public partial bool IsBusy { get; private set; }
+
+    /// <summary>True while the library is being read, so no rule can be measured yet.</summary>
+    [Reactive] public partial bool IsScanning { get; private set; }
+
+    [Reactive] public partial string ScanProgressText { get; private set; }
 
     /// <summary>The pattern being written, not yet declared and not yet doing anything.</summary>
     [Reactive] public partial string DraftPattern { get; set; }

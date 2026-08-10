@@ -1,10 +1,12 @@
 using System.Reactive.Linq;
+using System.Reactive.Linq;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Views.Discovery;
 
 namespace Ready4Balfolk.Tests.ViewModels;
@@ -55,7 +57,11 @@ public sealed class DiscoveryViewModelTests : IDisposable
                 Format = AudioFormat.Mp3
             } as LibraryEntry) as IReadOnlyDictionary<string, LibraryEntry>);
 
-        _sut = new DiscoveryViewModel(_settingsStore, _libraryIndex, Substitute.For<ILoggerService>());
+        var trackStore = Substitute.For<ITrackStore>();
+        trackStore.IsLoading.Returns(Observable.Return(false));
+
+        _sut = new DiscoveryViewModel(
+            _settingsStore, _libraryIndex, trackStore, Substitute.For<ILoggerService>());
     }
 
     public void Dispose() => _sut.Dispose();

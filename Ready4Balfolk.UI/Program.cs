@@ -219,6 +219,7 @@ public static class Program
         // closes, so a second run starts from what is on disk rather than from the last visit.
         services.AddTransient<WelcomeStepViewModel>();
         services.AddTransient<DanceListStepViewModel>();
+        services.AddTransient<DiscoveryStepViewModel>();
         services.AddTransient<ReviewStepViewModel>();
         services.AddTransient<MusicDirectoryStepViewModel>();
         services.AddTransient<SetupWizardViewModel>();
@@ -226,6 +227,7 @@ public static class Program
         services.AddTransient<IViewFor<SetupWizardViewModel>, SetupWizardView>();
         services.AddTransient<IViewFor<WelcomeStepViewModel>, WelcomeStepView>();
         services.AddTransient<IViewFor<DanceListStepViewModel>, DanceListStepView>();
+        services.AddTransient<IViewFor<DiscoveryStepViewModel>, DiscoveryStepView>();
         services.AddTransient<IViewFor<ReviewStepViewModel>, ReviewStepView>();
         services.AddTransient<IViewFor<MusicDirectoryStepViewModel>, MusicDirectoryStepView>();
 

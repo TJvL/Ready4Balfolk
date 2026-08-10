@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Disposables;
+using System.Reactive.Disposables.Fluent;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
@@ -56,8 +59,44 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         _loggerService = loggerService;
 
         Summary = string.Empty;
+        ScanProgressText = string.Empty;
         AllDances = [];
+
+        // The queue waits for the scan and then builds itself. A first run reaches this screen while
+        // thousands of files are still being read, and "nothing is waiting" over a half-read index
+        // is not an empty queue, it is a lie about the library.
+        trackStore.IsLoading
+            .DistinctUntilChanged()
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(loading =>
+            {
+                IsScanning = loading;
+                if (!loading)
+                {
+                    RefreshCommand.Execute().Subscribe();
+                }
+            })
+            .DisposeWith(_disposables);
+
+        // While it runs the only thing that moves is a count, read from the index rather than from
+        // the library: nothing reaches the library during a scan, so counting that would sit at nil.
+        this.WhenAnyValue(x => x.IsScanning)
+            .Select(scanning => scanning
+                ? Observable.Interval(TimeSpan.FromSeconds(1)).Select(_ => Unit.Default)
+                : Observable.Empty<Unit>())
+            .Switch()
+            .SelectMany(_ => Observable.FromAsync(() => _libraryIndex.CountInReviewAsync()))
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(count => ScanProgressText = string.Format(
+                CultureInfo.CurrentCulture, UiStrings.Review_Scanning, count))
+            .DisposeWith(_disposables);
     }
+
+    /// <summary>True while the library is being read, which on a first run is most of this screen.</summary>
+    [Reactive] public partial bool IsScanning { get; private set; }
+
+    /// <summary>How far the scan has got. The only thing that moves while it runs.</summary>
+    [Reactive] public partial string ScanProgressText { get; private set; }
 
     [Reactive] public partial bool IsBusy { get; private set; }
 
@@ -107,7 +146,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
 
             AllDances = [.. dances.Dances.Select(dance => dance.DisplayName).OrderBy(name => name, StringComparer.CurrentCulture)];
             Selected = Rows.FirstOrDefault();
-            IsEmpty = Rows.Count == 0;
+            IsEmpty = Rows.Count == 0 && !IsScanning;
             Summary = Rows.Count == 0
                 ? UiStrings.Review_NothingWaiting
                 : string.Format(CultureInfo.CurrentCulture, UiStrings.Review_Waiting, Rows.Count, groups.Count);

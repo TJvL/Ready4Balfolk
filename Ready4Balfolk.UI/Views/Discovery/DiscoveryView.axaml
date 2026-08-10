@@ -13,7 +13,14 @@
                        TextWrapping="Wrap"
                        Opacity="0.8" />
 
-            <TextBlock Text="{Binding CoverageSummary}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{x:Static res:UiStrings.Discovery_Scanning}"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding IsScanning}" />
+            <TextBlock Text="{Binding CoverageSummary}"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding !IsScanning}" />
 
             <!-- Patterns. The draft is measured against what no rule has taken yet, because that is
                  the pile the next rule is actually aimed at. -->

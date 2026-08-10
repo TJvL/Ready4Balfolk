@@ -924,10 +924,10 @@
     <value>One folder. Everything below it counts, however it is arranged, and no particular naming convention is needed.</value>
   </data>
   <data name="Wizard_Welcome_Stage3" xml:space="preserve">
-    <value>3. What is waiting for you</value>
+    <value>3. How your files are named</value>
   </data>
   <data name="Wizard_Welcome_Stage3Detail" xml:space="preserve">
-    <value>Your music is read once, which takes a few minutes the first time. Nothing reaches your library until it has an artist, a title, a dance from the list and your say-so, so whatever is left over waits for you. Answer as much or as little of it as you feel like.</value>
+    <value>Optional. If your files follow a shape, say so once and every file that matches is answered in one act. If they do not, nothing is assumed.</value>
   </data>
   <data name="Wizard_Welcome_Source" xml:space="preserve">
     <value>The dance list is published at</value>
@@ -941,76 +941,76 @@
 
   <!-- Advanced discovery -->
   <data name="Settings_AdvancedDiscovery" xml:space="preserve">
-    <value>Geavanceerde herkenning</value>
+    <value>Advanced discovery</value>
   </data>
   <data name="Settings_AdvancedDiscoveryHint" xml:space="preserve">
-    <value>Vertel de applicatie hoe je bestanden heten en geordend zijn. Zolang je dat niet doet, wordt er niets over je bibliotheek aangenomen.</value>
+    <value>Tell the application how your files are named and arranged. Nothing is assumed about your library until you do.</value>
   </data>
   <data name="Discovery_Title" xml:space="preserve">
-    <value>Geavanceerde herkenning</value>
+    <value>Advanced discovery</value>
   </data>
   <data name="Discovery_Intro" xml:space="preserve">
-    <value>Je bibliotheek wordt gelezen zoals hij is: geen map geldt als artiest en geen bestandsnaam wordt in velden opgedeeld. Een regel die je hier opgeeft beantwoordt in één keer elk bestand dat eraan voldoet, dus je ziet eerst wat hij zou doen.</value>
+    <value>Your library is read as it is found: no folder is assumed to be an artist and no file name is assumed to have fields in it. A rule you state here answers every file it matches in one go, so you are shown what it would do before you add it.</value>
   </data>
   <data name="Discovery_PatternsHeader" xml:space="preserve">
-    <value>Patronen voor bestandsnamen</value>
+    <value>File name patterns</value>
   </data>
   <data name="Discovery_PatternsHint" xml:space="preserve">
-    <value>%d dans, %a artiest, %t titel, %n nummer, %i negeren, %ex extensie. Al het andere moet er letterlijk staan. Het eerste patroon dat een hele naam dekt wint, dus zet ze van specifiek naar algemeen.</value>
+    <value>%d dance, %a artist, %t title, %n track number, %i ignore, %ex extension. Everything else has to be there exactly. The first pattern that matches a whole name wins, so order them from most specific to least.</value>
   </data>
   <data name="Discovery_DraftWatermark" xml:space="preserve">
     <value>%d - %a - %t</value>
   </data>
   <data name="Discovery_Declare" xml:space="preserve">
-    <value>Regel toevoegen</value>
+    <value>Add this rule</value>
   </data>
   <data name="Discovery_PatternMatches" xml:space="preserve">
-    <value>Dekt {0} van {1} bestanden en laat er {2} over.</value>
+    <value>Matches {0} of {1} files, and leaves {2}.</value>
   </data>
   <data name="Discovery_Coverage" xml:space="preserve">
-    <value>Je regels dekken {0} van {1} bestanden. Er blijven er {2} voor jou over.</value>
+    <value>Your rules account for {0} of {1} files. {2} are left for you.</value>
   </data>
   <data name="Discovery_SamplesHeader" xml:space="preserve">
-    <value>Wat het ervan maakt</value>
+    <value>What it makes of them</value>
   </data>
   <data name="Discovery_MissesHeader" xml:space="preserve">
-    <value>Wat het niet dekt</value>
+    <value>What it does not match</value>
   </data>
   <data name="Discovery_ShowDetails" xml:space="preserve">
-    <value>Laat zien wat het deed</value>
+    <value>Show what it did</value>
   </data>
   <data name="Discovery_Remove" xml:space="preserve">
-    <value>Verwijderen</value>
+    <value>Remove</value>
   </data>
   <data name="Discovery_MoveUp" xml:space="preserve">
-    <value>Eerder</value>
+    <value>Earlier</value>
   </data>
   <data name="Discovery_MoveDown" xml:space="preserve">
     <value>Later</value>
   </data>
   <data name="Discovery_ProblemUnknownToken" xml:space="preserve">
-    <value>Dat is geen bestaand veld.</value>
+    <value>That is not one of the tokens.</value>
   </data>
   <data name="Discovery_ProblemNoFields" xml:space="preserve">
-    <value>Dit haalt niets uit de naam, dus het beantwoordt niets.</value>
+    <value>This picks out nothing, so it would answer nothing.</value>
   </data>
   <data name="Discovery_ProblemAdjacentFields" xml:space="preserve">
-    <value>Twee velden zonder iets ertussen: waar het ene ophoudt is niet te bepalen.</value>
+    <value>Two fields with nothing between them: where one ends cannot be known.</value>
   </data>
   <data name="Discovery_ProblemDuplicateField" xml:space="preserve">
-    <value>Twee keer hetzelfde veld, dat kan niet allebei kloppen.</value>
+    <value>The same field twice, which cannot both be true.</value>
   </data>
   <data name="Discovery_FoldersHeader" xml:space="preserve">
-    <value>Mapniveaus</value>
+    <value>Folder levels</value>
   </data>
   <data name="Discovery_FoldersHint" xml:space="preserve">
-    <value>Geteld van buiten naar binnen. Een niveau spreekt alleen voor bestanden die daadwerkelijk zo diep zitten.</value>
+    <value>Counted from the outside in. A level only speaks for the files that are actually that deep.</value>
   </data>
   <data name="Discovery_LevelLabel" xml:space="preserve">
-    <value>Niveau {0}</value>
+    <value>Level {0}</value>
   </data>
   <data name="Discovery_LevelDepth" xml:space="preserve">
-    <value>{0} van {1} bestanden zitten zo diep</value>
+    <value>{0} of {1} files are this deep</value>
   </data>
   <data name="Discovery_LevelValue" xml:space="preserve">
     <value>{0} ({1})</value>
@@ -1019,55 +1019,55 @@
     <value>Tags</value>
   </data>
   <data name="Discovery_TagsHint" xml:space="preserve">
-    <value>Welke tagvelden in jouw bibliotheek welke waarde bevatten. Standaard gelden artiest en albumartiest als artiest, het titelveld als titel, en geldt geen enkele tag als dans. Een dansnaam uit je lijst wordt hoe dan ook in elke tag herkend.</value>
+    <value>Which tag fields hold which value in your library. Left alone, artist and album artist are read as the artist, the title tag as the title, and no tag is read as the dance. A dance name from your list is still found in any tag, whatever you set here.</value>
   </data>
   <data name="Discovery_UseDefault" xml:space="preserve">
-    <value>Laat dit aan de applicatie over</value>
+    <value>Leave this to the application</value>
   </data>
   <data name="Discovery_ApplyRolesAndTags" xml:space="preserve">
-    <value>Mappen en tags toepassen</value>
+    <value>Apply folders and tags</value>
   </data>
   <data name="Discovery_FieldDance" xml:space="preserve">
-    <value>Dans</value>
+    <value>Dance</value>
   </data>
   <data name="Discovery_FieldArtist" xml:space="preserve">
-    <value>Artiest</value>
+    <value>Artist</value>
   </data>
   <data name="Discovery_FieldTitle" xml:space="preserve">
-    <value>Titel</value>
+    <value>Title</value>
   </data>
   <data name="Discovery_TagTitle" xml:space="preserve">
-    <value>titel</value>
+    <value>title</value>
   </data>
   <data name="Discovery_TagArtist" xml:space="preserve">
-    <value>artiest</value>
+    <value>artist</value>
   </data>
   <data name="Discovery_TagAlbumArtist" xml:space="preserve">
-    <value>albumartiest</value>
+    <value>album artist</value>
   </data>
   <data name="Discovery_TagAlbum" xml:space="preserve">
     <value>album</value>
   </data>
   <data name="Discovery_TagComment" xml:space="preserve">
-    <value>opmerking</value>
+    <value>comment</value>
   </data>
   <data name="Discovery_RoleUnknown" xml:space="preserve">
-    <value>Niet opgegeven</value>
+    <value>Not stated</value>
   </data>
   <data name="Discovery_RoleArtist" xml:space="preserve">
-    <value>Artiest</value>
+    <value>Artist</value>
   </data>
   <data name="Discovery_RoleAlbum" xml:space="preserve">
     <value>Album</value>
   </data>
   <data name="Discovery_RoleDance" xml:space="preserve">
-    <value>Dans</value>
+    <value>Dance</value>
   </data>
   <data name="Discovery_RoleIgnore" xml:space="preserve">
-    <value>Betekent niets</value>
+    <value>Means nothing</value>
   </data>
   <data name="Discovery_NoLibrary" xml:space="preserve">
-    <value>Er is nog niets ingelezen, dus er is niets om een regel aan af te meten.</value>
+    <value>Nothing has been read yet, so there is nothing to measure a rule against.</value>
   </data>
 
   <!-- Review -->
@@ -1157,5 +1157,26 @@
   </data>
   <data name="Wizard_Review_Explanation" xml:space="preserve">
     <value>Nothing reaches your library until it has an artist, a title, a dance from the published list, and you agreeing to all three. The least certain come first, so answering the top of the list is worth the most. You can answer these now or leave them: the same screen is in the application, and nothing here has to be finished before you use it.</value>
+  </data>
+  <data name="Review_Scanning" xml:space="preserve">
+    <value>Reading your library. {0} tracks so far.</value>
+  </data>
+  <data name="Review_ScanningHint" xml:space="preserve">
+    <value>The first time takes a few minutes. Nothing can be answered until it is done, because a queue built from half a library is worse than no queue.</value>
+  </data>
+  <data name="Wizard_Welcome_Stage4" xml:space="preserve">
+    <value>4. What is waiting for you</value>
+  </data>
+  <data name="Wizard_Welcome_Stage4Detail" xml:space="preserve">
+    <value>Your music is read once, which takes a few minutes the first time. Nothing reaches your library until it has an artist, a title, a dance from the list and your say-so, so whatever is left over waits for you. Answer as much or as little of it as you feel like.</value>
+  </data>
+  <data name="Wizard_Discovery_Title" xml:space="preserve">
+    <value>How your files are named</value>
+  </data>
+  <data name="Wizard_Discovery_Explanation" xml:space="preserve">
+    <value>Optional, and worth a minute if your files follow a shape. A rule stated here answers every file it matches in one act, so the step after this is the leftovers rather than your whole library. Nothing is assumed if you skip it.</value>
+  </data>
+  <data name="Discovery_Scanning" xml:space="preserve">
+    <value>Reading your library. A rule can be measured once that is done.</value>
   </data>
 </root>

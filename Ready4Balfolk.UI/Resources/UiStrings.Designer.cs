@@ -1043,4 +1043,25 @@ public static class UiStrings
 
     public static string Wizard_Review_Explanation =>
         ResourceManager.GetString("Wizard_Review_Explanation", Culture)!;
+
+    public static string Review_Scanning =>
+        ResourceManager.GetString("Review_Scanning", Culture)!;
+
+    public static string Review_ScanningHint =>
+        ResourceManager.GetString("Review_ScanningHint", Culture)!;
+
+    public static string Wizard_Discovery_Title =>
+        ResourceManager.GetString("Wizard_Discovery_Title", Culture)!;
+
+    public static string Wizard_Discovery_Explanation =>
+        ResourceManager.GetString("Wizard_Discovery_Explanation", Culture)!;
+
+    public static string Wizard_Welcome_Stage4 =>
+        ResourceManager.GetString("Wizard_Welcome_Stage4", Culture)!;
+
+    public static string Wizard_Welcome_Stage4Detail =>
+        ResourceManager.GetString("Wizard_Welcome_Stage4Detail", Culture)!;
+
+    public static string Discovery_Scanning =>
+        ResourceManager.GetString("Discovery_Scanning", Culture)!;
 }

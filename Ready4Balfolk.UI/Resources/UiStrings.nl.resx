@@ -849,10 +849,10 @@
     <value>Een map. Alles daaronder telt mee, hoe het ook geordend is, en er is geen bepaalde naamgeving voor nodig.</value>
   </data>
   <data name="Wizard_Welcome_Stage3" xml:space="preserve">
-    <value>3. Wat op jou wacht</value>
+    <value>3. Hoe je bestanden heten</value>
   </data>
   <data name="Wizard_Welcome_Stage3Detail" xml:space="preserve">
-    <value>Je muziek wordt één keer ingelezen, wat de eerste keer een paar minuten duurt. Er komt niets in je bibliotheek zonder artiest, titel, een dans uit de lijst én jouw akkoord, dus wat overblijft wacht op jou. Beantwoord er zoveel of zo weinig van als je wilt.</value>
+    <value>Optioneel. Volgen je bestanden een vast patroon, geef dat dan één keer op en elk bestand dat eraan voldoet is meteen beantwoord. Zo niet, dan wordt er niets aangenomen.</value>
   </data>
   <data name="Wizard_Welcome_Source" xml:space="preserve">
     <value>De dansenlijst wordt gepubliceerd op</value>
@@ -1082,5 +1082,26 @@
   </data>
   <data name="Wizard_Review_Explanation" xml:space="preserve">
     <value>Er komt niets in je bibliotheek zonder artiest, titel, een dans uit de gepubliceerde lijst én jouw akkoord op alle drie. Het minst zekere staat bovenaan, dus bovenin beantwoorden levert het meeste op. Je kunt dit nu doen of laten liggen: hetzelfde scherm zit in de applicatie en niets hoeft af te zijn voor je hem gebruikt.</value>
+  </data>
+  <data name="Review_Scanning" xml:space="preserve">
+    <value>Je bibliotheek wordt ingelezen. {0} nummers tot nu toe.</value>
+  </data>
+  <data name="Review_ScanningHint" xml:space="preserve">
+    <value>De eerste keer duurt een paar minuten. Er valt nog niets te beantwoorden: een wachtrij uit een half ingelezen bibliotheek is slechter dan geen.</value>
+  </data>
+  <data name="Wizard_Welcome_Stage4" xml:space="preserve">
+    <value>4. Wat op jou wacht</value>
+  </data>
+  <data name="Wizard_Welcome_Stage4Detail" xml:space="preserve">
+    <value>Je muziek wordt één keer ingelezen, wat de eerste keer een paar minuten duurt. Er komt niets in je bibliotheek zonder artiest, titel, een dans uit de lijst én jouw akkoord, dus wat overblijft wacht op jou. Beantwoord er zoveel of zo weinig van als je wilt.</value>
+  </data>
+  <data name="Wizard_Discovery_Title" xml:space="preserve">
+    <value>Hoe je bestanden heten</value>
+  </data>
+  <data name="Wizard_Discovery_Explanation" xml:space="preserve">
+    <value>Optioneel, en een minuut waard als je bestanden een vast patroon volgen. Een regel die je hier opgeeft beantwoordt in één keer elk bestand dat eraan voldoet, zodat de volgende stap alleen de rest is in plaats van je hele bibliotheek. Sla je het over, dan wordt er niets aangenomen.</value>
+  </data>
+  <data name="Discovery_Scanning" xml:space="preserve">
+    <value>Je bibliotheek wordt ingelezen. Zodra dat klaar is kan een regel gemeten worden.</value>
   </data>
 </root>

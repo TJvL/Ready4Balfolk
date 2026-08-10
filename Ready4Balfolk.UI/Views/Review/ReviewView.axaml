@@ -9,7 +9,12 @@
              x:DataType="local:ReviewViewModel">
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
-            <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ScanProgressText}"
+                       FontWeight="SemiBold"
+                       IsVisible="{Binding IsScanning}" />
+            <TextBlock Text="{Binding Summary}"
+                       FontWeight="SemiBold"
+                       IsVisible="{Binding !IsScanning}" />
             <TextBlock Text="{x:Static res:UiStrings.Review_Keys}"
                        FontSize="11"
                        Opacity="0.7"
@@ -19,6 +24,11 @@
                        Opacity="0.7"
                        TextWrapping="Wrap"
                        IsVisible="{Binding IsEmpty}" />
+            <TextBlock Text="{x:Static res:UiStrings.Review_ScanningHint}"
+                       FontSize="11"
+                       Opacity="0.7"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding IsScanning}" />
         </StackPanel>
 
         <ListBox ItemsSource="{Binding Rows}"

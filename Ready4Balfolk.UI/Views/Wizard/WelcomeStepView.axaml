@@ -31,6 +31,8 @@
                 <StackPanel Spacing="2">
                     <TextBlock Classes="stage" Text="{x:Static res:UiStrings.Wizard_Welcome_Stage3}" />
                     <TextBlock Classes="detail" Text="{x:Static res:UiStrings.Wizard_Welcome_Stage3Detail}" />
+                    <TextBlock Classes="stage" Text="{x:Static res:UiStrings.Wizard_Welcome_Stage4}" />
+                    <TextBlock Classes="detail" Text="{x:Static res:UiStrings.Wizard_Welcome_Stage4Detail}" />
                 </StackPanel>
             </StackPanel>
         </ItemsControl>

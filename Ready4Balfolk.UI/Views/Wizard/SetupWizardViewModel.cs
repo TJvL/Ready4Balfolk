@@ -53,6 +53,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
         WelcomeStepViewModel welcomeStep,
         DanceListStepViewModel danceListStep,
         MusicDirectoryStepViewModel musicDirectoryStep,
+        DiscoveryStepViewModel discoveryStep,
         ReviewStepViewModel reviewStep,
         ISettingsStore settingsStore,
         NavigationService navigation,
@@ -65,7 +66,10 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
         // An explanation first, then the dance list, because the vocabulary is what everything
         // else in the application is said in. Nothing on that step needs answering: it fetches the
         // published list and shows what arrived.
-        Steps = [welcomeStep, danceListStep, musicDirectoryStep, reviewStep];
+        // Declaring how the files are named comes before answering them one at a time, because a
+        // rule stated here is what makes the step after it a pile of leftovers rather than the whole
+        // library.
+        Steps = [welcomeStep, danceListStep, musicDirectoryStep, discoveryStep, reviewStep];
 
         _currentStepHelper = this.WhenAnyValue(x => x.CurrentIndex)
             .Select(index => Steps[Math.Clamp(index, 0, Steps.Count - 1)])
