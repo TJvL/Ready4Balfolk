@@ -12,6 +12,7 @@ using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Tracks;
 using AsyncAwaitBestPractices;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -174,7 +175,9 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             var approvals = await _libraryIndex.ApprovalsAsync();
             var dances = _danceListStore.Index;
 
-            var groups = ReviewQueue.Build(entries, approvals, dances, _settingsStore.Current.MusicDirectoryPath);
+            var ignored = await _libraryIndex.GetIgnoredValuesAsync();
+            var groups = ReviewQueue.Build(
+                entries, approvals, dances, _settingsStore.Current.MusicDirectoryPath, ignored);
 
             Rows.Clear();
             foreach (var group in groups)
@@ -280,6 +283,71 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             row.IsPreviewing = string.Equals(row.Path, path, StringComparison.Ordinal);
         }
     }
+
+    /// <summary>
+    /// Gives every waiting track claiming the same thing the dance this row was given.
+    /// </summary>
+    /// <remarks>
+    /// The dance and nothing else: an artist and a title are per track, so those thirty-four files
+    /// still want their own confirmation. What this kills is answering one misspelling thirty-four
+    /// times, which is the difference between an evening and never.
+    /// </remarks>
+    [ReactiveCommand]
+    private async Task UseDanceForAllAsync(ReviewRowViewModel? row)
+    {
+        if (row is null || !row.IsShared || string.IsNullOrWhiteSpace(row.Dance))
+        {
+            return;
+        }
+
+        var dance = row.Dance.Trim();
+        var sharing = Sharing(row).ToList();
+
+        await _libraryIndex.ApproveIndividuallyAsync(
+            [.. sharing.Select(candidate => candidate.Path)], TrackField.Dance, dance);
+
+        foreach (var candidate in sharing)
+        {
+            candidate.Dance = dance;
+        }
+
+        _notifications.Show(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Review_UsedForAll, sharing.Count, dance),
+            NotificationSeverity.Information);
+    }
+
+    /// <summary>
+    /// Says a value is junk rather than an answer, everywhere it appears.
+    /// </summary>
+    /// <remarks>
+    /// "trad" is not a dance and never will be, and it maps to nothing: the tracks claiming it still
+    /// need a real answer. Clearing it is what stops a wrong answer sitting where a person is
+    /// looking for a missing one, and it is remembered, so a rescan does not put it back.
+    /// </remarks>
+    [ReactiveCommand]
+    private async Task NotADanceAsync(ReviewRowViewModel? row)
+    {
+        if (row is null || !row.HasUnknownValue)
+        {
+            return;
+        }
+
+        await _libraryIndex.IgnoreValueAsync(row.UnknownValue);
+
+        foreach (var candidate in Sharing(row))
+        {
+            candidate.ForgetUnknownValue();
+        }
+    }
+
+    /// <summary>Every waiting row claiming the same unknown value, this one included.</summary>
+    private IEnumerable<ReviewRowViewModel> Sharing(ReviewRowViewModel row) =>
+        Rows.Where(candidate =>
+            !candidate.IsApproved
+            && string.Equals(
+                StringNormalizer.Normalize(candidate.UnknownValue),
+                StringNormalizer.Normalize(row.UnknownValue),
+                StringComparison.Ordinal));
 
     public void Dispose()
     {

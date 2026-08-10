@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
@@ -33,6 +35,17 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
 
         ReasonText = ReviewText.ReasonOf(track.Review.Reason);
         StatusText = ReasonText;
+
+        UnknownValue = track.UnknownValue;
+        SharedBy = track.SharedBy;
+        IsShared = track.SharedBy > 1;
+        SharedText = IsShared
+            ? string.Format(CultureInfo.CurrentCulture, UiStrings.Review_UseForAll, track.SharedBy, track.UnknownValue)
+            : string.Empty;
+        NotADanceText = string.Format(CultureInfo.CurrentCulture, UiStrings.Review_NotADance, track.UnknownValue);
+        HasUnknownValue = track.UnknownValue.Length > 0;
+        Suggestions = track.Suggestions;
+        HasSuggestions = track.Suggestions.Count > 0;
     }
 
     public ReviewTrack Track { get; }
@@ -89,10 +102,41 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
     /// </remarks>
     [Reactive] public partial bool IsPreviewing { get; set; }
 
+    /// <summary>The value this track claims that the list cannot answer, or empty.</summary>
+    public string UnknownValue { get; }
+
+    public int SharedBy { get; }
+
+    /// <summary>True when other waiting tracks claim the same thing, so one answer settles them.</summary>
+    public bool IsShared { get; }
+
+    public bool HasUnknownValue { get; }
+
+    public string SharedText { get; }
+
+    public string NotADanceText { get; }
+
+    /// <summary>What the unknown value might have meant. Offered, never applied.</summary>
+    public IReadOnlyList<string> Suggestions { get; }
+
+    public bool HasSuggestions { get; }
+
+    /// <summary>Takes a suggestion, which is the same as having typed it.</summary>
+    public void Take(string suggestion) => Dance = suggestion;
+
     public bool CanApprove =>
         !string.IsNullOrWhiteSpace(Dance)
         && !string.IsNullOrWhiteSpace(Artist)
         && !string.IsNullOrWhiteSpace(Title);
+
+    /// <summary>Clears a value that turned out to be junk rather than an answer.</summary>
+    public void ForgetUnknownValue()
+    {
+        if (string.Equals(Dance, UnknownValue, StringComparison.Ordinal))
+        {
+            Dance = string.Empty;
+        }
+    }
 
     public void MarkApproved(bool intoTheLibrary)
     {

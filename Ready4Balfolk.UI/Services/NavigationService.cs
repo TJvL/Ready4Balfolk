@@ -12,8 +12,6 @@ public enum Screen
     Main,
     Settings,
     Help,
-    Tagging,
-
     /// <summary>Advanced discovery settings, with the previews that make declaring one informed.</summary>
     Discovery,
 
@@ -35,7 +33,6 @@ public sealed partial class NavigationService : ReactiveObject, IDisposable
     [ObservableAsProperty] public partial bool IsMainScreen { get; }
     [ObservableAsProperty] public partial bool IsSettingsScreen { get; }
     [ObservableAsProperty] public partial bool IsHelpScreen { get; }
-    [ObservableAsProperty] public partial bool IsTaggingScreen { get; }
     [ObservableAsProperty] public partial bool IsDiscoveryScreen { get; }
     [ObservableAsProperty] public partial bool IsReviewScreen { get; }
     [ObservableAsProperty] public partial bool IsSetupScreen { get; }
@@ -56,11 +53,6 @@ public sealed partial class NavigationService : ReactiveObject, IDisposable
             .Select(s => s == Screen.Help)
             .ToProperty(this, x => x.IsHelpScreen);
         _isHelpScreenHelper.DisposeWith(_disposables);
-
-        _isTaggingScreenHelper = this.WhenAnyValue(x => x.CurrentScreen)
-            .Select(s => s == Screen.Tagging)
-            .ToProperty(this, x => x.IsTaggingScreen);
-        _isTaggingScreenHelper.DisposeWith(_disposables);
 
         _isDiscoveryScreenHelper = this.WhenAnyValue(x => x.CurrentScreen)
             .Select(s => s == Screen.Discovery)

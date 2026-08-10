@@ -47,7 +47,7 @@
                         <!-- One grid for the row, so the player above lines up with the fields
                              below: the bar ends where the title box ends rather than running on
                              under the buttons. -->
-                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,*,Auto"
+                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,*,Auto"
                               ColumnSpacing="8" RowSpacing="4">
                             <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
                                   ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
@@ -126,6 +126,46 @@
                                 <Button Content="{x:Static res:UiStrings.Review_ApproveFolder}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveFolderCommand}"
                                         CommandParameter="{Binding}"
+                                        Focusable="False"
+                                        FontSize="11" />
+                            </StackPanel>
+
+                            <!-- Twenty files claiming the same misspelling are one decision about a
+                                 dance, and twenty confirmations about everything else. -->
+                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
+                                        Orientation="Horizontal"
+                                        Spacing="8"
+                                        IsVisible="{Binding HasUnknownValue}">
+                                <Button Content="{Binding SharedText}"
+                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).UseDanceForAllCommand}"
+                                        CommandParameter="{Binding}"
+                                        IsVisible="{Binding IsShared}"
+                                        Focusable="False"
+                                        FontSize="11" />
+                                <ItemsControl ItemsSource="{Binding Suggestions}" IsVisible="{Binding HasSuggestions}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="4" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <!-- Offered, never applied: "Scottiche" is a misspelling
+                                                 of exactly one dance, and saying so is a person's
+                                                 job. Typing it out again is not. -->
+                                            <Button Content="{Binding}"
+                                                    Click="OnSuggestionClick"
+                                                    Tag="{Binding $parent[ItemsControl].DataContext}"
+                                                    Focusable="False"
+                                                    FontSize="11" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Button Content="{Binding NotADanceText}"
+                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).NotADanceCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{x:Static res:UiStrings.Review_NotADanceHint}"
                                         Focusable="False"
                                         FontSize="11" />
                             </StackPanel>

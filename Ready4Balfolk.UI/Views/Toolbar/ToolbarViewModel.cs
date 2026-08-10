@@ -26,10 +26,6 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
     private readonly ILoggerService _loggerService;
     private readonly CompositeDisposable _disposables = [];
 
-    [Reactive] public partial int UnresolvedCount { get; private set; }
-    [Reactive] public partial string UnresolvedText { get; private set; }
-    [Reactive] public partial bool HasUnresolved { get; private set; }
-
     /// <summary>How many tracks are waiting for a person, which is what the gate holds back.</summary>
     [Reactive] public partial int InReviewCount { get; private set; }
     [Reactive] public partial string InReviewText { get; private set; }
@@ -39,7 +35,6 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
     {
         _libraryIndex = libraryIndex;
         _loggerService = loggerService;
-        UnresolvedText = string.Empty;
         InReviewText = string.Empty;
 
         // Refreshed when a load finishes rather than continuously: nothing changes the count while
@@ -53,19 +48,12 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
     }
 
     public void Refresh() => RefreshAsync().SafeFireAndForget(
-        exception => _loggerService.ErrorAsync("Failed to count unresolved tracks", exception));
+        exception => _loggerService.ErrorAsync("Failed to count what is waiting for review", exception));
 
     public void Dispose() => _disposables.Dispose();
 
     private async Task RefreshAsync()
     {
-        var count = await _libraryIndex.CountUnresolvedAsync();
-        UnresolvedCount = count;
-        HasUnresolved = count > 0;
-        UnresolvedText = count > 0
-            ? string.Format(CultureInfo.CurrentCulture, UiStrings.Toolbar_TaggingCount, count)
-            : string.Empty;
-
         // Unreviewed, not unresolved: a track with a dance nobody has agreed to is still waiting.
         var waiting = await _libraryIndex.CountInReviewAsync();
         InReviewCount = waiting;

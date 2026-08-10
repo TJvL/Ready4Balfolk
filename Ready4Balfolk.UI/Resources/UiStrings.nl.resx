@@ -722,112 +722,6 @@
     <value>Dansen</value>
   </data>
 
-  <!-- Tagging editor -->
-  <data name="Tagging_Title" xml:space="preserve">
-    <value>Taggen</value>
-  </data>
-  <data name="Toolbar_Tagging" xml:space="preserve">
-    <value>Namen die de danslijst niet kent</value>
-  </data>
-  <data name="Toolbar_TaggingLabel" xml:space="preserve">
-    <value>Taggen</value>
-  </data>
-  <data name="Tagging_Summary" xml:space="preserve">
-    <value>{0} nummers herkend. {1} nummers wachten op {2} beslissingen, en {3} zeggen helemaal niets over een dans.</value>
-  </data>
-  <data name="Tagging_NothingToDo" xml:space="preserve">
-    <value>Er wacht niets. Elk nummer heeft een dans of is al afgehandeld.</value>
-  </data>
-  <data name="Tagging_TrackCount" xml:space="preserve">
-    <value>{0} nummers</value>
-  </data>
-  <data name="Tagging_MapTo" xml:space="preserve">
-    <value>Dit betekent...</value>
-  </data>
-  <data name="Tagging_MapFolder" xml:space="preserve">
-    <value>Deze map is...</value>
-  </data>
-  <data name="Tagging_MapTrack" xml:space="preserve">
-    <value>Dit nummer is...</value>
-  </data>
-  <data name="Tagging_Ignore" xml:space="preserve">
-    <value>Geen dans</value>
-  </data>
-  <data name="Tagging_IgnoreTooltip" xml:space="preserve">
-    <value>Vraag hier niet meer naar. Het blijft weg tot je anders zegt.</value>
-  </data>
-  <data name="Tagging_Ignored" xml:space="preserve">
-    <value>Er wordt niet meer naar "{0}" gevraagd.</value>
-  </data>
-  <data name="Tagging_ShowTracks" xml:space="preserve">
-    <value>Toon de nummers</value>
-  </data>
-  <data name="Tagging_Preview" xml:space="preserve">
-    <value>Naar dit nummer luisteren</value>
-  </data>
-  <data name="Tagging_StopPreview" xml:space="preserve">
-    <value>Stoppen met luisteren</value>
-  </data>
-  <data name="Tagging_PreviewRefused" xml:space="preserve">
-    <value>Niet terwijl er iets speelt. De zaal hoort alles wat afgespeeld wordt, dus voorbeluisteren is voor de voorbereiding.</value>
-  </data>
-  <data name="Tagging_SuggestionWithCount" xml:space="preserve">
-    <value>{0} ({1} nummers)</value>
-  </data>
-  <data name="Tagging_LooksLikeAMisspelling" xml:space="preserve">
-    <value>Dit lijkt een dans die anders gespeld is, dus een antwoord regelt alle nummers.</value>
-  </data>
-  <data name="Tagging_TooGeneralExplanation" xml:space="preserve">
-    <value>Dit past bij meerdere dansen, dus het in een keer beantwoorden zou voor elk nummer een antwoord verzinnen. Kijk in plaats daarvan naar de mappen: een map die grotendeels een bepaalde dans is, kan voor de rest van zichzelf spreken.</value>
-  </data>
-  <data name="Tagging_NothingLooksLikeIt" xml:space="preserve">
-    <value>Niets in je danslijst lijkt hierop. Het kan een band zijn, een genre, of een dans die je nog niet toegevoegd hebt.</value>
-  </data>
-  <data name="Tagging_FolderAgrees" xml:space="preserve">
-    <value>{0} wachten hier. De rest van deze map leest als {1} ({2} nummers).</value>
-  </data>
-  <data name="Tagging_FolderSaysNothing" xml:space="preserve">
-    <value>{0} wachten hier, en de rest van de map zegt ook niets.</value>
-  </data>
-  <data name="Tagging_BucketSuggestions" xml:space="preserve">
-    <value>Een antwoord elk</value>
-  </data>
-  <data name="Tagging_BucketSuggestionsHint" xml:space="preserve">
-    <value>Elk hiervan lijkt een dans die anders gespeld is. Een antwoord regelt al zijn nummers.</value>
-  </data>
-  <data name="Tagging_BucketUnrecognised" xml:space="preserve">
-    <value>Vragen om aandacht</value>
-  </data>
-  <data name="Tagging_BucketUnrecognisedHint" xml:space="preserve">
-    <value>Deze gaan over meerdere nummers en kunnen niet in een keer beantwoord worden, of niets in je lijst lijkt erop.</value>
-  </data>
-  <data name="Tagging_BucketOneOffs" xml:space="preserve">
-    <value>Een nummer elk</value>
-  </data>
-  <data name="Tagging_BucketOneOffsHint" xml:space="preserve">
-    <value>Bij elk hiervan hoort een enkel nummer, dus ze zijn je tijd het minst waard.</value>
-  </data>
-  <data name="Toolbar_TaggingCount" xml:space="preserve">
-    <value>{0} namen wachten</value>
-  </data>
-  <data name="Tagging_StillReading" xml:space="preserve">
-    <value>Je muziek wordt nog ingelezen. De lijst verschijnt zodra dat klaar is.</value>
-  </data>
-  <data name="Tagging_AmbiguousExplanation" xml:space="preserve">
-    <value>Deze nummers noemen deze dans en nog een andere, dus er is niets aangenomen. Klap ze open en kies per nummer.</value>
-  </data>
-  <data name="Tagging_ScanProgress" xml:space="preserve">
-    <value>{0} nummers tot nu toe.</value>
-  </data>
-  <data name="Tagging_SearchDances" xml:space="preserve">
-    <value>Typ om een dans te zoeken</value>
-  </data>
-  <data name="Tagging_DecidedAs" xml:space="preserve">
-    <value>✓ {0}</value>
-  </data>
-  <data name="Tagging_DecidedNotADance" xml:space="preserve">
-    <value>✓ geen dans</value>
-  </data>
 
   <!-- Setup: welcome -->
   <data name="Wizard_Welcome_Title" xml:space="preserve">
@@ -1115,5 +1009,17 @@
   </data>
   <data name="Review_PreviewRefused" xml:space="preserve">
     <value>De zaal luistert naar de wachtrij, dus hier wordt niets afgespeeld.</value>
+  </data>
+  <data name="Review_UseForAll" xml:space="preserve">
+    <value>Gebruik voor alle {0} met "{1}"</value>
+  </data>
+  <data name="Review_UsedForAll" xml:space="preserve">
+    <value>{0} nummers staan nu op {1}. Ze wachten nog wel op je bevestiging, stuk voor stuk.</value>
+  </data>
+  <data name="Review_NotADance" xml:space="preserve">
+    <value>"{0}" is geen dans</value>
+  </data>
+  <data name="Review_NotADanceHint" xml:space="preserve">
+    <value>Wist het overal waar het staat en onthoudt het, zodat een herscan het niet terugzet. De nummers hebben nog steeds een echte dans nodig.</value>
   </data>
 </root>

@@ -42,20 +42,6 @@ public sealed class UnrecognisedValueClassifierTests
     }
 
     [Fact]
-    public void TooGeneral_OffersNoWholesaleMap()
-    {
-        var value = new UnrecognisedValue
-        {
-            Value = "Bourrée",
-            Kind = UnrecognisedKind.TooGeneral,
-            Paths = ["/a.mp3"]
-        };
-
-        // Not a disabled button: no button. The question itself is wrong.
-        Assert.False(value.CanMapAsAWhole);
-    }
-
-    [Fact]
     public void AValueInsideExactlyOneName_IsStillOneDecision()
     {
         var (kind, slugs) = UnrecognisedValueClassifier.Classify("Auvergnate", _index);
@@ -119,20 +105,6 @@ public sealed class UnrecognisedValueClassifierTests
 
         Assert.Equal(UnrecognisedKind.Ambiguous, kind);
         Assert.Equal(["mazurka"], slugs);
-    }
-
-    [Fact]
-    public void AnAmbiguousValue_IsDecidedPerTrack()
-    {
-        var value = new UnrecognisedValue
-        {
-            Value = "Mazurka",
-            Kind = UnrecognisedKind.Ambiguous,
-            Paths = ["/a.mp3", "/b.mp3"]
-        };
-
-        // One of them may be a mazurka-valse played as a valse. That is a decision about the track.
-        Assert.False(value.CanMapAsAWhole);
     }
 
     [Fact]

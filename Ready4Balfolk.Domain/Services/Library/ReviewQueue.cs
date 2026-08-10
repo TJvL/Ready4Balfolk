@@ -1,6 +1,8 @@
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
+using Ready4Balfolk.Domain.Services.Tagging;
 using Ready4Balfolk.Domain.Stores.Library;
 
 namespace Ready4Balfolk.Domain.Services.Library;
@@ -22,6 +24,30 @@ public sealed record ReviewTrack
 
     /// <summary>What answered each field, so a wrong source can be seen rather than guessed at.</summary>
     public required LibraryEntry Entry { get; init; }
+
+    /// <summary>
+    /// The dance value this track claims, when the published list does not know it.
+    /// </summary>
+    /// <remarks>
+    /// Empty when the list knows it or when nothing was claimed. It is what makes answering twenty
+    /// identical mistakes one decision instead of twenty, which is an optimisation on top of a queue
+    /// over tracks rather than the shape of it.
+    /// </remarks>
+    public required string UnknownValue { get; init; }
+
+    /// <summary>How many waiting tracks claim the same unknown value, this one included.</summary>
+    public int SharedBy { get; init; }
+
+    /// <summary>
+    /// What the unknown value might have meant, best first.
+    /// </summary>
+    /// <remarks>
+    /// Offered rather than applied: "Scottiche" is a misspelling of exactly one dance and saying so
+    /// is a person's job, but making them type it out is a waste of the one thing this screen is
+    /// short of. A value that fits several dances offers all of them, because that is the honest
+    /// answer to "which bourrée is this".
+    /// </remarks>
+    public IReadOnlyList<string> Suggestions { get; init; } = [];
 
     /// <summary>
     /// How sure the application is, lowest first.
@@ -69,11 +95,17 @@ public static class ReviewQueue
     /// <param name="approvals">What a person has agreed to, by <see cref="LibraryKey"/>.</param>
     /// <param name="dances">The published list, the only vocabulary a dance may come from.</param>
     /// <param name="musicRoot">The music directory, so a folder can be named relative to it.</param>
+    /// <param name="ignored">
+    /// Values the user has said are not dances, folded. A value in here is junk rather than an
+    /// answer, so it is shown as nothing at all: leaving "trad" sitting in the dance box is leaving
+    /// a wrong answer where a person is looking for a missing one.
+    /// </param>
     public static IReadOnlyList<ReviewGroup> Build(
         IReadOnlyDictionary<string, LibraryEntry> entries,
         IReadOnlyDictionary<string, IReadOnlyList<TrackApproval>> approvals,
         DanceListIndex dances,
-        string musicRoot)
+        string musicRoot,
+        IReadOnlySet<string>? ignored = null)
     {
         var waiting = new List<ReviewTrack>();
 
@@ -87,6 +119,8 @@ public static class ReviewQueue
                 continue;
             }
 
+            review = WithoutJunk(review, dances, ignored);
+
             waiting.Add(new ReviewTrack
             {
                 Path = entry.Path,
@@ -95,9 +129,25 @@ public static class ReviewQueue
                 Folder = FolderOf(entry.Path, musicRoot),
                 Review = review,
                 Entry = entry,
+                UnknownValue = UnknownValueOf(review, dances),
+                Suggestions = SuggestionsFor(UnknownValueOf(review, dances), dances),
                 Confidence = ConfidenceOf(entry, review)
             });
         }
+
+        // Counted over the queue rather than over the library: what matters is how many of the
+        // tracks still waiting would be answered by one decision.
+        var sharedBy = waiting
+            .Where(track => track.UnknownValue.Length > 0)
+            .GroupBy(track => StringNormalizer.Normalize(track.UnknownValue), StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+
+        waiting =
+        [
+            .. waiting.Select(track => track.UnknownValue.Length == 0
+                ? track
+                : track with { SharedBy = sharedBy[StringNormalizer.Normalize(track.UnknownValue)] })
+        ];
 
         return
         [
@@ -142,6 +192,45 @@ public static class ReviewQueue
             DecisionReason.Preferred or DecisionReason.Deliberate => 3,
             _ => 4
         };
+    }
+
+    /// <summary>What an unrecognised value might have meant, in the list's own spelling.</summary>
+    private static IReadOnlyList<string> SuggestionsFor(string value, DanceListIndex dances)
+    {
+        if (value.Length == 0)
+        {
+            return [];
+        }
+
+        var (_, slugs) = UnrecognisedValueClassifier.Classify(value, dances);
+
+        return [.. slugs.Take(3).Select(dances.DisplayNameFor)];
+    }
+
+    /// <summary>The dance value this track claims that the list cannot answer, or nothing.</summary>
+    private static string UnknownValueOf(TrackReview review, DanceListIndex dances) =>
+        review.DanceSlug is null && review.Dance.Value is { } value && dances.ResolveSlug(value) is null
+            ? value
+            : string.Empty;
+
+    /// <summary>
+    /// Blanks a dance value the user has said is not a dance.
+    /// </summary>
+    /// <remarks>
+    /// "trad" is not an answer, it is junk that came off a file, and leaving it in the box is
+    /// leaving a wrong answer where somebody is looking for a missing one. Said once, it stays said:
+    /// a rescan derives it again and it is blanked again.
+    /// </remarks>
+    private static TrackReview WithoutJunk(TrackReview review, DanceListIndex dances, IReadOnlySet<string>? ignored)
+    {
+        if (ignored is null || review.Dance.Value is not { } value || review.DanceSlug is not null)
+        {
+            return review;
+        }
+
+        return ignored.Contains(StringNormalizer.Normalize(value))
+            ? review with { Dance = review.Dance with { Value = null }, Reason = ReviewReason.Missing }
+            : review;
     }
 
     private static string FolderOf(string path, string musicRoot)

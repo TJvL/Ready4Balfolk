@@ -21,5 +21,4 @@ public partial class ToolbarView : ReactiveUserControl<ToolbarViewModel>
 
     private void OnReviewClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Review;
 
-    private void OnTaggingClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Tagging;
 }

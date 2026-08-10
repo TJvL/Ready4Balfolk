@@ -132,6 +132,58 @@ public sealed class ReviewQueueTests
         Assert.Equal("level 1", track.Entry.ArtistFrom.Detail);
     }
 
+    [Fact]
+    public void TracksClaimingTheSameUnknownThing_KnowHowManyTheyAre()
+    {
+        // Answering "Scottiche" once has to be able to settle all of them.
+        var queue = Build(
+        [
+            Entry("/music/a.mp3", [1], slug: null, originalDance: "Scottiche"),
+            Entry("/music/b.mp3", [2], slug: null, originalDance: "scottiche"),
+            Entry("/music/c.mp3", [3], slug: null, originalDance: "Rond de Landéda")
+        ]);
+
+        var tracks = queue.SelectMany(group => group.Tracks).ToList();
+        Assert.Equal(2, tracks.Single(track => track.FileName == "a.mp3").SharedBy);
+        Assert.Equal(1, tracks.Single(track => track.FileName == "c.mp3").SharedBy);
+    }
+
+    [Fact]
+    public void ARecognisedDance_IsNotAnUnknownValue()
+    {
+        var queue = Build([Entry("/music/a.mp3", [1])]);
+
+        Assert.Equal(string.Empty, Assert.Single(Assert.Single(queue).Tracks).UnknownValue);
+    }
+
+    [Fact]
+    public void AValueSaidToBeJunk_IsShownAsNothingAtAll()
+    {
+        // Leaving "trad" in the box is leaving a wrong answer where somebody is looking for a
+        // missing one, and it comes back off the file on every rescan.
+        var queue = ReviewQueue.Build(
+            new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
+            {
+                ["/music/a.mp3"] = Entry("/music/a.mp3", [1], slug: null, originalDance: "trad")
+            },
+            new Dictionary<string, IReadOnlyList<TrackApproval>>(StringComparer.Ordinal),
+            _dances,
+            Root,
+            new HashSet<string>(StringComparer.Ordinal) { "trad" });
+
+        var track = Assert.Single(Assert.Single(queue).Tracks);
+        Assert.Null(track.Review.Dance.Value);
+        Assert.Equal(ReviewReason.Missing, track.Review.Reason);
+    }
+
+    [Fact]
+    public void AMisspelling_OffersWhatItProbablyMeant()
+    {
+        var queue = Build([Entry("/music/a.mp3", [1], slug: null, originalDance: "Mazurk")]);
+
+        Assert.Equal(["Mazurka"], Assert.Single(Assert.Single(queue).Tracks).Suggestions);
+    }
+
     private IReadOnlyList<ReviewGroup> Build(LibraryEntry[] entries, params TrackApproval[] approvals) =>
         ReviewQueue.Build(
             entries.ToDictionary(entry => entry.Path, StringComparer.Ordinal),

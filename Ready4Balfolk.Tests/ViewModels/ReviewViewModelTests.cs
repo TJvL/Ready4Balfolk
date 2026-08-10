@@ -190,6 +190,36 @@ public sealed class ReviewViewModelTests : IDisposable
         Assert.Empty(_approved);
     }
 
+    [Fact]
+    public async Task OneDanceCanSettleEveryTrackClaimingTheSameThing()
+    {
+        await Refresh();
+        var row = _sut.Rows.First(candidate => candidate.IsShared);
+        row.Dance = "Mazurka";
+
+        await _sut.UseDanceForAllCommand.Execute(row);
+
+        // The dance and nothing else: an artist and a title are per track, so they still want
+        // confirming one at a time.
+        Assert.Equal(2, _approved.Count(entry => entry.Field == TrackField.Dance && entry.Value == "Mazurka"));
+        Assert.DoesNotContain(_approved, entry => entry.Field == TrackField.Artist);
+        Assert.All(_sut.Rows.Where(candidate => candidate.IsShared), candidate => Assert.False(candidate.IsApproved));
+    }
+
+    [Fact]
+    public async Task AValueSaidToBeJunk_IsRememberedAndCleared()
+    {
+        await Refresh();
+        var row = _sut.Rows.First(candidate => candidate.HasUnknownValue);
+
+        await _sut.NotADanceCommand.Execute(row);
+
+        await _libraryIndex.Received().IgnoreValueAsync(row.UnknownValue, Arg.Any<CancellationToken>());
+        Assert.All(
+            _sut.Rows.Where(candidate => candidate.UnknownValue == row.UnknownValue),
+            candidate => Assert.Empty(candidate.Dance));
+    }
+
     private async Task Refresh() => await _sut.RefreshCommand.Execute();
 
     private async Task ApproveFirstAsync()
@@ -204,12 +234,12 @@ public sealed class ReviewViewModelTests : IDisposable
     private static IReadOnlyDictionary<string, LibraryEntry> Snapshot() =>
         new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
         {
-            ["/music/Naragonia/a.mp3"] = Entry("/music/Naragonia/a.mp3", [1]),
-            ["/music/Naragonia/b.mp3"] = Entry("/music/Naragonia/b.mp3", [2]),
+            ["/music/Naragonia/a.mp3"] = Entry("/music/Naragonia/a.mp3", [1], "Scottiche"),
+            ["/music/Naragonia/b.mp3"] = Entry("/music/Naragonia/b.mp3", [2], "Scottiche"),
             ["/music/TREF/c.mp3"] = Entry("/music/TREF/c.mp3", [3])
         };
 
-    private static LibraryEntry Entry(string path, byte[] hash) => new()
+    private static LibraryEntry Entry(string path, byte[] hash, string? unknownDance = null) => new()
     {
         ContentHash = hash,
         Path = path,
@@ -217,8 +247,8 @@ public sealed class ReviewViewModelTests : IDisposable
         LastWriteUtc = Written,
         Duration = TimeSpan.FromMinutes(3),
         Format = AudioFormat.Mp3,
-        DanceSlug = "mazurka",
-        OriginalDance = "Mazurka",
+        DanceSlug = unknownDance is null ? "mazurka" : null,
+        OriginalDance = unknownDance ?? "Mazurka",
         Artist = "Naragonia",
         Title = "Something"
     };

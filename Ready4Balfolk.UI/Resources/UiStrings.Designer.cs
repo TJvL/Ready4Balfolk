@@ -686,112 +686,6 @@ public static class UiStrings
     public static string TrackCatalog_DancesLabel =>
         ResourceManager.GetString("TrackCatalog_DancesLabel", Culture)!;
 
-    // Tagging editor
-    public static string Tagging_Title =>
-        ResourceManager.GetString("Tagging_Title", Culture)!;
-
-    public static string Toolbar_Tagging =>
-        ResourceManager.GetString("Toolbar_Tagging", Culture)!;
-
-    public static string Toolbar_TaggingLabel =>
-        ResourceManager.GetString("Toolbar_TaggingLabel", Culture)!;
-
-    public static string Tagging_Summary =>
-        ResourceManager.GetString("Tagging_Summary", Culture)!;
-
-    public static string Tagging_NothingToDo =>
-        ResourceManager.GetString("Tagging_NothingToDo", Culture)!;
-
-    public static string Tagging_TrackCount =>
-        ResourceManager.GetString("Tagging_TrackCount", Culture)!;
-
-    public static string Tagging_MapTo =>
-        ResourceManager.GetString("Tagging_MapTo", Culture)!;
-
-    public static string Tagging_MapFolder =>
-        ResourceManager.GetString("Tagging_MapFolder", Culture)!;
-
-    public static string Tagging_MapTrack =>
-        ResourceManager.GetString("Tagging_MapTrack", Culture)!;
-
-    public static string Tagging_Ignore =>
-        ResourceManager.GetString("Tagging_Ignore", Culture)!;
-
-    public static string Tagging_IgnoreTooltip =>
-        ResourceManager.GetString("Tagging_IgnoreTooltip", Culture)!;
-
-    public static string Tagging_Ignored =>
-        ResourceManager.GetString("Tagging_Ignored", Culture)!;
-
-    public static string Tagging_ShowTracks =>
-        ResourceManager.GetString("Tagging_ShowTracks", Culture)!;
-
-    public static string Tagging_Preview =>
-        ResourceManager.GetString("Tagging_Preview", Culture)!;
-
-    public static string Tagging_StopPreview =>
-        ResourceManager.GetString("Tagging_StopPreview", Culture)!;
-
-    public static string Tagging_PreviewRefused =>
-        ResourceManager.GetString("Tagging_PreviewRefused", Culture)!;
-
-    public static string Tagging_SuggestionWithCount =>
-        ResourceManager.GetString("Tagging_SuggestionWithCount", Culture)!;
-
-    public static string Tagging_LooksLikeAMisspelling =>
-        ResourceManager.GetString("Tagging_LooksLikeAMisspelling", Culture)!;
-
-    public static string Tagging_TooGeneralExplanation =>
-        ResourceManager.GetString("Tagging_TooGeneralExplanation", Culture)!;
-
-    public static string Tagging_NothingLooksLikeIt =>
-        ResourceManager.GetString("Tagging_NothingLooksLikeIt", Culture)!;
-
-    public static string Tagging_FolderAgrees =>
-        ResourceManager.GetString("Tagging_FolderAgrees", Culture)!;
-
-    public static string Tagging_FolderSaysNothing =>
-        ResourceManager.GetString("Tagging_FolderSaysNothing", Culture)!;
-
-    public static string Tagging_BucketSuggestions =>
-        ResourceManager.GetString("Tagging_BucketSuggestions", Culture)!;
-
-    public static string Tagging_BucketSuggestionsHint =>
-        ResourceManager.GetString("Tagging_BucketSuggestionsHint", Culture)!;
-
-    public static string Tagging_BucketUnrecognised =>
-        ResourceManager.GetString("Tagging_BucketUnrecognised", Culture)!;
-
-    public static string Tagging_BucketUnrecognisedHint =>
-        ResourceManager.GetString("Tagging_BucketUnrecognisedHint", Culture)!;
-
-    public static string Tagging_BucketOneOffs =>
-        ResourceManager.GetString("Tagging_BucketOneOffs", Culture)!;
-
-    public static string Tagging_BucketOneOffsHint =>
-        ResourceManager.GetString("Tagging_BucketOneOffsHint", Culture)!;
-
-    public static string Toolbar_TaggingCount =>
-        ResourceManager.GetString("Toolbar_TaggingCount", Culture)!;
-
-    public static string Tagging_StillReading =>
-        ResourceManager.GetString("Tagging_StillReading", Culture)!;
-
-    public static string Tagging_AmbiguousExplanation =>
-        ResourceManager.GetString("Tagging_AmbiguousExplanation", Culture)!;
-
-    public static string Tagging_ScanProgress =>
-        ResourceManager.GetString("Tagging_ScanProgress", Culture)!;
-
-    public static string Tagging_SearchDances =>
-        ResourceManager.GetString("Tagging_SearchDances", Culture)!;
-
-    public static string Tagging_DecidedAs =>
-        ResourceManager.GetString("Tagging_DecidedAs", Culture)!;
-
-    public static string Tagging_DecidedNotADance =>
-        ResourceManager.GetString("Tagging_DecidedNotADance", Culture)!;
-
     // Setup: welcome
     public static string Wizard_Welcome_Title =>
         ResourceManager.GetString("Wizard_Welcome_Title", Culture)!;
@@ -1074,4 +968,13 @@ public static class UiStrings
         ResourceManager.GetString("Review_StopPreview", Culture)!;
     public static string Review_PreviewRefused =>
         ResourceManager.GetString("Review_PreviewRefused", Culture)!;
+
+    public static string Review_UseForAll =>
+        ResourceManager.GetString("Review_UseForAll", Culture)!;
+    public static string Review_UsedForAll =>
+        ResourceManager.GetString("Review_UsedForAll", Culture)!;
+    public static string Review_NotADance =>
+        ResourceManager.GetString("Review_NotADance", Culture)!;
+    public static string Review_NotADanceHint =>
+        ResourceManager.GetString("Review_NotADanceHint", Culture)!;
 }

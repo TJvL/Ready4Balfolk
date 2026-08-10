@@ -94,51 +94,6 @@ Claims live only as long as the resolution today. Storing them so a review scree
 
 On a 2685-file library with BigBalfolkList imported and nothing else configured, this answers the dance for something under half of it, a few hundred of those by folder agreement. Everything else answers with nothing, which is a real answer and the reason the review gate exists: the way that number goes up is a user declaring how their library is arranged, not this code guessing harder.
 
-### Tagging: one report, grouped by value
-
-`Services/Tagging/` turns what the index does not know into a list of decisions. **The unit of work is the distinct value, not the track** — 21 files claiming "Ar Re Yaouank" are one decision, and 1465 unresolved files in a real library become 169.
-
-`UnrecognisedValueClassifier` decides what can be done about a value, and the distinction it draws is the point of the whole screen:
-
-- **Misspelled** — close to exactly one name, or sitting inside exactly one. One decision settles every track.
-- **Too general** — sits inside several names. `CanMapAsAWhole` is false and the view renders **no map control at all**, not a disabled one: mapping "Bourrée" across 50 tracks would invent 50 confident answers. It offers the album-folder breakdown instead, because a folder where 8 of 11 tracks already read "Bourrée 3 temps" answers for the other three. A value equally near two dances is treated the same way.
-- **Unknown** — nothing is near it. A band, a stray word somebody bracketed, or a dance not added yet.
-
-Other things that are load-bearing:
-
-- **Ignore is first class**, stored in an `ignored_values` table. Without it the badge never reaches zero, because a real library is full of bracketed asides that are not dances and never will be.
-- **Suggestions rank by what the library already resolved to**, not alphabetically, so the dance this user actually plays is first.
-- **Mapping a value assigns the tracks and nothing else.** The dance list is BigBalfolkList's and the application does not write to it, so a spelling worth having belongs in a proposal there rather than in one person's copy. Files already answered stay answered, because the answer lives in the library index; a new file spelled the same way asks again.
-- **The report is built from the index**, so it is identical whether the scan just ran or the application restarted, and the toolbar count is a query.
-- **The watcher never announces anything** — a count on a button, no dialog and no toast. The application runs in front of a room.
-- **Preview refuses while the queue is playing.** There is one output and the room is on it, so this is preparation work by construction rather than by discipline.
-
-### Approval: what a person agreed to, kept apart from what was derived
-
-Everything in `tracks` is derived and is meant to be overwritten by the newest reading. What a person agreed to lives in `approvals`, which no scan touches. That separation *is* the fix for the row that used to promise it kept "whatever the user has decided about it" and then overwrote it on the next upsert.
-
-- **Keyed on the content hash**, which covers the audio alone, so an answer follows a track through a retag or a rename, and lands on every copy of a duplicated recording rather than the one that happened to be clicked.
-- **Two kinds** (`ApprovalKind`). `ByRule` is what a declaration answered: the user vouched for the rule and not for the two thousand files it touched, so changing the rules revokes every one of them and the files return to review. `Individual` is somebody looking at a track and saying yes, and nothing overwrites it — not a rescan, not a rule change, not this application writing the file's own tags.
-- **The dance is approved as text, not as a slug.** A rule that answered `Rond de Landéda` on twenty files keeps its approval while the published list has never heard of it, and `ReviewGate` resolves the value against the list every time. The day a proposal is merged and the list is imported, those twenty cross on their own. That is the whole of "reimporting sweeps the parked tracks" — there is no sweep code.
-- **A retag does not lose a decision.** `TrackApproval.FileWriteUtc` is the file as it stood when it was approved; a newer write time reads as `ChangedSinceApproval`, so the track comes back for reconfirmation with its value intact. It is read off the file rather than off a clock, so it means the same thing on every machine.
-
-`ReviewGate.Evaluate` is the gate itself, and it is a pure function of the entry, its approvals and the dance list: an artist, a title, a dance the list knows, and an approval of each. `ReviewReason` keeps the ways of not being in the library apart — `Missing`, `Unapproved`, `UnknownDance`, `ChangedSinceApproval` — because a person has to be told which one they are looking at.
-
-### Review: the gate, and the only way across it
-
-`ReviewQueue.Build` is the queue and `Views/Review/` is the screen. **The unit is the track, not the distinct value**: a value-shaped list can only hold the files that said something wrong, and the 786 files in the reference library that say nothing at all have nowhere to appear in one. Grouping identical mistakes into a single decision is an optimisation on top of this, not the shape of it.
-
-- **Ordered least confident first**, from what each field was decided by (`DerivedFrom`, now persisted per field): nothing said at all sorts above a lone guess, which sorts above two independent sources agreeing. Stopping halfway through then leaves the library better rather than differently.
-- **Grouped by whatever grouping the library has** — folders — and flat when it has none. A group is as unsure as its least sure track, so a folder holding one hopeless file is not buried behind easy ones.
-- **Each field shows its value next to where it came from**, which is the only way a wrong source is visible rather than merely wrong.
-- **Keyboard first.** Enter answers a track, `A` answers the rest of its folder, arrows walk the queue. The folder shortcut is deliberately dead while a field is being typed into, or writing "Mazurka" would approve a folder halfway through the word.
-- **Answered rows stay exactly where they are**, marked. Removing them leaves no way to see what was decided or to fix a mis-click, and makes every row below jump under the pointer.
-- **Resumable by construction**: the queue is derived from the index on every visit rather than remembered, so closing the screen loses nothing.
-
-**The gate is now wired.** `TrackStore` publishes only what is in the library, built from the index through `ReviewGate` and opening no audio files, so an approval becomes a track immediately (`RefreshLibraryAsync`). The dance panel counts and the random pool read that same list, so an unreviewed library correctly reads as a library with no music. The toolbar carries the review count (`CountInReviewAsync`) — unreviewed, not unresolved.
-
-The tagging editor is still there and still works: its value-grouping answers a misspelling across 34 files in one act, which the review queue cannot do yet. That capability belongs *inside* review, and the editor goes when it is there.
-
 ### Library index
 
 `Stores/Library/` is the index of what is in the music directory, in SQLite (`library.sqlite`). It replaced a JSON duration cache, and its job is that **a startup which finds nothing changed opens no audio files at all** — verified on a 345-track library: first run 345 files read, second run 0.

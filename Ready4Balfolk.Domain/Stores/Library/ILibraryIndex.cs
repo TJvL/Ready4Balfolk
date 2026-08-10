@@ -63,9 +63,6 @@ public interface ILibraryIndex : IDisposable
 
     Task StopIgnoringValueAsync(string value, CancellationToken token = default);
 
-    /// <summary>Points a set of files at a dance, by path.</summary>
-    Task AssignDanceAsync(IReadOnlyCollection<string> paths, string? danceSlug, CancellationToken token = default);
-
     /// <summary>How many files are waiting for a person rather than sitting in the library.</summary>
     /// <remarks>
     /// Over paths, because that is what the user sees. A track is in the library or in review and
@@ -73,10 +70,4 @@ public interface ILibraryIndex : IDisposable
     /// </remarks>
     Task<int> CountInReviewAsync(CancellationToken token = default);
 
-    /// <summary>How many files the dance list has nothing to say about.</summary>
-    /// <remarks>
-    /// A query rather than a number held in memory, so the count survives a restart for free and
-    /// the watcher never has to announce anything while the application is running a night.
-    /// </remarks>
-    Task<int> CountUnresolvedAsync(CancellationToken token = default);
 }

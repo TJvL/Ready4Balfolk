@@ -496,78 +496,6 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         }
     }
 
-    public async Task AssignDanceAsync(
-        IReadOnlyCollection<string> paths, string? danceSlug, CancellationToken token = default)
-    {
-        if (paths.Count == 0)
-        {
-            return;
-        }
-
-        await _gate.WaitAsync(token);
-        try
-        {
-            var connection = Require();
-            await using var transaction = await connection.BeginTransactionAsync(token);
-            await using var command = connection.CreateCommand();
-            command.Transaction = (SqliteTransaction)transaction;
-            // By path, but it lands on the audio, so both copies of a duplicated track get the
-            // answer rather than only the one that happened to be clicked.
-            command.CommandText = """
-                UPDATE tracks SET dance_slug = $slug
-                WHERE content_hash = (SELECT content_hash FROM track_paths WHERE path = $path);
-                """;
-
-            var slug = command.Parameters.Add("$slug", SqliteType.Text);
-            var path = command.Parameters.Add("$path", SqliteType.Text);
-            slug.Value = (object?)danceSlug ?? DBNull.Value;
-
-            // Somebody looked at these tracks and answered, so it is an individual approval as well
-            // as a derived value: the next scan overwrites the column and must not lose the answer.
-            await using var approve = connection.CreateCommand();
-            approve.Transaction = (SqliteTransaction)transaction;
-            approve.CommandText = danceSlug is null
-                ? """
-                  DELETE FROM approvals
-                  WHERE field = $field
-                    AND content_hash = (SELECT content_hash FROM track_paths WHERE path = $path);
-                  """
-                : """
-                  INSERT INTO approvals (content_hash, field, value, kind, rule, file_write_utc)
-                  SELECT p.content_hash, $field, $value, $kind, NULL, p.last_write_utc
-                  FROM track_paths p WHERE p.path = $path
-                  ON CONFLICT(content_hash, field) DO UPDATE SET
-                      value = excluded.value,
-                      kind = excluded.kind,
-                      rule = NULL,
-                      file_write_utc = excluded.file_write_utc;
-                  """;
-            approve.Parameters.AddWithValue("$field", (int)TrackField.Dance);
-            if (danceSlug is not null)
-            {
-                approve.Parameters.AddWithValue("$value", danceSlug);
-                approve.Parameters.AddWithValue("$kind", (int)ApprovalKind.Individual);
-            }
-
-            var approvePath = approve.Parameters.Add("$path", SqliteType.Text);
-
-            foreach (var target in paths)
-            {
-                path.Value = target;
-                await command.ExecuteNonQueryAsync(token);
-
-                approvePath.Value = target;
-                await approve.ExecuteNonQueryAsync(token);
-            }
-
-            await transaction.CommitAsync(token);
-        }
-        finally
-        {
-            _gate.Release();
-        }
-    }
-
     public async Task<int> CountInReviewAsync(CancellationToken token = default)
     {
         await _gate.WaitAsync(token);
@@ -581,26 +509,6 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                 SELECT COUNT(*) FROM track_paths p
                 JOIN tracks t ON t.content_hash = p.content_hash
                 WHERE (SELECT COUNT(*) FROM approvals a WHERE a.content_hash = p.content_hash) < 3;
-                """;
-            return Convert.ToInt32(await command.ExecuteScalarAsync(token), provider: null);
-        }
-        finally
-        {
-            _gate.Release();
-        }
-    }
-
-    public async Task<int> CountUnresolvedAsync(CancellationToken token = default)
-    {
-        await _gate.WaitAsync(token);
-        try
-        {
-            await using var command = Require().CreateCommand();
-            // Counted over paths, because that is what the user sees in their library.
-            command.CommandText = """
-                SELECT COUNT(*) FROM track_paths p
-                JOIN tracks t ON t.content_hash = p.content_hash
-                WHERE t.dance_slug IS NULL;
                 """;
             return Convert.ToInt32(await command.ExecuteScalarAsync(token), provider: null);
         }

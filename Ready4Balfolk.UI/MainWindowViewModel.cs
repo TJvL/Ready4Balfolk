@@ -12,7 +12,6 @@ using Ready4Balfolk.UI.Views.History;
 using Ready4Balfolk.UI.Views.Playback;
 using Ready4Balfolk.UI.Views.Queue;
 using Ready4Balfolk.UI.Views.Settings;
-using Ready4Balfolk.UI.Views.Tagging;
 using Ready4Balfolk.UI.Views.Toolbar;
 using Ready4Balfolk.UI.Views.TrackCatalog;
 using Ready4Balfolk.UI.Views.Wizard;
@@ -32,7 +31,6 @@ public sealed partial class MainWindowViewModel : ReactiveObject
     [Reactive] public partial DanceListViewModel? DanceList { get; set; }
     [Reactive] public partial SettingsViewModel? Settings { get; set; }
     [Reactive] public partial HelpViewModel? Help { get; set; }
-    [Reactive] public partial TaggingViewModel? Tagging { get; set; }
     [Reactive] public partial DiscoveryViewModel? Discovery { get; set; }
     [Reactive] public partial ReviewViewModel? Review { get; set; }
     [Reactive] public partial SetupWizardViewModel? Setup { get; set; }
@@ -48,7 +46,6 @@ public sealed partial class MainWindowViewModel : ReactiveObject
         Lazy<DanceListViewModel> lazyDanceList,
         Lazy<SettingsViewModel> lazySettings,
         Lazy<HelpViewModel> lazyHelp,
-        Lazy<TaggingViewModel> lazyTagging,
         Lazy<DiscoveryViewModel> lazyDiscovery,
         Lazy<ReviewViewModel> lazyReview,
         Func<SetupWizardViewModel> setupFactory)
@@ -77,12 +74,6 @@ public sealed partial class MainWindowViewModel : ReactiveObject
                     // Built fresh each time, so running setup again starts from what is on disk
                     // rather than from where the last visit left off.
                     Setup = setupFactory();
-                }
-                else if (screen is Screen.Tagging)
-                {
-                    Tagging ??= lazyTagging.Value;
-                    // Rebuilt on every visit: the index changes underneath it whenever a scan runs.
-                    Tagging.RefreshCommand.Execute().Subscribe();
                 }
                 else if (screen is Screen.Discovery)
                 {

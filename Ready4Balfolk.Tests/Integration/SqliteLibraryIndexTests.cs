@@ -73,20 +73,6 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AnsweringOneCopy_AnswersTheOther()
-    {
-        await _sut.WriteAsync([
-            Entry("/music/loose.mp3", [9, 9], slug: null),
-            Entry("/music/album/track.mp3", [9, 9], slug: null)
-        ], Token);
-
-        await _sut.AssignDanceAsync(["/music/loose.mp3"], "mazurka", Token);
-
-        var snapshot = await _sut.SnapshotByPathAsync(Token);
-        Assert.Equal("mazurka", snapshot["/music/album/track.mp3"].DanceSlug);
-    }
-
-    [Fact]
     public async Task ARenamedFile_KeepsWhatWasDecidedAboutIt()
     {
         await _sut.WriteAsync([Entry("/music/old.mp3", [9, 9], slug: "plinn")], Token);
@@ -127,32 +113,6 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.DeleteMissingAsync([], Token);
 
         Assert.Empty(await _sut.SnapshotByPathAsync(Token));
-    }
-
-    [Fact]
-    public async Task CountUnresolved_CountsOnlyTheOnesWithNoDance()
-    {
-        await _sut.WriteAsync(
-        [
-            Entry("/music/a.mp3", [1], slug: "mazurka"),
-            Entry("/music/b.mp3", [2], slug: null),
-            Entry("/music/c.mp3", [3], slug: null)
-        ], Token);
-
-        Assert.Equal(2, await _sut.CountUnresolvedAsync(Token));
-    }
-
-    [Fact]
-    public async Task CountUnresolved_SurvivesReopening()
-    {
-        await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: null)], Token);
-        _sut.Dispose();
-
-        using var reopened = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
-        await reopened.OpenAsync(Token);
-
-        // The count is a query, so a restart costs nothing to keep it.
-        Assert.Equal(1, await reopened.CountUnresolvedAsync(Token));
     }
 
     [Fact]
@@ -261,29 +221,6 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.ApproveAsync([ByRule([1], TrackField.Artist, "Naragonia")], Token);
 
         Assert.Equal("%d - %a - %t", Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]).Rule);
-    }
-
-    [Fact]
-    public async Task AssigningADance_IsAPersonAnswering()
-    {
-        await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: null)], Token);
-
-        await _sut.AssignDanceAsync(["/music/a.mp3"], "mazurka", Token);
-
-        var approval = Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
-        Assert.Equal(ApprovalKind.Individual, approval.Kind);
-        Assert.Equal("mazurka", approval.Value);
-    }
-
-    [Fact]
-    public async Task ClearingADance_TakesTheAnswerBack()
-    {
-        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
-        await _sut.AssignDanceAsync(["/music/a.mp3"], "mazurka", Token);
-
-        await _sut.AssignDanceAsync(["/music/a.mp3"], null, Token);
-
-        Assert.Empty(await _sut.ApprovalsAsync(Token));
     }
 
     [Fact]

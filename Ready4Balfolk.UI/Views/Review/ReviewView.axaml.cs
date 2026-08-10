@@ -56,6 +56,14 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         }
     }
 
+    private void OnSuggestionClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Content: string suggestion, Tag: ReviewRowViewModel row })
+        {
+            row.Take(suggestion);
+        }
+    }
+
     /// <summary>Seeking by clicking the bar, which is what makes skimming a track possible.</summary>
     private void OnPreviewBarPressed(object? sender, PointerPressedEventArgs e)
     {
