@@ -12,7 +12,7 @@ using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.Tagging;
+using Ready4Balfolk.UI.Views.Review;
 using Ready4Balfolk.UI.Views.Wizard;
 
 namespace Ready4Balfolk.Tests.ViewModels;
@@ -73,14 +73,13 @@ public sealed class SetupWizardViewModelTests : IDisposable
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.IsLoading.Returns(Observable.Return(false));
 
-        var tagging = new TaggingViewModel(
-            libraryIndex, trackStore, _danceListStore, preview, notifications, logger);
+        var review = new ReviewViewModel(libraryIndex, _danceListStore, _settingsStore, trackStore, logger);
 
         return new SetupWizardViewModel(
             new WelcomeStepViewModel(),
             new DanceListStepViewModel(_danceListStore, _feed, _now),
             new MusicDirectoryStepViewModel(_settingsStore),
-            new TaggingStepViewModel(tagging),
+            new ReviewStepViewModel(review),
             _settingsStore,
             _navigation,
             logger);

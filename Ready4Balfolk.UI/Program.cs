@@ -219,14 +219,14 @@ public static class Program
         // closes, so a second run starts from what is on disk rather than from the last visit.
         services.AddTransient<WelcomeStepViewModel>();
         services.AddTransient<DanceListStepViewModel>();
-        services.AddTransient<TaggingStepViewModel>();
+        services.AddTransient<ReviewStepViewModel>();
         services.AddTransient<MusicDirectoryStepViewModel>();
         services.AddTransient<SetupWizardViewModel>();
         services.AddSingleton<Func<SetupWizardViewModel>>(sp => sp.GetRequiredService<SetupWizardViewModel>);
         services.AddTransient<IViewFor<SetupWizardViewModel>, SetupWizardView>();
         services.AddTransient<IViewFor<WelcomeStepViewModel>, WelcomeStepView>();
         services.AddTransient<IViewFor<DanceListStepViewModel>, DanceListStepView>();
-        services.AddTransient<IViewFor<TaggingStepViewModel>, TaggingStepView>();
+        services.AddTransient<IViewFor<ReviewStepViewModel>, ReviewStepView>();
         services.AddTransient<IViewFor<MusicDirectoryStepViewModel>, MusicDirectoryStepView>();
 
         // Lazy wrappers — defers ViewModel creation until first navigation/toggle

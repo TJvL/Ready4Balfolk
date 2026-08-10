@@ -727,7 +727,7 @@
     <value>Taggen</value>
   </data>
   <data name="Toolbar_Tagging" xml:space="preserve">
-    <value>Nog te taggen</value>
+    <value>Namen die de danslijst niet kent</value>
   </data>
   <data name="Toolbar_TaggingLabel" xml:space="preserve">
     <value>Taggen</value>
@@ -807,14 +807,8 @@
   <data name="Tagging_BucketOneOffsHint" xml:space="preserve">
     <value>Bij elk hiervan hoort een enkel nummer, dus ze zijn je tijd het minst waard.</value>
   </data>
-  <data name="Wizard_Tagging_Title" xml:space="preserve">
-    <value>Wat niet herkend kon worden</value>
-  </data>
-  <data name="Wizard_Tagging_Explanation" xml:space="preserve">
-    <value>Alles wat Ready4Balfolk niet kan plaatsen staat hier gegroepeerd, een regel per unieke waarde in plaats van een per bestand. Je kunt dit nu beantwoorden of laten staan: hetzelfde scherm zit in de applicatie, en niets hiervan hoeft af te zijn voor je hem gebruikt.</value>
-  </data>
   <data name="Toolbar_TaggingCount" xml:space="preserve">
-    <value>{0} wachten om getagd te worden</value>
+    <value>{0} namen wachten</value>
   </data>
   <data name="Tagging_StillReading" xml:space="preserve">
     <value>Je muziek wordt nog ingelezen. De lijst verschijnt zodra dat klaar is.</value>
@@ -855,10 +849,10 @@
     <value>Een map. Alles daaronder telt mee, hoe het ook geordend is, en er is geen bepaalde naamgeving voor nodig.</value>
   </data>
   <data name="Wizard_Welcome_Stage3" xml:space="preserve">
-    <value>3. Wat niet herkend kon worden</value>
+    <value>3. Wat op jou wacht</value>
   </data>
   <data name="Wizard_Welcome_Stage3Detail" xml:space="preserve">
-    <value>Je muziek wordt een keer ingelezen, wat de eerste keer een paar minuten duurt. Alles wat niet geplaatst kan worden wordt voor je gegroepeerd, een regel per unieke waarde in plaats van een per bestand, en je kunt er zoveel of zo weinig van beantwoorden als je wilt.</value>
+    <value>Je muziek wordt één keer ingelezen, wat de eerste keer een paar minuten duurt. Er komt niets in je bibliotheek zonder artiest, titel, een dans uit de lijst én jouw akkoord, dus wat overblijft wacht op jou. Beantwoord er zoveel of zo weinig van als je wilt.</value>
   </data>
   <data name="Wizard_Welcome_Source" xml:space="preserve">
     <value>De dansenlijst wordt gepubliceerd op</value>
@@ -1075,12 +1069,18 @@
     <value>De danslijst is gedeeld, dus een ontbrekende dans is een voorstel bij BigBalfolkList en niet iets om hier toe te voegen. Je antwoord blijft bewaard en het nummer gaat de bibliotheek in zodra de lijst de naam kent.</value>
   </data>
   <data name="Toolbar_Review" xml:space="preserve">
-    <value>Nakijken</value>
+    <value>Alles wat op jou wacht</value>
   </data>
   <data name="Toolbar_ReviewLabel" xml:space="preserve">
     <value>Nakijken</value>
   </data>
   <data name="Toolbar_ReviewCount" xml:space="preserve">
-    <value>{0} wachten</value>
+    <value>{0} nummers wachten</value>
+  </data>
+  <data name="Wizard_Review_Title" xml:space="preserve">
+    <value>Wat op jou wacht</value>
+  </data>
+  <data name="Wizard_Review_Explanation" xml:space="preserve">
+    <value>Er komt niets in je bibliotheek zonder artiest, titel, een dans uit de gepubliceerde lijst én jouw akkoord op alle drie. Het minst zekere staat bovenaan, dus bovenin beantwoorden levert het meeste op. Je kunt dit nu doen of laten liggen: hetzelfde scherm zit in de applicatie en niets hoeft af te zijn voor je hem gebruikt.</value>
   </data>
 </root>

@@ -802,7 +802,7 @@
     <value>Tagging</value>
   </data>
   <data name="Toolbar_Tagging" xml:space="preserve">
-    <value>Things to tag</value>
+    <value>Names the dance list does not know</value>
   </data>
   <data name="Toolbar_TaggingLabel" xml:space="preserve">
     <value>Tagging</value>
@@ -882,14 +882,8 @@
   <data name="Tagging_BucketOneOffsHint" xml:space="preserve">
     <value>A single track claims each of these, so they are worth the least of your time.</value>
   </data>
-  <data name="Wizard_Tagging_Title" xml:space="preserve">
-    <value>What could not be recognised</value>
-  </data>
-  <data name="Wizard_Tagging_Explanation" xml:space="preserve">
-    <value>Anything Ready4Balfolk cannot place is grouped here, one row per distinct value rather than one per file. You can answer these now or leave them: the same screen is in the application, and nothing here has to be finished before you use it.</value>
-  </data>
   <data name="Toolbar_TaggingCount" xml:space="preserve">
-    <value>{0} waiting to be tagged</value>
+    <value>{0} names waiting</value>
   </data>
   <data name="Tagging_StillReading" xml:space="preserve">
     <value>Still reading your music. The list appears once it is done.</value>
@@ -930,10 +924,10 @@
     <value>One folder. Everything below it counts, however it is arranged, and no particular naming convention is needed.</value>
   </data>
   <data name="Wizard_Welcome_Stage3" xml:space="preserve">
-    <value>3. What could not be recognised</value>
+    <value>3. What is waiting for you</value>
   </data>
   <data name="Wizard_Welcome_Stage3Detail" xml:space="preserve">
-    <value>Your music is read once, which takes a few minutes the first time. Anything that cannot be placed is grouped for you, one row per distinct value rather than one per file, and you can answer as much or as little of it as you feel like.</value>
+    <value>Your music is read once, which takes a few minutes the first time. Nothing reaches your library until it has an artist, a title, a dance from the list and your say-so, so whatever is left over waits for you. Answer as much or as little of it as you feel like.</value>
   </data>
   <data name="Wizard_Welcome_Source" xml:space="preserve">
     <value>The dance list is published at</value>
@@ -1150,12 +1144,18 @@
     <value>The dance list is shared, so a missing dance is a proposal at BigBalfolkList rather than something to add here. Your answer is kept, and the track goes into the library the moment the list carries the name.</value>
   </data>
   <data name="Toolbar_Review" xml:space="preserve">
-    <value>Review</value>
+    <value>Everything waiting for you</value>
   </data>
   <data name="Toolbar_ReviewLabel" xml:space="preserve">
     <value>Review</value>
   </data>
   <data name="Toolbar_ReviewCount" xml:space="preserve">
-    <value>{0} waiting</value>
+    <value>{0} tracks waiting</value>
+  </data>
+  <data name="Wizard_Review_Title" xml:space="preserve">
+    <value>What is waiting for you</value>
+  </data>
+  <data name="Wizard_Review_Explanation" xml:space="preserve">
+    <value>Nothing reaches your library until it has an artist, a title, a dance from the published list, and you agreeing to all three. The least certain come first, so answering the top of the list is worth the most. You can answer these now or leave them: the same screen is in the application, and nothing here has to be finished before you use it.</value>
   </data>
 </root>

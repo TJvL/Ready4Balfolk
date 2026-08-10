@@ -2,9 +2,9 @@ using ReactiveUI.Avalonia.Reactive;
 
 namespace Ready4Balfolk.UI.Views.Wizard;
 
-public partial class TaggingStepView : ReactiveUserControl<TaggingStepViewModel>
+public partial class ReviewStepView : ReactiveUserControl<ReviewStepViewModel>
 {
-    public TaggingStepView()
+    public ReviewStepView()
     {
         InitializeComponent();
     }

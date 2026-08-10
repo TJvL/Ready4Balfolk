@@ -59,6 +59,14 @@ Opens this help screen.
 
 Opens the settings screen where you can configure music directory, queue behavior, presentation displays, and theme.
 
+### Review
+
+Everything waiting for you, with a count of how many tracks that is. Nothing reaches your library without an artist, a title, a dance from the published list and your agreement, so this is where a library is made rather than a chore at the end of one. The least certain tracks come first; Enter answers one and A answers the rest of its folder.
+
+### Tagging
+
+Names your dance list does not know, grouped so that one answer settles every track claiming the same thing. Use it when the same misspelling is on thirty files; use Review for everything else.
+
 ---
 
 ## Playback

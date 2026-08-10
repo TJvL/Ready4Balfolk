@@ -53,7 +53,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
         WelcomeStepViewModel welcomeStep,
         DanceListStepViewModel danceListStep,
         MusicDirectoryStepViewModel musicDirectoryStep,
-        TaggingStepViewModel taggingStep,
+        ReviewStepViewModel reviewStep,
         ISettingsStore settingsStore,
         NavigationService navigation,
         ILoggerService loggerService)
@@ -65,7 +65,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
         // An explanation first, then the dance list, because the vocabulary is what everything
         // else in the application is said in. Nothing on that step needs answering: it fetches the
         // published list and shows what arrived.
-        Steps = [welcomeStep, danceListStep, musicDirectoryStep, taggingStep];
+        Steps = [welcomeStep, danceListStep, musicDirectoryStep, reviewStep];
 
         _currentStepHelper = this.WhenAnyValue(x => x.CurrentIndex)
             .Select(index => Steps[Math.Clamp(index, 0, Steps.Count - 1)])

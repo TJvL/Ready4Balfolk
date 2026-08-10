@@ -771,12 +771,6 @@ public static class UiStrings
     public static string Tagging_BucketOneOffsHint =>
         ResourceManager.GetString("Tagging_BucketOneOffsHint", Culture)!;
 
-    public static string Wizard_Tagging_Title =>
-        ResourceManager.GetString("Wizard_Tagging_Title", Culture)!;
-
-    public static string Wizard_Tagging_Explanation =>
-        ResourceManager.GetString("Wizard_Tagging_Explanation", Culture)!;
-
     public static string Toolbar_TaggingCount =>
         ResourceManager.GetString("Toolbar_TaggingCount", Culture)!;
 
@@ -1043,4 +1037,10 @@ public static class UiStrings
 
     public static string Toolbar_ReviewCount =>
         ResourceManager.GetString("Toolbar_ReviewCount", Culture)!;
+
+    public static string Wizard_Review_Title =>
+        ResourceManager.GetString("Wizard_Review_Title", Culture)!;
+
+    public static string Wizard_Review_Explanation =>
+        ResourceManager.GetString("Wizard_Review_Explanation", Culture)!;
 }
