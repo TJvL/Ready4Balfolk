@@ -39,6 +39,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private DirectoryInfo? _musicRoot;
     // Compiled once and swapped whole, so a scan running over it never sees half a rule change.
     private DeclaredDiscovery _declared = DeclaredDiscovery.Undeclared;
+    private DiscoverySettings _discoverySettings = DiscoverySettings.Undeclared;
     private FileSystemWatcher? _watcher;
     private bool _disposed;
 
@@ -118,12 +119,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
     {
         set
         {
-            if (field is not null && field == value)
+            if (_discoverySettings == value)
             {
                 return;
             }
 
-            field = value;
+            _discoverySettings = value;
             _declared = DeclaredDiscovery.Compile(value);
 
             if (_musicRoot is not { } root)
@@ -145,7 +146,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             }).SafeFireAndForget(exception =>
                 _loggerService.ErrorAsync("Reloading after a discovery settings change failed", exception));
         }
-    } = DiscoverySettings.Undeclared;
+    }
 
     public IObservable<IChangeSet<Track>> Connect() => _tracks.Connect();
 
@@ -476,7 +477,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private static DerivedFrom SourceOf(TrackResolution resolution, TrackField field)
     {
         var decision = resolution.For(field);
-        var claim = decision.Chosen.FirstOrDefault();
+        var claim = decision.Chosen.Count > 0 ? decision.Chosen[0] : null;
 
         return new DerivedFrom(claim?.Source.Kind, claim?.Source.Detail, decision.Reason);
     }

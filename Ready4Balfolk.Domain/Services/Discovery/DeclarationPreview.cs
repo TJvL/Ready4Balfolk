@@ -121,6 +121,7 @@ public static class DeclarationPreview
     /// <summary>What sits at one folder level, so "level 1 is the artist" can be checked by eye.</summary>
     /// <param name="level">Counted from 1 outermost.</param>
     /// <param name="folders">The folders between the music directory and each file, outermost first.</param>
+    /// <param name="sampleSize">How many of the level's values to keep.</param>
     public static FolderLevelPreview ForFolderLevel(
         int level, IReadOnlyList<IReadOnlyList<string>> folders, int sampleSize = DefaultSampleSize)
     {

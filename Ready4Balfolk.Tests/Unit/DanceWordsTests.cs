@@ -15,8 +15,14 @@ public sealed class DanceWordsTests
         IgnoredWords = ["a", "de", "la", "le", "les", "in", "temps", "times", "tijden", "van"],
         NumberWords = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["trois"] = "3", ["drie"] = "3", ["drei"] = "3", ["three"] = "3", ["3t"] = "3",
-            ["deux"] = "2", ["twee"] = "2", ["2t"] = "2"
+            ["trois"] = "3",
+            ["drie"] = "3",
+            ["drei"] = "3",
+            ["three"] = "3",
+            ["3t"] = "3",
+            ["deux"] = "2",
+            ["twee"] = "2",
+            ["2t"] = "2"
         },
         Tags = ["france"],
         Dances =
@@ -76,12 +82,10 @@ public sealed class DanceWordsTests
     }
 
     [Fact]
-    public void AWordThatIsNotGlue_StillEndsAMatch()
-    {
+    public void AWordThatIsNotGlue_StillEndsAMatch() =>
         // "Bourrée du Berry 3 temps" is not the dance "Bourrée 3 temps": something real sits
         // between the words, and stepping over that would match anything that shares two words.
         Assert.Empty(DanceNameScanner.Scan("Bourrée du Berry 3 temps", Index));
-    }
 
     [Fact]
     public void TwoDancesInOneName_AreStillTwo()

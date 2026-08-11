@@ -1,11 +1,10 @@
 using System.Reactive.Linq;
-using System.Reactive.Linq;
 using NSubstitute;
-using Ready4Balfolk.Domain.Models.Settings;
-using Ready4Balfolk.Domain.Services.Discovery;
-using Ready4Balfolk.Domain.Models.Tracks;
-using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Discovery;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -43,7 +42,7 @@ public sealed class DiscoveryViewModelTests : IDisposable
         _settingsStore.UpdateAsync(Arg.Any<Func<ApplicationSettings, ApplicationSettings>>())
             .Returns(call =>
             {
-                _stored = call.Arg<Func<ApplicationSettings, ApplicationSettings>>()(_stored);
+                _stored = call.Arg<Func<ApplicationSettings, ApplicationSettings>>()!(_stored);
                 return Task.CompletedTask;
             });
 
@@ -58,7 +57,7 @@ public sealed class DiscoveryViewModelTests : IDisposable
                 LastWriteUtc = DateTime.UnixEpoch,
                 Duration = TimeSpan.FromMinutes(3),
                 Format = AudioFormat.Mp3
-            } as LibraryEntry) as IReadOnlyDictionary<string, LibraryEntry>);
+            }));
 
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.IsLoading.Returns(Observable.Return(false));
@@ -282,7 +281,11 @@ public sealed class DiscoveryViewModelTests : IDisposable
         await Refresh();
         var proposal = ProposalViewModel.From(new FolderRoleProposal
         {
-            Level = 1, Role = FolderRole.Artist, Agreeing = 96, Considered = 121, Samples = []
+            Level = 1,
+            Role = FolderRole.Artist,
+            Agreeing = 96,
+            Considered = 121,
+            Samples = []
         });
         _sut.Proposals.Add(proposal);
 

@@ -35,30 +35,21 @@ public sealed partial class DeclaredPatternViewModel(PatternPreview preview) : R
 }
 
 /// <summary>One folder level, what is actually in it, and what the user says it means.</summary>
-public sealed partial class FolderLevelViewModel : ReactiveObject
+public sealed partial class FolderLevelViewModel(FolderLevelPreview preview, FolderRole role) : ReactiveObject
 {
-    public FolderLevelViewModel(FolderLevelPreview preview, FolderRole role)
-    {
-        Level = preview.Level;
-        Role = role;
-        LevelText = string.Format(CultureInfo.CurrentCulture, UiStrings.Discovery_LevelLabel, preview.Level);
-        DepthText = string.Format(
-            CultureInfo.CurrentCulture, UiStrings.Discovery_LevelDepth, preview.FilesAtThisDepth, preview.Total);
-        Values = [.. preview.Values.Select(entry => string.Format(
-            CultureInfo.CurrentCulture, UiStrings.Discovery_LevelValue, entry.Value, entry.Files))];
-    }
+    public int Level { get; } = preview.Level;
 
-    public int Level { get; }
-
-    public string LevelText { get; }
+    public string LevelText { get; } = string.Format(CultureInfo.CurrentCulture, UiStrings.Discovery_LevelLabel, preview.Level);
 
     /// <summary>How many files are deep enough for this level to mean anything.</summary>
-    public string DepthText { get; }
+    public string DepthText { get; } = string.Format(
+            CultureInfo.CurrentCulture, UiStrings.Discovery_LevelDepth, preview.FilesAtThisDepth, preview.Total);
 
     /// <summary>What sits at this level, commonest first, so a role is given with eyes open.</summary>
-    public IReadOnlyList<string> Values { get; }
+    public IReadOnlyList<string> Values { get; } = [.. preview.Values.Select(entry => string.Format(
+            CultureInfo.CurrentCulture, UiStrings.Discovery_LevelValue, entry.Value, entry.Files))];
 
-    [Reactive] public partial FolderRole Role { get; set; }
+    [Reactive] public partial FolderRole Role { get; set; } = role;
 
     public IReadOnlyList<FolderRole> AvailableRoles { get; } = [.. System.Enum.GetValues<FolderRole>()];
 }

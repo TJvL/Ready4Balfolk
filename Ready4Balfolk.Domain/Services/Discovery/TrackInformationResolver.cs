@@ -131,18 +131,16 @@ public static class TrackInformationResolver
         // title is an accident of language. "Tour" is a real dance and it must not tie with the
         // "(Mazurka)" somebody put there on purpose.
         var deliberate = leading.Where(entry => entry.Claims.Any(claim => claim.Source.IsDeliberate)).ToList();
-        if (deliberate.Count == 1)
-        {
-            return new FieldDecision
+
+        return deliberate.Count == 1
+            ? new FieldDecision
             {
                 Field = TrackField.Dance,
                 Value = deliberate[0].Slug,
                 Reason = DecisionReason.Deliberate,
                 Chosen = deliberate[0].Claims
-            };
-        }
-
-        return new FieldDecision { Field = TrackField.Dance, Reason = DecisionReason.Contested };
+            }
+            : new FieldDecision { Field = TrackField.Dance, Reason = DecisionReason.Contested };
     }
 
     /// <summary>
@@ -206,11 +204,9 @@ public static class TrackInformationResolver
         }
 
         var claim = claims.FirstOrDefault(candidate => candidate.Source.IsDeliberate) ?? claims.FirstOrDefault();
-        if (claim is null)
-        {
-            return null;
-        }
 
-        return index.ResolveSlug(claim.Value) is { } slug ? index.DisplayNameFor(slug) : claim.Value;
+        return claim is null
+            ? null
+            : index.ResolveSlug(claim.Value) is { } slug ? index.DisplayNameFor(slug) : claim.Value;
     }
 }

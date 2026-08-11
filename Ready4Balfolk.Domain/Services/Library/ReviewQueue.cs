@@ -88,7 +88,7 @@ public sealed record ReviewGroup
 /// three, and it is the unit a person can confirm in one keystroke.
 /// </para>
 /// </remarks>
-public static class ReviewQueue
+public static class ReviewQueueBuilder
 {
     /// <summary>Builds the queue from the index, what has been approved, and the published list.</summary>
     /// <param name="entries">Every row of the index, by path.</param>
@@ -119,7 +119,7 @@ public static class ReviewQueue
                 continue;
             }
 
-            review = WithoutJunk(review, dances, ignored);
+            review = WithoutJunk(review, ignored);
 
             waiting.Add(new ReviewTrack
             {
@@ -172,27 +172,20 @@ public static class ReviewQueue
     private static int ConfidenceOf(LibraryEntry entry, TrackReview review) =>
         AllFields.Sum(field => Confidence(entry.From(field), review.For(field)));
 
-    private static int Confidence(DerivedFrom from, ReviewedField field)
+    private static int Confidence(DerivedFrom from, ReviewedField field) => true switch
     {
-        if (field.ApprovedAs is ApprovalKind.Individual)
-        {
-            return 5;
-        }
-
-        if (string.IsNullOrWhiteSpace(field.Value))
-        {
-            return 0;
-        }
-
-        return from.Reason switch
+        // Somebody looked at it and said yes, which nothing derived can equal.
+        _ when field.ApprovedAs is ApprovalKind.Individual => 5,
+        _ when string.IsNullOrWhiteSpace(field.Value) => 0,
+        _ => from.Reason switch
         {
             DecisionReason.NoClaim => 0,
             DecisionReason.Unusable or DecisionReason.Contested => 1,
             DecisionReason.SoleValue => 2,
             DecisionReason.Preferred or DecisionReason.Deliberate => 3,
             _ => 4
-        };
-    }
+        }
+    };
 
     /// <summary>What an unrecognised value might have meant, in the list's own spelling.</summary>
     private static IReadOnlyList<string> SuggestionsFor(string value, DanceListIndex dances)
@@ -221,17 +214,12 @@ public static class ReviewQueue
     /// leaving a wrong answer where somebody is looking for a missing one. Said once, it stays said:
     /// a rescan derives it again and it is blanked again.
     /// </remarks>
-    private static TrackReview WithoutJunk(TrackReview review, DanceListIndex dances, IReadOnlySet<string>? ignored)
-    {
-        if (ignored is null || review.Dance.Value is not { } value || review.DanceSlug is not null)
-        {
-            return review;
-        }
-
-        return ignored.Contains(StringNormalizer.Normalize(value))
-            ? review with { Dance = review.Dance with { Value = null }, Reason = ReviewReason.Missing }
-            : review;
-    }
+    private static TrackReview WithoutJunk(TrackReview review, IReadOnlySet<string>? ignored) =>
+        ignored is null || review.Dance.Value is not { } value || review.DanceSlug is not null
+            ? review
+            : ignored.Contains(StringNormalizer.Normalize(value))
+                ? review with { Dance = review.Dance with { Value = null }, Reason = ReviewReason.Missing }
+                : review;
 
     private static string FolderOf(string path, string musicRoot)
     {

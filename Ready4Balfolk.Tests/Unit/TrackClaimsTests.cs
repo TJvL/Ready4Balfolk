@@ -99,7 +99,8 @@ public sealed class TrackClaimsTests
     public void ArtistClaimsComeOutInTheOrderTheyAreTrusted()
     {
         var artists = Collect(Evidence("01 - Something")
-                with { TagArtist = "Toon Van Mierlo", TagAlbumArtist = "Naragonia" })
+                with
+        { TagArtist = "Toon Van Mierlo", TagAlbumArtist = "Naragonia" })
             .Where(claim => claim.Field == TrackField.Artist)
             .ToList();
 

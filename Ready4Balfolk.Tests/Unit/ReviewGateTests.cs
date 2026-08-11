@@ -186,16 +186,16 @@ public sealed class ReviewGateTests
         string? originalDance = "Mazurka",
         string? artist = "Naragonia",
         string? title = "Le badaud") => new()
-    {
-        ContentHash = [1],
-        Path = "/music/a.mp3",
-        FileSize = 1234,
-        LastWriteUtc = Written,
-        Duration = TimeSpan.FromMinutes(3),
-        Format = AudioFormat.Mp3,
-        DanceSlug = slug,
-        OriginalDance = originalDance,
-        Artist = artist,
-        Title = title
-    };
+        {
+            ContentHash = [1],
+            Path = "/music/a.mp3",
+            FileSize = 1234,
+            LastWriteUtc = Written,
+            Duration = TimeSpan.FromMinutes(3),
+            Format = AudioFormat.Mp3,
+            DanceSlug = slug,
+            OriginalDance = originalDance,
+            Artist = artist,
+            Title = title
+        };
 }

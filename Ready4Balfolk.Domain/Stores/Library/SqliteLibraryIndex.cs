@@ -22,6 +22,9 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
 {
     private const string DatabaseFileName = "library.sqlite";
 
+    /// <summary>The three fields whose source is stored, in the order their parameters are bound.</summary>
+    private static readonly string[] SourceColumns = ["dance", "artist", "title"];
+
     // One connection, guarded. Writes come from a scan running many files at once, and SQLite would
     // rather serialise them here than hand back "database is locked".
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -189,7 +192,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             var originalDance = command.Parameters.Add("$originalDance", SqliteType.Text);
             var artist = command.Parameters.Add("$artist", SqliteType.Text);
             var title = command.Parameters.Add("$title", SqliteType.Text);
-            var sources = new[] { "dance", "artist", "title" }
+            var sources = SourceColumns
                 .Select(field => (
                     Kind: command.Parameters.Add($"${field}Kind", SqliteType.Integer),
                     Detail: command.Parameters.Add($"${field}Detail", SqliteType.Text),
@@ -209,8 +212,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                 artist.Value = (object?)entry.Artist ?? DBNull.Value;
                 title.Value = (object?)entry.Title ?? DBNull.Value;
 
-                foreach (var (source, from) in sources.Zip<
-                    (SqliteParameter Kind, SqliteParameter Detail, SqliteParameter Reason), DerivedFrom>(
+                foreach (var (source, from) in sources.Zip(
                         [entry.Dance, entry.ArtistFrom, entry.TitleFrom]))
                 {
                     source.Kind.Value = from.Kind is { } kind ? (int)kind : DBNull.Value;

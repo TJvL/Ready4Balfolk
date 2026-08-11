@@ -358,7 +358,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private static IReadOnlyList<FolderRole> WithRole(IReadOnlyList<FolderRole> roles, int level, FolderRole role)
+    private static List<FolderRole> WithRole(IReadOnlyList<FolderRole> roles, int level, FolderRole role)
     {
         var updated = roles.ToList();
         while (updated.Count < level)

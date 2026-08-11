@@ -176,23 +176,17 @@ internal static class ReviewText
     /// <summary>Where a value came from, which is what makes a wrong source visible.</summary>
     public static string SourceOf(DerivedFrom from, ReviewedField field)
     {
-        if (field.ApprovedAs is ApprovalKind.Individual)
-        {
-            return UiStrings.Review_FromYou;
-        }
-
-        if (field.Rule is { } rule)
-        {
-            return string.Format(CultureInfo.CurrentCulture, UiStrings.Review_FromRule, rule);
-        }
-
-        return from.Kind switch
-        {
-            ClaimSourceKind.Tag => string.Format(CultureInfo.CurrentCulture, UiStrings.Review_FromTag, from.Detail),
-            ClaimSourceKind.FileName => string.Format(CultureInfo.CurrentCulture, UiStrings.Review_FromFileName, from.Detail),
-            ClaimSourceKind.Folder => string.Format(CultureInfo.CurrentCulture, UiStrings.Review_FromFolder, from.Detail),
-            _ => UiStrings.Review_FromNothing
-        };
+        return field.ApprovedAs is ApprovalKind.Individual
+            ? UiStrings.Review_FromYou
+            : field.Rule is { } rule
+            ? string.Format(CultureInfo.CurrentCulture, UiStrings.Review_FromRule, rule)
+            : from.Kind switch
+            {
+                ClaimSourceKind.Tag => string.Format(CultureInfo.CurrentCulture, UiStrings.Review_FromTag, from.Detail),
+                ClaimSourceKind.FileName => string.Format(CultureInfo.CurrentCulture, UiStrings.Review_FromFileName, from.Detail),
+                ClaimSourceKind.Folder => string.Format(CultureInfo.CurrentCulture, UiStrings.Review_FromFolder, from.Detail),
+                _ => UiStrings.Review_FromNothing
+            };
     }
 
     public static string ReasonOf(ReviewReason reason) => reason switch

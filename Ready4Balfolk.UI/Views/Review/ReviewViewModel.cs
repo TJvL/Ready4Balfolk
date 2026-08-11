@@ -8,11 +8,11 @@ using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using AsyncAwaitBestPractices;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
-using Ready4Balfolk.Domain.Models.Tracks;
-using AsyncAwaitBestPractices;
 using Ready4Balfolk.Domain.Helpers;
+using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -176,7 +176,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             var dances = _danceListStore.Index;
 
             var ignored = await _libraryIndex.GetIgnoredValuesAsync();
-            var groups = ReviewQueue.Build(
+            var groups = ReviewQueueBuilder.Build(
                 entries, approvals, dances, _settingsStore.Current.MusicDirectoryPath, ignored);
 
             Rows.Clear();

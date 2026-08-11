@@ -93,7 +93,7 @@ public sealed class DanceListStoreTests : IDisposable
         await _sut.LoadAsync(CancellationToken.None);
         _feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns(Serialise(TestData.CreateSimpleDanceList()));
 
-        var update = await _sut.RefreshAsync();
+        var update = await _sut.RefreshAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(DanceListUpdateOutcome.Updated, update.Outcome);
         Assert.Equal(3, _sut.Current.Dances.Count);
@@ -105,7 +105,7 @@ public sealed class DanceListStoreTests : IDisposable
     {
         _feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns(Serialise(TestData.CreateSimpleDanceList()));
 
-        await _sut.RefreshAsync();
+        await _sut.RefreshAsync(TestContext.Current.CancellationToken);
 
         Assert.True(File.Exists(CachePath));
     }
@@ -115,8 +115,8 @@ public sealed class DanceListStoreTests : IDisposable
     {
         _feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns(Serialise(TestData.CreateSimpleDanceList()));
 
-        await _sut.RefreshAsync();
-        var second = await _sut.RefreshAsync();
+        await _sut.RefreshAsync(TestContext.Current.CancellationToken);
+        var second = await _sut.RefreshAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(DanceListUpdateOutcome.AlreadyCurrent, second.Outcome);
     }
@@ -129,7 +129,7 @@ public sealed class DanceListStoreTests : IDisposable
         _feed.DownloadAsync(Arg.Any<CancellationToken>())
             .Returns<Task<string>>(_ => throw new HttpRequestException("no network"));
 
-        var update = await _sut.RefreshAsync();
+        var update = await _sut.RefreshAsync(TestContext.Current.CancellationToken);
 
         // Offline is an ordinary state for a laptop in a hall, not a failure to recover from.
         Assert.Equal(DanceListUpdateOutcome.Failed, update.Outcome);
@@ -143,7 +143,7 @@ public sealed class DanceListStoreTests : IDisposable
         var before = _sut.Current;
         _feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns("""{"formatVersion":4,"dances":[]}""");
 
-        var update = await _sut.RefreshAsync();
+        var update = await _sut.RefreshAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(DanceListUpdateOutcome.Failed, update.Outcome);
         Assert.Equal(before, _sut.Current);
@@ -155,7 +155,7 @@ public sealed class DanceListStoreTests : IDisposable
         var file = new FileInfo(Path.Combine(_tempDir.FullName, "carried_in.json"));
         await File.WriteAllTextAsync(file.FullName, Serialise(TestData.CreateSimpleDanceList()), TestContext.Current.CancellationToken);
 
-        var update = await _sut.UpdateFromFileAsync(file);
+        var update = await _sut.UpdateFromFileAsync(file, TestContext.Current.CancellationToken);
 
         Assert.Equal(DanceListUpdateOutcome.Updated, update.Outcome);
         Assert.Equal(3, _sut.Current.Dances.Count);
@@ -175,7 +175,7 @@ public sealed class DanceListStoreTests : IDisposable
             ]
         }), TestContext.Current.CancellationToken);
 
-        var update = await _sut.UpdateFromFileAsync(file);
+        var update = await _sut.UpdateFromFileAsync(file, TestContext.Current.CancellationToken);
 
         // An ambiguous name is exactly what would make discovery answer with a set of dances.
         Assert.Equal(DanceListUpdateOutcome.Failed, update.Outcome);

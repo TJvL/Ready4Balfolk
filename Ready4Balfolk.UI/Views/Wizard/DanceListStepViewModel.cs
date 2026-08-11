@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
-using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Services.Dances;

@@ -161,7 +161,7 @@ public sealed class ReviewQueueTests
     {
         // Leaving "trad" in the box is leaving a wrong answer where somebody is looking for a
         // missing one, and it comes back off the file on every rescan.
-        var queue = ReviewQueue.Build(
+        var queue = ReviewQueueBuilder.Build(
             new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
             {
                 ["/music/a.mp3"] = Entry("/music/a.mp3", [1], slug: null, originalDance: "trad")
@@ -185,7 +185,7 @@ public sealed class ReviewQueueTests
     }
 
     private IReadOnlyList<ReviewGroup> Build(LibraryEntry[] entries, params TrackApproval[] approvals) =>
-        ReviewQueue.Build(
+        ReviewQueueBuilder.Build(
             entries.ToDictionary(entry => entry.Path, StringComparer.Ordinal),
             approvals
                 .GroupBy(approval => LibraryKey.For(approval.ContentHash), StringComparer.Ordinal)
@@ -209,16 +209,16 @@ public sealed class ReviewQueueTests
         string? originalDance = "Mazurka",
         string? artist = "Naragonia",
         string? title = "Le badaud") => new()
-    {
-        ContentHash = hash,
-        Path = path,
-        FileSize = 1,
-        LastWriteUtc = Written,
-        Duration = TimeSpan.FromMinutes(3),
-        Format = AudioFormat.Mp3,
-        DanceSlug = slug,
-        OriginalDance = originalDance,
-        Artist = artist,
-        Title = title
-    };
+        {
+            ContentHash = hash,
+            Path = path,
+            FileSize = 1,
+            LastWriteUtc = Written,
+            Duration = TimeSpan.FromMinutes(3),
+            Format = AudioFormat.Mp3,
+            DanceSlug = slug,
+            OriginalDance = originalDance,
+            Artist = artist,
+            Title = title
+        };
 }

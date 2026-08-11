@@ -168,18 +168,15 @@ public sealed class FileNamePattern
             return null;
         }
 
-        if (!match.Success)
-        {
-            return null;
-        }
-
-        return new FileNamePatternMatch
-        {
-            Dance = Captured(match, "d"),
-            Artist = Captured(match, "a"),
-            Title = Captured(match, "t"),
-            TrackNumber = Captured(match, "n")
-        };
+        return match.Success
+            ? new FileNamePatternMatch
+            {
+                Dance = Captured(match, "d"),
+                Artist = Captured(match, "a"),
+                Title = Captured(match, "t"),
+                TrackNumber = Captured(match, "n")
+            }
+            : null;
     }
 
     private static string? Captured(Match match, string group)
@@ -201,12 +198,7 @@ public sealed class FileNamePattern
             return (TokenKind.Extension, 3);
         }
 
-        if (at + 1 >= text.Length)
-        {
-            return null;
-        }
-
-        return text[at + 1] switch
+        return at + 1 >= text.Length ? null : text[at + 1] switch
         {
             'd' => (TokenKind.Dance, 2),
             'a' => (TokenKind.Artist, 2),

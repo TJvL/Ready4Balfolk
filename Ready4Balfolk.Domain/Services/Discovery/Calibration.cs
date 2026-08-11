@@ -152,16 +152,13 @@ public static class Calibration
     public static CalibrationReport Measure(
         IReadOnlyList<CalibrationFile> files, DanceListIndex dances, DiscoverySettings declared)
     {
-        if (files.Count == 0)
-        {
-            return new CalibrationReport();
-        }
-
-        return new CalibrationReport
-        {
-            Folders = [.. FolderRoles(files, dances, declared)],
-            Shapes = [.. Shapes(files, dances)]
-        };
+        return files.Count == 0
+            ? new CalibrationReport()
+            : new CalibrationReport
+            {
+                Folders = [.. FolderRoles(files, dances, declared)],
+                Shapes = [.. Shapes(files, dances)]
+            };
     }
 
     /// <summary>
@@ -272,7 +269,7 @@ public static class Calibration
     /// <summary>What one position of a shape behaves like, and the counts that say so.</summary>
     private static PositionFinding Describe(
         int position,
-        IReadOnlyList<(CalibrationFile File, string[] Parts)> members,
+        List<(CalibrationFile File, string[] Parts)> members,
         DanceListIndex dances)
     {
         var values = members.Select(member => member.Parts[position - 1]).ToList();
@@ -340,38 +337,17 @@ public static class Calibration
         int danceNames,
         int numeric,
         int agreesWithArtist,
-        int agreesWithTitle)
-    {
-        if (numeric >= files * Certain)
+        int agreesWithTitle) => true switch
         {
-            // Read so a pattern can say where it sits. Nothing wants a track number.
-            return null;
-        }
-
-        if (agreesWithArtist >= files * Convincing)
-        {
-            return TrackField.Artist;
-        }
-
-        if (agreesWithTitle >= files * Convincing)
-        {
-            return TrackField.Title;
-        }
-
-        if (danceNames >= files * Convincing)
-        {
-            return TrackField.Dance;
-        }
-
-        if (distinct >= files * Certain)
-        {
-            return TrackField.Title;
-        }
-
-        return folders >= FoldersWorthComparing && constantInFolders >= folders * Convincing
-            ? TrackField.Artist
-            : null;
-    }
+            // A track number is read so a pattern can say where it sits. Nothing wants one.
+            _ when numeric >= files * Certain => null,
+            _ when agreesWithArtist >= files * Convincing => TrackField.Artist,
+            _ when agreesWithTitle >= files * Convincing => TrackField.Title,
+            _ when danceNames >= files * Convincing => TrackField.Dance,
+            _ when distinct >= files * Certain => TrackField.Title,
+            _ when folders >= FoldersWorthComparing && constantInFolders >= folders * Convincing => TrackField.Artist,
+            _ => null
+        };
 
     /// <summary>
     /// The rule a shape would be declared as, or null when it would answer nothing.

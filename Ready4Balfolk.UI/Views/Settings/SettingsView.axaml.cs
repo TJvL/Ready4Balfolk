@@ -3,8 +3,8 @@ using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using ReactiveUI.Avalonia.Reactive;
 using Microsoft.Extensions.DependencyInjection;
+using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 

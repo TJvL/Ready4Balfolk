@@ -2,7 +2,7 @@ using Ready4Balfolk.Domain.Services.Tracks;
 
 namespace Ready4Balfolk.Tests.Unit;
 
-public sealed class DancePoolTests
+public sealed class DancePoolTests : IDisposable
 {
     private readonly DancePool _sut = new();
 
@@ -69,4 +69,6 @@ public sealed class DancePoolTests
 
         Assert.Equal(1, seen);
     }
+
+    public void Dispose() => _sut.Dispose();
 }

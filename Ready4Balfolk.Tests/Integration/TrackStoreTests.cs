@@ -216,7 +216,7 @@ public sealed class TrackStoreTests : IDisposable
         await WaitUntilAsync(() => _sut.Current.Any(track => track.FileInfo.Name == "a.mp3"));
 
         await _libraryIndex.DidNotReceive().ApproveAsync(
-            Arg.Is<IReadOnlyCollection<TrackApproval>>(approvals => approvals.Count > 0),
+            Arg.Is<IReadOnlyCollection<TrackApproval>>(approvals => approvals != null && approvals.Count > 0),
             Arg.Any<CancellationToken>());
     }
 
@@ -335,7 +335,7 @@ public sealed class TrackStoreTests : IDisposable
     }
 
     /// <summary>Every indexed track, answered on all three fields, so the gate is not the subject.</summary>
-    private IReadOnlyDictionary<string, IReadOnlyList<TrackApproval>> Approved()
+    private Dictionary<string, IReadOnlyList<TrackApproval>> Approved()
     {
         lock (_indexSnapshot)
         {

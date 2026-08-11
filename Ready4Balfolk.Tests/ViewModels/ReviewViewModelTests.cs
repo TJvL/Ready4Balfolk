@@ -41,7 +41,7 @@ public sealed class ReviewViewModelTests : IDisposable
 
         _libraryIndex.SnapshotByPathAsync().Returns(_ => Snapshot());
         _libraryIndex.ApprovalsAsync().Returns(_ =>
-            (IReadOnlyDictionary<string, IReadOnlyList<TrackApproval>>)new Dictionary<string, IReadOnlyList<TrackApproval>>(StringComparer.Ordinal));
+            new Dictionary<string, IReadOnlyList<TrackApproval>>(StringComparer.Ordinal));
         _libraryIndex.ApproveIndividuallyAsync(
                 Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<TrackField>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(call =>
@@ -259,8 +259,8 @@ public sealed class ReviewViewModelTests : IDisposable
         await _sut.ApproveCommand.Execute(row);
     }
 
-    private static IReadOnlyDictionary<string, LibraryEntry> Snapshot() =>
-        new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
+    private static Dictionary<string, LibraryEntry> Snapshot() =>
+        new(StringComparer.Ordinal)
         {
             ["/music/Naragonia/a.mp3"] = Entry("/music/Naragonia/a.mp3", [1], "Scottiche"),
             ["/music/Naragonia/b.mp3"] = Entry("/music/Naragonia/b.mp3", [2], "Scottiche"),
