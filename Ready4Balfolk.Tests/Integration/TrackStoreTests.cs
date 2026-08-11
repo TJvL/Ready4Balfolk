@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain;
 using Ready4Balfolk.Domain.Models.Dances;
@@ -23,6 +24,11 @@ public sealed class TrackStoreTests : IDisposable
     private readonly ITrackDiscoveryService _discoveryService;
     private readonly ILibraryIndex _libraryIndex;
     private Dictionary<string, LibraryEntry> _indexSnapshot = [];
+    // A BehaviorSubject as the real store is: it replays its current list to a new subscriber, and
+    // the store's Skip(1) is there to drop exactly that replay. A bare Subject makes the first real
+    // update look like the replay and it is silently swallowed.
+    private readonly BehaviorSubject<DanceList> _danceLists;
+    private DanceListIndex _danceIndex = DanceListIndex.Empty;
     private readonly TrackStore _sut;
 
     public TrackStoreTests()
@@ -42,10 +48,13 @@ public sealed class TrackStoreTests : IDisposable
         // A list with the one dance these tests use, because a track only reaches the library with a
         // dance the published list knows.
         var danceList = new DanceList { Dances = [TestData.CreateDance("mazurka", names: ["Mazurka"])] };
+        _danceIndex = DanceListIndex.Build(danceList);
+        _danceLists = new BehaviorSubject<DanceList>(danceList);
+
         var danceListStore = Substitute.For<IDanceListStore>();
         danceListStore.Current.Returns(danceList);
-        danceListStore.Index.Returns(DanceListIndex.Build(danceList));
-        danceListStore.Observe().Returns(Observable.Never<DanceList>());
+        danceListStore.Index.Returns(_ => _danceIndex);
+        danceListStore.Observe().Returns(_danceLists);
 
         // An index that remembers what it is written, and says every track was approved. These
         // tests are about the store's discovery and watching; the gate has its own.
@@ -224,6 +233,32 @@ public sealed class TrackStoreTests : IDisposable
 
         await WaitUntilAsync(() => _libraryIndex.ReceivedCalls()
             .Any(call => call.GetMethodInfo().Name == nameof(ILibraryIndex.RevokeRuleApprovalsAsync)));
+    }
+
+    [Fact]
+    public async Task AReimportedDanceList_LetsTheTracksItNowCarriesThrough()
+    {
+        // A merged proposal at BigBalfolkList has to visibly clear part of the backlog. The track
+        // was answered long ago; only the list was missing the name.
+        _danceIndex = DanceListIndex.Empty;
+        await File.WriteAllTextAsync(
+            Path.Combine(_tempDirA.FullName, "a.mp3"), "", TestContext.Current.CancellationToken);
+
+        var isLoading = true;
+        using var loading = _sut.IsLoading.Subscribe(value => isLoading = value);
+
+        _sut.MusicDirectory = _tempDirA;
+        await WaitUntilAsync(() => _indexSnapshot.Count == 1 && !isLoading);
+
+        // Approved on every field, and still not in the library: the list has never heard of the
+        // dance, so the gate holds it.
+        Assert.Empty(_sut.Current);
+
+        var carried = new DanceList { Dances = [TestData.CreateDance("mazurka", names: ["Mazurka"])] };
+        _danceIndex = DanceListIndex.Build(carried);
+        _danceLists.OnNext(carried);
+
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
     }
 
     public void Dispose()

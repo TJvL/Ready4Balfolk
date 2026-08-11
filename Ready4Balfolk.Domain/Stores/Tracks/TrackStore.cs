@@ -53,12 +53,19 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _danceListStore = danceListStore;
         _libraryIndex = libraryIndex;
 
-        // Skip(1): the store replays its current list to a new subscriber, and re-resolving an
-        // empty track list at construction is work with nothing to do.
+        // Skip(1): the store replays its current list to a new subscriber, and rebuilding an empty
+        // library at construction is work with nothing to do.
+        //
+        // A rebuild rather than a re-resolve, and it is what makes a merged proposal at
+        // BigBalfolkList visibly clear part of the backlog. A track parked on a value the list did
+        // not carry is not in the published library at all, so there is nothing in hand to
+        // re-point; the gate resolves what was approved against the list every time, so importing a
+        // list that now carries the name lets those tracks through and nobody is asked again.
         _danceListSubscription = danceListStore.Observe()
             .Skip(1)
             .ObserveOn(TaskPoolScheduler.Default)
-            .Subscribe(_ => ReResolveAllTracks());
+            .Subscribe(_ => RefreshLibraryAsync().SafeFireAndForget(exception =>
+                _loggerService.ErrorAsync("Failed to rebuild the library after a dance list update", exception)));
     }
 
     ~TrackStore()
@@ -175,37 +182,6 @@ public sealed class TrackStore : ITrackStore, IDisposable
             _isLoading.Dispose();
             _loadGate.Dispose();
         }
-    }
-
-    private void ReResolveAllTracks()
-    {
-        _tracks.Edit(list =>
-        {
-            for (var i = 0; i < list.Count; i++)
-            {
-                list[i] = ResolveTrackDance(list[i]);
-            }
-        });
-    }
-
-    /// <summary>
-    /// Points a track at a dance in the list, or leaves it unresolved.
-    /// </summary>
-    /// <remarks>
-    /// An unknown name is kept as it stands rather than blanked: it is what the tagging editor
-    /// later groups by, and a track the list has nothing to say about is still a track.
-    /// </remarks>
-    private Track ResolveTrackDance(Track track)
-    {
-        var index = _danceListStore.Index;
-        var slug = index.ResolveSlug(track.OriginalDance);
-
-        return track with
-        {
-            Dance = slug is null ? track.OriginalDance : index.DisplayNameFor(slug),
-            OriginalDance = track.OriginalDance,
-            DanceSlug = slug
-        };
     }
 
     private static ICollection<FileInfo> DiscoverFiles(DirectoryInfo directory)
