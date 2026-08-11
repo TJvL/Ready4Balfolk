@@ -12,12 +12,13 @@ public sealed class MaxItemsRuleTests
     [Fact]
     public void EvaluateAdd_AtLimitOfRequests_AutoTrackStillAllowed()
     {
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var mockFileSystem = new MockFileSystem();
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         IReadOnlyList<IQueueItem> items =
         [
-            new TrackQueueItem(TestData.CreateTrack("A"), false),
-            new TrackQueueItem(TestData.CreateTrack("B"), false),
-            new TrackQueueItem(TestData.CreateTrack("C"), false)
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "C"), false)
         ];
 
         Assert.Null(_sut.EvaluateAdd(auto, items));
@@ -26,12 +27,13 @@ public sealed class MaxItemsRuleTests
     [Fact]
     public void EvaluateAdd_AutoTrackDoesNotConsumeASlot()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack("New"), false);
+        var mockFileSystem = new MockFileSystem();
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "New"), false);
         IReadOnlyList<IQueueItem> items =
         [
-            new TrackQueueItem(TestData.CreateTrack("A"), false),
-            new TrackQueueItem(TestData.CreateTrack("B"), false),
-            new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true))
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false),
+            new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Auto"), true))
         ];
 
         Assert.Null(_sut.EvaluateAdd(track, items));
@@ -40,13 +42,15 @@ public sealed class MaxItemsRuleTests
     [Fact]
     public void GetEvictionIndices_SkipsAutoTrack()
     {
+        var mockFileSystem = new MockFileSystem();
+
         IReadOnlyList<IQueueItem> items =
         [
-            new TrackQueueItem(TestData.CreateTrack("A"), false),
-            new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true)),
-            new TrackQueueItem(TestData.CreateTrack("B"), false),
-            new TrackQueueItem(TestData.CreateTrack("C"), false),
-            new TrackQueueItem(TestData.CreateTrack("D"), false)
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false),
+            new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Auto"), true)),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "C"), false),
+            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "D"), false)
         ];
 
         // max=3 requests: A, B, C are kept, D is evicted, and the auto-track is never touched.

@@ -86,7 +86,7 @@ public sealed class App : Application
                 _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.MusicDirectoryPath)
                     .Where(path => !string.IsNullOrWhiteSpace(path))
-                    .Select(r => new DirectoryInfo(r))
+                    .Select(r => fileSystem.DirectoryInfo.New(r))
                     .Subscribe(directory => trackStore.MusicDirectory = directory));
 
                 var windowState = settingsStore.Current.MainWindowState;

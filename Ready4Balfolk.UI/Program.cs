@@ -174,7 +174,6 @@ public static class Program
         services.AddSingleton<IApplicationSettingsDirectory, ApplicationSettingsDirectory>();
         services.AddTransient<IEditorHistoryService, EditorHistoryService>();
         services.AddSingleton<ITrackDurationCache, TrackDurationCache>();
-        services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<ISynonymResolutionService, SynonymResolutionService>();
         services.AddSingleton<IPresentationStateService, PresentationStateService>();

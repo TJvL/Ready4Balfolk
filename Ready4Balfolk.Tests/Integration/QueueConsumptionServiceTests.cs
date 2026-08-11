@@ -98,8 +98,9 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     [Fact]
     public async Task AdvanceAsync_RecordsWhenTheTrackStarted()
     {
+        var mockFileSystem = new MockFileSystem();
         var before = DateTime.Now;
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
         _queue.Enqueue(track);
         await _sut.AdvanceAsync();
         await _sut.AdvanceAsync();

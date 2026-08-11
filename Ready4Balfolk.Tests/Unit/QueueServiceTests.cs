@@ -170,8 +170,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Enqueue_AutoTrack_SecondOne_Fails()
     {
-        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("A"), true)));
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true));
+        var mockFileSystem = new MockFileSystem();
+        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), true)));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), true));
         Assert.False(_sut.Enqueue(auto).Allowed);
         Assert.Equal(1, _sut.Count);
     }
@@ -227,9 +228,11 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Move_Regular_CannotGoBelowAutoTrack()
     {
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
-        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true)));
+        var mockFileSystem = new MockFileSystem();
+
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false));
+        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Auto"), true)));
 
         Assert.True(_sut.Move(0, 2));
 
@@ -240,8 +243,9 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Clear_KeepsAutoTrack()
     {
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
-        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true)));
+        var mockFileSystem = new MockFileSystem();
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
+        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Auto"), true)));
 
         Assert.True(_sut.Clear());
 

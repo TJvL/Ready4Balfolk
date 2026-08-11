@@ -1,3 +1,5 @@
+using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Tests.Helpers;
@@ -14,7 +16,7 @@ public sealed class QueueCutoffRuleTests
             () => currentRemaining ?? TimeSpan.Zero, () => now ?? Evening);
 
     private static TrackQueueItem Track(int minutes) =>
-        new(TestData.CreateTrack(lengthSeconds: minutes * 60), false);
+        new(TestData.CreateTrack(new MockFileSystem(), lengthSeconds: minutes * 60), false);
 
     // 22:45 + 5 minutes is nowhere near 23:00.
     [Fact]
@@ -88,9 +90,10 @@ public sealed class QueueCutoffRuleTests
     [Fact]
     public void EvaluateAdd_AutoTrackIsNeverRefused()
     {
+        var mockFileSystem = new MockFileSystem();
         // The auto-track is a placeholder rather than a request, as with the max items limit.
         var sut = CreateSut();
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
 
         Assert.Null(sut.EvaluateAdd(auto, [Track(60)]));
     }

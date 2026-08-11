@@ -35,9 +35,11 @@ public sealed class AutoTrackRuleTests
     [Fact]
     public void EvaluateAdd_AutoTrack_AlreadyPresent_Denies()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var sut = new AutoTrackRule(true);
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
-        var existing = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("A"), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
+        var existing = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), true));
         var verdict = sut.EvaluateAdd(auto, [existing]);
         Assert.NotNull(verdict);
         Assert.False(verdict.Allowed);

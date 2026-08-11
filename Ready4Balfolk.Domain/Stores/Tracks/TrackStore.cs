@@ -30,7 +30,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     // cleared them.
     private readonly SemaphoreSlim _loadGate = new(1, 1);
     private CancellationTokenSource? _loadCts;
-    private FileSystemWatcher? _watcher;
+    private IFileSystemWatcher? _watcher;
     private bool _disposed;
     private readonly IFileSystem _fileSystem;
 
@@ -205,7 +205,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 .Merge(MaxAmountOfFileReaderThreads)
                 .Buffer(TimeSpan.FromMilliseconds(200), 50);
 
-            await trackLoaded.Where(r => r.Any()).ForEachAsync(tracksBatch =>
+            await trackLoaded
+                .Where(r => r.Any()).ForEachAsync(tracksBatch =>
             {
                 _tracks.Edit(innerList => innerList.AddRange(tracksBatch));
 
@@ -215,6 +216,10 @@ public sealed class TrackStore : ITrackStore, IDisposable
             await _loggerService.DebugAsync($"Loaded '{_tracks.Count:N0}' tracks successfully");
             await _durationCache.SaveAsync([.. audioFiles.Select(r => r.FullName)]);
             StartWatching(directory, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // this can happen when the ForEachAsync takes too long
         }
         finally
         {
@@ -261,11 +266,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
         // Local capture: the FromEventPattern remove-handlers must close over this
         // instance, not the _watcher field, which is nulled on the next reload
         // before the old subscriptions are disposed.
-        var watcher = new FileSystemWatcher(directory.FullName)
-        {
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.FileName
-        };
+
+        var watcher = _fileSystem.FileSystemWatcher.New(directory.FullName);
+        watcher.IncludeSubdirectories = true;
+        watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite;
+
         _watcher = watcher;
 
         var createdObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(

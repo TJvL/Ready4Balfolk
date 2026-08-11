@@ -92,10 +92,11 @@ public sealed class QueueGuardTests
     [Fact]
     public void EvaluateAdd_AutoTrack_AlreadyPresent_Denies()
     {
+        var mockFileSystem = new MockFileSystem();
         var guard = CreateGuard();
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         IReadOnlyList<IQueueItem> items =
-            [new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("A"), true))];
+            [new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), true))];
 
         var result = guard.EvaluateAdd(auto, items);
         Assert.False(result.Allowed);
