@@ -1,5 +1,3 @@
-using Ready4Balfolk.Domain.Helpers;
-
 namespace Ready4Balfolk.Domain.Models.Dances;
 
 /// <summary>A lookup built over a <see cref="DanceList"/>: folded name to slug, slug to dance.</summary>
@@ -13,10 +11,12 @@ public sealed class DanceListIndex
     private readonly Dictionary<string, string> _slugByFoldedName;
     private readonly Dictionary<string, Dance> _danceBySlug;
 
-    private DanceListIndex(Dictionary<string, string> slugByFoldedName, Dictionary<string, Dance> danceBySlug)
+    private DanceListIndex(
+        Dictionary<string, string> slugByFoldedName, Dictionary<string, Dance> danceBySlug, DanceWords words)
     {
         _slugByFoldedName = slugByFoldedName;
         _danceBySlug = danceBySlug;
+        Words = words;
 
         // Longest first, so scanning a filename for any known name prefers "Bourrée 3 temps" over
         // the "Bourrée" sitting inside it.
@@ -25,7 +25,10 @@ public sealed class DanceListIndex
 
     public static DanceListIndex Empty { get; } = Build(DanceList.Empty);
 
-    /// <summary>Every known name, folded, longest first.</summary>
+    /// <summary>The word lists the file ships, and the match key they produce.</summary>
+    public DanceWords Words { get; }
+
+    /// <summary>Every known name as a match key, longest first.</summary>
     public IReadOnlyList<string> FoldedNamesLongestFirst { get; }
 
     public IReadOnlyCollection<Dance> Dances => _danceBySlug.Values;
@@ -39,6 +42,7 @@ public sealed class DanceListIndex
     {
         var slugByFoldedName = new Dictionary<string, string>(StringComparer.Ordinal);
         var danceBySlug = new Dictionary<string, Dance>(StringComparer.Ordinal);
+        var words = DanceWords.From(list);
 
         foreach (var dance in list.Dances)
         {
@@ -49,22 +53,24 @@ public sealed class DanceListIndex
 
             foreach (var name in dance.Names)
             {
-                var folded = StringNormalizer.Normalize(name);
-                if (folded.Length > 0)
+                // Keyed rather than merely folded, so the five ways of writing one bourrée are one
+                // entry and a file spelling it any of them lands on the dance.
+                var key = words.KeyFor(name);
+                if (key.Length > 0)
                 {
-                    slugByFoldedName.TryAdd(folded, dance.Slug);
+                    slugByFoldedName.TryAdd(key, dance.Slug);
                 }
             }
         }
 
-        return new DanceListIndex(slugByFoldedName, danceBySlug);
+        return new DanceListIndex(slugByFoldedName, danceBySlug, words);
     }
 
     /// <summary>The slug the given name belongs to, or null when the list does not know it.</summary>
     public string? ResolveSlug(string name)
     {
-        var folded = StringNormalizer.Normalize(name);
-        return folded.Length == 0 ? null : _slugByFoldedName.GetValueOrDefault(folded);
+        var key = Words.KeyFor(name);
+        return key.Length == 0 ? null : _slugByFoldedName.GetValueOrDefault(key);
     }
 
     public Dance? FindBySlug(string slug) => _danceBySlug.GetValueOrDefault(slug);

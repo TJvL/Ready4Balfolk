@@ -32,7 +32,7 @@ public sealed class DanceListReaderTests
     public void Read_TheShapeBigBalfolkListPublishes_IsUnderstood()
     {
         const string json = """
-            {"formatVersion":3,
+            {"formatVersion":4,
              "tags":["bretagne","france"],
              "dances":[{"slug":"an-dro","names":["An dro","En dro"],"tags":["bretagne","france"]}]}
             """;
@@ -59,7 +59,7 @@ public sealed class DanceListReaderTests
     [Fact]
     public void Read_ANewerFormat_IsRefused()
     {
-        const string json = """{"formatVersion":4,"dances":[{"slug":"an-dro","names":["An dro"]}]}""";
+        const string json = """{"formatVersion":5,"dances":[{"slug":"an-dro","names":["An dro"]}]}""";
 
         Assert.Throws<InvalidDataException>(() => DanceListReader.Read(json));
     }
@@ -71,13 +71,13 @@ public sealed class DanceListReaderTests
     // and no sign that anything had gone wrong.
     [Fact]
     public void Read_NoDances_IsRefused() =>
-        Assert.Throws<InvalidDataException>(() => DanceListReader.Read("""{"formatVersion":3,"dances":[]}"""));
+        Assert.Throws<InvalidDataException>(() => DanceListReader.Read("""{"formatVersion":4,"dances":[]}"""));
 
     [Fact]
     public void Read_ANameMeaningTwoDances_IsRefusedAndSaysWhich()
     {
         const string json = """
-            {"formatVersion":3,
+            {"formatVersion":4,
              "dances":[{"slug":"a","names":["Hanter dro"]},{"slug":"b","names":["Hanter-dro"]}]}
             """;
 
@@ -90,7 +90,7 @@ public sealed class DanceListReaderTests
     public void Read_ATagNoneOfTheTopLevelTagsDeclares_IsRefused()
     {
         const string json = """
-            {"formatVersion":3,"tags":["bretagne"],
+            {"formatVersion":4,"tags":["bretagne"],
              "dances":[{"slug":"an-dro","names":["An dro"],"tags":["bretagne","invented"]}]}
             """;
 

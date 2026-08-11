@@ -1,4 +1,3 @@
-using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Dances;
 
 namespace Ready4Balfolk.Domain.Services.Dances;
@@ -20,6 +19,7 @@ public static class DanceListValidation
         var undeclaredTags = new List<string>();
 
         var ownerByFoldedName = new Dictionary<string, string>(StringComparer.Ordinal);
+        var words = DanceWords.From(list);
         var seenSlugs = new HashSet<string>(StringComparer.Ordinal);
         var declaredTags = new HashSet<string>(list.Tags, StringComparer.Ordinal);
 
@@ -44,7 +44,9 @@ public static class DanceListValidation
 
             foreach (var name in usableNames)
             {
-                var folded = StringNormalizer.Normalize(name);
+                // The key, not the folded name: "Bourrée 3 temps" and "Bourrée à trois temps" are
+                // one name, and two dances carrying them would be one name meaning two dances.
+                var folded = words.KeyFor(name);
                 if (folded.Length == 0)
                 {
                     continue;

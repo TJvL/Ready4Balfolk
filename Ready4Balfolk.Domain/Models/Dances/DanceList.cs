@@ -11,12 +11,27 @@ namespace Ready4Balfolk.Domain.Models.Dances;
 public sealed record DanceList
 {
     /// <summary>The format version BigBalfolkList publishes. Anything else is refused.</summary>
-    public const int CurrentFormatVersion = 3;
+    public const int CurrentFormatVersion = 4;
 
     public static DanceList Empty { get; } = new();
 
     [JsonPropertyName("formatVersion")]
     public int FormatVersion { get; init; } = CurrentFormatVersion;
+
+    /// <summary>
+    /// Glue words a name is compared without: articles, prepositions, and "temps" with its
+    /// translations, because "Valse à 3 temps" and "Valse 3" are one dance.
+    /// </summary>
+    [JsonPropertyName("ignoredWords")]
+    public IReadOnlyList<string> IgnoredWords { get; init; } = [];
+
+    /// <summary>
+    /// Number words in every language the list has met, to their digits, so "trois", "drie" and
+    /// "3t" all read as 3.
+    /// </summary>
+    [JsonPropertyName("numberWords")]
+    public IReadOnlyDictionary<string, string> NumberWords { get; init; } =
+        new Dictionary<string, string>(StringComparer.Ordinal);
 
     /// <summary>Every tag that exists, including ones no dance carries yet.</summary>
     [JsonPropertyName("tags")]

@@ -23,7 +23,8 @@ public static class UnrecognisedValueClassifier
     /// <summary>Decides what kind of unrecognised value this is, and what it might mean.</summary>
     public static (UnrecognisedKind Kind, IReadOnlyList<string> Slugs) Classify(string value, DanceListIndex index)
     {
-        var folded = StringNormalizer.Normalize(value);
+        // Keyed, so "Bourree a trois temps" is not three edits away from "bourree 3".
+        var folded = index.Words.KeyFor(value);
         if (folded.Length == 0)
         {
             return (UnrecognisedKind.Unknown, []);

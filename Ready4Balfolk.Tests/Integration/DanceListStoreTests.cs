@@ -141,7 +141,7 @@ public sealed class DanceListStoreTests : IDisposable
     {
         await _sut.LoadAsync(CancellationToken.None);
         var before = _sut.Current;
-        _feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns("""{"formatVersion":3,"dances":[]}""");
+        _feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns("""{"formatVersion":4,"dances":[]}""");
 
         var update = await _sut.RefreshAsync();
 
