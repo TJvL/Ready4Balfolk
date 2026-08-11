@@ -1,14 +1,9 @@
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 
-namespace Ready4Balfolk.Tests.Integration;
+namespace Ready4Balfolk.Tests.Helpers.FileSystemHelpers;
 
-public class WatchableMockFileSystem : MockFileSystem
+public class WatchableMockFileSystem(Func<string, IFileSystemWatcher> watcher) : MockFileSystem
 {
-    public WatchableMockFileSystem(Func<string, IFileSystemWatcher> watcher) : base()
-    {
-        FileSystemWatcher = new MockFileSystemWatcherFactory(new MockFileSystem(), watcher);
-    }
-
-    public override IFileSystemWatcherFactory FileSystemWatcher { get; }
+    public override IFileSystemWatcherFactory FileSystemWatcher { get; } = new MockFileSystemWatcherFactory(new MockFileSystem(), watcher);
 }

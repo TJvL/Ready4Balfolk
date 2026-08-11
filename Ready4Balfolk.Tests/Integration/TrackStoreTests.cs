@@ -8,6 +8,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Synonym;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Tracks;
+using Ready4Balfolk.Tests.Helpers.FileSystemHelpers;
 
 namespace Ready4Balfolk.Tests.Integration;
 
@@ -17,21 +18,22 @@ public sealed class TrackStoreTests : IDisposable
     private readonly IDirectoryInfo _tempDirB;
     private readonly ILoggerService _loggerService;
     private readonly TrackStore _sut;
-    private readonly IFileSystem _fileSystem;
-    private readonly Dictionary<string, IFileSystemWatcher> _watchers = new();
+    private readonly WatchableMockFileSystem _fileSystem;
+    private readonly Dictionary<string, IFileSystemWatcher> _watchers = [];
 
     public TrackStoreTests()
     {
         SupportedAudioFormats.Initialize(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".mp3" });
 
-        Func<string, IFileSystemWatcher> watcher = (string path) =>
+        IFileSystemWatcher Watcher(string path)
         {
             var watcher = Substitute.For<IFileSystemWatcher>();
 
             _watchers[path] = watcher;
             return watcher;
-        };
-        _fileSystem = new WatchableMockFileSystem(watcher);
+        }
+
+        _fileSystem = new WatchableMockFileSystem(Watcher);
 
         _tempDirA = _fileSystem.Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDirA.Create();
