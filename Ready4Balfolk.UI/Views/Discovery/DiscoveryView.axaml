@@ -22,6 +22,76 @@
                        TextWrapping="Wrap"
                        IsVisible="{Binding !IsScanning}" />
 
+            <!-- What the library itself suggests, measured over what no rule covers yet. Computed
+                 when this screen opens and never pushed: a "480 files look like this, declare it?"
+                 popup during a dance is unforgivable. -->
+            <StackPanel Spacing="8" IsVisible="{Binding HasProposals}">
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_ProposalsHeader}"
+                           FontSize="18"
+                           FontWeight="Bold" />
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_ProposalsHint}"
+                           TextWrapping="Wrap"
+                           FontSize="11"
+                           Opacity="0.7" />
+
+                <ItemsControl ItemsSource="{Binding Proposals}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="local:ProposalViewModel">
+                            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8"
+                                    Margin="0,0,0,6">
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto,Auto">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Headline}"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" />
+                                        <Button Grid.Column="1"
+                                                Content="{x:Static res:UiStrings.Discovery_ProposalAccept}"
+                                                Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).AcceptProposalCommand}"
+                                                CommandParameter="{Binding}"
+                                                IsVisible="{Binding CanAccept}"
+                                                Focusable="False"
+                                                Margin="8,0,0,0" />
+                                        <Button Grid.Column="2"
+                                                Content="{x:Static res:UiStrings.Discovery_ProposalDismiss}"
+                                                Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).DismissProposalCommand}"
+                                                CommandParameter="{Binding}"
+                                                Focusable="False"
+                                                Margin="4,0,0,0" />
+                                    </Grid>
+
+                                    <ItemsControl ItemsSource="{Binding Evidence}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" FontSize="11" Opacity="0.75" TextWrapping="Wrap" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <ToggleButton Content="{x:Static res:UiStrings.Discovery_ProposalSamples}"
+                                                  IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                  HorizontalAlignment="Left"
+                                                  Padding="6,2"
+                                                  FontSize="11" />
+
+                                    <ItemsControl ItemsSource="{Binding Samples}" IsVisible="{Binding IsExpanded}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
             <!-- Patterns. The draft is measured against what no rule has taken yet, because that is
                  the pile the next rule is actually aimed at. -->
             <StackPanel Spacing="8">

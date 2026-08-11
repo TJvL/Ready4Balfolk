@@ -1022,4 +1022,37 @@
   <data name="Review_NotADanceHint" xml:space="preserve">
     <value>Wist het overal waar het staat en onthoudt het, zodat een herscan het niet terugzet. De nummers hebben nog steeds een echte dans nodig.</value>
   </data>
+  <data name="Discovery_ProposalsHeader" xml:space="preserve">
+    <value>Hoe je bibliotheek eruitziet</value>
+  </data>
+  <data name="Discovery_ProposalsHint" xml:space="preserve">
+    <value>Gemeten aan je eigen bestanden, en pas toegepast als jij het zegt. Waar de metingen elkaar niet steunen wordt de vorm getoond en niets benoemd.</value>
+  </data>
+  <data name="Discovery_ProposalShape" xml:space="preserve">
+    <value>{0} van {1} bestanden hebben de vorm {2}</value>
+  </data>
+  <data name="Discovery_ProposalShapeUnnamed" xml:space="preserve">
+    <value>{0} van {1} bestanden delen een vorm, en daarin valt niets te benoemen</value>
+  </data>
+  <data name="Discovery_ProposalLevel" xml:space="preserve">
+    <value>Niveau {0} lijkt de {1} te zijn. {2} van {3} zijn het eens.</value>
+  </data>
+  <data name="Discovery_ProposalPosition" xml:space="preserve">
+    <value>positie {0}: {1} — {2} van {5} zijn dansnamen, {3} verschillende waarden, {4} komen overeen met een tag</value>
+  </data>
+  <data name="Discovery_ProposalNothing" xml:space="preserve">
+    <value>niets kan het zeggen</value>
+  </data>
+  <data name="Discovery_ProposalAccept" xml:space="preserve">
+    <value>Vastleggen</value>
+  </data>
+  <data name="Discovery_ProposalDismiss" xml:space="preserve">
+    <value>Niet doen</value>
+  </data>
+  <data name="Discovery_ProposalSamples" xml:space="preserve">
+    <value>Laat de bestanden zien</value>
+  </data>
+  <data name="Discovery_NothingToPropose" xml:space="preserve">
+    <value>Niets in je bibliotheek herhaalt zich vaak genoeg om een regel voor te stellen.</value>
+  </data>
 </root>

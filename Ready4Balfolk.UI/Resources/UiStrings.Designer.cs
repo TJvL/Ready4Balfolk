@@ -977,4 +977,27 @@ public static class UiStrings
         ResourceManager.GetString("Review_NotADance", Culture)!;
     public static string Review_NotADanceHint =>
         ResourceManager.GetString("Review_NotADanceHint", Culture)!;
+
+    public static string Discovery_ProposalsHeader =>
+        ResourceManager.GetString("Discovery_ProposalsHeader", Culture)!;
+    public static string Discovery_ProposalsHint =>
+        ResourceManager.GetString("Discovery_ProposalsHint", Culture)!;
+    public static string Discovery_ProposalShape =>
+        ResourceManager.GetString("Discovery_ProposalShape", Culture)!;
+    public static string Discovery_ProposalShapeUnnamed =>
+        ResourceManager.GetString("Discovery_ProposalShapeUnnamed", Culture)!;
+    public static string Discovery_ProposalLevel =>
+        ResourceManager.GetString("Discovery_ProposalLevel", Culture)!;
+    public static string Discovery_ProposalPosition =>
+        ResourceManager.GetString("Discovery_ProposalPosition", Culture)!;
+    public static string Discovery_ProposalNothing =>
+        ResourceManager.GetString("Discovery_ProposalNothing", Culture)!;
+    public static string Discovery_ProposalAccept =>
+        ResourceManager.GetString("Discovery_ProposalAccept", Culture)!;
+    public static string Discovery_ProposalDismiss =>
+        ResourceManager.GetString("Discovery_ProposalDismiss", Culture)!;
+    public static string Discovery_ProposalSamples =>
+        ResourceManager.GetString("Discovery_ProposalSamples", Culture)!;
+    public static string Discovery_NothingToPropose =>
+        ResourceManager.GetString("Discovery_NothingToPropose", Culture)!;
 }

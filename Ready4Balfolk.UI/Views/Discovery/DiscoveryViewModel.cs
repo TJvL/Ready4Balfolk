@@ -14,6 +14,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
@@ -43,20 +44,24 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
 
     private readonly ISettingsStore _settingsStore;
     private readonly ILibraryIndex _libraryIndex;
+    private readonly IDanceListStore _danceListStore;
     private readonly ILoggerService _loggerService;
     private readonly CompositeDisposable _disposables = [];
 
     private IReadOnlyList<string> _fileNames = [];
     private IReadOnlyList<IReadOnlyList<string>> _folders = [];
+    private IReadOnlyList<CalibrationFile> _library = [];
 
     public DiscoveryViewModel(
         ISettingsStore settingsStore,
         ILibraryIndex libraryIndex,
+        IDanceListStore danceListStore,
         ITrackStore trackStore,
         ILoggerService loggerService)
     {
         _settingsStore = settingsStore;
         _libraryIndex = libraryIndex;
+        _danceListStore = danceListStore;
         _loggerService = loggerService;
 
         DraftPattern = string.Empty;
@@ -131,6 +136,18 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
 
     public IReadOnlyList<TagTrustFieldViewModel> TagFields { get; }
 
+    /// <summary>
+    /// What the library's own strings suggest, measured over what no rule covers yet.
+    /// </summary>
+    /// <remarks>
+    /// Aimed at the leftovers rather than at everything, because that is the pile a next rule is
+    /// for: declare one, it swallows two thousand, and the honest question is what the six hundred
+    /// still waiting look like.
+    /// </remarks>
+    public ObservableCollection<ProposalViewModel> Proposals { get; } = [];
+
+    [Reactive] public partial bool HasProposals { get; private set; }
+
     /// <summary>Reads the library and the settings, and shows what the current rules are doing.</summary>
     [ReactiveCommand]
     private async Task RefreshAsync()
@@ -144,6 +161,18 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
 
             _fileNames = [.. snapshot.Keys.Select(Path.GetFileName).OfType<string>()];
             _folders = [.. snapshot.Keys.Select(path => SegmentsBetween(path, root))];
+            _library =
+            [
+                .. snapshot.Values.Select(entry => new CalibrationFile
+                {
+                    FileName = Path.GetFileNameWithoutExtension(entry.Path),
+                    Folders = SegmentsBetween(entry.Path, root),
+                    // Only what a tag actually said. A value a rule or a folder answered would have
+                    // calibration confirming its own settings back to itself.
+                    TagArtist = entry.ArtistFrom.Kind is ClaimSourceKind.Tag ? entry.Artist : null,
+                    TagTitle = entry.TitleFrom.Kind is ClaimSourceKind.Tag ? entry.Title : null
+                })
+            ];
 
             Apply(_settingsStore.Current.Discovery);
         }
@@ -260,11 +289,85 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
             TagFields[i].UsesDefault = declared is null;
         }
 
+        Measure(settings);
+
         var coverage = DeclarationPreview.ForPatterns(settings, _fileNames);
         CoverageSummary = string.Format(
             CultureInfo.CurrentCulture, UiStrings.Discovery_Coverage, coverage.Matched, coverage.Total, coverage.Missed);
 
         PreviewDraft();
+    }
+
+    /// <summary>
+    /// Works out what the leftovers look like, and offers it.
+    /// </summary>
+    /// <remarks>
+    /// Computed here, when the screen is opened or a rule changes, and never pushed. The application
+    /// runs in front of a room, and "480 files look like %a - %t, declare it?" during a dance is
+    /// unforgivable.
+    /// </remarks>
+    private void Measure(DiscoverySettings settings)
+    {
+        Proposals.Clear();
+
+        var leftovers = DeclarationPreview.Leftovers(settings, _fileNames).ToHashSet(StringComparer.Ordinal);
+        var waiting = _library
+            .Where(file => leftovers.Contains(file.FileName) || leftovers.Contains(file.FileName + ".mp3"))
+            .ToList();
+
+        var report = Calibration.Measure(
+            waiting.Count > 0 ? waiting : _library, _danceListStore.Index, settings);
+
+        foreach (var folder in report.Folders)
+        {
+            Proposals.Add(ProposalViewModel.From(folder));
+        }
+
+        foreach (var shape in report.Shapes)
+        {
+            Proposals.Add(ProposalViewModel.From(shape));
+        }
+
+        HasProposals = Proposals.Count > 0;
+    }
+
+    /// <summary>Takes a proposal, which declares it: the same act as writing the rule by hand.</summary>
+    [ReactiveCommand]
+    private async Task AcceptProposalAsync(ProposalViewModel? proposal)
+    {
+        if (proposal is null || !proposal.CanAccept)
+        {
+            return;
+        }
+
+        var current = Current();
+
+        await SaveAsync(proposal.IsFolderRole
+            ? current with { FolderRoles = WithRole(current.FolderRoles, proposal.Level, proposal.Role) }
+            : current with { FileNamePatterns = [.. current.FileNamePatterns, proposal.Pattern!] });
+    }
+
+    /// <summary>Turns a proposal down, which leaves the level or the shape as it was: unknown.</summary>
+    [ReactiveCommand]
+    private void DismissProposal(ProposalViewModel? proposal)
+    {
+        if (proposal is not null)
+        {
+            Proposals.Remove(proposal);
+            HasProposals = Proposals.Count > 0;
+        }
+    }
+
+    private static IReadOnlyList<FolderRole> WithRole(IReadOnlyList<FolderRole> roles, int level, FolderRole role)
+    {
+        var updated = roles.ToList();
+        while (updated.Count < level)
+        {
+            updated.Add(FolderRole.Unknown);
+        }
+
+        updated[level - 1] = role;
+        return updated;
     }
 
     /// <summary>How deep the library actually goes, so no row is offered for a level nobody has.</summary>

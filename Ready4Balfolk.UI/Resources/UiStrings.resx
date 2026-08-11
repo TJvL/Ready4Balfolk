@@ -1097,4 +1097,37 @@
   <data name="Review_NotADanceHint" xml:space="preserve">
     <value>Clears it everywhere it appears and remembers it, so a rescan does not put it back. The tracks still need a real dance.</value>
   </data>
+  <data name="Discovery_ProposalsHeader" xml:space="preserve">
+    <value>What your library looks like</value>
+  </data>
+  <data name="Discovery_ProposalsHint" xml:space="preserve">
+    <value>Measured from your own files, and applied to nothing until you say so. Where the measurements do not agree, the shape is shown and nothing is named.</value>
+  </data>
+  <data name="Discovery_ProposalShape" xml:space="preserve">
+    <value>{0} of {1} files are shaped like {2}</value>
+  </data>
+  <data name="Discovery_ProposalShapeUnnamed" xml:space="preserve">
+    <value>{0} of {1} files share a shape, and nothing in it can be named</value>
+  </data>
+  <data name="Discovery_ProposalLevel" xml:space="preserve">
+    <value>Level {0} looks like the {1}. {2} of {3} agree.</value>
+  </data>
+  <data name="Discovery_ProposalPosition" xml:space="preserve">
+    <value>position {0}: {1} — {2} of {5} are dance names, {3} different values, {4} agree with a tag</value>
+  </data>
+  <data name="Discovery_ProposalNothing" xml:space="preserve">
+    <value>nothing can say</value>
+  </data>
+  <data name="Discovery_ProposalAccept" xml:space="preserve">
+    <value>Declare it</value>
+  </data>
+  <data name="Discovery_ProposalDismiss" xml:space="preserve">
+    <value>Not that</value>
+  </data>
+  <data name="Discovery_ProposalSamples" xml:space="preserve">
+    <value>Show the files</value>
+  </data>
+  <data name="Discovery_NothingToPropose" xml:space="preserve">
+    <value>Nothing in your library repeats often enough to suggest a rule.</value>
+  </data>
 </root>

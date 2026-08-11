@@ -2,8 +2,11 @@ using System.Reactive.Linq;
 using System.Reactive.Linq;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
@@ -60,8 +63,11 @@ public sealed class DiscoveryViewModelTests : IDisposable
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.IsLoading.Returns(Observable.Return(false));
 
+        var danceListStore = Substitute.For<IDanceListStore>();
+        danceListStore.Index.Returns(DanceListIndex.Empty);
+
         _sut = new DiscoveryViewModel(
-            _settingsStore, _libraryIndex, trackStore, Substitute.For<ILoggerService>());
+            _settingsStore, _libraryIndex, danceListStore, trackStore, Substitute.For<ILoggerService>());
     }
 
     public void Dispose() => _sut.Dispose();
@@ -216,6 +222,74 @@ public sealed class DiscoveryViewModelTests : IDisposable
         await _sut.ApplyRolesAndTagsCommand.Execute();
 
         Assert.Equal([TagField.Comment], _stored.Discovery.TagTrust.Dance);
+    }
+
+    [Fact]
+    public async Task TheLibraryIsMeasuredAndOffered()
+    {
+        // Five files is under the threshold for a rule, so nothing is proposed from them: three
+        // files that happen to look alike is a coincidence, not a rule worth a greenlight.
+        await Refresh();
+
+        Assert.Empty(_sut.Proposals);
+    }
+
+    [Fact]
+    public async Task AcceptingAProposal_DeclaresIt()
+    {
+        await Refresh();
+
+        var proposal = ProposalViewModel.From(new FolderRoleProposal
+        {
+            Level = 1,
+            Role = FolderRole.Artist,
+            Agreeing = 96,
+            Considered = 121,
+            Samples = ["Naragonia"]
+        });
+
+        await _sut.AcceptProposalCommand.Execute(proposal);
+
+        Assert.Equal([FolderRole.Artist], _stored.Discovery.FolderRoles);
+    }
+
+    [Fact]
+    public async Task AShapeNothingCouldBeNamedIn_CannotBeDeclared()
+    {
+        await Refresh();
+
+        var proposal = ProposalViewModel.From(new ShapeProposal
+        {
+            Separator = " - ",
+            Fields = 2,
+            Files = 40,
+            Considered = 100,
+            Positions = [new PositionFinding(1, null, 0, 0, 40, 0, 0, 40)],
+            Samples = ["07 - 08"],
+            Pattern = null
+        });
+
+        Assert.False(proposal.CanAccept);
+
+        await _sut.AcceptProposalCommand.Execute(proposal);
+
+        Assert.Empty(_stored.Discovery.FileNamePatterns);
+    }
+
+    [Fact]
+    public async Task TurningAProposalDown_LeavesTheSettingsAlone()
+    {
+        await Refresh();
+        var proposal = ProposalViewModel.From(new FolderRoleProposal
+        {
+            Level = 1, Role = FolderRole.Artist, Agreeing = 96, Considered = 121, Samples = []
+        });
+        _sut.Proposals.Add(proposal);
+
+        await _sut.DismissProposalCommand.Execute(proposal);
+
+        Assert.Empty(_sut.Proposals);
+        Assert.Empty(_stored.Discovery.FolderRoles);
     }
 
     private async Task Refresh() => await _sut.RefreshCommand.Execute();

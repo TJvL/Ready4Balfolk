@@ -115,6 +115,84 @@ public sealed partial class TagTrustFieldViewModel : ReactiveObject
         : [.. Toggles.Where(toggle => toggle.IsTrusted).Select(toggle => toggle.Field)];
 }
 
+/// <summary>
+/// Something the library's own strings suggest, with the evidence and no consequences.
+/// </summary>
+/// <remarks>
+/// A proposal, never a decision. Accepting one writes a declared setting, which approves every file
+/// it matches in one act, so it is the user's to give and the numbers behind it are the point.
+/// </remarks>
+public sealed partial class ProposalViewModel : ReactiveObject
+{
+    private ProposalViewModel(string headline, IReadOnlyList<string> evidence, IReadOnlyList<string> samples)
+    {
+        Headline = headline;
+        Evidence = evidence;
+        Samples = samples;
+    }
+
+    public string Headline { get; }
+
+    /// <summary>What was measured, so a person can disagree with the reasoning and not just the answer.</summary>
+    public IReadOnlyList<string> Evidence { get; }
+
+    public IReadOnlyList<string> Samples { get; }
+
+    /// <summary>The rule this would declare, when it can be declared at all.</summary>
+    public string? Pattern { get; private init; }
+
+    public int Level { get; private init; }
+
+    public FolderRole Role { get; private init; }
+
+    public bool IsFolderRole { get; private init; }
+
+    /// <summary>False for a shape nothing could be named in: worth seeing, not worth declaring.</summary>
+    public bool CanAccept => Pattern is not null || IsFolderRole;
+
+    [Reactive] public partial bool IsExpanded { get; set; }
+
+    public static ProposalViewModel From(ShapeProposal shape) => new(
+        string.Format(
+            CultureInfo.CurrentCulture,
+            shape.Pattern is null ? UiStrings.Discovery_ProposalShapeUnnamed : UiStrings.Discovery_ProposalShape,
+            shape.Files,
+            shape.Considered,
+            shape.Pattern ?? string.Empty),
+        [.. shape.Positions.Select(Describe)],
+        shape.Samples)
+    {
+        Pattern = shape.Pattern
+    };
+
+    public static ProposalViewModel From(FolderRoleProposal folder) => new(
+        string.Format(
+            CultureInfo.CurrentCulture,
+            UiStrings.Discovery_ProposalLevel,
+            folder.Level,
+            DiscoveryText.NameOf(folder.Role),
+            folder.Agreeing,
+            folder.Considered),
+        [],
+        folder.Samples)
+    {
+        Level = folder.Level,
+        Role = folder.Role,
+        IsFolderRole = true
+    };
+
+    /// <summary>One position, in the numbers that named it or failed to.</summary>
+    private static string Describe(PositionFinding position) => string.Format(
+        CultureInfo.CurrentCulture,
+        UiStrings.Discovery_ProposalPosition,
+        position.Position,
+        position.Field is { } field ? DiscoveryText.NameOf(field) : UiStrings.Discovery_ProposalNothing,
+        position.DanceNames,
+        position.Distinct,
+        position.AgreesWithTag,
+        position.Files);
+}
+
 /// <summary>The words this screen puts on numbers and enums.</summary>
 internal static class DiscoveryText
 {
@@ -127,6 +205,22 @@ internal static class DiscoveryText
         PatternProblem.NoFields => UiStrings.Discovery_ProblemNoFields,
         PatternProblem.AdjacentFields => UiStrings.Discovery_ProblemAdjacentFields,
         _ => UiStrings.Discovery_ProblemDuplicateField
+    };
+
+    public static string NameOf(TrackField field) => field switch
+    {
+        TrackField.Dance => UiStrings.Discovery_FieldDance,
+        TrackField.Artist => UiStrings.Discovery_FieldArtist,
+        _ => UiStrings.Discovery_FieldTitle
+    };
+
+    public static string NameOf(FolderRole role) => role switch
+    {
+        FolderRole.Artist => UiStrings.Discovery_RoleArtist,
+        FolderRole.Album => UiStrings.Discovery_RoleAlbum,
+        FolderRole.Dance => UiStrings.Discovery_RoleDance,
+        FolderRole.Ignore => UiStrings.Discovery_RoleIgnore,
+        _ => UiStrings.Discovery_RoleUnknown
     };
 
     public static string NameOf(TagField field) => field switch
