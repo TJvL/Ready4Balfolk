@@ -3,8 +3,8 @@ using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using ReactiveUI;
-using ReactiveUI.Avalonia;
+using ReactiveUI.Avalonia.Reactive;
+using ReactiveUI.Reactive;
 
 namespace Ready4Balfolk.UI.Views.Playback;
 
@@ -21,7 +21,7 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
         TrackInfoCanvas.GetObservable(BoundsProperty)
             .CombineLatest(TrackInfoPanel.GetObservable(BoundsProperty))
             .Throttle(TimeSpan.FromMilliseconds(50))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateTrackInfoScroll());
     }
 
@@ -67,7 +67,7 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
         var startTime = DateTimeOffset.UtcNow;
 
         _trackInfoScroll = Observable.Interval(TimeSpan.FromMilliseconds(16))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ =>
             {
                 var t = (DateTimeOffset.UtcNow - startTime).TotalSeconds % cycleSec;

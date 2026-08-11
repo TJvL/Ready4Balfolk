@@ -2,4 +2,5 @@ namespace Ready4Balfolk.Domain.Models.History;
 
 public sealed record DelayHistoryEntry(
     TimeSpan Duration,
-    CompletionStatus CompletionStatus) : QueueHistoryEntry(CompletionStatus);
+    CompletionStatus CompletionStatus,
+    DateTime? StartedAt = null) : QueueHistoryEntry(CompletionStatus, StartedAt);

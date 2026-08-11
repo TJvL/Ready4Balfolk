@@ -41,8 +41,11 @@
   </resheader>
 
   <!-- Queue guard rules -->
-  <data name="AutoTrackRule_OnlyEmptyQueue" xml:space="preserve">
-    <value>Auto-track can only be added to an empty queue.</value>
+  <data name="AutoTrackRule_OnlyOneAllowed" xml:space="preserve">
+    <value>Only one auto-track can be in the queue.</value>
+  </data>
+  <data name="QueueCutoffRule_PastCutoff" xml:space="preserve">
+    <value>Adding this would run the queue past {0}.</value>
   </data>
   <data name="DuplicateTrackRule_AlreadyInQueue" xml:space="preserve">
     <value>Track is already in the queue.</value>

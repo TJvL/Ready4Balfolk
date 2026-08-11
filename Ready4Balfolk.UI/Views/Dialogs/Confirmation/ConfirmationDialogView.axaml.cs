@@ -1,8 +1,7 @@
 using System;
-using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
-using ReactiveUI;
-using ReactiveUI.Avalonia;
+using ReactiveUI.Avalonia.Reactive;
+using ReactiveUI.Reactive;
 
 namespace Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 
@@ -14,9 +13,8 @@ public partial class ConfirmationDialogView : ReactiveWindow<ConfirmationDialogV
 
         Opened += (_, _) => ConfirmButton.Focus();
 
-        this.WhenActivated(d => this.WhenAnyValue(x => x.ViewModel!.DialogResult)
+        this.WhenActivated(d => d(this.WhenAnyValue(x => x.ViewModel!.DialogResult)
             .Where(r => r.HasValue)
-            .Subscribe(_ => Close())
-            .DisposeWith(d));
+            .Subscribe(_ => Close())));
     }
 }

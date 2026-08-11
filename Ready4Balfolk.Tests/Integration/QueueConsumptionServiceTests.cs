@@ -51,7 +51,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         settingsStore.Current.Returns(settings);
         settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
 
-        _queue = new QueueService(settingsStore, _history, () => null, new NoOpLoggerService());
+        _queue = new QueueService(settingsStore, _history, () => null, () => TimeSpan.Zero, new NoOpLoggerService());
 
         _sut = new QueueConsumptionService(_audio, _queue, _history, new NoOpLoggerService());
     }
@@ -92,7 +92,20 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         await _sut.AdvanceAsync();
 
         await _history.Received(1)
-            .AddAsync(Arg.Is<TrackHistoryEntry>(e => e.CompletionStatus == CompletionStatus.Skipped));
+            .AddAsync(Arg.Is<TrackHistoryEntry>(e => e!.CompletionStatus == CompletionStatus.Skipped));
+    }
+
+    [Fact]
+    public async Task AdvanceAsync_RecordsWhenTheTrackStarted()
+    {
+        var before = DateTime.Now;
+        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        _queue.Enqueue(track);
+        await _sut.AdvanceAsync();
+        await _sut.AdvanceAsync();
+
+        await _history.Received(1).AddAsync(Arg.Is<TrackHistoryEntry>(e =>
+            e!.StartedAt != null && e.StartedAt >= before && e.StartedAt <= DateTime.Now));
     }
 
     [Fact]

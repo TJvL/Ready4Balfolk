@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tree;
@@ -77,7 +77,7 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
         var normalizedName = StringNormalizer.Normalize(leaf.Name);
         _trackCountHelper = context.TrackCounts
             .Select(counts => counts.GetValueOrDefault(normalizedName, 0))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .ToProperty(this, x => x.TrackCount);
         _trackCountHelper.DisposeWith(_disposables);
 
@@ -85,12 +85,12 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
             .Select(m => m is MarkedSelection.Leaf l
                          && l.ParentPath.SequenceEqual(parentPath)
                          && l.LeafIndex == leafIndex)
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .ToProperty(this, x => x.IsMarked);
         _isMarkedHelper.DisposeWith(_disposables);
 
         _displayNameHelper = this.WhenAnyValue(x => x.Name, x => x.Weight, x => x.TrackCount)
-            .Select(t => $"{t.Item1} ({t.Item3}) \u2014 weight: {t.Item2}")
+            .Select(t => $"{t.Value1} ({t.Value3}) \u2014 weight: {t.Value2}")
             .ToProperty(this, x => x.DisplayName, initialValue: $"{leaf.Name} (0) \u2014 weight: {leaf.Weight}");
         _displayNameHelper.DisposeWith(_disposables);
 
@@ -103,7 +103,7 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
             .Skip(1)
             .Where(_ => !IsEditing)
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(name => _context.CommitDirect(roots =>
                 DanceTreeTransforms.RenameLeaf(roots, ParentPath, LeafIndex, name)))
             .DisposeWith(_disposables);
@@ -111,7 +111,7 @@ public sealed partial class DanceItem : ReactiveObject, IDisposable
         this.WhenAnyValue(x => x.Weight)
             .Skip(1)
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(weight => _context.CommitDirect(roots =>
                 DanceTreeTransforms.ReweightLeaf(roots, ParentPath, LeafIndex, weight)))
             .DisposeWith(_disposables);

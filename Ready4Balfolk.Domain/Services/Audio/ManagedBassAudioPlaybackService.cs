@@ -2,8 +2,12 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using AsyncAwaitBestPractices;
 using ManagedBass;
+using ManagedBass.Fx;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Stores.Settings;
 
 namespace Ready4Balfolk.Domain.Services.Audio;
 
@@ -18,9 +22,12 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private readonly Subject<TimeSpan> _durationChanged = new();
     private readonly BehaviorSubject<bool> _isAvailable = new(true);
     private readonly ILoggerService _loggerService;
+    private readonly bool _useNoSoundDevice;
 
     private readonly CompositeDisposable _disposables = [];
     private readonly SemaphoreSlim _semaphore = new(1, 1);
+
+    private readonly Dictionary<int, EqualizerChain> _equalizerChains = [];
 
     private int _channel;
     private int _endSyncHandle;
@@ -29,10 +36,25 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private bool _bassInitialized;
     private bool _bassFailed;
     private bool _disposed;
+    private EqualizerSettings _equalizerSettings = EqualizerSettings.Flat;
 
-    public ManagedBassAudioPlaybackService(ILoggerService loggerService)
+    /// <param name="loggerService">Where initialisation results and playback failures are recorded.</param>
+    /// <param name="settingsStore">Supplies the equalizer settings the effect chain starts from.</param>
+    /// <param name="useNoSoundDevice">
+    /// Initialises BASS against its "no sound" device instead of the default output. The library,
+    /// its plugins and the whole effect chain come up exactly as they would against real hardware;
+    /// only the audio goes nowhere. For the CI smoke test, where the runner has no sound card at
+    /// all, this keeps the check measuring what it is there to measure — that the native libraries
+    /// shipped and load — rather than whether the machine can make a noise.
+    /// </param>
+    public ManagedBassAudioPlaybackService(
+        ILoggerService loggerService,
+        ISettingsStore settingsStore,
+        bool useNoSoundDevice = false)
     {
         _loggerService = loggerService;
+        _useNoSoundDevice = useNoSoundDevice;
+        _equalizerSettings = settingsStore.Current.Equalizer;
 
         WhenProgressChanged = Observable.Interval(TimeSpan.FromMilliseconds(100))
             .Where(_ => IsPlaying)
@@ -55,6 +77,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     public bool IsPaused => _channel != 0 && Bass.ChannelIsActive(_channel) == PlaybackState.Paused;
     public bool IsStopped => _channel == 0 || Bass.ChannelIsActive(_channel) == PlaybackState.Stopped;
     public bool AutoAdvance { get; set; } = true;
+    public bool IsEqualizerAvailable { get; private set; }
 
     public IObservable<Uri?> WhenSelectedChanged => _selectedChanged.AsObservable();
     public IObservable<Unit> WhenPlaybackStarted => _playbackStarted.AsObservable();
@@ -87,6 +110,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                     }
 
                     SetupEndSync();
+                    AttachEqualizer(_channel);
                     _selectedChanged.OnNext(source);
 
                     var lengthInBytes = Bass.ChannelGetLength(_channel);
@@ -236,6 +260,10 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                             $"Failed to create preload stream for '{path}': {Bass.LastError}");
                     }
 
+                    // The preloaded stream needs the chain too. Without this every second track
+                    // plays flat, because AdvanceToPreloaded only swaps the handle over.
+                    AttachEqualizer(_preloadedChannel);
+
                     _preloadedUri = source;
                 }
                 finally
@@ -259,6 +287,27 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                 _semaphore.Release();
             }
         });
+    }
+
+    public Task SetEqualizerAsync(EqualizerSettings equalizerSettings)
+    {
+        return _bassFailed || !IsEqualizerAvailable
+            ? Task.CompletedTask
+            : Task.Run(async () =>
+            {
+                await _semaphore.WaitAsync();
+                try
+                {
+                    _equalizerSettings = equalizerSettings;
+
+                    ApplyEqualizer(_channel);
+                    ApplyEqualizer(_preloadedChannel);
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
+            });
     }
 
     public Task NextAsync()
@@ -314,9 +363,12 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
     private void InitializeBass()
     {
+        // -1 is the default output; 0 is BASS's "no sound" device.
+        var device = _useNoSoundDevice ? 0 : -1;
+
         try
         {
-            if (!Bass.Init())
+            if (!Bass.Init(device))
             {
                 _bassFailed = true;
                 _isAvailable.OnNext(false);
@@ -336,12 +388,72 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         _bassInitialized = true;
         _ = _loggerService.DebugAsync("BASS audio initialized");
 
-        var flacPluginHandle = Bass.PluginLoad("bassflac");
+        // Runs the whole effect chain in floating point even for 16 bit files, so nothing is
+        // quantised between filters. Must be set before any effect exists.
+        Bass.FloatingPointDSP = true;
+
+        InitializeEqualizer();
+
+        var flacPluginHandle = Bass.PluginLoad(ResolveNativeLibrary(
+            OperatingSystem.IsWindows() ? "bassflac.dll" : "libbassflac.so"));
         _ = flacPluginHandle == 0
             ? _loggerService.WarningAsync($"Failed to load BASSFLAC plugin: {Bass.LastError}")
             : _loggerService.DebugAsync("BASSFLAC plugin loaded");
 
         DiscoverSupportedExtensions(flacPluginHandle);
+    }
+
+    /// <summary>
+    /// Finds a BASS add-on on disk so it can be loaded by full path.
+    /// </summary>
+    /// <remarks>
+    /// PluginLoad is a LoadLibrary/dlopen from inside BASS itself, so it searches the operating
+    /// system's library path and knows nothing about where .NET put the file. Under
+    /// PublishSingleFile the natives are extracted to a temp directory that is on neither path,
+    /// and the Windows builds shipped without FLAC support because of it. Managed P/Invokes such
+    /// as bass and bass_fx are unaffected, because those go through .NET's own resolver — which
+    /// is also where the extraction directory can be read back from.
+    /// </remarks>
+    private static string ResolveNativeLibrary(string fileName)
+    {
+        var directories = new List<string> { AppContext.BaseDirectory };
+
+        if (AppContext.GetData("NATIVE_DLL_SEARCH_DIRECTORIES") is string searchPath)
+        {
+            directories.AddRange(searchPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        foreach (var candidate in directories.Select(directory => Path.Combine(directory, fileName)))
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        // Nothing found. Hand back the bare name so BASS searches the system path and reports its
+        // own error, rather than inventing a path that is certain to fail.
+        return fileName;
+    }
+
+    /// <summary>
+    /// BASS_FX is a library rather than a BASS plugin, so it is never loaded by PluginLoad. Reading
+    /// its version forces the native load, without which every ChannelSetFX for an add-on effect
+    /// type fails with BASS_ERROR_ILLTYPE. A missing add-on costs the equalizer, not playback.
+    /// </summary>
+    private void InitializeEqualizer()
+    {
+        try
+        {
+            var version = BassFx.Version;
+            IsEqualizerAvailable = true;
+            _ = _loggerService.DebugAsync($"BASS_FX loaded: {version}");
+        }
+        catch (DllNotFoundException ex)
+        {
+            IsEqualizerAvailable = false;
+            _ = _loggerService.WarningAsync($"BASS_FX unavailable, equalizer disabled: {ex.Message}");
+        }
     }
 
     private void DiscoverSupportedExtensions(int flacPluginHandle)
@@ -383,6 +495,37 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         }
     }
 
+    /// <summary>
+    /// Builds the effect chain on a freshly created stream and applies the current settings. The
+    /// effects are freed along with the stream, so only the lookup needs cleaning up afterwards.
+    /// </summary>
+    private void AttachEqualizer(int channel)
+    {
+        if (!IsEqualizerAvailable || channel == 0)
+        {
+            return;
+        }
+
+        var chain = EqualizerChain.TryCreate(channel);
+
+        if (chain == null)
+        {
+            _ = _loggerService.WarningAsync($"Failed to attach equalizer: {Bass.LastError}");
+            return;
+        }
+
+        _equalizerChains[channel] = chain;
+        chain.Apply(_equalizerSettings);
+    }
+
+    private void ApplyEqualizer(int channel)
+    {
+        if (channel != 0 && _equalizerChains.TryGetValue(channel, out var chain))
+        {
+            chain.Apply(_equalizerSettings);
+        }
+    }
+
     private void FreeChannel()
     {
         if (_channel == 0)
@@ -398,6 +541,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
         Bass.ChannelStop(_channel);
         Bass.StreamFree(_channel);
+        _equalizerChains.Remove(_channel);
         _channel = 0;
     }
 
@@ -409,6 +553,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         }
 
         Bass.StreamFree(_preloadedChannel);
+        _equalizerChains.Remove(_preloadedChannel);
         _preloadedChannel = 0;
         _preloadedUri = null;
     }
@@ -440,7 +585,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                 {
                     _semaphore.Release();
                 }
-            });
+            }).SafeFireAndForget(exception => _loggerService.ErrorAsync("AdvanceToPreloaded", exception));
         }
     }
 

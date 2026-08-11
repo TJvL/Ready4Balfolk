@@ -1,10 +1,11 @@
 using System;
 using System.Reactive.Linq;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.DanceSynonyms;
 using Ready4Balfolk.UI.Views.DanceTree;
+using Ready4Balfolk.UI.Views.Equalizer;
 using Ready4Balfolk.UI.Views.Help;
 using Ready4Balfolk.UI.Views.History;
 using Ready4Balfolk.UI.Views.Playback;
@@ -20,6 +21,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject
     public NavigationService Navigation { get; }
     public ToolbarViewModel Toolbar { get; }
     public PlaybackViewModel Playback { get; }
+    public EqualizerViewModel Equalizer { get; }
     public QueueViewModel Queue { get; }
     public TrackCatalogViewModel TrackCatalog { get; }
 
@@ -33,6 +35,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject
         NavigationService navigation,
         ToolbarViewModel toolbar,
         PlaybackViewModel playback,
+        EqualizerViewModel equalizer,
         QueueViewModel queue,
         TrackCatalogViewModel trackCatalog,
         Lazy<HistoryViewModel> lazyHistory,
@@ -44,6 +47,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject
         Navigation = navigation;
         Toolbar = toolbar;
         Playback = playback;
+        Equalizer = equalizer;
         Queue = queue;
         TrackCatalog = trackCatalog;
 

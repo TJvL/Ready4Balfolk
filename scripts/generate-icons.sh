@@ -10,6 +10,10 @@ HASH_FILE="$OUT/.icon-hash"
 SIZES=(16 24 32 48 64 128 256 512 1024)
 ICO_SIZES=(16 24 32 48 256)
 
+# Every PNG is downsampled from one master render. Keep this at or above the
+# largest size above, or that size gets upscaled from a smaller raster.
+MASTER=4096
+
 # --- Hash helper ---
 compute_hash() {
   if command -v sha256sum &>/dev/null; then
@@ -63,10 +67,34 @@ fi
 
 echo "Generating icons (magick)..."
 
+# --- Render the master ---
+# ImageMagick turns -density into pixels using the SVG's own units, and the ratio
+# has not been the same in every version (72 vs 96 units per inch). So probe at a
+# known density and scale from the size that comes back, rather than assuming one.
+PROBE_DENSITY=96
+BASE_WIDTH=$(magick -density "$PROBE_DENSITY" "$SVG" -format "%w" info:)
+
+if [[ ! "$BASE_WIDTH" =~ ^[0-9]+$ ]] || [[ "$BASE_WIDTH" -eq 0 ]]; then
+  echo "ERROR: could not read the intrinsic size of $SVG (got '$BASE_WIDTH')."
+  exit 1
+fi
+
+DENSITY=$(awk -v m="$MASTER" -v p="$PROBE_DENSITY" -v w="$BASE_WIDTH" \
+  'BEGIN { printf "%d", (m * p / w) + 0.5 }')
+
+MASTER_PNG=$(mktemp)
+trap 'rm -f "$MASTER_PNG"' EXIT
+
+magick -background none -density "$DENSITY" "$SVG" \
+  -resize "${MASTER}x${MASTER}" -depth 8 "PNG:$MASTER_PNG"
+echo "  master ${MASTER}x${MASTER}"
+
 # --- Generate PNGs ---
+# -depth 8 because 16 bits per channel quadruples these files for no visible gain,
+# and -strip drops the timestamp chunk so a rerun on an unchanged SVG is byte-identical.
 for size in "${SIZES[@]}"; do
   out_file="$OUT/icon-${size}.png"
-  magick -background none -density 1200 "$SVG" -resize "${size}x${size}" "$out_file"
+  magick "PNG:$MASTER_PNG" -resize "${size}x${size}" -depth 8 -strip "$out_file"
   echo "  ${size}x${size}"
 done
 
@@ -76,31 +104,12 @@ for size in "${ICO_SIZES[@]}"; do
   ICO_INPUTS+=("$OUT/icon-${size}.png")
 done
 
-magick "${ICO_INPUTS[@]}" "$OUT/icon.ico"
+# -type TrueColorAlpha because the small PNGs above have few enough colours that
+# ImageMagick stores them as palette images, and the ICO coder then writes 8bpp
+# palette frames whose transparency is a 1-bit mask. That throws away the
+# antialiased edges, so Windows renders the small sizes with hard jagged edges.
+magick "${ICO_INPUTS[@]}" -type TrueColorAlpha -strip "$OUT/icon.ico"
 echo "  icon.ico"
-
-# --- Generate ICNS (macOS only) ---
-if command -v iconutil &>/dev/null; then
-  ICONSET_DIR="$OUT/AppIcon.iconset"
-  mkdir -p "$ICONSET_DIR"
-
-  cp "$OUT/icon-16.png"   "$ICONSET_DIR/icon_16x16.png"
-  cp "$OUT/icon-32.png"   "$ICONSET_DIR/icon_16x16@2x.png"
-  cp "$OUT/icon-32.png"   "$ICONSET_DIR/icon_32x32.png"
-  cp "$OUT/icon-64.png"   "$ICONSET_DIR/icon_32x32@2x.png"
-  cp "$OUT/icon-128.png"  "$ICONSET_DIR/icon_128x128.png"
-  cp "$OUT/icon-256.png"  "$ICONSET_DIR/icon_128x128@2x.png"
-  cp "$OUT/icon-256.png"  "$ICONSET_DIR/icon_256x256.png"
-  cp "$OUT/icon-512.png"  "$ICONSET_DIR/icon_256x256@2x.png"
-  cp "$OUT/icon-512.png"  "$ICONSET_DIR/icon_512x512.png"
-  cp "$OUT/icon-1024.png" "$ICONSET_DIR/icon_512x512@2x.png"
-
-  iconutil -c icns "$ICONSET_DIR" -o "$OUT/AppIcon.icns"
-  rm -rf "$ICONSET_DIR"
-  echo "  AppIcon.icns"
-else
-  echo "  (skipping .icns — iconutil not available, macOS only)"
-fi
 
 # --- Save hash ---
 echo "$CURRENT_HASH" > "$HASH_FILE"

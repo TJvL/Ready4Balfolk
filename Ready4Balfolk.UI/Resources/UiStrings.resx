@@ -130,6 +130,162 @@
   </data>
 
   <!-- Toolbar -->
+  <data name="Playback_PlayLabel" xml:space="preserve">
+    <value>Play</value>
+  </data>
+  <data name="Playback_PauseLabel" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Playback_RestartLabel" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="Playback_SkipLabel" xml:space="preserve">
+    <value>Skip</value>
+  </data>
+  <data name="Playback_ClearLabel" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="QueueToolbar_HistoryLabel" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="QueueToolbar_RandomLabel" xml:space="preserve">
+    <value>Random</value>
+  </data>
+  <data name="QueueToolbar_StopLabel" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="QueueToolbar_DelayLabel" xml:space="preserve">
+    <value>Delay</value>
+  </data>
+  <data name="QueueToolbar_MessageLabel" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="QueueToolbar_RemoveLabel" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="QueueToolbar_ClearLabel" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Queue_MoveUpLabel" xml:space="preserve">
+    <value>Up</value>
+  </data>
+  <data name="Queue_MoveDownLabel" xml:space="preserve">
+    <value>Down</value>
+  </data>
+  <data name="HistoryToolbar_QueueLabel" xml:space="preserve">
+    <value>Queue</value>
+  </data>
+  <data name="HistoryToolbar_ExportLabel" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="HistoryToolbar_ClearLabel" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="TrackCatalog_DancesLabel" xml:space="preserve">
+    <value>Dances</value>
+  </data>
+  <data name="TrackCatalog_ClearSearchLabel" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="MainWindow_BackLabel" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="DanceTreeToolbar_TrackListLabel" xml:space="preserve">
+    <value>Tracks</value>
+  </data>
+  <data name="DanceTreeToolbar_UndoLabel" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="DanceTreeToolbar_RedoLabel" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="DanceTreeToolbar_ImportLabel" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="DanceTreeToolbar_ExportLabel" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="DanceTree_RandomLabel" xml:space="preserve">
+    <value>Random</value>
+  </data>
+  <data name="DanceTree_AddCategoryLabel" xml:space="preserve">
+    <value>Add group</value>
+  </data>
+  <data name="DanceTree_AddDanceLabel" xml:space="preserve">
+    <value>Add dance</value>
+  </data>
+  <data name="DanceTree_EditLabel" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="DanceTree_ConfirmLabel" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="DanceTree_DeleteLabel" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DanceTree_CancelLabel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="DanceSynonyms_BackLabel" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="DanceSynonyms_UndoLabel" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="DanceSynonyms_RedoLabel" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="DanceSynonyms_ImportLabel" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="DanceSynonyms_ExportLabel" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="DanceSynonyms_AddDanceLabel" xml:space="preserve">
+    <value>Add dance</value>
+  </data>
+  <data name="DanceSynonyms_EditLabel" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="DanceSynonyms_ConfirmLabel" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="DanceSynonyms_DeleteLabel" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DanceSynonyms_CancelLabel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="DanceSynonyms_RemoveLabel" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="DanceSynonyms_AddSynonymLabel" xml:space="preserve">
+    <value>Add synonym</value>
+  </data>
+  <data name="Queue_RefreshAutoTrackLabel" xml:space="preserve">
+    <value>Reroll</value>
+  </data>
+  <data name="Queue_KeepTrackLabel" xml:space="preserve">
+    <value>Keep</value>
+  </data>
+  <data name="Toolbar_ExitLabel" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="Toolbar_HelpLabel" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="Toolbar_SettingsLabel" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Toolbar_DanceSynonymsLabel" xml:space="preserve">
+    <value>Synonyms</value>
+  </data>
+  <data name="Settings_ShowButtonText" xml:space="preserve">
+    <value>Show text on buttons instead of icons</value>
+  </data>
+  <data name="Settings_ShowButtonTextDescription" xml:space="preserve">
+    <value>Replace the icons on buttons with a short description of what they do.</value>
+  </data>
   <data name="Toolbar_Exit" xml:space="preserve">
     <value>Exit</value>
   </data>
@@ -155,6 +311,18 @@
   </data>
   <data name="Settings_Browse" xml:space="preserve">
     <value>Browse...</value>
+  </data>
+  <data name="Settings_QueueCutoff" xml:space="preserve">
+    <value>Stop accepting requests after a set time</value>
+  </data>
+  <data name="Settings_QueueCutoffGrace" xml:space="preserve">
+    <value>Grace (minutes)</value>
+  </data>
+  <data name="Settings_QueueCutoffDescription" xml:space="preserve">
+    <value>Refuse new entries once the queue would run past this time, allowing the grace period on top. While a stop request is queued the end time is unknown, so the limit is not applied; use a delay instead if you know how long the pause will be.</value>
+  </data>
+  <data name="Queue_CutoffPaused" xml:space="preserve">
+    <value>limit paused for the stop</value>
   </data>
   <data name="Settings_MaxQueueItems" xml:space="preserve">
     <value>Maximum Queue Items</value>
@@ -314,6 +482,9 @@
   </data>
   <data name="History_TypeStop" xml:space="preserve">
     <value>Stop</value>
+  </data>
+  <data name="History_StartedAt" xml:space="preserve">
+    <value>Started at</value>
   </data>
   <data name="History_StatusFinished" xml:space="preserve">
     <value>Finished</value>
@@ -659,4 +830,74 @@ Continue with import?</value>
     <value>Restart</value>
   </data>
 
+  <data name="Equalizer_Title" xml:space="preserve">
+    <value>Equalizer</value>
+  </data>
+  <data name="Equalizer_On" xml:space="preserve">
+    <value>on</value>
+  </data>
+  <data name="Equalizer_Off" xml:space="preserve">
+    <value>off</value>
+  </data>
+  <data name="Equalizer_Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="Equalizer_LowCut" xml:space="preserve">
+    <value>Low cut</value>
+  </data>
+  <data name="Equalizer_Preamp" xml:space="preserve">
+    <value>Preamp</value>
+  </data>
+  <data name="Equalizer_Reset" xml:space="preserve">
+    <value>Reset to flat</value>
+  </data>
+  <data name="Equalizer_Unavailable" xml:space="preserve">
+    <value>Equalizer unavailable</value>
+  </data>
+
+  <data name="Settings_WebServerSection" xml:space="preserve">
+    <value>Presentation in a browser</value>
+  </data>
+  <data name="Settings_WebServerEnabled" xml:space="preserve">
+    <value>Serve the presentation display to a browser</value>
+  </data>
+  <data name="Settings_WebServerDescription" xml:space="preserve">
+    <value>Serves the display page, and optionally a phone remote, to any device on the same network: a laptop at the projector, a tablet on a stand, your phone. Off by default; nothing else in the app depends on it.</value>
+  </data>
+  <data name="Settings_WebServerPort" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="Settings_WebRemoteControlEnabled" xml:space="preserve">
+    <value>Enable the phone remote</value>
+  </data>
+  <data name="Settings_WebRemoteControlDescription" xml:space="preserve">
+    <value>A separate page that can play, pause, skip and add to the queue. Anyone who can reach it and knows the PIN can change what the room is dancing to, so it is off unless you want it.</value>
+  </data>
+  <data name="Settings_WebRemoteControlPin" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="Settings_WebRegeneratePin" xml:space="preserve">
+    <value>New PIN</value>
+  </data>
+  <data name="Settings_WebRegeneratePinDescription" xml:space="preserve">
+    <value>A new PIN disconnects every phone using the old one.</value>
+  </data>
+  <data name="Settings_WebServerAddresses" xml:space="preserve">
+    <value>Open in a browser</value>
+  </data>
+  <data name="Settings_WebServerRunning" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="Settings_WebServerStopped" xml:space="preserve">
+    <value>Stopped</value>
+  </data>
+  <data name="Settings_WebServerStarting" xml:space="preserve">
+    <value>Starting</value>
+  </data>
+  <data name="Settings_WebServerFailed" xml:space="preserve">
+    <value>Failed: {0}</value>
+  </data>
+  <data name="Settings_WebServerStopping" xml:space="preserve">
+    <value>Stopping</value>
+  </data>
 </root>

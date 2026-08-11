@@ -3,8 +3,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Settings"
+             xmlns:conv="using:Avalonia.Data.Converters"
              xmlns:danceTree="using:Ready4Balfolk.UI.Views.DanceTree"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:settings="using:Ready4Balfolk.UI.Views.Settings"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ready4Balfolk.UI.Views.Settings.SettingsView"
              x:DataType="local:SettingsViewModel">
@@ -32,6 +34,29 @@
                                Increment="1"
                                Width="120"
                                HorizontalAlignment="Left" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <CheckBox Content="{x:Static res:UiStrings.Settings_QueueCutoff}"
+                          IsChecked="{Binding QueueCutoffEnabled, Mode=TwoWay}"
+                          Focusable="False" />
+                <StackPanel Orientation="Horizontal" Spacing="8"
+                            IsEnabled="{Binding QueueCutoffEnabled}">
+                    <TimePicker SelectedTime="{Binding QueueCutoffMinutesOfDay, Mode=TwoWay, Converter={x:Static settings:MinutesOfDayConverter.Instance}}"
+                                ClockIdentifier="24HourClock" />
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_QueueCutoffGrace}"
+                               VerticalAlignment="Center" />
+                    <NumericUpDown Value="{Binding QueueCutoffGraceMinutes, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
+                                   Minimum="0"
+                                   Maximum="60"
+                                   Increment="1"
+                                   Width="120" />
+                </StackPanel>
+                <TextBlock
+                    Text="{x:Static res:UiStrings.Settings_QueueCutoffDescription}"
+                    FontSize="11"
+                    Opacity="0.6"
+                    TextWrapping="Wrap" />
             </StackPanel>
 
             <StackPanel Spacing="8">
@@ -83,6 +108,17 @@
             </StackPanel>
 
             <StackPanel Spacing="8">
+                <CheckBox Content="{x:Static res:UiStrings.Settings_ShowButtonText}"
+                          IsChecked="{Binding ShowButtonText, Mode=TwoWay}"
+                          Focusable="False" />
+                <TextBlock
+                    Text="{x:Static res:UiStrings.Settings_ShowButtonTextDescription}"
+                    FontSize="11"
+                    Opacity="0.6"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
                 <CheckBox Content="{x:Static res:UiStrings.Settings_ConfirmPlayback}"
                           IsChecked="{Binding RequirePlaybackConfirmation, Mode=TwoWay}"
                           Focusable="False" />
@@ -121,6 +157,80 @@
                 <TextBlock Text="{x:Static res:UiStrings.Settings_LanguageDescription}"
                            FontSize="11"
                            Opacity="0.6" />
+            </StackPanel>
+
+            <!-- Presentation in a browser -->
+            <StackPanel Spacing="8" Margin="0,16,0,0">
+                <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerSection}" FontSize="18" FontWeight="SemiBold" />
+
+                <!-- Bound to the busy flag rather than left clickable: binding and draining a
+                     socket takes long enough that a second click would queue another whole cycle. -->
+                <CheckBox Content="{x:Static res:UiStrings.Settings_WebServerEnabled}"
+                          IsChecked="{Binding WebServerEnabled, Mode=TwoWay}"
+                          IsEnabled="{Binding !IsWebServerBusy}"
+                          Focusable="False" />
+                <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerDescription}"
+                           FontSize="11"
+                           Opacity="0.6"
+                           TextWrapping="Wrap" />
+
+                <StackPanel Spacing="8" IsEnabled="{Binding WebServerEnabled}">
+                    <ProgressBar IsIndeterminate="True"
+                                 Height="3"
+                                 IsVisible="{Binding IsWebServerBusy}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerPort}"
+                                   VerticalAlignment="Center" />
+                        <NumericUpDown Value="{Binding WebServerPort, Mode=TwoWay, Converter={x:Static danceTree:WeightConverter.Instance}}"
+                                       Minimum="1024"
+                                       Maximum="65535"
+                                       Increment="1"
+                                       IsEnabled="{Binding !IsWebServerBusy}"
+                                       Width="140" />
+                        <!-- What the server is doing, not what the switch was set to: a taken port
+                             fails the start and the user needs to see that here. -->
+                        <TextBlock Text="{Binding WebServerStatus}"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"
+                                   Opacity="0.75"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="2"
+                                IsVisible="{Binding WebServerAddresses, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerAddresses}"
+                                   FontSize="11"
+                                   Opacity="0.6" />
+                        <SelectableTextBlock Text="{Binding WebServerAddresses}" FontSize="12" />
+                    </StackPanel>
+
+                    <CheckBox Content="{x:Static res:UiStrings.Settings_WebRemoteControlEnabled}"
+                              IsChecked="{Binding WebRemoteControlEnabled, Mode=TwoWay}"
+                              IsEnabled="{Binding !IsWebServerBusy}"
+                              Focusable="False" />
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_WebRemoteControlDescription}"
+                               FontSize="11"
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                IsEnabled="{Binding WebRemoteControlEnabled}">
+                        <TextBlock Text="{x:Static res:UiStrings.Settings_WebRemoteControlPin}"
+                                   VerticalAlignment="Center" />
+                        <SelectableTextBlock Text="{Binding WebRemoteControlPin}"
+                                             VerticalAlignment="Center"
+                                             FontSize="18"
+                                             FontWeight="SemiBold" />
+                        <Button Content="{x:Static res:UiStrings.Settings_WebRegeneratePin}"
+                                Command="{Binding RegeneratePinCommand}"
+                                Focusable="False" />
+                    </StackPanel>
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_WebRegeneratePinDescription}"
+                               FontSize="11"
+                               Opacity="0.6"
+                               IsEnabled="{Binding WebRemoteControlEnabled}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
             </StackPanel>
 
             <!-- Troubleshooting section -->

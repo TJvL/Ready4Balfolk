@@ -19,14 +19,15 @@ public sealed class QueueService : IQueueService, IDisposable
         ISettingsStore settingsStore,
         IQueueHistoryStore historyStore,
         Func<IQueueItem?> currentItemProvider,
+        Func<TimeSpan> currentItemRemainingProvider,
         ILoggerService loggerService)
     {
         _loggerService = loggerService;
-        _guard = QueueGuardBuilder.FromSettings(settingsStore.Current, currentItemProvider, historyStore);
+        _guard = QueueGuardBuilder.FromSettings(settingsStore.Current, currentItemProvider, historyStore, currentItemRemainingProvider);
         _settingsSubscription = settingsStore.Observe()
             .Subscribe(settings =>
             {
-                _guard = QueueGuardBuilder.FromSettings(settings, currentItemProvider, historyStore);
+                _guard = QueueGuardBuilder.FromSettings(settings, currentItemProvider, historyStore, currentItemRemainingProvider);
                 Evict();
             });
         _historySubscription = historyStore.Observe()
@@ -64,10 +65,33 @@ public sealed class QueueService : IQueueService, IDisposable
                 }
             }
 
-            list.Add(item);
+            list.Insert(TailInsertIndex(list, item), item);
         });
         _ = _loggerService.DebugAsync($"Enqueue: {item.GetType().Name}, allowed={result.Allowed}");
         return result;
+    }
+
+    // The auto-track sits at the bottom of the queue as a preview of what plays next when nobody
+    // requests anything, so real requests go in above it rather than behind it.
+    private static int TailInsertIndex(IList<IQueueItem> list, IQueueItem item)
+        => ClampInsertIndex(list, item, list.Count);
+
+    private static int ClampInsertIndex(IList<IQueueItem> list, IQueueItem item, int desired)
+        => item is AutoTrackQueueItem
+            ? list.Count
+            : Math.Clamp(desired, 0, FirstAutoTrackIndex(list) ?? list.Count);
+
+    private static int? FirstAutoTrackIndex(IList<IQueueItem> list)
+    {
+        for (var i = 0; i < list.Count; i++)
+        {
+            if (list[i] is AutoTrackQueueItem)
+            {
+                return i;
+            }
+        }
+
+        return null;
     }
 
     public IQueueItem? Dequeue()
@@ -110,16 +134,24 @@ public sealed class QueueService : IQueueService, IDisposable
                 }
             }
 
-            list.Insert(Math.Max(0, index - removed), item);
+            var target = Math.Max(0, index - removed);
+            list.Insert(ClampInsertIndex(list, item, target), item);
         });
         return result;
     }
 
     public bool Move(int oldIndex, int newIndex)
     {
-        if (!_guard.CanMove(_sourceList.Items[oldIndex]))
+        var item = _sourceList.Items[oldIndex];
+        if (!_guard.CanMove(item))
         {
             return false;
+        }
+
+        if (item is not AutoTrackQueueItem && FirstAutoTrackIndex([.. _sourceList.Items]) is { } autoIndex)
+        {
+            // Removing the item first shifts everything after it down by one.
+            newIndex = Math.Min(newIndex, oldIndex < autoIndex ? autoIndex - 1 : autoIndex);
         }
 
         _sourceList.Move(oldIndex, newIndex);
@@ -144,7 +176,18 @@ public sealed class QueueService : IQueueService, IDisposable
             return false;
         }
 
-        _sourceList.Clear();
+        // Clearing removes the requests, not the auto-track: it is a placeholder for an empty
+        // queue, so it survives and simply becomes the only entry again.
+        _sourceList.Edit(list =>
+        {
+            for (var i = list.Count - 1; i >= 0; i--)
+            {
+                if (list[i] is not AutoTrackQueueItem)
+                {
+                    list.RemoveAt(i);
+                }
+            }
+        });
         _ = _loggerService.DebugAsync("Queue cleared");
         return true;
     }

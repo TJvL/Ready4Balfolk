@@ -41,8 +41,11 @@
   </resheader>
 
   <!-- Queue guard rules -->
-  <data name="AutoTrackRule_OnlyEmptyQueue" xml:space="preserve">
-    <value>Automatisch nummer kan alleen aan een lege wachtrij worden toegevoegd.</value>
+  <data name="AutoTrackRule_OnlyOneAllowed" xml:space="preserve">
+    <value>Er kan maar een automatisch nummer in de wachtrij staan.</value>
+  </data>
+  <data name="QueueCutoffRule_PastCutoff" xml:space="preserve">
+    <value>Hiermee loopt de wachtrij door tot na {0}.</value>
   </data>
   <data name="DuplicateTrackRule_AlreadyInQueue" xml:space="preserve">
     <value>Nummer staat al in de wachtrij.</value>

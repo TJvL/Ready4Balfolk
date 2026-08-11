@@ -55,6 +55,162 @@
   </data>
 
   <!-- Toolbar -->
+  <data name="Playback_PlayLabel" xml:space="preserve">
+    <value>Afspelen</value>
+  </data>
+  <data name="Playback_PauseLabel" xml:space="preserve">
+    <value>Pauze</value>
+  </data>
+  <data name="Playback_RestartLabel" xml:space="preserve">
+    <value>Opnieuw</value>
+  </data>
+  <data name="Playback_SkipLabel" xml:space="preserve">
+    <value>Volgende</value>
+  </data>
+  <data name="Playback_ClearLabel" xml:space="preserve">
+    <value>Wissen</value>
+  </data>
+  <data name="QueueToolbar_HistoryLabel" xml:space="preserve">
+    <value>Geschiedenis</value>
+  </data>
+  <data name="QueueToolbar_RandomLabel" xml:space="preserve">
+    <value>Willekeurig</value>
+  </data>
+  <data name="QueueToolbar_StopLabel" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="QueueToolbar_DelayLabel" xml:space="preserve">
+    <value>Pauze</value>
+  </data>
+  <data name="QueueToolbar_MessageLabel" xml:space="preserve">
+    <value>Bericht</value>
+  </data>
+  <data name="QueueToolbar_RemoveLabel" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="QueueToolbar_ClearLabel" xml:space="preserve">
+    <value>Wissen</value>
+  </data>
+  <data name="Queue_MoveUpLabel" xml:space="preserve">
+    <value>Omhoog</value>
+  </data>
+  <data name="Queue_MoveDownLabel" xml:space="preserve">
+    <value>Omlaag</value>
+  </data>
+  <data name="HistoryToolbar_QueueLabel" xml:space="preserve">
+    <value>Wachtrij</value>
+  </data>
+  <data name="HistoryToolbar_ExportLabel" xml:space="preserve">
+    <value>Exporteren</value>
+  </data>
+  <data name="HistoryToolbar_ClearLabel" xml:space="preserve">
+    <value>Wissen</value>
+  </data>
+  <data name="TrackCatalog_DancesLabel" xml:space="preserve">
+    <value>Dansen</value>
+  </data>
+  <data name="TrackCatalog_ClearSearchLabel" xml:space="preserve">
+    <value>Wissen</value>
+  </data>
+  <data name="MainWindow_BackLabel" xml:space="preserve">
+    <value>Terug</value>
+  </data>
+  <data name="DanceTreeToolbar_TrackListLabel" xml:space="preserve">
+    <value>Nummers</value>
+  </data>
+  <data name="DanceTreeToolbar_UndoLabel" xml:space="preserve">
+    <value>Ongedaan</value>
+  </data>
+  <data name="DanceTreeToolbar_RedoLabel" xml:space="preserve">
+    <value>Opnieuw</value>
+  </data>
+  <data name="DanceTreeToolbar_ImportLabel" xml:space="preserve">
+    <value>Importeren</value>
+  </data>
+  <data name="DanceTreeToolbar_ExportLabel" xml:space="preserve">
+    <value>Exporteren</value>
+  </data>
+  <data name="DanceTree_RandomLabel" xml:space="preserve">
+    <value>Willekeurig</value>
+  </data>
+  <data name="DanceTree_AddCategoryLabel" xml:space="preserve">
+    <value>Groep erbij</value>
+  </data>
+  <data name="DanceTree_AddDanceLabel" xml:space="preserve">
+    <value>Dans erbij</value>
+  </data>
+  <data name="DanceTree_EditLabel" xml:space="preserve">
+    <value>Bewerken</value>
+  </data>
+  <data name="DanceTree_ConfirmLabel" xml:space="preserve">
+    <value>Klaar</value>
+  </data>
+  <data name="DanceTree_DeleteLabel" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="DanceTree_CancelLabel" xml:space="preserve">
+    <value>Annuleren</value>
+  </data>
+  <data name="DanceSynonyms_BackLabel" xml:space="preserve">
+    <value>Terug</value>
+  </data>
+  <data name="DanceSynonyms_UndoLabel" xml:space="preserve">
+    <value>Ongedaan</value>
+  </data>
+  <data name="DanceSynonyms_RedoLabel" xml:space="preserve">
+    <value>Opnieuw</value>
+  </data>
+  <data name="DanceSynonyms_ImportLabel" xml:space="preserve">
+    <value>Importeren</value>
+  </data>
+  <data name="DanceSynonyms_ExportLabel" xml:space="preserve">
+    <value>Exporteren</value>
+  </data>
+  <data name="DanceSynonyms_AddDanceLabel" xml:space="preserve">
+    <value>Dans erbij</value>
+  </data>
+  <data name="DanceSynonyms_EditLabel" xml:space="preserve">
+    <value>Bewerken</value>
+  </data>
+  <data name="DanceSynonyms_ConfirmLabel" xml:space="preserve">
+    <value>Klaar</value>
+  </data>
+  <data name="DanceSynonyms_DeleteLabel" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="DanceSynonyms_CancelLabel" xml:space="preserve">
+    <value>Annuleren</value>
+  </data>
+  <data name="DanceSynonyms_RemoveLabel" xml:space="preserve">
+    <value>Weghalen</value>
+  </data>
+  <data name="DanceSynonyms_AddSynonymLabel" xml:space="preserve">
+    <value>Synoniem erbij</value>
+  </data>
+  <data name="Queue_RefreshAutoTrackLabel" xml:space="preserve">
+    <value>Opnieuw</value>
+  </data>
+  <data name="Queue_KeepTrackLabel" xml:space="preserve">
+    <value>Behouden</value>
+  </data>
+  <data name="Toolbar_ExitLabel" xml:space="preserve">
+    <value>Afsluiten</value>
+  </data>
+  <data name="Toolbar_HelpLabel" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="Toolbar_SettingsLabel" xml:space="preserve">
+    <value>Instellingen</value>
+  </data>
+  <data name="Toolbar_DanceSynonymsLabel" xml:space="preserve">
+    <value>Synoniemen</value>
+  </data>
+  <data name="Settings_ShowButtonText" xml:space="preserve">
+    <value>Tekst op knoppen tonen in plaats van iconen</value>
+  </data>
+  <data name="Settings_ShowButtonTextDescription" xml:space="preserve">
+    <value>Vervang de iconen op knoppen door een korte omschrijving van wat ze doen.</value>
+  </data>
   <data name="Toolbar_Exit" xml:space="preserve">
     <value>Afsluiten</value>
   </data>
@@ -80,6 +236,18 @@
   </data>
   <data name="Settings_Browse" xml:space="preserve">
     <value>Bladeren...</value>
+  </data>
+  <data name="Settings_QueueCutoff" xml:space="preserve">
+    <value>Geen verzoeken meer aannemen na een bepaalde tijd</value>
+  </data>
+  <data name="Settings_QueueCutoffGrace" xml:space="preserve">
+    <value>Speling (minuten)</value>
+  </data>
+  <data name="Settings_QueueCutoffDescription" xml:space="preserve">
+    <value>Weiger nieuwe items zodra de wachtrij tot na deze tijd zou doorlopen, met de speling erbovenop. Zolang er een stopverzoek in de wachtrij staat is de eindtijd onbekend en geldt de limiet niet; gebruik een pauze als je weet hoe lang het duurt.</value>
+  </data>
+  <data name="Queue_CutoffPaused" xml:space="preserve">
+    <value>limiet gepauzeerd voor de stop</value>
   </data>
   <data name="Settings_MaxQueueItems" xml:space="preserve">
     <value>Maximaal aantal wachtrij-items</value>
@@ -239,6 +407,9 @@
   </data>
   <data name="History_TypeStop" xml:space="preserve">
     <value>Stop</value>
+  </data>
+  <data name="History_StartedAt" xml:space="preserve">
+    <value>Gestart om</value>
   </data>
   <data name="History_StatusFinished" xml:space="preserve">
     <value>Afgelopen</value>
@@ -584,4 +755,74 @@ Doorgaan met importeren?</value>
     <value>Herstarten</value>
   </data>
 
+  <data name="Equalizer_Title" xml:space="preserve">
+    <value>Equalizer</value>
+  </data>
+  <data name="Equalizer_On" xml:space="preserve">
+    <value>aan</value>
+  </data>
+  <data name="Equalizer_Off" xml:space="preserve">
+    <value>uit</value>
+  </data>
+  <data name="Equalizer_Enable" xml:space="preserve">
+    <value>Inschakelen</value>
+  </data>
+  <data name="Equalizer_LowCut" xml:space="preserve">
+    <value>Laagafsnijding</value>
+  </data>
+  <data name="Equalizer_Preamp" xml:space="preserve">
+    <value>Voorversterking</value>
+  </data>
+  <data name="Equalizer_Reset" xml:space="preserve">
+    <value>Terug naar vlak</value>
+  </data>
+  <data name="Equalizer_Unavailable" xml:space="preserve">
+    <value>Equalizer niet beschikbaar</value>
+  </data>
+
+  <data name="Settings_WebServerSection" xml:space="preserve">
+    <value>Presentatie in een browser</value>
+  </data>
+  <data name="Settings_WebServerEnabled" xml:space="preserve">
+    <value>Presentatiescherm aanbieden aan een browser</value>
+  </data>
+  <data name="Settings_WebServerDescription" xml:space="preserve">
+    <value>Biedt het presentatiescherm, en eventueel een afstandsbediening, aan elk apparaat op hetzelfde netwerk: een laptop bij de beamer, een tablet op een standaard, je telefoon. Staat standaard uit; de rest van de app werkt er niet mee of zonder anders.</value>
+  </data>
+  <data name="Settings_WebServerPort" xml:space="preserve">
+    <value>Poort</value>
+  </data>
+  <data name="Settings_WebRemoteControlEnabled" xml:space="preserve">
+    <value>Afstandsbediening op de telefoon inschakelen</value>
+  </data>
+  <data name="Settings_WebRemoteControlDescription" xml:space="preserve">
+    <value>Een aparte pagina die kan afspelen, pauzeren, overslaan en aan de wachtrij toevoegen. Iedereen die erbij kan en de pincode kent, kan veranderen waarop de zaal danst, dus dit staat uit tenzij je het wilt.</value>
+  </data>
+  <data name="Settings_WebRemoteControlPin" xml:space="preserve">
+    <value>Pincode</value>
+  </data>
+  <data name="Settings_WebRegeneratePin" xml:space="preserve">
+    <value>Nieuwe pincode</value>
+  </data>
+  <data name="Settings_WebRegeneratePinDescription" xml:space="preserve">
+    <value>Een nieuwe pincode verbreekt de verbinding met elke telefoon die de oude gebruikt.</value>
+  </data>
+  <data name="Settings_WebServerAddresses" xml:space="preserve">
+    <value>Openen in een browser</value>
+  </data>
+  <data name="Settings_WebServerRunning" xml:space="preserve">
+    <value>Actief</value>
+  </data>
+  <data name="Settings_WebServerStopped" xml:space="preserve">
+    <value>Gestopt</value>
+  </data>
+  <data name="Settings_WebServerStarting" xml:space="preserve">
+    <value>Wordt gestart</value>
+  </data>
+  <data name="Settings_WebServerFailed" xml:space="preserve">
+    <value>Mislukt: {0}</value>
+  </data>
+  <data name="Settings_WebServerStopping" xml:space="preserve">
+    <value>Wordt gestopt</value>
+  </data>
 </root>

@@ -6,7 +6,7 @@ public interface IDanceTreeStore : ILoadableStore, IDisposable
 {
     IReadOnlyList<DanceBranch> Current { get; }
     IObservable<IReadOnlyList<DanceBranch>> Observe();
-    Task LoadAsync();
+    Task LoadAsync(CancellationToken token);
     Task UpdateAsync(Func<IReadOnlyList<DanceBranch>, IReadOnlyList<DanceBranch>> transform);
     Task ExportAsync(FileInfo destinationFileInfo);
     Task ImportAsync(FileInfo sourceFileInfo);

@@ -1,1 +1,5 @@
 * text=auto eol=lf
+
+# Smoke test audio fixtures. text=auto guesses right on these, but a mangled WAV would be a
+# genuinely confusing failure, so say it outright.
+scripts/smoke-test-media/* binary

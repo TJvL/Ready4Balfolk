@@ -8,7 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
-using ReactiveUI.Avalonia;
+using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;

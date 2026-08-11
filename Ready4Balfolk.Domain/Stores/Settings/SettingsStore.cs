@@ -27,11 +27,11 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
 
     private string SettingsFilePath => Path.Combine(_settingsDirectoryInfo.FullName, SettingsFileName);
 
-    public SettingsStore(DirectoryInfo settingsDirectoryInfo, ILoggerService? loggerService = null)
+    public SettingsStore(IApplicationSettingsDirectory settingsDirectoryInfo, ILoggerService? loggerService = null)
     {
-        _settingsDirectoryInfo = settingsDirectoryInfo;
+        _settingsDirectoryInfo = settingsDirectoryInfo.DirectoryInfoRoot;
         _loggerService = loggerService ?? new NoOpLoggerService();
-        _settings = new BehaviorSubject<ApplicationSettings>(LoadInitial(settingsDirectoryInfo, _loggerService));
+        _settings = new BehaviorSubject<ApplicationSettings>(LoadInitial(settingsDirectoryInfo.DirectoryInfoRoot, _loggerService));
     }
 
     public ApplicationSettings Current => _settings.Value;
@@ -48,8 +48,8 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
 
         try
         {
-            var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<ApplicationSettings>(json, JsonOptions) ?? new ApplicationSettings();
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read);
+            return JsonSerializer.Deserialize<ApplicationSettings>(stream, JsonOptions) ?? new ApplicationSettings();
         }
         catch (JsonException ex)
         {

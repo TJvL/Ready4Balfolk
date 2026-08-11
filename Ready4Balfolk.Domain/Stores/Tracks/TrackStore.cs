@@ -1,8 +1,9 @@
 using System.IO.Abstractions;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Threading.Channels;
+using AsyncAwaitBestPractices;
 using DynamicData;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
@@ -22,6 +23,13 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly SourceList<Track> _tracks = new();
     private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly IDisposable _synonymSubscription;
+    private readonly CompositeDisposable _fileWatcherSubscriptions = [];
+    // Loads are started fire-and-forget from the setter, so without a gate two of them interleave:
+    // each opens by disposing the watcher and clearing the track list, so one load ends up
+    // disposing the watcher the other just published, and appending its tracks after the other
+    // cleared them.
+    private readonly SemaphoreSlim _loadGate = new(1, 1);
+    private CancellationTokenSource? _loadCts;
     private FileSystemWatcher? _watcher;
     private bool _disposed;
     private readonly IFileSystem _fileSystem;
@@ -59,16 +67,26 @@ public sealed class TrackStore : ITrackStore, IDisposable
         {
             if (value is null)
             {
+                _ = _loggerService.DebugAsync("Set null value");
                 return;
             }
 
             if (string.Equals(field?.FullName, value.FullName, StringComparison.Ordinal))
             {
+                _ = _loggerService.DebugAsync("Same field name, don't do rediscover");
                 return;
             }
 
             field = value;
-            _ = Task.Run(() => LoadDirectoryAsync(value));
+
+            // Cancel whatever is in flight so it stops before it can touch shared state again.
+            // Superseded sources are deliberately not disposed here: the load that owns one may
+            // still be observing its token, and a CancellationTokenSource without registered
+            // timers holds nothing worth reclaiming.
+            var cancellation = new CancellationTokenSource();
+            Interlocked.Exchange(ref _loadCts, cancellation)?.Cancel();
+
+            Task.Run(() => LoadDirectoryAsync(value, cancellation.Token)).SafeFireAndForget(exception => _loggerService.ErrorAsync("Loading directory failed", exception));
         }
     }
 
@@ -91,15 +109,22 @@ public sealed class TrackStore : ITrackStore, IDisposable
             return;
         }
 
+        // Set first: a load still in flight checks this before publishing a watcher.
+        _disposed = true;
+
         if (disposing)
         {
+            var cancellation = Interlocked.Exchange(ref _loadCts, null);
+            cancellation?.Cancel();
+            cancellation?.Dispose();
+
             _synonymSubscription.Dispose();
+            _fileWatcherSubscriptions.Dispose();
             _watcher?.Dispose();
             _tracks.Dispose();
             _isLoading.Dispose();
+            _loadGate.Dispose();
         }
-
-        _disposed = true;
     }
 
     private void ReResolveAllTracks()
@@ -123,10 +148,38 @@ public sealed class TrackStore : ITrackStore, IDisposable
         };
     }
 
-    private async Task LoadDirectoryAsync(IDirectoryInfo directory)
+    private static ICollection<IFileInfo> DiscoverFiles(IDirectoryInfo directory)
+    {
+        return
+        [
+            ..SupportedAudioFormats.Extensions
+                .SelectMany(ext => directory.EnumerateFiles($"*{ext}", SearchOption.AllDirectories))
+        ];
+    }
+
+    private async Task LoadDirectoryAsync(IDirectoryInfo directory, CancellationToken cancellationToken)
     {
         _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
 
+        await _loadGate.WaitAsync(CancellationToken.None);
+        try
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                // Superseded while queued behind the previous load: leave its results alone.
+                return;
+            }
+
+            await LoadDirectoryCoreAsync(directory, cancellationToken);
+        }
+        finally
+        {
+            _loadGate.Release();
+        }
+    }
+
+    private async Task LoadDirectoryCoreAsync(IDirectoryInfo directory, CancellationToken cancellationToken)
+    {
         _watcher?.Dispose();
         _watcher = null;
         _tracks.Clear();
@@ -143,76 +196,25 @@ public sealed class TrackStore : ITrackStore, IDisposable
         {
             await _durationCache.LoadAsync();
 
-            var channel = Channel.CreateUnbounded<Track>();
-            var loadedPaths = new HashSet<string>(StringComparer.Ordinal);
+            var audioFiles = DiscoverFiles(directory);
+            _ = _loggerService.DebugAsync($"Found {audioFiles.Count} audio files to load");
 
-            var producerTask = Task.Run(async () =>
+            var trackLoaded = audioFiles.ToObservable()
+                .TakeUntil(_ => cancellationToken.IsCancellationRequested)
+                .Select(LoadTrackObservable)
+                .Merge(MaxAmountOfFileReaderThreads)
+                .Buffer(TimeSpan.FromMilliseconds(200), 50);
+
+            await trackLoaded.Where(r => r.Any()).ForEachAsync(tracksBatch =>
             {
-                // The channel must always be completed, or the reader loop below
-                // hangs the load forever; hence the finally.
-                try
-                {
-                    var audioFiles = SupportedAudioFormats.Extensions
-                        .SelectMany(ext => directory.EnumerateFiles($"*{ext}", SearchOption.AllDirectories))
-                        .ToArray();
-                    _ = _loggerService.DebugAsync($"Found {audioFiles.Length} audio files to load");
+                _tracks.Edit(innerList => innerList.AddRange(tracksBatch));
 
-                    await Parallel.ForEachAsync(audioFiles,
-                        new ParallelOptions
-                        {
-                            MaxDegreeOfParallelism = MaxAmountOfFileReaderThreads
-                        },
-                        async (file, ct) =>
-                        {
-                            var track = TryLoadTrack(file);
-                            if (track is null)
-                            {
-                                return;
-                            }
+                _ = _loggerService.DebugAsync($"Added batch of '{tracksBatch.Count:N0}' tracks");
+            }, cancellationToken);
 
-                            lock (loadedPaths)
-                            {
-                                loadedPaths.Add(file.FullName);
-                            }
-
-                            await channel.Writer.WriteAsync(track, ct);
-                        });
-                }
-                finally
-                {
-                    channel.Writer.Complete();
-                }
-            });
-
-            var batch = new List<Track>();
-            var lastFlush = DateTime.UtcNow;
-
-            await foreach (var track in channel.Reader.ReadAllAsync())
-            {
-                batch.Add(track);
-                if (batch.Count >= 50 || DateTime.UtcNow - lastFlush >= TimeSpan.FromMilliseconds(200))
-                {
-                    _tracks.AddRange(batch);
-                    batch.Clear();
-                    lastFlush = DateTime.UtcNow;
-                }
-            }
-
-            if (batch.Count > 0)
-            {
-                _tracks.AddRange(batch);
-            }
-
-            await producerTask;
-
-            _ = _loggerService.DebugAsync($"Loaded {_tracks.Count} tracks successfully");
-            _ = _durationCache.SaveAsync(loadedPaths);
-            StartWatching(directory);
-        }
-        catch (Exception ex)
-        {
-            await _loggerService.ErrorAsync(
-                $"Failed to load tracks from '{directory.FullName}'", ex);
+            await _loggerService.DebugAsync($"Loaded '{_tracks.Count:N0}' tracks successfully");
+            await _durationCache.SaveAsync([.. audioFiles.Select(r => r.FullName)]);
+            StartWatching(directory, cancellationToken);
         }
         finally
         {
@@ -220,78 +222,103 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    /// <summary>
-    /// Loads a single file into a resolved track. Centralized per-file handling:
-    /// discovery can throw many exception types (TagLib corrupt-file errors,
-    /// JSON errors from dances.json, discovery exceptions for unparseable
-    /// files); none of them may escape, or a single bad file kills a whole
-    /// directory scan or crashes an async void watcher handler.
-    /// </summary>
-    private Track? TryLoadTrack(IFileInfo file)
+    private IObservable<Track> LoadTrackObservable(IFileInfo file)
     {
-        try
-        {
-            Track track;
-            var cachedDuration = _durationCache.TryGetDuration(
-                file.FullName, file.LastWriteTimeUtc);
-            if (cachedDuration.HasValue)
+        // Defer keeps the inner observable cold so Merge(MaxAmountOfFileReaderThreads)
+        // actually caps how many LoadTrack calls run concurrently.
+        return Observable
+            .Defer(() => Observable.Start(() => LoadTrack(file), TaskPoolScheduler.Default))
+            .Catch<Track, Exception>((ex) =>
             {
-                track = _discoveryService.LoadTrackWithDuration(
-                    file, cachedDuration.Value);
-            }
-            else
-            {
-                track = _discoveryService.LoadTrack(file);
-                _durationCache.SetDuration(
-                    file.FullName, file.LastWriteTimeUtc, track.Length);
-            }
-
-            if (!track.IsValid())
-            {
-                _ = _loggerService.WarningAsync(
-                    $"Skipping '{file.FullName}': incomplete track information (dance, artist or title missing).");
-                return null;
-            }
-
-            return ResolveTrackDance(track);
-        }
-        catch (Exception ex)
-        {
-            _ = _loggerService.ErrorAsync($"Failed to load track '{file.FullName}'", ex);
-            return null;
-        }
+                _ = _loggerService.WarningAsync($"Error loading {file.FullName}: {ex.Message}");
+                return Observable.Empty<Track>();
+            });
     }
 
-    private void StartWatching(IFileSystemInfo directory)
+    private Track LoadTrack(IFileInfo file)
     {
-        _watcher = new FileSystemWatcher(directory.FullName)
+        var cachedDuration = _durationCache.TryGetDuration(file.FullName, file.LastWriteTimeUtc);
+        if (cachedDuration.HasValue)
+        {
+            return _discoveryService.LoadTrackWithDuration(file, cachedDuration.Value);
+        }
+
+        var track = _discoveryService.LoadTrack(file);
+        _durationCache.SetDuration(file.FullName, file.LastWriteTimeUtc, track.Length);
+        return track;
+    }
+
+    private void StartWatching(IFileSystemInfo directory, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested || _disposed)
+        {
+            // Do not publish a watcher nobody will dispose, and do not enable one on a store that
+            // is going away: enabling a disposed watcher is what threw ObjectDisposedException.
+            return;
+        }
+
+        _fileWatcherSubscriptions.Clear();
+        // Local capture: the FromEventPattern remove-handlers must close over this
+        // instance, not the _watcher field, which is nulled on the next reload
+        // before the old subscriptions are disposed.
+        var watcher = new FileSystemWatcher(directory.FullName)
         {
             IncludeSubdirectories = true,
             NotifyFilter = NotifyFilters.FileName
         };
+        _watcher = watcher;
 
-        _watcher.Created += OnFileCreated;
-        _watcher.Deleted += OnFileDeleted;
-        _watcher.Renamed += OnFileRenamed;
+        var createdObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
+                h => watcher.Created += h,
+                h => watcher.Created -= h
+            )
+                .Select(fromEvent => OnFileCreated(fromEvent.EventArgs))
+                .Where(r => r != null)
+                .Subscribe(track => _tracks.Edit(e => e.Add(track!)));
+        _fileWatcherSubscriptions.Add(createdObs);
 
-        _watcher.EnableRaisingEvents = true;
+        var deletedObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
+                h => watcher.Deleted += h,
+                h => watcher.Deleted -= h
+            )
+            .Subscribe(fromEvent => OnFileDeleted(fromEvent.EventArgs));
+        _fileWatcherSubscriptions.Add(deletedObs);
+
+        var renamedObs = Observable.FromEventPattern<RenamedEventHandler, RenamedEventArgs>(
+                    h => watcher.Renamed += h,
+                    h => watcher.Renamed -= h
+                )
+                .Select(evt => OnFileRenamed(evt.EventArgs))
+                .Where(r => r != null)
+                .Subscribe(track => _tracks.Edit(e => e.Add(track!)));
+        _fileWatcherSubscriptions.Add(renamedObs);
+
+        watcher.EnableRaisingEvents = true;
     }
 
-    private void OnFileCreated(object sender, FileSystemEventArgs fileSystemEventArgs)
+    private Track? OnFileCreated(FileSystemEventArgs fileSystemEventArgs)
     {
         if (!SupportedAudioFormats.IsSupported(fileSystemEventArgs.FullPath))
         {
-            return;
+            return null;
         }
 
-        var track = TryLoadTrack(_fileSystem.FileInfo.New(fileSystemEventArgs.FullPath));
-        if (track != null)
+        try
         {
-            _tracks.Add(track);
+            var fileInfo = _fileSystem.FileInfo.New(fileSystemEventArgs.FullPath);
+            var track = _discoveryService.LoadTrack(fileInfo);
+            _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
+            return ResolveTrackDance(track);
         }
+        catch (Exception ex) when (ex is FormatException or IOException)
+        {
+            _ = _loggerService.ErrorAsync(ex.Message, ex);
+        }
+
+        return null;
     }
 
-    private void OnFileDeleted(object sender, FileSystemEventArgs fileSystemEventArgs)
+    private void OnFileDeleted(FileSystemEventArgs fileSystemEventArgs)
     {
         if (!SupportedAudioFormats.IsSupported(fileSystemEventArgs.FullPath))
         {
@@ -306,7 +333,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private void OnFileRenamed(object sender, RenamedEventArgs renamedEventArgs)
+    private Track? OnFileRenamed(RenamedEventArgs renamedEventArgs)
     {
         var oldTrack = _tracks.Items.FirstOrDefault(t =>
             string.Equals(t.FileInfo.FullName, renamedEventArgs.OldFullPath, StringComparison.Ordinal));
@@ -317,14 +344,22 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         if (!SupportedAudioFormats.IsSupported(renamedEventArgs.FullPath))
         {
-            return;
+            return null;
         }
 
-        var track = TryLoadTrack(_fileSystem.FileInfo.New(renamedEventArgs.FullPath));
-        if (track != null)
+        try
         {
-            _tracks.Add(track);
+            var fileInfo = _fileSystem.FileInfo.New(renamedEventArgs.FullPath);
+            var track = _discoveryService.LoadTrack(fileInfo);
+            _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
+            return ResolveTrackDance(track);
         }
+        catch (Exception ex) when (ex is FormatException or IOException)
+        {
+            _ = _loggerService.ErrorAsync(ex.Message, ex);
+        }
+
+        return null;
     }
 
     private static Func<Track, bool> CreateSearchFilter(string search)

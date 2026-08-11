@@ -8,7 +8,7 @@ using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using DynamicData;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.QueueItems;
@@ -116,7 +116,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
         WhenMarkedChanged = this.WhenAnyValue(x => x.Marked);
 
         _isLoadingHelper = danceTreeStore.IsLoading
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .ToProperty(this, x => x.IsLoading);
         _isLoadingHelper.DisposeWith(_disposables);
 
@@ -175,7 +175,7 @@ public sealed partial class DanceTreeViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
 
         danceTreeStore.Observe()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Where(_ => _pendingCommits == 0)
             .Subscribe(RebuildDisplayTree)
             .DisposeWith(_disposables);

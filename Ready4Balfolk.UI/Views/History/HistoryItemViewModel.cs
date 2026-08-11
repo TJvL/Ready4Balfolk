@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.UI.Resources;
 
@@ -33,6 +34,10 @@ public readonly struct HistoryItemViewModel(QueueHistoryEntry entry)
         DelayHistoryEntry d => FormatTime(d.Duration),
         _ => ""
     };
+
+    // Blank for entries recorded before start times were stored.
+    public string StartedAtFormatted =>
+        entry.StartedAt is { } startedAt ? startedAt.ToString("HH:mm", CultureInfo.CurrentCulture) : "";
 
     public string Status => entry.CompletionStatus switch
     {

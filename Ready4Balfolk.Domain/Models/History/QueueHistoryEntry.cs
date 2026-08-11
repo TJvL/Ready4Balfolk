@@ -7,4 +7,6 @@ namespace Ready4Balfolk.Domain.Models.History;
 [JsonDerivedType(typeof(MessageHistoryEntry), "message")]
 [JsonDerivedType(typeof(DelayHistoryEntry), "delay")]
 [JsonDerivedType(typeof(StopHistoryEntry), "stop")]
-public abstract record QueueHistoryEntry(CompletionStatus CompletionStatus);
+// StartedAt is nullable and defaulted so history written before it existed still deserialises;
+// those entries simply have no start time to show.
+public abstract record QueueHistoryEntry(CompletionStatus CompletionStatus, DateTime? StartedAt = null);

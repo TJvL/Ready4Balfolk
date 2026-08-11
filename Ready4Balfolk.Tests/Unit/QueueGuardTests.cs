@@ -57,11 +57,12 @@ public sealed class QueueGuardTests
     }
 
     [Fact]
-    public void EvaluateAdd_Regular_AtLimitWithAutoTrack_AllowsAfterRemoval()
+    public void EvaluateAdd_Regular_AtLimitWithAutoTrack_AutoTrackDoesNotCount()
     {
         var mockFileSystem = new MockFileSystem();
 
-        // max=2, queue has 1 real + 1 auto. Adding regular should remove auto → adjusted count = 1 < 2 → allowed
+        // max=2, queue has 1 real + 1 auto. The auto-track does not count, so 1 < 2 → allowed,
+        // and nothing is removed to make room.
         var guard = CreateGuard(maxItems: 2);
         var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "New"), false);
         IReadOnlyList<IQueueItem> items =
@@ -72,19 +73,29 @@ public sealed class QueueGuardTests
 
         var result = guard.EvaluateAdd(track, items);
         Assert.True(result.Allowed);
-        Assert.NotNull(result.RemovalPredicate);
-        Assert.True(result.RemovalPredicate!(items[1])); // auto-track matches
-        Assert.False(result.RemovalPredicate(items[0])); // regular doesn't
+        Assert.Null(result.RemovalPredicate);
     }
 
     [Fact]
-    public void EvaluateAdd_AutoTrack_NonEmpty_Denies()
+    public void EvaluateAdd_AutoTrack_QueueHasRequests_Allows()
     {
         var mockFileSystem = new MockFileSystem();
 
         var guard = CreateGuard();
         var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
         IReadOnlyList<IQueueItem> items = [new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false)];
+
+        var result = guard.EvaluateAdd(auto, items);
+        Assert.True(result.Allowed);
+    }
+
+    [Fact]
+    public void EvaluateAdd_AutoTrack_AlreadyPresent_Denies()
+    {
+        var guard = CreateGuard();
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        IReadOnlyList<IQueueItem> items =
+            [new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("A"), true))];
 
         var result = guard.EvaluateAdd(auto, items);
         Assert.False(result.Allowed);

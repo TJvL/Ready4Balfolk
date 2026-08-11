@@ -8,7 +8,7 @@ using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using DynamicData;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Stores.History;
@@ -59,7 +59,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
         TotalDurationText = "";
 
         _isLoadingHelper = historyStore.IsLoading
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .ToProperty(this, x => x.IsLoading);
         _isLoadingHelper.DisposeWith(_disposables);
 
@@ -69,7 +69,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
 
         historyStore.Observe()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(OnHistoryChanged)
             .DisposeWith(_disposables);
 

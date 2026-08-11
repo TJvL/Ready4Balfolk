@@ -290,6 +290,44 @@ Three global handlers in `Program.cs` catch unhandled exceptions and route them 
 
 UI-level errors (e.g. failed editor actions, missing tracks) are shown to the user via `NotificationService.Show(message, Severity.Error)`.
 
+### Continuous Integration
+
+`verify.yml` builds and runs the tests on Ubuntu and Windows on every push and pull request. `release.yml` is triggered by hand with a version and chains everything else: verify → build binaries → package (Flatpak, Inno Setup) → smoke test the packages → publish the release. macOS is not a build target.
+
+**The smoke test.** CI packages every artifact but cannot tell a healthy one from a broken one by looking. `Directory.Build.targets` picks the BASS, BASSFLAC and BASS_FX natives from the *host* OS rather than from the `RuntimeIdentifier`, so a publish that lands the wrong ones, or none, still succeeds — and the failure only shows up when a user double-clicks it.
+
+So the app can start itself for inspection:
+
+```bash
+./Ready4Balfolk.UI --smoke-test
+```
+
+`SmokeTest.Run` starts the application for real, waits for the main window, then resolves `IAudioPlaybackService` — which is what loads BASS, and is why killing the app after a timeout would not do: the service is a lazy singleton that nothing on the startup path touches, so a build with no BASS at all reaches a running window quite happily. It then checks BASS_FX (`IsEqualizerAvailable`), checks every extension the app offers is registered, **decodes a file in each format**, scans everything this run appended to `app.log` for `[ERROR]` and `[CRITICAL]`, prints the log if anything failed, and exits: `0` passed, `1` a check failed, `2` startup hung.
+
+The decode matters because registering a plugin is not the same as being able to read a file with it. v1.1.0 shipped Windows builds with BASSFLAC present and unloadable, so `.flac` was silently missing from the catalogue for every Windows user.
+
+`scripts/smoke-test-media/` holds the fixtures: the same 1.5 s chromatic scale, A4 up to G♯5, encoded as `.wav`, `.aiff`, `.flac`, `.mp3`, `.mp2` and `.ogg`. They are committed rather than generated, for the same reason the icons are — CI decodes them on every pull request, and generating them there would put ffmpeg on the critical path of every run, which `windows-latest` does not ship. Regenerate with `scripts/generate-smoke-test-media.sh` and commit the result; the output is deterministic, so an unchanged scale produces no diff.
+
+`.mp1` and `.aif` have no fixture. Nothing has encoded MPEG audio layer 1 for decades, and `.aif` is byte for byte the same format as `.aiff`; both are covered by the registered-extensions check instead.
+
+Two things exist only for this mode. `App` skips its exit confirmation dialog, since nobody is there to answer one; and BASS initialises against its "no sound" device, so the library, its plugins and the effect chain come up exactly as they would against real hardware on a runner that has no sound card. That keeps the check measuring whether the natives shipped rather than whether the machine can make a noise.
+
+Run it the way CI does with the wrappers, which set up a headless display and unpick some platform-specific traps:
+
+```bash
+scripts/smoke-test.sh x11     publish/Ready4Balfolk.UI
+scripts/smoke-test.sh wayland publish/Ready4Balfolk.UI          # needs xvfb / cage
+scripts/smoke-test.sh x11     flatpak run io.github.tjvl.Ready4Balfolk
+```
+
+```powershell
+pwsh scripts/smoke-test.ps1 publish\Ready4Balfolk.UI.exe
+```
+
+Both display servers are worth running, because `UseWaylandWithFallback` picks the backend at startup and X11 and Wayland are two different paths through Avalonia.
+
+The portable builds are checked inside `build-binaries.yml`, so every pull request runs them. `smoke-test-packages.yml` goes further and installs the Flatpak and the Windows installer, then launches what the installer put on disk — that is the level that catches a native library present in `publish/` but never copied into the bundle. It gates the `release` job, so nothing reaches the Releases page without having been started at least once.
+
 ### Reactive Patterns
 
 - **Domain → UI:** stores expose `IObservable<T>` via `BehaviorSubject.AsObservable()` or DynamicData `SourceList.Connect()`. ViewModels subscribe in the constructor, marshal to the UI thread with `.ObserveOn(RxApp.MainThreadScheduler)`, and collect subscriptions in a `CompositeDisposable` that is disposed when the ViewModel is disposed.

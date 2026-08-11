@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.DanceTree"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="40"
              x:Class="Ready4Balfolk.UI.Views.DanceTree.DanceTreeToolbarView"
              x:DataType="local:DanceTreeViewModel">
@@ -12,8 +13,7 @@
                 ToolTip.Tip="{x:Static res:UiStrings.DanceTreeToolbar_SwitchToTrackList}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconMenu}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconMenu}" Text="{x:Static res:UiStrings.DanceTreeToolbar_TrackListLabel}" IconSize="16" />
         </Button>
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -22,15 +22,13 @@
                 ToolTip.Tip="{Binding UndoTooltip}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconUndo}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconUndo}" Text="{x:Static res:UiStrings.DanceTreeToolbar_UndoLabel}" IconSize="16" />
         </Button>
         <Button Command="{Binding RedoCommand}"
                 ToolTip.Tip="{Binding RedoTooltip}"
                 Padding="8"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconRedo}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconRedo}" Text="{x:Static res:UiStrings.DanceTreeToolbar_RedoLabel}" IconSize="16" />
         </Button>
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
@@ -39,16 +37,14 @@
                 Padding="8"
                 Click="OnImportClick"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconFileImport}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconFileImport}" Text="{x:Static res:UiStrings.DanceTreeToolbar_ImportLabel}" IconSize="16" />
         </Button>
         <Button ToolTip.Tip="{x:Static res:UiStrings.DanceTreeToolbar_ExportDanceTree}"
                 Padding="8"
                 IsEnabled="{Binding HasEntries}"
                 Click="OnExportClick"
                 Focusable="False">
-            <PathIcon Data="{StaticResource IconFileExport}"
-                      Width="16" Height="16" />
+            <controls:ButtonContent Icon="{StaticResource IconFileExport}" Text="{x:Static res:UiStrings.DanceTreeToolbar_ExportLabel}" IconSize="16" />
         </Button>
     </StackPanel>
 </UserControl>

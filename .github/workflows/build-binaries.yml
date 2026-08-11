@@ -1,6 +1,10 @@
 name: Build Binaries
 
 on:
+  # Publishing on every pull request is not free, but it is the only way the smoke test below can
+  # run before a change is merged, and a startup regression found at release time is found late.
+  pull_request:
+    branches: [main]
   workflow_call:
     inputs:
       version:
@@ -8,7 +12,7 @@ on:
         type: string
 
 jobs:
-  build:
+  publish:
     strategy:
       matrix:
         include:
@@ -18,9 +22,6 @@ jobs:
           - os: windows-latest
             runtime: win-x64
             artifact: Ready4Balfolk-win-x64
-          - os: macos-latest
-            runtime: osx-arm64
-            artifact: Ready4Balfolk-osx-arm64
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -32,12 +33,13 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # No version is passed on a pull request; nothing is released from one, so any value will do.
       - name: Publish (single-file)
         run: >-
           dotnet publish Ready4Balfolk.UI/Ready4Balfolk.UI.csproj
           -c Release
           -r ${{ matrix.runtime }}
-          -p:Version=${{ inputs.version }}
+          -p:Version=${{ inputs.version || '0.0.0' }}
           -p:PublishSingleFile=true
           -p:SelfContained=true
           -p:IncludeNativeLibrariesForSelfExtract=true
@@ -49,10 +51,41 @@ jobs:
           dotnet publish Ready4Balfolk.UI/Ready4Balfolk.UI.csproj
           -c Release
           -r linux-x64
-          -p:Version=${{ inputs.version }}
+          -p:Version=${{ inputs.version || '0.0.0' }}
           -p:PublishSingleFile=false
           -p:SelfContained=true
           -o publish-flatpak
+
+      # Everything below this line answers the question a green build cannot: does the thing we
+      # just published actually start? Directory.Build.targets picks the BASS, BASSFLAC and BASS_FX
+      # natives from the host OS rather than from the RuntimeIdentifier, so a publish that lands the
+      # wrong ones — or none — succeeds and produces a package that dies on launch.
+      - name: Install smoke test dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb cage libx11-6 libice6 libsm6 libfontconfig1 fonts-dejavu-core
+
+      - name: Smoke test the portable build (Linux, X11)
+        if: runner.os == 'Linux'
+        run: scripts/smoke-test.sh x11 ./publish/Ready4Balfolk.UI
+
+      - name: Smoke test the portable build (Linux, Wayland)
+        if: runner.os == 'Linux'
+        run: scripts/smoke-test.sh wayland ./publish/Ready4Balfolk.UI
+
+      # The Flatpak publish differs from the portable one only in not being a single file, but that
+      # single file is exactly what extracts the natives at runtime, so the two layouts can fail
+      # apart. Checking it here catches that before the much slower Flatpak build.
+      - name: Smoke test the Flatpak publish (Linux, X11)
+        if: runner.os == 'Linux'
+        run: scripts/smoke-test.sh x11 ./publish-flatpak/Ready4Balfolk.UI
+
+      - name: Smoke test the portable build (Windows)
+        if: runner.os == 'Windows'
+        run: ./scripts/smoke-test.ps1 publish/Ready4Balfolk.UI.exe
+        shell: pwsh
 
       - name: Include icon in publish (Windows)
         if: runner.os == 'Windows'
@@ -64,8 +97,8 @@ jobs:
         run: Compress-Archive -Path publish/* -DestinationPath ${{ matrix.artifact }}.zip
         shell: pwsh
 
-      - name: Create archive (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Create archive (Linux)
+        if: runner.os == 'Linux'
         run: |
           cd publish
           tar -czvf ../${{ matrix.artifact }}.tar.gz *
@@ -79,9 +112,26 @@ jobs:
             ${{ matrix.artifact }}.tar.gz
           if-no-files-found: ignore
 
+      # Only the Flatpak build consumes this, and that job does not run on pull requests.
       - name: Upload Flatpak publish
-        if: matrix.runtime == 'linux-x64'
+        if: matrix.runtime == 'linux-x64' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: linux-x64-flatpak-publish
           path: publish-flatpak/
+
+  # A stable name for the branch ruleset to require, for the same reason verify.yml has one: the
+  # matrix legs above are named after their matrix values, and a smoke test that cannot block a
+  # merge is a smoke test that reports regressions rather than preventing them.
+  build:
+    needs: publish
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every platform published and started
+        run: |
+          if [[ "${{ needs.publish.result }}" != "success" ]]; then
+            echo "The build matrix finished as: ${{ needs.publish.result }}"
+            exit 1
+          fi
+          echo "Every platform published and its portable build started cleanly."

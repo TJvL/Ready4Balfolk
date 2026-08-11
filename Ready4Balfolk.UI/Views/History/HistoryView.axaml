@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.History"
              xmlns:controls="using:Ready4Balfolk.UI.Controls"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ready4Balfolk.UI.Views.History.HistoryView"
              x:DataType="local:HistoryViewModel">
@@ -15,9 +16,10 @@
     <controls:LoadingContainer IsLoading="{Binding IsLoading}">
     <Grid RowDefinitions="*,Auto" ClipToBounds="True">
         <ListBox Grid.Row="0"
+                 x:Name="HistoryList"
                  ItemsSource="{Binding Items}"
                  SelectionMode="Single"
-                 FontSize="13"
+                 FontSize="18"
                  ClipToBounds="True">
             <ListBox.Styles>
                 <Style Selector="ListBoxItem">
@@ -26,15 +28,21 @@
             </ListBox.Styles>
             <ListBox.DataTemplates>
                 <DataTemplate DataType="local:HistoryItemViewModel">
-                    <Grid ColumnDefinitions="*,60,60">
+                    <Grid ColumnDefinitions="*,52,60,60">
                         <TextBlock Grid.Column="0" Text="{Binding Description}"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="1" Text="{Binding DurationFormatted}"
+                        <TextBlock Grid.Column="1" Text="{Binding StartedAtFormatted}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Right"
+                                   Margin="8,0,0,0"
+                                   Opacity="0.6"
+                                   ToolTip.Tip="{x:Static res:UiStrings.History_StartedAt}" />
+                        <TextBlock Grid.Column="2" Text="{Binding DurationFormatted}"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Right"
                                    Margin="8,0" />
-                        <TextBlock Grid.Column="2" Text="{Binding Status}"
+                        <TextBlock Grid.Column="3" Text="{Binding Status}"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Right"
                                    Opacity="0.6" />
@@ -54,13 +62,13 @@
                            Text="{Binding ItemCountText}"
                            HorizontalAlignment="Left"
                            VerticalAlignment="Center"
-                           FontSize="13"
+                           FontSize="18"
                            Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
                 <TextBlock Grid.Column="1"
                            Text="{Binding TotalDurationText}"
                            HorizontalAlignment="Right"
                            VerticalAlignment="Center"
-                           FontSize="13"
+                           FontSize="18"
                            Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
             </Grid>
         </Border>

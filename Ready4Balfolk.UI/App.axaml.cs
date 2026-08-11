@@ -1,16 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
+using System.Reactive;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Microsoft.Extensions.DependencyInjection;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
@@ -22,6 +27,7 @@ using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 using Ready4Balfolk.UI.Views.Presentation;
+using Ready4Balfolk.Web;
 using AvaloniaWindowState = Avalonia.Controls.WindowState;
 using DomainWindowState = Ready4Balfolk.Domain.Models.Settings.WindowState;
 
@@ -32,7 +38,8 @@ public sealed class App : Application
     public static IServiceProvider Services { get; set; } = null!;
 
     private readonly List<PresentationWindow> _presentationWindows = [];
-    private IDisposable? _presentationCountSubscription;
+    private readonly CompositeDisposable _compositeDisposable = [];
+    private static bool _closing;
 
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -56,57 +63,31 @@ public sealed class App : Application
                 _ = logger.InfoAsync($"Window opened in {Program.StartupStopwatch.ElapsedMilliseconds} ms");
 
                 var notificationService = Services.GetRequiredService<INotificationService>();
-                logger.WhenErrorLogged
+                _compositeDisposable.Add(logger.WhenErrorLogged
                     .GroupBy(e => e.Message)
                     .SelectMany(group => group.Throttle(TimeSpan.FromSeconds(2)))
-                    .ObserveOn(RxApp.MainThreadScheduler)
-                    .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error));
+                    .ObserveOn(RxSchedulers.MainThreadScheduler)
+                    .Subscribe(entry => notificationService.Show(entry.Message, NotificationSeverity.Error)));
 
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Services.GetRequiredService<IDanceTreeStore>().LoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = logger.ErrorAsync("Failed to load dance tree", ex);
-                    }
-                });
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Services.GetRequiredService<IDanceSynonymStore>().LoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = logger.ErrorAsync("Failed to load dance synonyms", ex);
-                    }
-                });
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Services.GetRequiredService<IQueueHistoryStore>().LoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = logger.ErrorAsync("Failed to load queue history", ex);
-                    }
-                });
+                ApplyShowButtonText(settingsStore.Current.ShowButtonText);
+                _compositeDisposable.Add(settingsStore.Observe()
+                    .Select(s => s.ShowButtonText)
+                    .DistinctUntilChanged()
+                    .ObserveOn(RxSchedulers.MainThreadScheduler)
+                    .Subscribe(ApplyShowButtonText));
 
                 ApplyTheme(settingsStore.Current.ApplicationTheme);
-                settingsStore.Observe()
+                _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.ApplicationTheme)
                     .DistinctUntilChanged()
-                    .Subscribe(ApplyTheme);
+                    .Subscribe(ApplyTheme));
 
                 var trackStore = Services.GetRequiredService<ITrackStore>();
-                settingsStore.Observe()
+                _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.MusicDirectoryPath)
-                    .Where(path => !string.IsNullOrEmpty(path))
-                    .Subscribe(path => trackStore.MusicDirectory = fileSystem.DirectoryInfo.New(path));
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Select(r => new DirectoryInfo(r))
+                    .Subscribe(directory => trackStore.MusicDirectory = directory));
 
                 var windowState = settingsStore.Current.MainWindowState;
                 if (windowState is { X: not null, Y: not null })
@@ -125,92 +106,175 @@ public sealed class App : Application
                     mainWindow.WindowState = AvaloniaWindowState.Maximized;
                 }
 
+                // The embedded server follows the settings live: switching it on, moving its port or
+                // opening it to the network never needs a restart.
+                var webServer = Services.GetRequiredService<PresentationWebServer>();
+                ApplyWebServer(webServer, settingsStore.Current);
+                _compositeDisposable.Add(settingsStore.Observe()
+                    .Select(ToWebServerOptions)
+                    .DistinctUntilChanged()
+                    .Subscribe(options => webServer.ApplyAsync(options).SafeFireAndForget(ex =>
+                        Services.GetRequiredService<ILoggerService>()
+                            .ErrorAsync("Failed to apply presentation server settings", ex))));
+
                 // Open initial presentation windows and subscribe to count changes
                 SyncPresentationWindows(settingsStore.Current.PresentationDisplayCount, settingsStore);
 
-                _presentationCountSubscription = settingsStore.Observe()
+                _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.PresentationDisplayCount)
                     .DistinctUntilChanged()
-                    .Subscribe(count => SyncPresentationWindows(count, settingsStore));
+                    .Subscribe(count => SyncPresentationWindows(count, settingsStore)));
             };
 
-            mainWindow.Closing += async (_, e) =>
+            _compositeDisposable.Add(Observable.FromEventPattern(
+                    h => mainWindow.Opened += h,
+                    h => mainWindow.Opened -= h)
+                .Take(1)
+                .SelectMany(_ =>
+                    Observable.Merge(
+                        RunLoad<IDanceTreeStore>((s, token) => s.LoadAsync(token), "Failed to load dance tree"),
+                        RunLoad<IDanceSynonymStore>((s, token) => s.LoadAsync(token), "Failed to load dance synonyms"),
+                        RunLoad<IQueueHistoryStore>((s, token) => s.LoadAsync(token), "Failed to load queue history")
+                    )
+                )
+                .Subscribe());
+
+            mainWindow.Closing += (_, e) =>
             {
-                if (closeConfirmed)
+                // The smoke test shuts the app down itself and there is nobody there to answer a
+                // confirmation dialog, so the close has to go straight through.
+                if (_closing || Program.IsSmokeTest)
                 {
                     return;
                 }
 
+                // Cancel the close; HandleClosingAsync closes the window for real
+                // (with _closing set) once the confirmation dialog and state saving
+                // are done.
                 e.Cancel = true;
 
-                var dialogVm = new ConfirmationDialogViewModel
-                {
-                    Title = UiStrings.App_ExitTitle,
-                    Message = UiStrings.App_ExitMessage
-                };
-                var dialog = new ConfirmationDialogView
-                {
-                    DataContext = dialogVm
-                };
-                await dialog.ShowDialog(mainWindow);
-
-                if (dialogVm.DialogResult != true)
-                {
-                    return;
-                }
-
-                // Save all window states while everything is still open
-                var isMaximized = mainWindow.WindowState == AvaloniaWindowState.Maximized;
-                var bounds = mainWindow.Bounds;
-                var position = mainWindow.Position;
-
-                var presentationStates = _presentationWindows.Select(w =>
-                {
-                    var wBounds = w.Bounds;
-                    var wPosition = w.Position;
-                    return new DomainWindowState(
-                        wPosition.X,
-                        wPosition.Y,
-                        wBounds.Width,
-                        wBounds.Height,
-                        w.WindowState == AvaloniaWindowState.Maximized,
-                        w.IsBorderless);
-                }).ToList();
-
-                var mainVm = Services.GetRequiredService<MainWindowViewModel>();
-                var collapsedBranches = mainVm.DanceTree?.GetCollapsedBranches()
-                                        ?? settingsStore.Current.CollapsedBranches;
-
-                await settingsStore.UpdateAsync(s => s with
-                {
-                    MainWindowState = new DomainWindowState(
-                        position.X,
-                        position.Y,
-                        bounds.Width,
-                        bounds.Height,
-                        isMaximized),
-                    PresentationWindowStates = presentationStates,
-                    CollapsedBranches = collapsedBranches
-                });
-
-                // Close presentation windows
-                _presentationCountSubscription?.Dispose();
-                foreach (var pw in _presentationWindows)
-                {
-                    pw.AllowClose = true;
-                    pw.Close();
-                }
-
-                _presentationWindows.Clear();
-
-                // Now close for real — second Closing invocation will pass through
-                closeConfirmed = true;
-                mainWindow.Close();
+                HandleClosingAsync(mainWindow, settingsStore).SafeFireAndForget(ex =>
+                    Services.GetRequiredService<ILoggerService>()
+                        .ErrorAsync("Failed to handle window closing", ex));
             };
         }
 
         base.OnFrameworkInitializationCompleted();
     }
+
+    private async Task HandleClosingAsync(MainWindow mainWindow, ISettingsStore settingsStore)
+    {
+        var dialogVm = new ConfirmationDialogViewModel
+        {
+            Title = UiStrings.App_ExitTitle,
+            Message = UiStrings.App_ExitMessage
+        };
+        var dialog = new ConfirmationDialogView
+        {
+            DataContext = dialogVm
+        };
+        await dialog.ShowDialog(mainWindow);
+
+        if (dialogVm.DialogResult != true)
+        {
+            return;
+        }
+
+        // Save all window states while everything is still open
+        var isMaximized = mainWindow.WindowState == AvaloniaWindowState.Maximized;
+        var bounds = mainWindow.Bounds;
+        var position = mainWindow.Position;
+
+        var presentationStates = _presentationWindows.Select(w =>
+        {
+            var wBounds = w.Bounds;
+            var wPosition = w.Position;
+            return new DomainWindowState(
+                wPosition.X,
+                wPosition.Y,
+                wBounds.Width,
+                wBounds.Height,
+                w.WindowState == AvaloniaWindowState.Maximized,
+                w.IsBorderless);
+        }).ToList();
+
+        var mainVm = Services.GetRequiredService<MainWindowViewModel>();
+        var collapsedBranches = mainVm.DanceTree?.GetCollapsedBranches()
+                                ?? settingsStore.Current.CollapsedBranches;
+
+        await settingsStore.UpdateAsync(s => s with
+        {
+            MainWindowState = new DomainWindowState(
+                position.X,
+                position.Y,
+                bounds.Width,
+                bounds.Height,
+                isMaximized),
+            PresentationWindowStates = presentationStates,
+            CollapsedBranches = collapsedBranches
+        });
+
+        // Asked to stop, never waited for. The process is about to end and the socket goes with
+        // it, so there is nothing here worth making the user watch: awaiting Kestrel's drain is
+        // what made the close button appear to do nothing while a browser held a WebSocket open.
+        Services.GetRequiredService<PresentationWebServer>()
+            .DisposeAsync()
+            .AsTask()
+            .SafeFireAndForget(ex => Services.GetRequiredService<ILoggerService>()
+                .ErrorAsync("Presentation server did not shut down cleanly", ex));
+
+        // Close presentation windows
+        _compositeDisposable.Dispose();
+
+        foreach (var pw in _presentationWindows)
+        {
+            pw.AllowClose = true;
+            pw.Close();
+        }
+
+        _presentationWindows.Clear();
+
+        // Now close for real — second Closing invocation will pass through
+
+        _closing = true;
+        mainWindow.Close();
+    }
+
+    private static WebServerOptions ToWebServerOptions(ApplicationSettings settings) => new(
+        settings.WebServerEnabled,
+        settings.WebServerPortClamped,
+        settings.WebRemoteControlEnabled,
+        settings.WebRemoteControlPin);
+
+    private static void ApplyWebServer(PresentationWebServer server, ApplicationSettings settings) =>
+        server.ApplyAsync(ToWebServerOptions(settings)).SafeFireAndForget(ex =>
+            Services.GetRequiredService<ILoggerService>()
+                .ErrorAsync("Failed to start the presentation server", ex));
+
+    private static IObservable<Unit> RunLoad<T>(Func<T, CancellationToken, Task> loader, string errorMessage) where T : notnull
+    {
+        return Observable.Defer(() =>
+        {
+            var logger = Services.GetRequiredService<ILoggerService>();
+            var service = Services.GetRequiredService<T>();
+
+            return Observable.FromAsync(token => loader(service, token))
+                .TimeInterval()
+                .Do(ti => logger.InfoAsync($"{typeof(T).Name} completed | Duration: {ti.Interval:g}"))
+                .Select(ti => ti.Value)
+                .SubscribeOn(RxSchedulers.TaskpoolScheduler)
+                .Catch<Unit, Exception>(ex =>
+                {
+                    logger.ErrorAsync(errorMessage, ex);
+                    // Just continue
+                    return Observable.Empty<Unit>();
+                });
+        });
+    }
+
+    // A resource rather than a property on each control: the App.axaml style pushes it into every
+    // ButtonContent at once, so call sites only supply their icon and label.
+    private void ApplyShowButtonText(bool showText) => Resources["ShowButtonText"] = showText;
 
     private void ApplyTheme(ApplicationTheme theme)
     {

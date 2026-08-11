@@ -37,7 +37,7 @@ public sealed class QueueServiceTests : IDisposable
         historyStore.Current.Returns(_ => _historySubject.Value);
         historyStore.Observe().Returns(_historySubject);
 
-        _sut = new QueueService(settingsStore, historyStore, () => null, new NoOpLoggerService());
+        _sut = new QueueService(settingsStore, historyStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService());
     }
 
     // --- Basic ops ---
@@ -156,18 +156,28 @@ public sealed class QueueServiceTests : IDisposable
     }
 
     [Fact]
-    public void Enqueue_AutoTrack_NonEmptyQueue_Fails()
+    public void Enqueue_AutoTrack_NonEmptyQueue_AppendsAtTail()
     {
         var mockFileSystem = new MockFileSystem();
 
         _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
         var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
+        Assert.True(_sut.Enqueue(auto).Allowed);
+        Assert.Equal(2, _sut.Count);
+        Assert.IsType<AutoTrackQueueItem>(_sut.Items[^1]);
+    }
+
+    [Fact]
+    public void Enqueue_AutoTrack_SecondOne_Fails()
+    {
+        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("A"), true)));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true));
         Assert.False(_sut.Enqueue(auto).Allowed);
         Assert.Equal(1, _sut.Count);
     }
 
     [Fact]
-    public void Enqueue_Regular_RemovesAutoTrack()
+    public void Enqueue_Regular_InsertsAboveAutoTrack()
     {
         var mockFileSystem = new MockFileSystem();
 
@@ -175,8 +185,9 @@ public sealed class QueueServiceTests : IDisposable
         _sut.Enqueue(auto);
         var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false);
         _sut.Enqueue(track);
-        Assert.Equal(1, _sut.Count);
+        Assert.Equal(2, _sut.Count);
         Assert.IsType<TrackQueueItem>(_sut.Peek());
+        Assert.IsType<AutoTrackQueueItem>(_sut.Items[^1]);
     }
 
     [Fact]
@@ -189,17 +200,18 @@ public sealed class QueueServiceTests : IDisposable
     }
 
     [Fact]
-    public void InsertAt_AutoTrack_NonEmptyQueue_Fails()
+    public void InsertAt_AutoTrack_NonEmptyQueue_GoesToTail()
     {
         var mockFileSystem = new MockFileSystem();
 
         _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
         var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
-        Assert.False(_sut.InsertAt(0, auto).Allowed);
+        Assert.True(_sut.InsertAt(0, auto).Allowed);
+        Assert.IsType<AutoTrackQueueItem>(_sut.Items[^1]);
     }
 
     [Fact]
-    public void InsertAt_Regular_RemovesAutoTrack_AdjustsIndex()
+    public void InsertAt_Regular_ClampedAboveAutoTrack()
     {
         var mockFileSystem = new MockFileSystem();
 
@@ -207,8 +219,34 @@ public sealed class QueueServiceTests : IDisposable
         _sut.Enqueue(auto);
         var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false);
         _sut.InsertAt(1, track);
-        Assert.Equal(1, _sut.Count);
+        Assert.Equal(2, _sut.Count);
         Assert.IsType<TrackQueueItem>(_sut.Peek());
+        Assert.IsType<AutoTrackQueueItem>(_sut.Items[^1]);
+    }
+
+    [Fact]
+    public void Move_Regular_CannotGoBelowAutoTrack()
+    {
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
+        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true)));
+
+        Assert.True(_sut.Move(0, 2));
+
+        Assert.IsType<AutoTrackQueueItem>(_sut.Items[^1]);
+        Assert.Equal("A", ((TrackQueueItem)_sut.Items[1]).Track.Dance);
+    }
+
+    [Fact]
+    public void Clear_KeepsAutoTrack()
+    {
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true)));
+
+        Assert.True(_sut.Clear());
+
+        Assert.Equal(1, _sut.Count);
+        Assert.IsType<AutoTrackQueueItem>(_sut.Peek());
     }
 
     [Fact]

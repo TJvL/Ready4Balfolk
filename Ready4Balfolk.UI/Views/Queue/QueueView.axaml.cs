@@ -3,7 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using ReactiveUI.Avalonia;
+using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.Domain.Models.QueueItems;
 
 namespace Ready4Balfolk.UI.Views.Queue;
@@ -14,6 +14,7 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         DataFormat.CreateStringApplicationFormat("QueueDragIndex");
 
     private Point? _dragStartPoint;
+    private PointerPressedEventArgs? _dragStartArgs;
     private int _dragStartIndex = -1;
     private bool _dropAbove;
 
@@ -76,6 +77,7 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
 
         _dragStartIndex = QueueListBox.IndexFromContainer(listBoxItem);
         _dragStartPoint = e.GetPosition(QueueListBox);
+        _dragStartArgs = e;
     }
 
     private async void OnQueuePointerMoved(object? sender, PointerEventArgs e)
@@ -94,20 +96,23 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         }
 
         var index = _dragStartIndex;
+        var pressArgs = _dragStartArgs!;
         _dragStartPoint = null;
+        _dragStartArgs = null;
         _dragStartIndex = -1;
 
         var item = DataTransferItem.Create(QueueDragFormat, index.ToString(System.Globalization.CultureInfo.InvariantCulture));
         var data = new DataTransfer();
         data.Add(item);
 
-        await DragDrop.DoDragDropAsync(e, data, DragDropEffects.Move);
+        await DragDrop.DoDragDropAsync(pressArgs, data, DragDropEffects.Move);
         HideDropIndicator();
     }
 
     private void OnQueuePointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         _dragStartPoint = null;
+        _dragStartArgs = null;
         _dragStartIndex = -1;
     }
 

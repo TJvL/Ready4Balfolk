@@ -21,7 +21,7 @@ public sealed class DanceTreeActionTests : IDisposable
         _store.UpdateAsync(Arg.Any<Func<IReadOnlyList<DanceBranch>, IReadOnlyList<DanceBranch>>>())
             .Returns(ci =>
             {
-                var transform = ci.Arg<Func<IReadOnlyList<DanceBranch>, IReadOnlyList<DanceBranch>>>();
+                var transform = ci.Arg<Func<IReadOnlyList<DanceBranch>, IReadOnlyList<DanceBranch>>>()!;
                 _state.OnNext(transform(_state.Value));
                 return Task.CompletedTask;
             });

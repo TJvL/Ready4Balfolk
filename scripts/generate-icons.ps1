@@ -11,6 +11,10 @@ $HashFile = Join-Path $Out '.icon-hash'
 $Sizes = @(16, 24, 32, 48, 64, 128, 256, 512, 1024)
 $IcoSizes = @(16, 24, 32, 48, 256)
 
+# Every PNG is downsampled from one master render. Keep this at or above the
+# largest size above, or that size gets upscaled from a smaller raster.
+$Master = 4096
+
 # --- Hash check ---
 $CurrentHash = (Get-FileHash -Algorithm SHA256 $Svg).Hash.ToLower()
 
@@ -61,17 +65,47 @@ if (-not $magick) {
 
 Write-Host 'Generating icons (magick)...'
 
-# --- Generate PNGs ---
-foreach ($size in $Sizes) {
-    $outFile = Join-Path $Out "icon-${size}.png"
-    & magick -background none -density 1200 $Svg -resize "${size}x${size}" $outFile
-    if ($LASTEXITCODE -ne 0) { throw "magick failed for size ${size}" }
-    Write-Host "  ${size}x${size}"
+# --- Render the master ---
+# ImageMagick turns -density into pixels using the SVG's own units, and the ratio
+# has not been the same in every version (72 vs 96 units per inch). So probe at a
+# known density and scale from the size that comes back, rather than assuming one.
+$probeDensity = 96
+$baseWidth = & magick -density $probeDensity $Svg -format '%w' 'info:'
+if ($LASTEXITCODE -ne 0) { throw 'magick failed to probe the SVG' }
+
+$baseWidth = [int]$baseWidth
+if ($baseWidth -le 0) { throw "Could not read the intrinsic size of $Svg" }
+
+$density = [math]::Round($Master * $probeDensity / $baseWidth)
+
+$masterPng = Join-Path ([IO.Path]::GetTempPath()) ("icon-master-$([guid]::NewGuid()).png")
+try {
+    & magick -background none -density $density $Svg `
+        -resize "${Master}x${Master}" -depth 8 "PNG:$masterPng"
+    if ($LASTEXITCODE -ne 0) { throw 'magick failed for the master render' }
+    Write-Host "  master ${Master}x${Master}"
+
+    # --- Generate PNGs ---
+    # -depth 8 because 16 bits per channel quadruples these files for no visible gain,
+    # and -strip drops the timestamp chunk so a rerun on an unchanged SVG is byte-identical.
+    foreach ($size in $Sizes) {
+        $outFile = Join-Path $Out "icon-${size}.png"
+        & magick "PNG:$masterPng" -resize "${size}x${size}" -depth 8 -strip $outFile
+        if ($LASTEXITCODE -ne 0) { throw "magick failed for size ${size}" }
+        Write-Host "  ${size}x${size}"
+    }
+}
+finally {
+    Remove-Item $masterPng -ErrorAction SilentlyContinue
 }
 
 # --- Generate ICO ---
 $icoInputs = $IcoSizes | ForEach-Object { Join-Path $Out "icon-${_}.png" }
-& magick @icoInputs (Join-Path $Out 'icon.ico')
+# -type TrueColorAlpha because the small PNGs above have few enough colours that
+# ImageMagick stores them as palette images, and the ICO coder then writes 8bpp
+# palette frames whose transparency is a 1-bit mask. That throws away the
+# antialiased edges, so Windows renders the small sizes with hard jagged edges.
+& magick @icoInputs -type TrueColorAlpha -strip (Join-Path $Out 'icon.ico')
 if ($LASTEXITCODE -ne 0) { throw 'magick failed for icon.ico' }
 Write-Host '  icon.ico'
 

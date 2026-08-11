@@ -54,14 +54,14 @@ jobs:
     with:
       version: ${{ inputs.version }}
 
-  build-dmg:
-    needs: build-binaries
-    uses: ./.github/workflows/build-dmg.yml
-    with:
-      version: ${{ inputs.version }}
+  # The gate. build-binaries already launched the portable builds; this installs the packages and
+  # launches those, so nothing reaches the Releases page without having been started at least once.
+  smoke-test-packages:
+    needs: [build-flatpak, build-inno-setup]
+    uses: ./.github/workflows/smoke-test-packages.yml
 
   release:
-    needs: [build-binaries, build-flatpak, build-inno-setup, build-dmg]
+    needs: [build-binaries, build-flatpak, build-inno-setup, smoke-test-packages]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -85,7 +85,5 @@ jobs:
           files: |
             artifacts/Ready4Balfolk-linux-x64/*.tar.gz
             artifacts/Ready4Balfolk-win-x64/*.zip
-            artifacts/Ready4Balfolk-osx-arm64/*.tar.gz
             artifacts/Ready4Balfolk-win-x64-setup/*.exe
-            artifacts/Ready4Balfolk-osx-arm64-dmg/*.dmg
             artifacts/**/*.flatpak

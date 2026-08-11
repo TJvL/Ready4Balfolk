@@ -28,9 +28,14 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly Subject<Unit> _itemCompleted = new();
 
     private bool _itemFinishedNaturally;
+    // Captured when the item starts, since the history entry is only built once it ends.
+    private DateTime? _currentItemStartedAt;
 
     public IQueueItem? CurrentItem => _currentItem.Value;
     public IObservable<IQueueItem?> WhenCurrentItemChanged => _currentItem.AsObservable();
+    public TimeSpan CurrentItemRemaining =>
+        _totalDuration.Value > _elapsed.Value ? _totalDuration.Value - _elapsed.Value : TimeSpan.Zero;
+
     public IObservable<TimeSpan> WhenElapsedChanged => _elapsed.AsObservable();
     public IObservable<TimeSpan> WhenTotalDurationChanged => _totalDuration.AsObservable();
     public IObservable<bool> WhenIsPlayingChanged => _isPlaying.AsObservable();
@@ -127,6 +132,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private async Task StartItemAsync(IQueueItem item)
     {
         _itemFinishedNaturally = false;
+        _currentItemStartedAt = DateTime.Now;
         _itemDisposables = [];
         _elapsed.OnNext(TimeSpan.Zero);
         _totalDuration.OnNext(TimeSpan.Zero);
@@ -248,7 +254,8 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 auto.TrackQueueItem.Track.Title,
                 auto.TrackQueueItem.Track.Length,
                 auto.TrackQueueItem.RandomlyAdded,
-                status),
+                status,
+                _currentItemStartedAt),
             TrackQueueItem track => new TrackHistoryEntry(
                 track.Track.FileInfo.FullName,
                 track.Track.Dance,
@@ -256,15 +263,18 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 track.Track.Title,
                 track.Track.Length,
                 track.RandomlyAdded,
-                status),
+                status,
+                _currentItemStartedAt),
             MessageQueueItem message => new MessageHistoryEntry(
                 message.Description,
                 message.Duration,
-                status),
+                status,
+                _currentItemStartedAt),
             DelayQueueItem delay => new DelayHistoryEntry(
                 delay.DelayDuration,
-                status),
-            StopQueueItem => new StopHistoryEntry(status),
+                status,
+                _currentItemStartedAt),
+            StopQueueItem => new StopHistoryEntry(status, _currentItemStartedAt),
             _ => throw new InvalidOperationException($"Unknown queue item type: {item.GetType()}")
         };
 
@@ -277,6 +287,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _itemDisposables?.Dispose();
         _itemDisposables = null;
         _itemFinishedNaturally = false;
+        _currentItemStartedAt = null;
     }
 
     public void Dispose()

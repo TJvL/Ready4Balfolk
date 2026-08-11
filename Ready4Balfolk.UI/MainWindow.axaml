@@ -5,6 +5,7 @@
         xmlns:ui="using:Ready4Balfolk.UI"
         xmlns:toolbar="using:Ready4Balfolk.UI.Views.Toolbar"
         xmlns:playback="using:Ready4Balfolk.UI.Views.Playback"
+        xmlns:equalizer="using:Ready4Balfolk.UI.Views.Equalizer"
         xmlns:queue="using:Ready4Balfolk.UI.Views.Queue"
         xmlns:history="using:Ready4Balfolk.UI.Views.History"
         xmlns:trackCatalog="using:Ready4Balfolk.UI.Views.TrackCatalog"
@@ -12,6 +13,7 @@
         xmlns:notifications="using:Ready4Balfolk.UI.Views.Notifications"
         xmlns:rxui="http://reactiveui.net"
         xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
         x:Class="Ready4Balfolk.UI.MainWindow"
         x:DataType="ui:MainWindowViewModel"
@@ -30,6 +32,9 @@
                 <playback:PlaybackView DockPanel.Dock="Top"
                                        DataContext="{Binding Playback}"
                                        Margin="0,0,0,8" />
+                <equalizer:EqualizerView DockPanel.Dock="Top"
+                                         DataContext="{Binding Equalizer}"
+                                         Margin="0,0,0,8" />
                 <!-- Queue/History toolbar swap -->
                 <Panel DockPanel.Dock="Top">
                     <queue:QueueToolbarView DataContext="{Binding Queue}"
@@ -74,8 +79,7 @@
                    Margin="16">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
                 <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
-                    <PathIcon Data="{StaticResource IconArrowLeft}"
-                              Width="16" Height="16" />
+                    <controls:ButtonContent Icon="{StaticResource IconArrowLeft}" Text="{x:Static res:UiStrings.MainWindow_BackLabel}" IconSize="16" />
                 </Button>
                 <TextBlock Text="{x:Static res:UiStrings.MainWindow_Settings}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
             </StackPanel>
@@ -87,8 +91,7 @@
                    Margin="16">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
                 <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
-                    <PathIcon Data="{StaticResource IconArrowLeft}"
-                              Width="16" Height="16" />
+                    <controls:ButtonContent Icon="{StaticResource IconArrowLeft}" Text="{x:Static res:UiStrings.MainWindow_BackLabel}" IconSize="16" />
                 </Button>
                 <TextBlock Text="{x:Static res:UiStrings.MainWindow_Help}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
             </StackPanel>

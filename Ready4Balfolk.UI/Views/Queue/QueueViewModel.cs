@@ -8,7 +8,7 @@ using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using DynamicData;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
@@ -121,7 +121,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         if (index > 0)
         {
             MoveItem(index, index - 1);
-            RxApp.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
+            RxSchedulers.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
         }
     }
 
@@ -138,7 +138,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         if (index >= 0 && index < _queuedItems.Count - 1)
         {
             MoveItem(index, index + 1);
-            RxApp.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
+            RxSchedulers.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
         }
     }
 
@@ -183,7 +183,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         FinishTimeText = "";
 
         queueService.Connect()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Bind(out _queuedItems)
             .Subscribe(_ =>
             {
@@ -191,7 +191,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
                 UpdateItemCountText();
                 UpdateMoveStates();
 
-                if (_queuedItems.Count == 0 && !_suppressAutoEnqueue)
+                if (!_suppressAutoEnqueue)
                 {
                     TryAutoEnqueue();
                 }
@@ -206,12 +206,12 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             .Select(s => s.AutoQueueRandomTrack)
             .DistinctUntilChanged()
             .Where(enabled => enabled)
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => TryAutoEnqueue())
             .DisposeWith(_disposables);
 
         consumptionService.WhenCurrentItemChanged
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(item =>
             {
                 if (item is null)
@@ -242,7 +242,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             .Select(_ => Unit.Default);
 
         Observable.Merge(queueChanged, currentItemChanged, totalDurationChanged, elapsedTick, minuteTimer)
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateFinishTimeText())
             .DisposeWith(_disposables);
     }
@@ -257,8 +257,23 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         var index = IndexOfSelected();
+        var lastMovable = LastRequestIndex();
         IsSelectedMovableUp = index > 0;
-        IsSelectedMovableDown = index >= 0 && index < _queuedItems.Count - 1;
+        IsSelectedMovableDown = index >= 0 && index < lastMovable;
+    }
+
+    // The auto-track is pinned to the bottom, so a request cannot be moved below it.
+    private int LastRequestIndex()
+    {
+        for (var i = _queuedItems.Count - 1; i >= 0; i--)
+        {
+            if (_queuedItems[i] is not AutoTrackQueueItem)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     // Queue items are records with value equality and duplicates are allowed
@@ -326,12 +341,28 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         _suppressAutoEnqueue = true;
-        _queueService.RemoveWhere(i => i is AutoTrackQueueItem);
-        _queueService.InsertAt(index, item.TrackQueueItem with
+        try
         {
-            RandomlyAdded = true
-        });
-        _suppressAutoEnqueue = false;
+            // The auto-track has to come out first or it blocks its own pin as a duplicate, but
+            // the pin can still be refused (a full queue). Put the same one back when that
+            // happens, so a refused pin leaves the queue exactly as it was rather than silently
+            // rerolling the track.
+            _queueService.RemoveWhere(i => i is AutoTrackQueueItem);
+            var result = _queueService.InsertAt(index, item.TrackQueueItem with
+            {
+                RandomlyAdded = true
+            });
+
+            if (!result.Allowed)
+            {
+                _queueService.Enqueue(item);
+                _notificationService.Show(result.RejectionReason!, NotificationSeverity.Warning);
+            }
+        }
+        finally
+        {
+            _suppressAutoEnqueue = false;
+        }
     }
 
     private void TryAutoEnqueue()
@@ -341,7 +372,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        if (_queueService.Count > 0)
+        // One auto-track at a time, and only once something is playing: with nothing playing the
+        // queue is genuinely empty rather than waiting for a follow-up track.
+        if (_queuedItems.Any(i => i is AutoTrackQueueItem))
         {
             return;
         }
@@ -431,9 +464,18 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         var finishTime = DateTime.Now + currentRemaining + queueDuration;
-        FinishTimeText = halts
+        var text = halts
             ? string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistHaltsAt, finishTime.ToString("HH:mm", CultureInfo.CurrentCulture))
             : string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistFinishesAt, finishTime.ToString("HH:mm", CultureInfo.CurrentCulture));
+
+        // Say when the cutoff is not being applied, rather than leaving the user to wonder why a
+        // request went through: past a halt there is no end time to judge it against.
+        if (halts && _settingsStore.Current.QueueCutoffEnabled)
+        {
+            text += $" \u2014 {UiStrings.Queue_CutoffPaused}";
+        }
+
+        FinishTimeText = text;
     }
 
     public void Dispose() => _disposables.Dispose();
