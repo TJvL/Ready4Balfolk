@@ -93,6 +93,15 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
     [Reactive] public partial bool IsParked { get; private set; }
 
     /// <summary>
+    /// Where the row stands, for the eye rather than for the logic.
+    /// </summary>
+    /// <remarks>
+    /// Answered rows stay in the list, so working down a folder has to be visible at a glance:
+    /// green behind you, nothing ahead of you.
+    /// </remarks>
+    [Reactive] public partial ReviewRowState State { get; private set; }
+
+    /// <summary>
     /// True while this is the track playing.
     /// </summary>
     /// <remarks>
@@ -142,10 +151,23 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
     {
         IsApproved = true;
         IsParked = !intoTheLibrary;
+        State = intoTheLibrary ? ReviewRowState.Answered : ReviewRowState.Parked;
         StatusText = intoTheLibrary
             ? UiStrings.Review_Answered
             : string.Format(CultureInfo.CurrentCulture, UiStrings.Review_ParkedOnUnknownDance, Dance);
     }
+}
+
+/// <summary>What a row looks like: waiting, answered, or answered and held back.</summary>
+public enum ReviewRowState
+{
+    Waiting,
+
+    /// <summary>Answered and in the library.</summary>
+    Answered,
+
+    /// <summary>Answered, and waiting on a dance the published list does not carry yet.</summary>
+    Parked
 }
 
 /// <summary>The words this screen puts on sources and reasons.</summary>

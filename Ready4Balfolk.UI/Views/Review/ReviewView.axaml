@@ -36,6 +36,13 @@
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListBox.ItemTemplate>
                 <DataTemplate DataType="local:ReviewRowViewModel">
+                    <!-- The whole row is filled, not merely marked: somebody working down a folder
+                         of forty has to see where they are without reading anything. -->
+                    <Border Background="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}, ConverterParameter=fill}"
+                            BorderBrush="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}}"
+                            BorderThickness="4,0,0,0"
+                            CornerRadius="3"
+                            Padding="8,6">
                     <StackPanel Spacing="4">
                         <!-- The folder header rides on its first row, so it costs no list entry of
                              its own and arrow keys never land on something unanswerable. -->
@@ -95,7 +102,15 @@
                                        Text="{Binding StatusText}"
                                        FontSize="11"
                                        VerticalAlignment="Center"
-                                       Opacity="0.8" />
+                                       Opacity="0.9"
+                                       Foreground="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}}"
+                                       IsVisible="{Binding IsApproved}" />
+                            <TextBlock Grid.Row="0" Grid.Column="3"
+                                       Text="{Binding StatusText}"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Opacity="0.8"
+                                       IsVisible="{Binding !IsApproved}" />
 
                             <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2">
                                 <AutoCompleteBox Text="{Binding Dance, Mode=TwoWay}"
@@ -176,6 +191,7 @@
                                    TextWrapping="Wrap"
                                    IsVisible="{Binding IsParked}" />
                     </StackPanel>
+                    </Border>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>

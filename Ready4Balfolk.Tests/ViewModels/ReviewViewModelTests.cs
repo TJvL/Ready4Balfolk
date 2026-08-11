@@ -142,6 +142,34 @@ public sealed class ReviewViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task AnAnsweredRow_SaysSoInAColour()
+    {
+        // Answered rows stay in the list, so working down a folder has to be visible at a glance.
+        await Refresh();
+        var row = _sut.Rows[0];
+
+        await ApproveFirstAsync();
+
+        Assert.Equal(ReviewRowState.Answered, row.State);
+    }
+
+    [Fact]
+    public async Task AParkedRow_IsNotColouredAsDone()
+    {
+        // Answered and still not in the library. Reading those two the same is how a track goes
+        // missing without anybody noticing.
+        await Refresh();
+        var row = _sut.Rows[0];
+        row.Dance = "Rond de Landéda";
+        row.Artist = "Naragonia";
+        row.Title = "Le badaud";
+
+        await _sut.ApproveCommand.Execute(row);
+
+        Assert.Equal(ReviewRowState.Parked, row.State);
+    }
+
+    [Fact]
     public async Task ADanceTheListDoesNotKnow_IsAnsweredAndParked()
     {
         await Refresh();
