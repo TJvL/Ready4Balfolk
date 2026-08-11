@@ -134,9 +134,19 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     public ValueTask DisposeAsync()
     {
         _sut.Dispose();
-        if (_tempDir.Exists)
+
+        try
         {
-            _tempDir.Delete(true);
+            if (_tempDir.Exists)
+            {
+                _tempDir.Delete(true);
+            }
+        }
+        catch (IOException)
+        {
+            // Best effort. A temporary directory that will not delete is the operating system
+            // holding a handle a moment longer, not a test that failed, and reporting it as one
+            // hides whatever the test was actually about.
         }
 
         return ValueTask.CompletedTask;

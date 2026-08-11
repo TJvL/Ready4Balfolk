@@ -46,7 +46,11 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             var connection = new SqliteConnection(new SqliteConnectionStringBuilder
             {
                 DataSource = path,
-                Mode = SqliteOpenMode.ReadWriteCreate
+                Mode = SqliteOpenMode.ReadWriteCreate,
+                // One connection is opened and held for as long as the application runs, so a pool
+                // buys nothing — and a pooled handle outlives Dispose, which on Windows means the
+                // file stays locked and cannot be deleted or moved by anything, including us.
+                Pooling = false
             }.ToString());
 
             await connection.OpenAsync(token);
