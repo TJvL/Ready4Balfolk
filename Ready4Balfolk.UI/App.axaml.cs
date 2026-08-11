@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
 using System.Reactive;
@@ -50,7 +49,6 @@ public sealed class App : Application
         {
             var settingsStore = Services.GetRequiredService<ISettingsStore>();
             var fileSystem = Services.GetRequiredService<IFileSystem>();
-            var closeConfirmed = false;
 
             var mainWindow = new MainWindow();
             desktop.MainWindow = mainWindow;
