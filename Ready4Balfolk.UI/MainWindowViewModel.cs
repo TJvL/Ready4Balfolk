@@ -4,7 +4,6 @@ using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.DanceList;
-using Ready4Balfolk.UI.Views.Discovery;
 using Ready4Balfolk.UI.Views.Equalizer;
 using Ready4Balfolk.UI.Views.Help;
 using Ready4Balfolk.UI.Views.History;
@@ -31,7 +30,6 @@ public sealed partial class MainWindowViewModel : ReactiveObject
     [Reactive] public partial DanceListViewModel? DanceList { get; set; }
     [Reactive] public partial SettingsViewModel? Settings { get; set; }
     [Reactive] public partial HelpViewModel? Help { get; set; }
-    [Reactive] public partial DiscoveryViewModel? Discovery { get; set; }
     [Reactive] public partial ReviewViewModel? Review { get; set; }
     [Reactive] public partial SetupWizardViewModel? Setup { get; set; }
 
@@ -46,7 +44,6 @@ public sealed partial class MainWindowViewModel : ReactiveObject
         Lazy<DanceListViewModel> lazyDanceList,
         Lazy<SettingsViewModel> lazySettings,
         Lazy<HelpViewModel> lazyHelp,
-        Lazy<DiscoveryViewModel> lazyDiscovery,
         Lazy<ReviewViewModel> lazyReview,
         Func<SetupWizardViewModel> setupFactory)
     {
@@ -74,12 +71,6 @@ public sealed partial class MainWindowViewModel : ReactiveObject
                     // Built fresh each time, so running setup again starts from what is on disk
                     // rather than from where the last visit left off.
                     Setup = setupFactory();
-                }
-                else if (screen is Screen.Discovery)
-                {
-                    Discovery ??= lazyDiscovery.Value;
-                    // Measured against the library as it is now, for the same reason.
-                    Discovery.RefreshCommand.Execute().Subscribe();
                 }
                 else if (screen is Screen.Review)
                 {

@@ -86,8 +86,18 @@ public static class ReviewGate
     /// <param name="entry">What the application worked out about the file.</param>
     /// <param name="approvals">What a person agreed to about it, if anything.</param>
     /// <param name="dances">The published list, which is the only vocabulary a dance may come from.</param>
+    /// <param name="allowDancesOutsideTheList">
+    /// Whether a dance the list does not carry may still reach the library. Off by default, because
+    /// the shared list is what makes a name mean the same thing to everybody and a local answer is a
+    /// proposal waiting to be made. On, the answer stands as the user gave it — and a random pick
+    /// still cannot reach the track, since it draws by tag and a dance nobody has published has no
+    /// tags to draw on.
+    /// </param>
     public static TrackReview Evaluate(
-        LibraryEntry entry, IReadOnlyList<TrackApproval> approvals, DanceListIndex dances)
+        LibraryEntry entry,
+        IReadOnlyList<TrackApproval> approvals,
+        DanceListIndex dances,
+        bool allowDancesOutsideTheList = false)
     {
         var dance = Field(TrackField.Dance, DerivedDance(entry, dances), approvals);
         var artist = Field(TrackField.Artist, entry.Artist, approvals);
@@ -101,7 +111,7 @@ public static class ReviewGate
             Artist = artist,
             Title = title,
             DanceSlug = slug,
-            Reason = Decide(entry, approvals, dance, artist, title, slug)
+            Reason = Decide(entry, approvals, dance, artist, title, slug, allowDancesOutsideTheList)
         };
     }
 
@@ -111,7 +121,8 @@ public static class ReviewGate
         ReviewedField dance,
         ReviewedField artist,
         ReviewedField title,
-        string? slug)
+        string? slug,
+        bool allowDancesOutsideTheList)
     {
         ReviewedField[] fields = [dance, artist, title];
 
@@ -125,7 +136,7 @@ public static class ReviewGate
             return ReviewReason.Unapproved;
         }
 
-        if (slug is null)
+        if (slug is null && !allowDancesOutsideTheList)
         {
             // Approved and still not in: the value is not a local problem to patch around, it is a
             // proposal at BigBalfolkList, and the track waits here until the list carries it.

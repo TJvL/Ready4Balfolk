@@ -233,7 +233,6 @@ public static class Program
         services.AddSingleton<Lazy<HistoryViewModel>>(sp => new(sp.GetRequiredService<HistoryViewModel>));
         services.AddSingleton<Lazy<SettingsViewModel>>(sp => new(sp.GetRequiredService<SettingsViewModel>));
         services.AddSingleton<Lazy<HelpViewModel>>(sp => new(sp.GetRequiredService<HelpViewModel>));
-        services.AddSingleton<Lazy<DiscoveryViewModel>>(sp => new(sp.GetRequiredService<DiscoveryViewModel>));
         services.AddSingleton<Lazy<ReviewViewModel>>(sp => new(sp.GetRequiredService<ReviewViewModel>));
         // View registrations for ViewModelViewHost resolution
         services.AddTransient<IViewFor<SettingsViewModel>, SettingsView>();

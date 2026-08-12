@@ -1000,4 +1000,32 @@ public static class UiStrings
         ResourceManager.GetString("Discovery_ProposalSamples", Culture)!;
     public static string Discovery_NothingToPropose =>
         ResourceManager.GetString("Discovery_NothingToPropose", Culture)!;
+
+    public static string Review_Rules =>
+        ResourceManager.GetString("Review_Rules", Culture)!;
+    public static string Review_RulesHint =>
+        ResourceManager.GetString("Review_RulesHint", Culture)!;
+    public static string Review_AllowOutsideTheList =>
+        ResourceManager.GetString("Review_AllowOutsideTheList", Culture)!;
+    public static string Review_AllowOutsideTheListHint =>
+        ResourceManager.GetString("Review_AllowOutsideTheListHint", Culture)!;
+
+    public static string Review_ApproveFolderCount =>
+        ResourceManager.GetString("Review_ApproveFolderCount", Culture)!;
+    public static string Review_ApproveFolderConfirmTitle =>
+        ResourceManager.GetString("Review_ApproveFolderConfirmTitle", Culture)!;
+    public static string Review_ApproveFolderConfirm =>
+        ResourceManager.GetString("Review_ApproveFolderConfirm", Culture)!;
+    public static string Review_ApproveFolderYes =>
+        ResourceManager.GetString("Review_ApproveFolderYes", Culture)!;
+    public static string Review_ApproveFolderNo =>
+        ResourceManager.GetString("Review_ApproveFolderNo", Culture)!;
+
+    public static string Review_LooseFiles =>
+        ResourceManager.GetString("Review_LooseFiles", Culture)!;
+
+    public static string Discovery_DanceListUrl =>
+        ResourceManager.GetString("Discovery_DanceListUrl", Culture)!;
+    public static string Discovery_DanceListHint =>
+        ResourceManager.GetString("Discovery_DanceListHint", Culture)!;
 }

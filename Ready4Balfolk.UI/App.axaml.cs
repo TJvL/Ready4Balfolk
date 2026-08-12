@@ -90,6 +90,11 @@ public sealed class App : Application
                     .Subscribe(discovery => trackStore.DiscoverySettings = discovery));
 
                 _compositeDisposable.Add(settingsStore.Observe()
+                    .Select(s => s.AllowDancesOutsideTheList)
+                    .DistinctUntilChanged()
+                    .Subscribe(allow => trackStore.AllowDancesOutsideTheList = allow));
+
+                _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.MusicDirectoryPath)
                     .Where(path => !string.IsNullOrWhiteSpace(path))
                     .Select(r => new DirectoryInfo(r))

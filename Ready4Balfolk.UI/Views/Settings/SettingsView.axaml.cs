@@ -3,10 +3,8 @@ using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.UI.Resources;
-using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Settings;
 
@@ -25,8 +23,6 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
 
     private void OnRunSetupClick(object? sender, RoutedEventArgs e) => App.ShowSetup();
 
-    private void OnAdvancedDiscoveryClick(object? sender, RoutedEventArgs e) =>
-        App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Discovery;
 
     private async void OnExportLogClick(object? sender, RoutedEventArgs e)
     {

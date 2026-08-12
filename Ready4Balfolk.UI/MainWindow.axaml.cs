@@ -15,8 +15,4 @@ public sealed partial class MainWindow : Window
 
     private void OnBackClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Main;
 
-    // Back to where it was opened from, which is settings: discovery is reached through it and
-    // dropping the user on the main screen loses their place.
-    private void OnBackToSettingsClick(object? sender, RoutedEventArgs e) =>
-        App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Settings;
 }

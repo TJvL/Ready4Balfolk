@@ -39,7 +39,12 @@ public sealed record ApplicationSettings(
     bool SetupCompleted = false,
     // Null rather than an instance, for the same reason as the equalizer: a constructor default has
     // to be a compile-time constant. Read it through Discovery, never directly.
-    DiscoverySettings? DiscoveryOrNull = null)
+    DiscoverySettings? DiscoveryOrNull = null,
+    // Off, because the shared list is what makes a dance name mean the same thing to everybody, and
+    // a local answer is a proposal at BigBalfolkList waiting to be made. On, a track you have
+    // answered reaches the library whatever you called the dance — at the price that a random pick
+    // draws by tag, and a dance the list has never heard of carries none.
+    bool AllowDancesOutsideTheList = false)
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [])

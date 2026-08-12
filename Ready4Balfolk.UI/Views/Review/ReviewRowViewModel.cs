@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Reactive.Linq;
+using Avalonia.Threading;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
@@ -18,12 +22,21 @@ namespace Ready4Balfolk.UI.Views.Review;
 /// </remarks>
 public sealed partial class ReviewRowViewModel : ReactiveObject
 {
-    public ReviewRowViewModel(ReviewTrack track, bool isFirstOfGroup)
+    private readonly IReadOnlyList<string> _allDances;
+
+    // True while a pick is being written into Dance, so the picker does not reopen on its own text.
+    private bool _taking;
+
+    private IDisposable? _flashReset;
+
+    public ReviewRowViewModel(ReviewTrack track, bool isFirstOfGroup, IReadOnlyList<string> allDances)
     {
+        _allDances = allDances;
+        DanceMatches = [];
         Track = track;
         IsFirstOfGroup = isFirstOfGroup;
         FileName = track.FileName;
-        FolderText = track.Folder.Length == 0 ? UiStrings.Review_RootFolder : track.Folder;
+        FolderText = track.Folder.Length == 0 ? UiStrings.Review_LooseFiles : track.Folder;
 
         Dance = track.Review.Dance.Value ?? string.Empty;
         Artist = track.Review.Artist.Value ?? string.Empty;
@@ -35,6 +48,14 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
 
         ReasonText = ReviewText.ReasonOf(track.Review.Reason);
         StatusText = ReasonText;
+
+        // A row answered in an earlier sitting comes back through the queue rather than through
+        // MarkApproved, so the state is read off the review rather than remembered: without this a
+        // track parked on a dance the list does not carry looks untouched every time it is opened.
+        AnswerFolderText = UiStrings.Review_ApproveFolder;
+        IsInFolder = track.IsInFolder;
+        IsParked = track.Review.Reason is ReviewReason.UnknownDance;
+        State = IsParked ? ReviewRowState.Parked : ReviewRowState.Waiting;
 
         UnknownValue = track.UnknownValue;
         SharedBy = track.SharedBy;
@@ -57,6 +78,24 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
 
     /// <summary>True for the row that carries the folder's header, so a header is not a row of its own.</summary>
     public bool IsFirstOfGroup { get; }
+
+    /// <summary>
+    /// How many rows the folder button would answer, and the label saying so.
+    /// </summary>
+    /// <remarks>
+    /// On the button rather than in a tooltip, because a library with everything in one directory is
+    /// one group of two thousand, and "answer this folder" would then be a keystroke that answers
+    /// the whole library without ever having said so.
+    /// </remarks>
+    [Reactive] public partial int AnswerableInFolder { get; set; }
+
+    [Reactive] public partial string AnswerFolderText { get; set; }
+
+    /// <summary>Whether it sits in a folder at all. The music directory itself is not one.</summary>
+    public bool IsInFolder { get; private set; }
+
+    /// <summary>Whether there is a folder here worth answering in one act.</summary>
+    [Reactive] public partial bool CanAnswerFolder { get; set; }
 
     public string FileName { get; }
 
@@ -90,7 +129,7 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
     [Reactive] public partial bool IsApproved { get; private set; }
 
     /// <summary>True when the answer cannot let it into the library, so the row says why.</summary>
-    [Reactive] public partial bool IsParked { get; private set; }
+    [Reactive] public partial bool IsParked { get; set; }
 
     /// <summary>
     /// Where the row stands, for the eye rather than for the logic.
@@ -131,7 +170,146 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
     public bool HasSuggestions { get; }
 
     /// <summary>Takes a suggestion, which is the same as having typed it.</summary>
-    public void Take(string suggestion) => Dance = suggestion;
+    public void Take(string suggestion)
+    {
+        _taking = true;
+        Dance = suggestion;
+        _taking = false;
+
+        ClosePicker();
+    }
+
+    /// <summary>
+    /// True for a moment after this row refused to be answered.
+    /// </summary>
+    /// <remarks>
+    /// A keystroke that does nothing reads as a keystroke that was not received, and the answer is
+    /// to make the refusal visible rather than to explain it in a message nobody is looking at.
+    /// </remarks>
+    [Reactive] public partial bool IsRejected { get; private set; }
+
+    /// <summary>How many times this row has been asked and said no.</summary>
+    public int RejectedCount { get; private set; }
+
+    /// <summary>
+    /// Says no, visibly, however many times it is asked.
+    /// </summary>
+    /// <remarks>
+    /// The animation runs off a class going on, so it has to come off and go back on across two
+    /// passes of the dispatcher: setting the flag false and true in one breath is a single change
+    /// as far as the binding is concerned, and the second refusal shows nothing at all. The pending
+    /// reset is dropped as well, or the timer from the first press clears the second flash halfway
+    /// through and leaves the row red until something else disturbs it.
+    /// </remarks>
+    public void Reject()
+    {
+        // Counted synchronously, because the flash itself runs on the dispatcher and a test has no
+        // pump to run it on: what is worth asserting is that the row was told to say no.
+        RejectedCount++;
+
+        _flashReset?.Dispose();
+        _flashReset = null;
+        IsRejected = false;
+
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                IsRejected = true;
+                _flashReset = Observable.Timer(TimeSpan.FromSeconds(1))
+                    .ObserveOn(RxSchedulers.MainThreadScheduler)
+                    .Subscribe(_ => IsRejected = false);
+            },
+            DispatcherPriority.Background);
+    }
+
+    /// <summary>
+    /// The names the list holds that match what has been typed, and the one the keys are on.
+    /// </summary>
+    /// <remarks>
+    /// Ours rather than an AutoCompleteBox's, because that control's dropdown cannot be walked with
+    /// the arrows: pressing down takes the first match and closes, which is no use for choosing
+    /// between the four bourrées it just offered.
+    /// </remarks>
+    [Reactive] public partial IReadOnlyList<DanceMatch> DanceMatches { get; private set; }
+
+    [Reactive] public partial bool IsPickerOpen { get; set; }
+
+    /// <summary>The name the keys are on, or nothing when the list is closed.</summary>
+    public string? HighlightedDance => DanceMatches.FirstOrDefault(match => match.IsHighlighted)?.Name;
+
+    /// <summary>Recomputes what the list has to offer for the text as it now stands.</summary>
+    public void ShowMatches()
+    {
+        if (_taking)
+        {
+            return;
+        }
+
+        var typed = StringNormalizer.Normalize(Dance);
+        if (typed.Length == 0)
+        {
+            ClosePicker();
+            return;
+        }
+
+        // Starting with what was typed first, then merely containing it: somebody typing "bou"
+        // means bourrée, and the dances that only mention it belong underneath.
+        var matches = _allDances
+            .Select(name => (Name: name, Folded: StringNormalizer.Normalize(name)))
+            .Where(candidate => candidate.Folded.Contains(typed, StringComparison.Ordinal))
+            .OrderByDescending(candidate => candidate.Folded.StartsWith(typed, StringComparison.Ordinal))
+            .ThenBy(candidate => candidate.Name, StringComparer.CurrentCulture)
+            .Select(candidate => candidate.Name)
+            .Take(12)
+            .ToList();
+
+        DanceMatches = [.. matches.Select((name, index) => new DanceMatch(name) { IsHighlighted = index == 0 })];
+
+        // Nothing to choose between when the only match is what is already written.
+        IsPickerOpen = matches.Count > 0
+            && !(matches.Count == 1 && string.Equals(StringNormalizer.Normalize(matches[0]), typed, StringComparison.Ordinal));
+    }
+
+    /// <summary>Walks the offered names, wrapping, which is the whole reason this list is ours.</summary>
+    public void MoveHighlight(int direction)
+    {
+        if (DanceMatches.Count == 0)
+        {
+            return;
+        }
+
+        var at = DanceMatches.ToList().FindIndex(match => match.IsHighlighted);
+        var next = (at + direction + DanceMatches.Count) % DanceMatches.Count;
+
+        for (var i = 0; i < DanceMatches.Count; i++)
+        {
+            DanceMatches[i].IsHighlighted = i == next;
+        }
+
+        this.RaisePropertyChanged(nameof(HighlightedDance));
+    }
+
+    /// <summary>Takes the highlighted name, which is what Enter means while the list is open.</summary>
+    public bool TakeHighlighted()
+    {
+        if (HighlightedDance is not { } name)
+        {
+            return false;
+        }
+
+        _taking = true;
+        Dance = name;
+        _taking = false;
+
+        ClosePicker();
+        return true;
+    }
+
+    public void ClosePicker()
+    {
+        IsPickerOpen = false;
+        DanceMatches = [];
+    }
 
     public bool CanApprove =>
         !string.IsNullOrWhiteSpace(Dance)
@@ -152,10 +330,23 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
         IsApproved = true;
         IsParked = !intoTheLibrary;
         State = intoTheLibrary ? ReviewRowState.Answered : ReviewRowState.Parked;
-        StatusText = intoTheLibrary
-            ? UiStrings.Review_Answered
-            : string.Format(CultureInfo.CurrentCulture, UiStrings.Review_ParkedOnUnknownDance, Dance);
+        // Short, because it shares a column with a button: the sentence explaining it lives under
+        // the row, where there is width for one.
+        StatusText = intoTheLibrary ? UiStrings.Review_Answered : UiStrings.Review_ParkedOnUnknownDance;
     }
+}
+
+/// <summary>One name the published list offered for what has been typed.</summary>
+/// <remarks>
+/// A small object rather than a bare string, because the row that is highlighted has to say so
+/// itself: a converter cannot be told which one it is without a binding as its parameter, and that
+/// is the one thing a converter parameter may not be.
+/// </remarks>
+public sealed partial class DanceMatch(string name) : ReactiveObject
+{
+    public string Name { get; } = name;
+
+    [Reactive] public partial bool IsHighlighted { get; set; }
 }
 
 /// <summary>What a row looks like: waiting, answered, or answered and held back.</summary>

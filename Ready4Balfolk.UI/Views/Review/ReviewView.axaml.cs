@@ -1,8 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using ReactiveUI.Avalonia.Reactive;
 
 namespace Ready4Balfolk.UI.Views.Review;
@@ -11,17 +16,19 @@ namespace Ready4Balfolk.UI.Views.Review;
 /// The review queue, driven from the keyboard.
 /// </summary>
 /// <remarks>
-/// Two thousand mouse trips is the difference between an evening and never, so answering a row and
-/// answering a folder are both one keystroke. The shortcut for a folder is deliberately not live
-/// while a field is being typed into, or writing "Mazurka" would approve a folder halfway through
-/// the word.
+/// Two thousand mouse trips is the difference between an evening and never, so a row is answered
+/// without the hands leaving the keys: selecting one puts the caret where the typing has to start,
+/// Tab walks its three fields, Enter answers the row and Shift+Enter answers the folder.
 /// </remarks>
 public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
 {
     public ReviewView()
     {
         InitializeComponent();
-        AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Bubble);
+
+        // Tunnelled, because these keys belong to the queue before they belong to a text box: Tab
+        // would otherwise carry the focus out of the row, and Enter would be swallowed entirely.
+        AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
@@ -31,407 +38,149 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
             return;
         }
 
-        switch (e.Key)
+        // The list of names owns the arrows and Enter while it is open: walking what it found and
+        // taking one is the whole point of it being there.
+        if (selected.IsPickerOpen)
         {
-            case Key.Enter:
-                ViewModel.ApproveCommand.Execute(selected).Subscribe();
+            if (e.Key is Key.Up or Key.Down)
+            {
+                selected.MoveHighlight(e.Key is Key.Up ? -1 : 1);
                 e.Handled = true;
-                break;
+                return;
+            }
 
-            case Key.A when !IsTyping():
-                ViewModel.ApproveFolderCommand.Execute(selected).Subscribe();
+            if (e.Key is Key.Enter)
+            {
+                e.Handled = selected.TakeHighlighted();
+                return;
+            }
+
+            if (e.Key is Key.Escape)
+            {
+                selected.ClosePicker();
                 e.Handled = true;
-                break;
-            case Key.None:
-                break;
-            case Key.Cancel:
-                break;
-            case Key.Back:
-                break;
-            case Key.Tab:
-                break;
-            case Key.LineFeed:
-                break;
-            case Key.Clear:
-                break;
-            case Key.Pause:
-                break;
-            case Key.CapsLock:
-                break;
-            case Key.HangulMode:
-                break;
-            case Key.JunjaMode:
-                break;
-            case Key.FinalMode:
-                break;
-            case Key.KanjiMode:
-                break;
-            case Key.Escape:
-                break;
-            case Key.ImeConvert:
-                break;
-            case Key.ImeNonConvert:
-                break;
-            case Key.ImeAccept:
-                break;
-            case Key.ImeModeChange:
-                break;
-            case Key.Space:
-                break;
-            case Key.PageUp:
-                break;
-            case Key.PageDown:
-                break;
-            case Key.End:
-                break;
-            case Key.Home:
-                break;
-            case Key.Left:
-                break;
-            case Key.Up:
-                break;
-            case Key.Right:
-                break;
-            case Key.Down:
-                break;
-            case Key.Select:
-                break;
-            case Key.Print:
-                break;
-            case Key.Execute:
-                break;
-            case Key.Snapshot:
-                break;
-            case Key.Insert:
-                break;
-            case Key.Delete:
-                break;
-            case Key.Help:
-                break;
-            case Key.D0:
-                break;
-            case Key.D1:
-                break;
-            case Key.D2:
-                break;
-            case Key.D3:
-                break;
-            case Key.D4:
-                break;
-            case Key.D5:
-                break;
-            case Key.D6:
-                break;
-            case Key.D7:
-                break;
-            case Key.D8:
-                break;
-            case Key.D9:
-                break;
-            case Key.A:
-                break;
-            case Key.B:
-                break;
-            case Key.C:
-                break;
-            case Key.D:
-                break;
-            case Key.E:
-                break;
-            case Key.F:
-                break;
-            case Key.G:
-                break;
-            case Key.H:
-                break;
-            case Key.I:
-                break;
-            case Key.J:
-                break;
-            case Key.K:
-                break;
-            case Key.L:
-                break;
-            case Key.M:
-                break;
-            case Key.N:
-                break;
-            case Key.O:
-                break;
-            case Key.P:
-                break;
-            case Key.Q:
-                break;
-            case Key.R:
-                break;
-            case Key.S:
-                break;
-            case Key.T:
-                break;
-            case Key.U:
-                break;
-            case Key.V:
-                break;
-            case Key.W:
-                break;
-            case Key.X:
-                break;
-            case Key.Y:
-                break;
-            case Key.Z:
-                break;
-            case Key.LWin:
-                break;
-            case Key.RWin:
-                break;
-            case Key.Apps:
-                break;
-            case Key.Sleep:
-                break;
-            case Key.NumPad0:
-                break;
-            case Key.NumPad1:
-                break;
-            case Key.NumPad2:
-                break;
-            case Key.NumPad3:
-                break;
-            case Key.NumPad4:
-                break;
-            case Key.NumPad5:
-                break;
-            case Key.NumPad6:
-                break;
-            case Key.NumPad7:
-                break;
-            case Key.NumPad8:
-                break;
-            case Key.NumPad9:
-                break;
-            case Key.Multiply:
-                break;
-            case Key.Add:
-                break;
-            case Key.Separator:
-                break;
-            case Key.Subtract:
-                break;
-            case Key.Decimal:
-                break;
-            case Key.Divide:
-                break;
-            case Key.F1:
-                break;
-            case Key.F2:
-                break;
-            case Key.F3:
-                break;
-            case Key.F4:
-                break;
-            case Key.F5:
-                break;
-            case Key.F6:
-                break;
-            case Key.F7:
-                break;
-            case Key.F8:
-                break;
-            case Key.F9:
-                break;
-            case Key.F10:
-                break;
-            case Key.F11:
-                break;
-            case Key.F12:
-                break;
-            case Key.F13:
-                break;
-            case Key.F14:
-                break;
-            case Key.F15:
-                break;
-            case Key.F16:
-                break;
-            case Key.F17:
-                break;
-            case Key.F18:
-                break;
-            case Key.F19:
-                break;
-            case Key.F20:
-                break;
-            case Key.F21:
-                break;
-            case Key.F22:
-                break;
-            case Key.F23:
-                break;
-            case Key.F24:
-                break;
-            case Key.NumLock:
-                break;
-            case Key.Scroll:
-                break;
-            case Key.LeftShift:
-                break;
-            case Key.RightShift:
-                break;
-            case Key.LeftCtrl:
-                break;
-            case Key.RightCtrl:
-                break;
-            case Key.LeftAlt:
-                break;
-            case Key.RightAlt:
-                break;
-            case Key.BrowserBack:
-                break;
-            case Key.BrowserForward:
-                break;
-            case Key.BrowserRefresh:
-                break;
-            case Key.BrowserStop:
-                break;
-            case Key.BrowserSearch:
-                break;
-            case Key.BrowserFavorites:
-                break;
-            case Key.BrowserHome:
-                break;
-            case Key.VolumeMute:
-                break;
-            case Key.VolumeDown:
-                break;
-            case Key.VolumeUp:
-                break;
-            case Key.MediaNextTrack:
-                break;
-            case Key.MediaPreviousTrack:
-                break;
-            case Key.MediaStop:
-                break;
-            case Key.MediaPlayPause:
-                break;
-            case Key.LaunchMail:
-                break;
-            case Key.SelectMedia:
-                break;
-            case Key.LaunchApplication1:
-                break;
-            case Key.LaunchApplication2:
-                break;
-            case Key.OemSemicolon:
-                break;
-            case Key.OemPlus:
-                break;
-            case Key.OemComma:
-                break;
-            case Key.OemMinus:
-                break;
-            case Key.OemPeriod:
-                break;
-            case Key.OemQuestion:
-                break;
-            case Key.OemTilde:
-                break;
-            case Key.AbntC1:
-                break;
-            case Key.AbntC2:
-                break;
-            case Key.OemOpenBrackets:
-                break;
-            case Key.OemPipe:
-                break;
-            case Key.OemCloseBrackets:
-                break;
-            case Key.OemQuotes:
-                break;
-            case Key.Oem8:
-                break;
-            case Key.OemBackslash:
-                break;
-            case Key.ImeProcessed:
-                break;
-            case Key.System:
-                break;
-            case Key.OemAttn:
-                break;
-            case Key.OemFinish:
-                break;
-            case Key.DbeHiragana:
-                break;
-            case Key.DbeSbcsChar:
-                break;
-            case Key.DbeDbcsChar:
-                break;
-            case Key.OemBackTab:
-                break;
-            case Key.DbeNoRoman:
-                break;
-            case Key.CrSel:
-                break;
-            case Key.ExSel:
-                break;
-            case Key.EraseEof:
-                break;
-            case Key.Play:
-                break;
-            case Key.DbeNoCodeInput:
-                break;
-            case Key.NoName:
-                break;
-            case Key.DbeEnterDialogConversionMode:
-                break;
-            case Key.OemClear:
-                break;
-            case Key.DeadCharProcessed:
-                break;
-            case Key.FnLeftArrow:
-                break;
-            case Key.FnRightArrow:
-                break;
-            case Key.FnUpArrow:
-                break;
-            case Key.FnDownArrow:
-                break;
-            case Key.MediaHome:
-                break;
-            case Key.MediaChannelList:
-                break;
-            case Key.MediaChannelRaise:
-                break;
-            case Key.MediaChannelLower:
-                break;
-            case Key.MediaRecord:
-                break;
-            case Key.MediaRed:
-                break;
-            case Key.MediaGreen:
-                break;
-            case Key.MediaYellow:
-                break;
-            case Key.MediaBlue:
-                break;
-            case Key.MediaMenu:
-                break;
-            case Key.MediaMore:
-                break;
-            case Key.MediaOption:
-                break;
-            case Key.MediaInfo:
-                break;
-            case Key.MediaSearch:
-                break;
-            case Key.MediaSubtitle:
-                break;
-            case Key.MediaTvGuide:
-                break;
-            case Key.MediaPreviousChannel:
-                break;
-            default:
-                break;
+                return;
+            }
         }
+
+        // An if-chain rather than a switch on the key: a switch over an enum invites "populate
+        // every case", and this one has 250 of them.
+        if (e.Key is Key.Tab)
+        {
+            // Round this row's own fields rather than out of it: what follows a title is the next
+            // thing to type about this track, not the button beside it.
+            e.Handled = MoveWithinRow(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1);
+            return;
+        }
+
+        if (e.Key is Key.Enter)
+        {
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            {
+                ViewModel.ApproveFolderCommand.Execute(selected).Subscribe();
+            }
+            else
+            {
+                ViewModel.ApproveCommand.Execute(selected).Subscribe();
+            }
+
+            FocusMovedRow();
+        }
+        else if (e.Key is Key.Space && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            _ = ViewModel.TogglePreviewAsync(selected);
+        }
+        else if (e.Key is Key.Escape)
+        {
+            _ = ViewModel.StopPreviewAsync();
+        }
+        else if (e.Key is Key.Left or Key.Right && ViewModel.IsPreviewing)
+        {
+            // Only while something is playing, so they stay ordinary editing keys the rest of the
+            // time: a typo in the middle of a title still has to be reachable.
+            _ = ViewModel.SeekByAsync(TimeSpan.FromSeconds(e.Key is Key.Left ? -5 : 5));
+        }
+        else if (e.Key is Key.Up or Key.Down)
+        {
+            ViewModel.Step(e.Key is Key.Up ? -1 : 1);
+            FocusMovedRow();
+        }
+        else
+        {
+            return;
+        }
+
+        e.Handled = true;
     }
+
+    /// <summary>
+    /// Puts the caret where the typing starts on the row the keys just moved to.
+    /// </summary>
+    /// <remarks>
+    /// Only after a key, never on every selection change: clicking into a title has to leave the
+    /// caret in the title rather than throwing it back to the first empty field.
+    /// </remarks>
+    private void FocusMovedRow() =>
+        // Once the container exists: a row reached by answering the one above it is realised in
+        // this same pass, and focusing something not yet there does nothing at all.
+        Dispatcher.UIThread.Post(FocusFirstEmptyField, DispatcherPriority.Background);
+
+    private void FocusFirstEmptyField()
+    {
+        var fields = FieldsOfSelectedRow();
+        if (fields.Count == 0)
+        {
+            return;
+        }
+
+        // The first thing missing, or the first field when nothing is missing. Either way the
+        // answer can be typed without reaching for the pointer.
+        (fields.FirstOrDefault(field => string.IsNullOrWhiteSpace(TextOf(field))) ?? fields[0]).Focus();
+    }
+
+    /// <summary>Moves the caret round the row's own fields, wrapping at either end.</summary>
+    private bool MoveWithinRow(int direction)
+    {
+        var fields = FieldsOfSelectedRow();
+        if (fields.Count == 0 || TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is not Visual focused)
+        {
+            return false;
+        }
+
+        // The focus sits on a text box inside the field rather than on the field itself, so a
+        // reference check alone would never find where the caret is.
+        var at = fields.FindIndex(field => field == focused || field.IsVisualAncestorOf(focused));
+        if (at < 0)
+        {
+            return false;
+        }
+
+        var next = fields[(at + direction + fields.Count) % fields.Count];
+        next.Focus();
+
+        if (next is TextBox box)
+        {
+            box.SelectAll();
+        }
+
+        return true;
+    }
+
+    /// <summary>The selected row's three inputs, in the order they are read.</summary>
+    private List<Control> FieldsOfSelectedRow()
+    {
+        return ViewModel?.Selected is not { } selected || Queue.ContainerFromItem(selected) is not { } container
+            ? []
+            :
+            [
+                .. container.GetVisualDescendants()
+                    .OfType<Control>()
+                    .Where(control => control.Classes.Contains("field"))
+            ];
+    }
+
+    private static string TextOf(Control field) =>
+        field is TextBox box ? box.Text ?? string.Empty : string.Empty;
 
     private async void OnPreviewClick(object? sender, RoutedEventArgs e)
     {
@@ -460,8 +209,4 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         var ratio = Math.Clamp(e.GetPosition(bar).X / bar.Bounds.Width, 0, 1);
         _ = viewModel.SeekPreviewAsync(TimeSpan.FromSeconds(ratio * viewModel.PreviewDurationSeconds));
     }
-
-    /// <summary>True while the focus sits in something a letter belongs in.</summary>
-    private bool IsTyping() =>
-        TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox or AutoCompleteBox;
 }

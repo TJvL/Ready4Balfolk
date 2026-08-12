@@ -22,6 +22,7 @@ using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
+using Ready4Balfolk.UI.Views.Discovery;
 
 namespace Ready4Balfolk.UI.Views.Review;
 
@@ -42,14 +43,22 @@ namespace Ready4Balfolk.UI.Views.Review;
 #pragma warning disable CS8618 // ObservableAsProperty fields are set by the helpers in the constructor
 public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
 {
+    /// <summary>A folder bigger than this is confirmed before it is answered.</summary>
+    private const int AsksFirstAbove = 25;
+
+
     private readonly ILibraryIndex _libraryIndex;
     private readonly IDanceListStore _danceListStore;
     private readonly ISettingsStore _settingsStore;
     private readonly ITrackStore _trackStore;
     private readonly IPreviewPlaybackService _preview;
+    private readonly IConfirmationService _confirmations;
     private readonly INotificationService _notifications;
     private readonly ILoggerService _loggerService;
     private readonly CompositeDisposable _disposables = [];
+
+    // Dropped and rebuilt with the rows: one subscription per row, watching what is typed into it.
+    private readonly CompositeDisposable _rowSubscriptions = [];
 
     public ReviewViewModel(
         ILibraryIndex libraryIndex,
@@ -58,13 +67,17 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         ITrackStore trackStore,
         IPreviewPlaybackService preview,
         INotificationService notifications,
+        IConfirmationService confirmations,
+        DiscoveryViewModel discovery,
         ILoggerService loggerService)
     {
+        Discovery = discovery;
         _libraryIndex = libraryIndex;
         _danceListStore = danceListStore;
         _settingsStore = settingsStore;
         _trackStore = trackStore;
         _preview = preview;
+        _confirmations = confirmations;
         _notifications = notifications;
         _loggerService = loggerService;
 
@@ -95,6 +108,22 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         preview.WhenDurationChanged
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(duration => PreviewDuration = duration)
+            .DisposeWith(_disposables);
+
+        AllowDancesOutsideTheList = settingsStore.Current.AllowDancesOutsideTheList;
+
+        // Skip(1) so restoring the stored value above is not written straight back, and the queue is
+        // rebuilt afterwards because the rule decides what is still in it.
+        this.WhenAnyValue(x => x.AllowDancesOutsideTheList)
+            .Skip(1)
+            .DistinctUntilChanged()
+            .SelectMany(allow => Observable.FromAsync(async () =>
+            {
+                await settingsStore.UpdateAsync(current => current with { AllowDancesOutsideTheList = allow });
+                await RefreshCommand.Execute().FirstAsync();
+            }))
+            .Subscribe(_ => { }, exception =>
+                _loggerService.ErrorAsync("Failed to change the dance rule", exception).SafeFireAndForget())
             .DisposeWith(_disposables);
 
         // The queue waits for the scan and then builds itself. A first run reaches this screen while
@@ -132,6 +161,27 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
 
     /// <summary>How far the scan has got. The only thing that moves while it runs.</summary>
     [Reactive] public partial string ScanProgressText { get; private set; }
+
+    /// <summary>
+    /// The rules, on the screen where their effect is visible.
+    /// </summary>
+    /// <remarks>
+    /// A rule exists to empty this queue, so it belongs above it rather than three screens away in
+    /// the settings: declare one, watch the queue shrink. Collapsed until asked for, because most
+    /// of the time the queue is what somebody came here for.
+    /// </remarks>
+    public DiscoveryViewModel Discovery { get; }
+
+    [Reactive] public partial bool IsDiscoveryOpen { get; set; }
+
+    /// <summary>
+    /// Whether a dance the published list does not carry may still reach the library.
+    /// </summary>
+    /// <remarks>
+    /// It lives here because this is where somebody meets the consequence of it being off: a row
+    /// they have answered, sitting in amber, waiting on a list they do not control.
+    /// </remarks>
+    [Reactive] public partial bool AllowDancesOutsideTheList { get; set; }
 
     [Reactive] public partial bool IsBusy { get; private set; }
 
@@ -177,21 +227,47 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
 
             var ignored = await _libraryIndex.GetIgnoredValuesAsync();
             var groups = ReviewQueueBuilder.Build(
-                entries, approvals, dances, _settingsStore.Current.MusicDirectoryPath, ignored);
+                entries,
+                approvals,
+                dances,
+                _settingsStore.Current.MusicDirectoryPath,
+                ignored,
+                _settingsStore.Current.AllowDancesOutsideTheList);
+
+            AllDances = [.. dances.Dances.Select(dance => dance.DisplayName).OrderBy(name => name, StringComparer.CurrentCulture)];
 
             Rows.Clear();
+            _rowSubscriptions.Clear();
+
             foreach (var group in groups)
             {
                 var first = true;
                 foreach (var track in group.Tracks)
                 {
-                    Rows.Add(new ReviewRowViewModel(track, first));
+                    var row = new ReviewRowViewModel(track, first, AllDances);
+                    Rows.Add(row);
                     first = false;
+
+                    // A folder becomes answerable the moment its last blank is filled, and the
+                    // button that says so was being decided once, while every box was still empty.
+                    row.WhenAnyValue(candidate => candidate.Dance, candidate => candidate.Artist, candidate => candidate.Title)
+                        .Skip(1)
+                        .Subscribe(_ => LabelFolderButtons())
+                        .DisposeWith(_rowSubscriptions);
+
+                    // What the list can offer for what has been typed, recomputed as it is typed.
+                    row.WhenAnyValue(candidate => candidate.Dance)
+                        .Skip(1)
+                        .Subscribe(_ => row.ShowMatches())
+                        .DisposeWith(_rowSubscriptions);
                 }
             }
 
+            LabelFolderButtons();
+            // The first row nobody has dealt with. Starting on an answered or parked one makes the
+            // first keystroke of a sitting land on work that is already done.
+            Selected = FirstWaiting() ?? Rows.FirstOrDefault();
             AllDances = [.. dances.Dances.Select(dance => dance.DisplayName).OrderBy(name => name, StringComparer.CurrentCulture)];
-            Selected = Rows.FirstOrDefault();
             IsEmpty = Rows.Count == 0 && !IsScanning;
             Summary = Rows.Count == 0
                 ? UiStrings.Review_NothingWaiting
@@ -211,8 +287,16 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
     [ReactiveCommand]
     private async Task ApproveAsync(ReviewRowViewModel? row)
     {
-        if (row is null || !row.CanApprove)
+        if (row is null)
         {
+            return;
+        }
+
+        if (!row.CanApprove)
+        {
+            // Something is missing, so there is nothing to agree to. Said by the row rather than by
+            // a message, because the row is what the person is looking at.
+            row.Reject();
             return;
         }
 
@@ -226,9 +310,17 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
     /// Answers every waiting track in the same folder at once.
     /// </summary>
     /// <remarks>
-    /// A folder is where the remaining evidence is, and confirming one is the difference between an
-    /// evening and never. It only takes the rows that can be answered as they stand: a row still
-    /// missing a field is left where it is rather than being quietly approved as blank.
+    /// <para>
+    /// It confirms rather than fills in: each row keeps the artist and title it already has, and a
+    /// row still missing one is left alone rather than being quietly approved as blank. A folder is
+    /// where the remaining evidence is, and confirming one is the difference between an evening and
+    /// never.
+    /// </para>
+    /// <para>
+    /// Above a handful it asks first. A library with everything in one directory is a single group
+    /// of two thousand, and a keystroke that answers all of them without saying so is not a bulk
+    /// confirm, it is an accident.
+    /// </para>
     /// </remarks>
     [ReactiveCommand]
     private async Task ApproveFolderAsync(ReviewRowViewModel? row)
@@ -238,17 +330,97 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        foreach (var sibling in Rows.Where(candidate =>
-                     string.Equals(candidate.Folder, row.Folder, StringComparison.Ordinal)
-                     && !candidate.IsApproved
-                     && candidate.CanApprove))
+        // Every row in the folder that is not complete says so at once, which is the fastest way to
+        // see what a folder is still missing and where. It happens whether or not anything is left
+        // to answer: asking a second time has to point at the same rows as the first, not at
+        // whichever one the keys happen to be on.
+        var incomplete = Incomplete(row).ToList();
+        foreach (var candidate in incomplete)
+        {
+            candidate.Reject();
+        }
+
+        var answerable = Answerable(row).ToList();
+        if (answerable.Count == 0)
+        {
+            // Nothing to take and nothing holding it up either: the row itself is the answer.
+            if (incomplete.Count == 0)
+            {
+                row.Reject();
+            }
+
+            return;
+        }
+
+        if (answerable.Count > AsksFirstAbove
+            && !await _confirmations.ConfirmAsync(
+                UiStrings.Review_ApproveFolderConfirmTitle,
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    UiStrings.Review_ApproveFolderConfirm,
+                    answerable.Count,
+                    row.FolderText),
+                UiStrings.Review_ApproveFolderYes,
+                UiStrings.Review_ApproveFolderNo))
+        {
+            return;
+        }
+
+        foreach (var sibling in answerable)
         {
             await ApproveRowAsync(sibling);
         }
 
         await _trackStore.RefreshLibraryAsync();
 
+        LabelFolderButtons();
         Selected = NextAfter(row);
+    }
+
+    /// <summary>The rows of a folder that are holding it up: waiting, and missing something.</summary>
+    private IEnumerable<ReviewRowViewModel> Incomplete(ReviewRowViewModel row) =>
+        row.IsInFolder
+            ? Rows.Where(candidate =>
+                string.Equals(candidate.Folder, row.Folder, StringComparison.Ordinal)
+                && !candidate.IsApproved
+                && !candidate.CanApprove)
+            : [];
+
+    /// <summary>The first row still waiting: not answered, and not parked on an unpublished dance.</summary>
+    private ReviewRowViewModel? FirstWaiting() =>
+        Rows.FirstOrDefault(row => row.State is ReviewRowState.Waiting);
+
+    /// <summary>
+    /// The rows a folder answer would take: waiting, complete as they stand, and in a folder.
+    /// </summary>
+    /// <remarks>
+    /// Nothing for a track lying loose in the music directory. Those were filed nowhere, so there is
+    /// no "these belong together" to act on, and offering one would make the button mean "answer
+    /// everything I never sorted".
+    /// </remarks>
+    private IEnumerable<ReviewRowViewModel> Answerable(ReviewRowViewModel row) =>
+        row.IsInFolder
+            ? Rows.Where(candidate =>
+                string.Equals(candidate.Folder, row.Folder, StringComparison.Ordinal)
+                && !candidate.IsApproved
+                && candidate.CanApprove)
+            : [];
+
+    /// <summary>Says on every folder button how many rows it would answer.</summary>
+    private void LabelFolderButtons()
+    {
+        foreach (var group in Rows.GroupBy(row => row.Folder, StringComparer.Ordinal))
+        {
+            var answerable = group.Count(row => !row.IsApproved && row.CanApprove);
+
+            foreach (var row in group)
+            {
+                row.AnswerableInFolder = answerable;
+                row.CanAnswerFolder = row.IsInFolder && answerable > 1;
+                row.AnswerFolderText = string.Format(
+                    CultureInfo.CurrentCulture, UiStrings.Review_ApproveFolderCount, answerable);
+            }
+        }
     }
 
     /// <summary>
@@ -274,6 +446,43 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
     }
 
     public Task SeekPreviewAsync(TimeSpan position) => _preview.SeekAsync(position);
+
+    /// <summary>True while this screen is playing something, which is what the arrows then move.</summary>
+    public bool IsPreviewing => _preview.Previewing is not null;
+
+    /// <summary>Stops whatever is playing, which is what Escape is for.</summary>
+    public Task StopPreviewAsync() => _preview.StopAsync();
+
+    /// <summary>Moves through what is playing, clamped to the track.</summary>
+    public Task SeekByAsync(TimeSpan delta)
+    {
+        if (PreviewDuration <= TimeSpan.Zero)
+        {
+            return Task.CompletedTask;
+        }
+
+        var target = PreviewPosition + delta;
+        var clamped = target < TimeSpan.Zero
+            ? TimeSpan.Zero
+            : target > PreviewDuration ? PreviewDuration : target;
+
+        return _preview.SeekAsync(clamped);
+    }
+
+    /// <summary>Moves to the row above or below, which is what the arrows do outside a suggestion list.</summary>
+    public void Step(int direction)
+    {
+        if (Selected is null || Rows.Count == 0)
+        {
+            return;
+        }
+
+        var at = Rows.IndexOf(Selected) + direction;
+        if (at >= 0 && at < Rows.Count)
+        {
+            Selected = Rows[at];
+        }
+    }
 
     /// <summary>One row at a time carries the playing state, so the strip lives on the row itself.</summary>
     private void OnPreviewChanged(string? path)
@@ -351,6 +560,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
 
     public void Dispose()
     {
+        _rowSubscriptions.Dispose();
         _preview.StopAsync().SafeFireAndForget(
             exception => _loggerService.ErrorAsync("Failed to stop the preview", exception));
         _disposables.Dispose();
@@ -368,12 +578,19 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         row.MarkApproved(known);
     }
 
-    /// <summary>The next row still waiting, so answering one lands on the next question.</summary>
+    /// <summary>
+    /// The next row still waiting, so answering one lands on the next question.
+    /// </summary>
+    /// <remarks>
+    /// Past anything answered and anything parked: a row waiting on a list nobody here controls is
+    /// not a question, and stopping on it every time would make the queue read as though it were
+    /// not moving.
+    /// </remarks>
     private ReviewRowViewModel? NextAfter(ReviewRowViewModel row)
     {
         var at = Rows.IndexOf(row);
 
-        return Rows.Skip(at + 1).FirstOrDefault(candidate => !candidate.IsApproved)
-            ?? Rows.FirstOrDefault(candidate => !candidate.IsApproved);
+        return Rows.Skip(at + 1).FirstOrDefault(candidate => candidate.State is ReviewRowState.Waiting)
+            ?? FirstWaiting();
     }
 }

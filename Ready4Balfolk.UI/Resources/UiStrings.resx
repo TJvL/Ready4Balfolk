@@ -972,7 +972,7 @@
     <value>Nothing is waiting. New files, retagged files and renamed ones come back here on their own.</value>
   </data>
   <data name="Review_Keys" xml:space="preserve">
-    <value>Up and down to move, Enter to answer a track, A to answer everything left in its folder. The least certain come first, so stopping early still leaves your library better.</value>
+    <value>Tab between the fields, up and down between the tracks. Enter answers one, Shift+Enter the whole folder. Shift+Space listens, Escape stops, and the arrows then skip five seconds. The least certain come first, so stopping early still leaves your library better.</value>
   </data>
   <data name="Review_Waiting" xml:space="preserve">
     <value>{0} tracks waiting, in {1} folders.</value>
@@ -1032,7 +1032,7 @@
     <value>answered</value>
   </data>
   <data name="Review_ParkedOnUnknownDance" xml:space="preserve">
-    <value>answered, and waiting for "{0}" to be in the list</value>
+    <value>waiting for the list</value>
   </data>
   <data name="Review_UnknownDanceHint" xml:space="preserve">
     <value>The dance list is shared, so a missing dance is a proposal at BigBalfolkList rather than something to add here. Your answer is kept, and the track goes into the library the moment the list carries the name.</value>
@@ -1129,5 +1129,41 @@
   </data>
   <data name="Discovery_NothingToPropose" xml:space="preserve">
     <value>Nothing in your library repeats often enough to suggest a rule.</value>
+  </data>
+  <data name="Review_Rules" xml:space="preserve">
+    <value>Rules</value>
+  </data>
+  <data name="Review_RulesHint" xml:space="preserve">
+    <value>How your files are named. A rule here empties this queue in one go.</value>
+  </data>
+  <data name="Review_AllowOutsideTheList" xml:space="preserve">
+    <value>Let dances outside the published list into my library</value>
+  </data>
+  <data name="Review_AllowOutsideTheListHint" xml:space="preserve">
+    <value>Off, a dance the list does not carry keeps its track here until a proposal at BigBalfolkList is merged. On, your answer is enough — but a random pick draws by tag, and a dance nobody has published has none, so those tracks never come up on their own.</value>
+  </data>
+  <data name="Review_ApproveFolderCount" xml:space="preserve">
+    <value>Answer all {0} here (Shift+Enter)</value>
+  </data>
+  <data name="Review_ApproveFolderConfirmTitle" xml:space="preserve">
+    <value>Answer all of them?</value>
+  </data>
+  <data name="Review_ApproveFolderConfirm" xml:space="preserve">
+    <value>This answers {0} tracks in {1}, taking the artist and title each one already has. Nothing is filled in for you, and a track still missing something is left alone.</value>
+  </data>
+  <data name="Review_ApproveFolderYes" xml:space="preserve">
+    <value>Answer them</value>
+  </data>
+  <data name="Review_ApproveFolderNo" xml:space="preserve">
+    <value>Leave them</value>
+  </data>
+  <data name="Review_LooseFiles" xml:space="preserve">
+    <value>Loose in your music folder</value>
+  </data>
+  <data name="Discovery_DanceListUrl" xml:space="preserve">
+    <value>tjvl.github.io/BigBalfolkList</value>
+  </data>
+  <data name="Discovery_DanceListHint" xml:space="preserve">
+    <value>The dance list every track is matched against. It is shared, so a dance missing from it is proposed there rather than added here, and your tracks waiting on one go into your library the moment it carries the name.</value>
   </data>
 </root>

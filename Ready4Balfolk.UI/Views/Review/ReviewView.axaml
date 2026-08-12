@@ -3,10 +3,66 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Review"
+             xmlns:discovery="using:Ready4Balfolk.UI.Views.Discovery"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Ready4Balfolk.UI.Views.Review.ReviewView"
              x:DataType="local:ReviewViewModel">
+    <UserControl.Styles>
+        <!-- The list must not paint its own selection: the item is a folder band plus a row, and
+             highlighting the pair makes the band look like part of the track under it. -->
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- The names the list offered, and the one the keys are on. -->
+        <Style Selector="Border.match">
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.match.highlighted">
+            <Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
+        </Style>
+
+        <!-- The divide, and the only thing on this screen that is meant to shout. -->
+        <Style Selector="Border.folderBand">
+            <Setter Property="Background" Value="{DynamicResource SystemAccentColorDark2}" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Margin" Value="0,28,0,10" />
+        </Style>
+
+        <!-- Selection, on the row alone. -->
+        <Style Selector="Border.selectable">
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.selectable.selected">
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColor}" />
+        </Style>
+
+        <Style Selector="Border.rejected">
+            <Style.Animations>
+                <Animation Duration="0:0:1" FillMode="Forward">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="0.55" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="0" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+    </UserControl.Styles>
+
+    <Panel>
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
             <TextBlock Text="{Binding ScanProgressText}"
@@ -29,32 +85,69 @@
                        Opacity="0.7"
                        TextWrapping="Wrap"
                        IsVisible="{Binding IsScanning}" />
+
+            <!-- The rule that empties this queue belongs above it, not three screens away. -->
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
+                <ToggleButton Content="{x:Static res:UiStrings.Review_Rules}"
+                              IsChecked="{Binding IsDiscoveryOpen, Mode=TwoWay}"
+                              Padding="8,2"
+                              FontSize="11"
+                              Focusable="False" />
+                <TextBlock Text="{x:Static res:UiStrings.Review_RulesHint}"
+                           FontSize="11"
+                           Opacity="0.7"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+            </StackPanel>
         </StackPanel>
 
-        <ListBox ItemsSource="{Binding Rows}"
+        <ListBox x:Name="Queue"
+                 ItemsSource="{Binding Rows}"
                  SelectedItem="{Binding Selected, Mode=TwoWay}"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListBox.ItemTemplate>
                 <DataTemplate DataType="local:ReviewRowViewModel">
-                    <!-- The whole row is filled, not merely marked: somebody working down a folder
-                         of forty has to see where they are without reading anything. -->
-                    <Border Background="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}, ConverterParameter=fill}"
-                            BorderBrush="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}}"
-                            BorderThickness="4,0,0,0"
-                            CornerRadius="3"
-                            Padding="8,6">
-                    <StackPanel Spacing="4">
-                        <!-- The folder header rides on its first row, so it costs no list entry of
-                             its own and arrow keys never land on something unanswerable. -->
-                        <TextBlock Text="{Binding FolderText}"
-                                   FontWeight="Bold"
-                                   Margin="0,8,0,2"
-                                   IsVisible="{Binding IsFirstOfGroup}" />
+                    <StackPanel Spacing="0">
+                        <!-- The folder is a band of its own, above the row rather than inside it.
+                             Inside, it took the row's colour and the row's selection, and read as
+                             part of the track underneath instead of as the start of a group. -->
+                        <Border Classes="folderBand" IsVisible="{Binding IsFirstOfGroup}">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock Text="{Binding FolderText}"
+                                           FontWeight="Bold"
+                                           FontSize="15"
+                                           VerticalAlignment="Center" />
+                                <!-- The folder answer sits with the folder it answers, once, rather
+                                     than on every row it would take. -->
+                                <Button Content="{Binding AnswerFolderText}"
+                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveFolderCommand}"
+                                        CommandParameter="{Binding}"
+                                        IsVisible="{Binding CanAnswerFolder}"
+                                        Focusable="False"
+                                        FontSize="11"
+                                        Padding="8,2" />
+                            </StackPanel>
+                        </Border>
 
+                        <Panel>
+                            <!-- The outline is the selection: the list's own highlight is switched
+                                 off, or it would paint the band above as though it belonged to this
+                                 row. -->
+                            <Border Classes="selectable"
+                                    Classes.selected="{Binding $parent[ListBoxItem].IsSelected}"
+                                    BorderThickness="2"
+                                    CornerRadius="4"
+                                    Margin="0,0,0,6">
+                                <Border Background="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}, ConverterParameter=fill}"
+                                        BorderBrush="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}}"
+                                        BorderThickness="4,0,0,0"
+                                        CornerRadius="3"
+                                        Padding="8,6">
+                                    <StackPanel Spacing="4">
                         <!-- One grid for the row, so the player above lines up with the fields
                              below: the bar ends where the title box ends rather than running on
                              under the buttons. -->
-                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,*,Auto"
+                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,*,150"
                               ColumnSpacing="8" RowSpacing="4">
                             <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
                                   ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
@@ -98,10 +191,14 @@
                                              PointerPressed="OnPreviewBarPressed" />
                             </Grid>
 
+                            <!-- A fixed column, so no status can ever squeeze the fields: the
+                                 sentence that explains a parked row lives under it instead. -->
                             <TextBlock Grid.Row="0" Grid.Column="3"
                                        Text="{Binding StatusText}"
                                        FontSize="11"
                                        VerticalAlignment="Center"
+                                       HorizontalAlignment="Right"
+                                       TextTrimming="CharacterEllipsis"
                                        Opacity="0.9"
                                        Foreground="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}}"
                                        IsVisible="{Binding IsApproved}" />
@@ -109,26 +206,45 @@
                                        Text="{Binding StatusText}"
                                        FontSize="11"
                                        VerticalAlignment="Center"
+                                       HorizontalAlignment="Right"
+                                       TextTrimming="CharacterEllipsis"
                                        Opacity="0.8"
                                        IsVisible="{Binding !IsApproved}" />
 
                             <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2">
-                                <AutoCompleteBox Text="{Binding Dance, Mode=TwoWay}"
-                                                 ItemsSource="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).AllDances}"
-                                                 FilterMode="ContainsOrdinal"
-                                                 MinimumPrefixLength="0"
-                                                 Watermark="{x:Static res:UiStrings.Review_Dance}" />
+                                <!-- A text box and a list of our own rather than an AutoCompleteBox:
+                                     that control's dropdown cannot be walked with the arrows, which
+                                     is the whole point of showing four bourrées rather than one.
+                                     Inline rather than in a popup, because a popup takes the focus
+                                     off the box being typed into and the typing stops. -->
+                                <TextBox Classes="field"
+                                         Text="{Binding Dance, Mode=TwoWay}"
+                                         Watermark="{x:Static res:UiStrings.Review_Dance}" />
+
+                                <ItemsControl ItemsSource="{Binding DanceMatches}"
+                                              IsVisible="{Binding IsPickerOpen}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="local:DanceMatch">
+                                            <Border Classes="match" Classes.highlighted="{Binding IsHighlighted}">
+                                                <TextBlock Text="{Binding Name}" FontSize="12" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
                                 <TextBlock Text="{Binding DanceSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
 
                             <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
-                                <TextBox Text="{Binding Artist, Mode=TwoWay}"
+                                <TextBox Classes="field"
+                                         Text="{Binding Artist, Mode=TwoWay}"
                                          Watermark="{x:Static res:UiStrings.Review_Artist}" />
                                 <TextBlock Text="{Binding ArtistSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
 
                             <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2">
-                                <TextBox Text="{Binding Title, Mode=TwoWay}"
+                                <TextBox Classes="field"
+                                         Text="{Binding Title, Mode=TwoWay}"
                                          Watermark="{x:Static res:UiStrings.Review_TitleField}" />
                                 <TextBlock Text="{Binding TitleSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
@@ -138,11 +254,6 @@
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveCommand}"
                                         CommandParameter="{Binding}"
                                         Focusable="False" />
-                                <Button Content="{x:Static res:UiStrings.Review_ApproveFolder}"
-                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveFolderCommand}"
-                                        CommandParameter="{Binding}"
-                                        Focusable="False"
-                                        FontSize="11" />
                             </StackPanel>
 
                             <!-- Twenty files claiming the same misspelling are one decision about a
@@ -190,10 +301,48 @@
                                    FontSize="11"
                                    TextWrapping="Wrap"
                                    IsVisible="{Binding IsParked}" />
+                                    </StackPanel>
+                                </Border>
+                            </Border>
+
+                            <!-- A refusal has to be seen rather than explained: a keystroke that
+                                 does nothing reads as one that never arrived. -->
+                            <Border Classes.rejected="{Binding IsRejected}"
+                                    Background="#FFE03A3A"
+                                    CornerRadius="4"
+                                    Margin="0,0,0,6"
+                                    Opacity="0"
+                                    IsHitTestVisible="False" />
+                        </Panel>
                     </StackPanel>
-                    </Border>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
     </DockPanel>
+
+    <!-- Hovering over the queue rather than pushing it down: opening the rules must not move the
+         row somebody was reading, and closing them must not move it back. -->
+    <Border IsVisible="{Binding IsDiscoveryOpen}"
+            VerticalAlignment="Top"
+            Margin="0,96,0,0"
+            MaxHeight="620"
+            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            BoxShadow="0 8 24 0 #40000000">
+        <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="12,8,12,12">
+                <CheckBox Content="{x:Static res:UiStrings.Review_AllowOutsideTheList}"
+                          IsChecked="{Binding AllowDancesOutsideTheList, Mode=TwoWay}" />
+                <TextBlock Text="{x:Static res:UiStrings.Review_AllowOutsideTheListHint}"
+                           FontSize="11"
+                           Opacity="0.7"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+
+            <discovery:DiscoveryView DataContext="{Binding Discovery}" />
+        </DockPanel>
+    </Border>
+    </Panel>
 </UserControl>

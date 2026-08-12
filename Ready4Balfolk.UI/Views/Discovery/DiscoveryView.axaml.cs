@@ -1,4 +1,7 @@
+using System;
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 using ReactiveUI.Avalonia.Reactive;
 
 namespace Ready4Balfolk.UI.Views.Discovery;
@@ -16,9 +19,20 @@ public partial class DiscoveryView : ReactiveUserControl<DiscoveryViewModel>
     public static readonly StyledProperty<bool> ShowSaveButtonProperty =
         AvaloniaProperty.Register<DiscoveryView, bool>(nameof(ShowSaveButton), defaultValue: true);
 
+    /// <summary>Where a dance the published list does not carry is proposed.</summary>
+    private const string DanceListUrl = "https://tjvl.github.io/BigBalfolkList/";
+
     public DiscoveryView()
     {
         InitializeComponent();
+    }
+
+    private async void OnDanceListClick(object? sender, RoutedEventArgs e)
+    {
+        if (TopLevel.GetTopLevel(this) is { } topLevel)
+        {
+            await topLevel.Launcher.LaunchUriAsync(new Uri(DanceListUrl));
+        }
     }
 
     public bool ShowSaveButton

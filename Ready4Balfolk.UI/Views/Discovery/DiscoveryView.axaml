@@ -9,6 +9,23 @@
              x:DataType="local:DiscoveryViewModel">
     <ScrollViewer>
         <StackPanel Spacing="20" Margin="16">
+            <!-- First, because a dance the list does not carry is the one thing no rule here can
+                 answer: the way out is a proposal there rather than a setting on this screen. -->
+            <StackPanel Spacing="2">
+                <Button Click="OnDanceListClick"
+                        Content="{x:Static res:UiStrings.Discovery_DanceListUrl}"
+                        HorizontalAlignment="Left"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{DynamicResource SystemAccentColor}"
+                        Cursor="Hand" />
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_DanceListHint}"
+                           TextWrapping="Wrap"
+                           FontSize="11"
+                           Opacity="0.7" />
+            </StackPanel>
+
             <TextBlock Text="{x:Static res:UiStrings.Discovery_Intro}"
                        TextWrapping="Wrap"
                        Opacity="0.8" />

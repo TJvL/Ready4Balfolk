@@ -23,6 +23,15 @@ public interface ITrackStore : ILoadableStore
     /// </remarks>
     Task RefreshLibraryAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Whether a dance the published list does not carry may still reach the library.
+    /// </summary>
+    /// <remarks>
+    /// Off is the position the shared list is built on. On is an escape hatch for somebody who
+    /// cannot wait for a proposal to be merged, and it costs the track its place in a random pick.
+    /// </remarks>
+    bool AllowDancesOutsideTheList { set; }
+
     IObservable<IChangeSet<Track>> Connect();
     IObservable<IChangeSet<Track>> Connect(IObservable<string> searchText);
 }

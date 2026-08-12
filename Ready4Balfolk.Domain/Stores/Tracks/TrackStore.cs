@@ -40,6 +40,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     // Compiled once and swapped whole, so a scan running over it never sees half a rule change.
     private DeclaredDiscovery _declared = DeclaredDiscovery.Undeclared;
     private DiscoverySettings _discoverySettings = DiscoverySettings.Undeclared;
+    private bool _allowDancesOutsideTheList;
     private FileSystemWatcher? _watcher;
     private bool _disposed;
 
@@ -145,6 +146,28 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 await LoadDirectoryAsync(root, reread: true, cancellation.Token);
             }).SafeFireAndForget(exception =>
                 _loggerService.ErrorAsync("Reloading after a discovery settings change failed", exception));
+        }
+    }
+
+    /// <summary>
+    /// Whether a dance the published list does not carry may still reach the library.
+    /// </summary>
+    /// <remarks>
+    /// Rebuilds when it changes rather than rescanning: nothing about the files is different, only
+    /// what the gate is willing to let through.
+    /// </remarks>
+    public bool AllowDancesOutsideTheList
+    {
+        set
+        {
+            if (_allowDancesOutsideTheList == value)
+            {
+                return;
+            }
+
+            _allowDancesOutsideTheList = value;
+            RefreshLibraryAsync().SafeFireAndForget(exception =>
+                _loggerService.ErrorAsync("Failed to rebuild the library after the dance rule changed", exception));
         }
     }
 
@@ -339,12 +362,18 @@ public sealed class TrackStore : ITrackStore, IDisposable
         foreach (var entry in entries.Values)
         {
             var review = ReviewGate.Evaluate(
-                entry, approvals.GetValueOrDefault(LibraryKey.For(entry.ContentHash), []), dances);
+                entry,
+                approvals.GetValueOrDefault(LibraryKey.For(entry.ContentHash), []),
+                dances,
+                _allowDancesOutsideTheList);
 
-            if (review.IsInLibrary && review.DanceSlug is { } slug)
+            if (review.IsInLibrary)
             {
+                // A track let in on a dance the list does not carry keeps the name it was given and
+                // has no slug, because a slug is the list's to hand out. It plays and it is searched
+                // for like any other; a random pick cannot reach it, since that draws by tag.
                 inLibrary.Add(new Track(
-                    dances.DisplayNameFor(slug),
+                    review.DanceSlug is { } slug ? dances.DisplayNameFor(slug) : review.Dance.Value ?? string.Empty,
                     review.Artist.Value ?? string.Empty,
                     review.Title.Value ?? string.Empty,
                     new FileInfo(entry.Path),
@@ -352,7 +381,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
                     entry.Format)
                 {
                     OriginalDance = entry.OriginalDance ?? string.Empty,
-                    DanceSlug = slug
+                    DanceSlug = review.DanceSlug
                 });
             }
         }

@@ -19,6 +19,16 @@ public sealed record ReviewTrack
     /// <summary>The folder it sits in, relative to the music directory. Empty at the root.</summary>
     public required string Folder { get; init; }
 
+    /// <summary>
+    /// Whether it actually sits in a folder, rather than loose in the music directory.
+    /// </summary>
+    /// <remarks>
+    /// The root is not a grouping. Somebody filed these tracks together by putting them in a
+    /// directory; the ones left lying in the music folder were filed nowhere, and treating that as
+    /// a folder makes "answer this folder" mean "answer everything I never sorted".
+    /// </remarks>
+    public bool IsInFolder => Folder.Length > 0;
+
     /// <summary>Where it stands and why, which is what the row has to explain.</summary>
     public required TrackReview Review { get; init; }
 
@@ -70,6 +80,9 @@ public sealed record ReviewGroup
 
     /// <summary>How sure the application is about the least sure track in it.</summary>
     public int Confidence => Tracks.Count == 0 ? 0 : Tracks.Min(track => track.Confidence);
+
+    /// <summary>False for the music directory itself, which is where the unfiled tracks are.</summary>
+    public bool IsFolder => Folder.Length > 0;
 }
 
 /// <summary>
@@ -100,19 +113,24 @@ public static class ReviewQueueBuilder
     /// answer, so it is shown as nothing at all: leaving "trad" sitting in the dance box is leaving
     /// a wrong answer where a person is looking for a missing one.
     /// </param>
+    /// <param name="allowDancesOutsideTheList">
+    /// Whether a dance the published list does not carry may still reach the library, which is what
+    /// decides whether such a track is still waiting here.
+    /// </param>
     public static IReadOnlyList<ReviewGroup> Build(
         IReadOnlyDictionary<string, LibraryEntry> entries,
         IReadOnlyDictionary<string, IReadOnlyList<TrackApproval>> approvals,
         DanceListIndex dances,
         string musicRoot,
-        IReadOnlySet<string>? ignored = null)
+        IReadOnlySet<string>? ignored = null,
+        bool allowDancesOutsideTheList = false)
     {
         var waiting = new List<ReviewTrack>();
 
         foreach (var entry in entries.Values)
         {
             var forTrack = approvals.GetValueOrDefault(LibraryKey.For(entry.ContentHash), []);
-            var review = ReviewGate.Evaluate(entry, forTrack, dances);
+            var review = ReviewGate.Evaluate(entry, forTrack, dances, allowDancesOutsideTheList);
 
             if (review.IsInLibrary)
             {
