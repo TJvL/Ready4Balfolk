@@ -8,7 +8,9 @@ Ready4Balfolk is a music queue management application designed for balfolk dance
 
 ### Music Directory
 
-Before using Ready4Balfolk, you need to configure a music directory. Go to **Settings** and browse to the folder containing your music files.
+Ready4Balfolk asks for one folder the first time it runs, in a short setup that also fetches the
+dance list and shows you what is waiting. Everything below that folder counts, however it is
+arranged. You can run the setup again later from **Settings**.
 
 ### How your files are read
 
@@ -20,17 +22,23 @@ Tracks are discovered automatically from your music directory. There is **no req
 
 Anything not answered this way waits for you in **Review** rather than being filled in with a guess. A track is in your library or in review, never both: crossing over needs an artist, a title, a dance from the published list, and you having agreed to all three. An unreviewed library correctly shows no music.
 
-Review is a fixture rather than a step of setup. Retag a file, rename one or drop new ones in and they come back on their own, with what you answered before kept. It is built for the keyboard: the least certain tracks come first, Enter answers one, and A answers everything left in its folder. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
+Review is a fixture rather than a step of setup. Retag a file, rename one or drop new ones in and they come back on their own, with what you answered before kept.
 
-### Advanced discovery
+Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
 
-If your library *does* follow a shape, you can say so: **Settings → Advanced discovery**. What you state there outranks everything the application worked out for itself, because you know your library and it does not.
+### Rules: telling it how your files are named
+
+If your library *does* follow a shape, you can say so. Open **Review** and press **Rules**; the panel opens over the queue it exists to empty. What you state there outranks everything the application worked out for itself, because you know your library and it does not.
 
 - **File name patterns.** `%d` dance, `%a` artist, `%t` title, `%n` track number, `%i` ignore, `%ex` extension; anything else has to be there exactly. `%d - %a - %t` reads `Mazurka - Naragonia - Idiosyncrasie.mp3`. A pattern has to match a whole name, and the first pattern in the list that does is the one that answers, so put the most specific first.
 - **Folder levels.** Counted from the outside in. Saying level 1 is the artist reads that folder as the artist for every file deep enough to have one, and says nothing about the files that are not.
 - **Tags.** Which tag fields hold which value. Left alone, artist and album artist are read as the artist, the title tag as the title, and no tag is read as the dance. A dance name from your list is still recognised inside any tag whatever you set here.
 
 **A rule is a bulk approval**, which is the point of it: rather than answering two thousand files one at a time, you agree once to the rule that answers them. So you are shown what it does before you add it, in the numbers that matter — how many files it takes, what it makes of them, and how many would be left. Adding, removing or reordering a rule re-reads your library, because a rule is meant to answer the files already sitting in it.
+
+**It also tells you what your library looks like.** At the top of the panel are the shapes measured from your own file names and folders — "296 of 2685 files are shaped like `%d - %i - %t`", "level 1 looks like the artist, 96 of 121 agree" — each with the counts behind it and the files it was read from. They are proposals: nothing is applied until you press **Declare it**. Where the measurements do not agree, the shape is shown and nothing is named, because a confident guess about your whole library is worse than no guess.
+
+**A dance missing from the published list is not a rule problem.** The panel links to [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/) at the top, because that is where a missing dance is proposed. Beneath the rules is a switch for letting a dance the list does not carry into your library anyway. It is off to begin with: the shared list is what makes a dance name mean the same thing to everybody, and a track let in this way can never come up in a random pick, because those draw by tag and a dance nobody has published has none.
 
 ### Main Screen Layout
 
@@ -57,13 +65,12 @@ Opens this help screen.
 
 ### Settings
 
-Opens the settings screen where you can configure music directory, queue behavior, presentation displays, and theme.
+Opens the settings screen: queue behaviour, presentation displays, theme, and the way back into
+setup.
 
 ### Review
 
-Everything waiting for you, with a count of how many tracks that is. Nothing reaches your library without an artist, a title, a dance from the published list and your agreement, so this is where a library is made rather than a chore at the end of one. The least certain tracks come first; Enter answers one and A answers the rest of its folder.
-
-When a track's dance is a name your list does not know, the row offers what it might have meant, "use for all N that say the same", and "that is not a dance". The bulk action sets the dance on all of them; each track still wants its own confirmation, because artists and titles are not shared. "Not a dance" clears junk like `trad` everywhere and remembers it, and those tracks still need a real dance.
+Everything waiting for you, with a count of how many tracks that is. Nothing reaches your library without an artist, a title, a dance from the published list and your agreement, so this is where a library is made rather than a chore at the end of one. See [Review](#review-1) below.
 
 ---
 
@@ -209,7 +216,8 @@ At the bottom of the history panel:
 
 ## Track Catalog
 
-The track catalog shows all discovered tracks in a searchable, sortable table.
+The track catalog shows your library — the tracks you have answered in Review — in a searchable,
+sortable table. Anything still waiting is not here; it is in [Review](#review-1).
 
 ### Browsing Tracks
 
@@ -253,6 +261,10 @@ checks for a newer one each time it starts.
 - **Everything else is a tag**: where a dance comes from, which family it belongs to, whether it is
   danced as part of a suite. A dance can be Breton *and* a gavotte *and* part of a suite without
   being filed under one of them.
+- **Grammar is not a spelling.** The list carries two small word lists, so a number word counts as
+  its number and glue like *de*, *la*, *the* and *temps* is ignored when names are compared. That is
+  what makes `Bourrée à 3 temps`, `Bourrée in 3`, `Bourrée à trois temps` and `Bourrée 3t` one
+  dance, and what lets a library written in French, Dutch or German match at all.
 
 ### Choosing what random picks from
 
@@ -274,7 +286,7 @@ A dance you own no tracks for says so instead, and can never come up in a random
 ### Searching
 
 The search box matches every spelling of every dance, ignoring case, accents and punctuation, so
-`hanterdro` finds *Hanter dro*.
+`hanterdro` finds *Hanter dro* and `bourree 3` finds *Bourrée à trois temps*.
 
 ### Keeping it up to date
 
@@ -295,13 +307,86 @@ there being one list.
 
 ---
 
+## Review
+
+Nothing reaches your library until it has an artist, a title, a dance from the published list, and
+you having agreed to all three. Review is where that agreement happens, and it is a permanent part
+of the application rather than a step of setup: retag a file, rename one or drop new ones in, and
+they come back here on their own with whatever you answered before still on them.
+
+A first run therefore shows a library with no music in it and a queue holding everything. That is
+correct, and it is the point: a track that was filled in by a guess nobody looked at is worse than
+one that is honestly still waiting.
+
+### What the queue shows
+
+- **One row per track**, not one per mistake. A file that says nothing at all about itself has to be
+  answerable too, and it could never appear in a list of things that were spelled wrongly.
+- **The least certain first**, so stopping halfway leaves your library better rather than merely
+  different. Whoever answers forty rows has answered the forty nothing could speak for.
+- **Grouped by folder**, with the folder's name in a band above its tracks. Tracks lying loose in
+  your music folder are shown apart: they were filed nowhere, so there is nothing to answer together.
+- **Each field says where it came from** — a tag, the file name, a folder, one of your rules, or you
+  — because a wrong answer is only obvious when you can see what produced it.
+
+### The keyboard
+
+| | |
+|---|---|
+| Up, Down | between tracks |
+| Tab | between the three fields of a track, wrapping round |
+| Enter | answer this track and move to the next one waiting |
+| Shift+Enter | answer every track in this folder that is complete |
+| Shift+Space | listen to the selected track |
+| Escape | stop listening |
+| Left, Right | skip five seconds, while something is playing |
+
+Selecting a track puts the cursor in its first empty field, so you can simply type. Typing a dance
+offers the names the list holds; the arrows walk them and Enter takes the highlighted one.
+
+Answering a folder **confirms** rather than fills in: each track keeps the artist and title it
+already has, and a track still missing something is left where it is. A folder of more than a
+handful asks before it goes ahead.
+
+If a track cannot be answered, the row flashes red rather than doing nothing quietly; asking a
+folder points at every track holding it up.
+
+### Colours
+
+| | |
+|---|---|
+| plain | waiting for you |
+| green | answered, and in your library |
+| amber | answered, and waiting for the dance list to carry the name you gave it |
+
+### When a dance is not in the list
+
+The row offers what the name might have meant, so a misspelling is one click rather than retyping.
+Beside that:
+
+- **Use for all N that say X** sets that dance on every waiting track claiming the same thing. It
+  sets the dance and nothing else, so each of those tracks still wants its own confirmation:
+  artists and titles are not shared.
+- **X is not a dance** says the value is junk. `trad` is not a dance and never will be, so it is
+  cleared from every track claiming it and remembered, and a rescan does not put it back. Those
+  tracks still need a real dance.
+
+A dance that is genuinely missing belongs in a proposal at
+[BigBalfolkList](https://tjvl.github.io/BigBalfolkList/), linked from the Rules panel. Your answer is
+kept in the meantime, and the moment an updated list carries the name, those tracks go into your
+library without you being asked again.
+
+---
+
 ## Settings
 
 The settings screen lets you configure application behavior. All changes are saved automatically.
 
 ### Music Directory
 
-The path to the folder containing your music files. Click **Browse** to select a folder. The application scans this directory recursively for audio files and extracts dance, artist, and title from file names.
+Where your music is, shown rather than edited: changing it re-reads the whole library and re-decides
+every track, which is setup rather than a setting to nudge. **Run setup again** is how it is changed.
+Everything below that folder counts, however it is arranged.
 
 ### Maximum Queue Items
 

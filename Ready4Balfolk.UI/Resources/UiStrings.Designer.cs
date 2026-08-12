@@ -847,9 +847,6 @@ public static class UiStrings
     public static string Discovery_RoleIgnore =>
         ResourceManager.GetString("Discovery_RoleIgnore", Culture)!;
 
-    public static string Discovery_NoLibrary =>
-        ResourceManager.GetString("Discovery_NoLibrary", Culture)!;
-
     // Review
     public static string Review_Title =>
         ResourceManager.GetString("Review_Title", Culture)!;
@@ -880,9 +877,6 @@ public static class UiStrings
 
     public static string Review_TitleField =>
         ResourceManager.GetString("Review_TitleField", Culture)!;
-
-    public static string Review_RootFolder =>
-        ResourceManager.GetString("Review_RootFolder", Culture)!;
 
     public static string Review_FromTag =>
         ResourceManager.GetString("Review_FromTag", Culture)!;
@@ -998,9 +992,6 @@ public static class UiStrings
         ResourceManager.GetString("Discovery_ProposalDismiss", Culture)!;
     public static string Discovery_ProposalSamples =>
         ResourceManager.GetString("Discovery_ProposalSamples", Culture)!;
-    public static string Discovery_NothingToPropose =>
-        ResourceManager.GetString("Discovery_NothingToPropose", Culture)!;
-
     public static string Review_Rules =>
         ResourceManager.GetString("Review_Rules", Culture)!;
     public static string Review_RulesHint =>

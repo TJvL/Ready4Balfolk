@@ -960,9 +960,6 @@
   <data name="Discovery_RoleIgnore" xml:space="preserve">
     <value>Means nothing</value>
   </data>
-  <data name="Discovery_NoLibrary" xml:space="preserve">
-    <value>Nothing has been read yet, so there is nothing to measure a rule against.</value>
-  </data>
 
   <!-- Review -->
   <data name="Review_Title" xml:space="preserve">
@@ -984,7 +981,7 @@
     <value>Answer (Enter)</value>
   </data>
   <data name="Review_ApproveFolder" xml:space="preserve">
-    <value>Answer this folder (A)</value>
+    <value>Answer this folder (Shift+Enter)</value>
   </data>
   <data name="Review_Dance" xml:space="preserve">
     <value>Dance</value>
@@ -994,9 +991,6 @@
   </data>
   <data name="Review_TitleField" xml:space="preserve">
     <value>Title</value>
-  </data>
-  <data name="Review_RootFolder" xml:space="preserve">
-    <value>The music folder itself</value>
   </data>
   <data name="Review_FromTag" xml:space="preserve">
     <value>from the {0} tag</value>
@@ -1126,9 +1120,6 @@
   </data>
   <data name="Discovery_ProposalSamples" xml:space="preserve">
     <value>Show the files</value>
-  </data>
-  <data name="Discovery_NothingToPropose" xml:space="preserve">
-    <value>Nothing in your library repeats often enough to suggest a rule.</value>
   </data>
   <data name="Review_Rules" xml:space="preserve">
     <value>Rules</value>

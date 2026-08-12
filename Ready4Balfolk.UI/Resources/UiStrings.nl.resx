@@ -629,7 +629,7 @@
     <value>Instellen opnieuw doorlopen</value>
   </data>
   <data name="Settings_RunSetupAgainDescription" xml:space="preserve">
-    <value>Opent de instelwizard. Je danslijst en je muziekmap blijven zoals ze zijn, tenzij je ze daar verandert.</value>
+    <value>Opent de instelwizard. Je dansenlijst en je muziekmap blijven zoals ze zijn, tenzij je ze daar verandert.</value>
   </data>
 
   <!-- Dance panel -->
@@ -703,7 +703,7 @@
     <value>github.com/TJvL/BigBalfolkList</value>
   </data>
   <data name="DanceList_Title" xml:space="preserve">
-    <value>Danslijst</value>
+    <value>Dansenlijst</value>
   </data>
 
   <!-- Setup wizard: emptying the list -->
@@ -716,7 +716,7 @@
     <value>Nummers</value>
   </data>
   <data name="TrackCatalog_SwitchToDanceList" xml:space="preserve">
-    <value>Naar de danslijst</value>
+    <value>Naar de dansenlijst</value>
   </data>
   <data name="TrackCatalog_DancesLabel" xml:space="preserve">
     <value>Dansen</value>
@@ -775,7 +775,7 @@
     <value>Patronen voor bestandsnamen</value>
   </data>
   <data name="Discovery_PatternsHint" xml:space="preserve">
-    <value>%d dans, %a artiest, %t titel, %n nummer, %i negeren, %ex extensie. Al het andere moet er letterlijk staan. Het eerste patroon dat een hele naam dekt wint, dus zet ze van specifiek naar algemeen.</value>
+    <value>%d dans, %a artiest, %t titel, %n volgnummer, %i negeren, %ex extensie. Al het andere moet er letterlijk staan. Het eerste patroon dat een hele naam dekt wint, dus zet ze van specifiek naar algemeen.</value>
   </data>
   <data name="Discovery_DraftWatermark" xml:space="preserve">
     <value>%d - %a - %t</value>
@@ -885,16 +885,13 @@
   <data name="Discovery_RoleIgnore" xml:space="preserve">
     <value>Betekent niets</value>
   </data>
-  <data name="Discovery_NoLibrary" xml:space="preserve">
-    <value>Er is nog niets ingelezen, dus er is niets om een regel aan af te meten.</value>
-  </data>
 
   <!-- Review -->
   <data name="Review_Title" xml:space="preserve">
     <value>Nakijken</value>
   </data>
   <data name="Review_Intro" xml:space="preserve">
-    <value>Er wacht niets. Nieuwe bestanden, hertagde bestanden en hernoemde bestanden komen hier vanzelf terug.</value>
+    <value>Er wacht niets. Nieuwe bestanden, opnieuw getagde bestanden en hernoemde bestanden komen hier vanzelf terug.</value>
   </data>
   <data name="Review_Keys" xml:space="preserve">
     <value>Tab tussen de velden, omhoog en omlaag tussen de nummers. Enter beantwoordt er één, Shift+Enter de hele map. Shift+Spatie luistert, Escape stopt, en de pijltjes springen dan vijf seconden. Het minst zekere staat bovenaan, dus eerder stoppen laat je bibliotheek alsnog beter achter.</value>
@@ -909,7 +906,7 @@
     <value>Beantwoorden (Enter)</value>
   </data>
   <data name="Review_ApproveFolder" xml:space="preserve">
-    <value>Hele map beantwoorden (A)</value>
+    <value>Hele map beantwoorden (Shift+Enter)</value>
   </data>
   <data name="Review_Dance" xml:space="preserve">
     <value>Dans</value>
@@ -919,9 +916,6 @@
   </data>
   <data name="Review_TitleField" xml:space="preserve">
     <value>Titel</value>
-  </data>
-  <data name="Review_RootFolder" xml:space="preserve">
-    <value>De muziekmap zelf</value>
   </data>
   <data name="Review_FromTag" xml:space="preserve">
     <value>uit de tag {0}</value>
@@ -960,7 +954,7 @@
     <value>wacht op de lijst</value>
   </data>
   <data name="Review_UnknownDanceHint" xml:space="preserve">
-    <value>De danslijst is gedeeld, dus een ontbrekende dans is een voorstel bij BigBalfolkList en niet iets om hier toe te voegen. Je antwoord blijft bewaard en het nummer gaat de bibliotheek in zodra de lijst de naam kent.</value>
+    <value>De dansenlijst is gedeeld, dus een ontbrekende dans is een voorstel bij BigBalfolkList en niet iets om hier toe te voegen. Je antwoord blijft bewaard en het nummer gaat de bibliotheek in zodra de lijst de naam kent.</value>
   </data>
   <data name="Toolbar_Review" xml:space="preserve">
     <value>Alles wat op jou wacht</value>
@@ -1014,7 +1008,7 @@
     <value>Gebruik voor alle {0} met "{1}"</value>
   </data>
   <data name="Review_UsedForAll" xml:space="preserve">
-    <value>{0} nummers staan nu op {1}. Ze wachten nog wel op je bevestiging, stuk voor stuk.</value>
+    <value>{0} nummers staan nu op {1}. Ze moeten nog wel stuk voor stuk bevestigd worden.</value>
   </data>
   <data name="Review_NotADance" xml:space="preserve">
     <value>"{0}" is geen dans</value>
@@ -1041,7 +1035,7 @@
     <value>positie {0}: {1} — {2} van {5} zijn dansnamen, {3} verschillende waarden, {4} komen overeen met een tag</value>
   </data>
   <data name="Discovery_ProposalNothing" xml:space="preserve">
-    <value>niets kan het zeggen</value>
+    <value>hier valt niets over te zeggen</value>
   </data>
   <data name="Discovery_ProposalAccept" xml:space="preserve">
     <value>Vastleggen</value>
@@ -1051,9 +1045,6 @@
   </data>
   <data name="Discovery_ProposalSamples" xml:space="preserve">
     <value>Laat de bestanden zien</value>
-  </data>
-  <data name="Discovery_NothingToPropose" xml:space="preserve">
-    <value>Niets in je bibliotheek herhaalt zich vaak genoeg om een regel voor te stellen.</value>
   </data>
   <data name="Review_Rules" xml:space="preserve">
     <value>Regels</value>
@@ -1065,7 +1056,7 @@
     <value>Laat dansen buiten de gepubliceerde lijst toe in mijn bibliotheek</value>
   </data>
   <data name="Review_AllowOutsideTheListHint" xml:space="preserve">
-    <value>Uit blijft een nummer hier staan tot een voorstel bij BigBalfolkList is samengevoegd. Aan is jouw antwoord genoeg — maar een willekeurige keuze trekt op tags, en een dans die niemand gepubliceerd heeft heeft er geen, dus die nummers komen nooit vanzelf voorbij.</value>
+    <value>Staat dit uit, dan blijft een nummer hier staan tot een voorstel bij BigBalfolkList is samengevoegd. Staat het aan, dan is jouw antwoord genoeg — maar een willekeurige keuze trekt op tags, en een dans die niemand gepubliceerd heeft heeft die niet, dus die nummers komen nooit vanzelf voorbij.</value>
   </data>
   <data name="Review_ApproveFolderCount" xml:space="preserve">
     <value>Beantwoord alle {0} hier (Shift+Enter)</value>
@@ -1089,6 +1080,6 @@
     <value>tjvl.github.io/BigBalfolkList</value>
   </data>
   <data name="Discovery_DanceListHint" xml:space="preserve">
-    <value>De danslijst waar elk nummer tegen gematcht wordt. Hij is gedeeld, dus een ontbrekende dans stel je daar voor in plaats van hem hier toe te voegen, en je nummers die erop wachten gaan je bibliotheek in zodra de lijst de naam kent.</value>
+    <value>De dansenlijst waar elk nummer mee vergeleken wordt. Hij is gedeeld, dus een ontbrekende dans stel je daar voor in plaats van hem hier toe te voegen. Je nummers die daarop wachten gaan je bibliotheek in zodra de lijst de naam kent.</value>
   </data>
 </root>
