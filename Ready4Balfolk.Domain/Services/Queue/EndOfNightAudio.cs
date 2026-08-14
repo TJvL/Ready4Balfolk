@@ -16,12 +16,20 @@ public sealed class EndOfNightAudio(
     public EndOfNightQueueItem? Create() =>
         Path is { } path ? new EndOfNightQueueItem(path, ReadDuration(path)) : null;
 
+    /// <summary>The chosen file, absolute and in this platform's shape, or null when there is none.</summary>
+    /// <remarks>
+    /// The setting is a text box as much as a picker, so what comes out of it can be relative or
+    /// written in the other platform's notation. Resolving it here means the queue entry always
+    /// carries something the audio engine can open, rather than failing at the moment it plays.
+    /// </remarks>
     private string? Path
     {
         get
         {
             var path = settingsStore.Current.EndOfNightAudioPath;
-            return path.Length > 0 && fileSystem.File.Exists(path) ? path : null;
+            return path.Length > 0 && fileSystem.File.Exists(path)
+                ? fileSystem.Path.GetFullPath(path)
+                : null;
         }
     }
 

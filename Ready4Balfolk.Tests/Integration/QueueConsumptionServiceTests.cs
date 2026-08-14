@@ -212,23 +212,27 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         await _audio.Received(1).PlayAsync();
     }
 
+    // Absolute in this platform's own notation: what EndOfNightAudio resolves the setting to, and
+    // the only shape System.Uri accepts on Windows.
+    private static readonly string EndOfNightPath = Path.GetFullPath("/audio/last-waltz.mp3");
+
     [Fact]
     public async Task AdvanceAsync_EndOfNight_PlaysTheChosenFile()
     {
-        var endOfNight = new EndOfNightQueueItem("/audio/last-waltz.mp3", TimeSpan.FromMinutes(4));
+        var endOfNight = new EndOfNightQueueItem(EndOfNightPath, TimeSpan.FromMinutes(4));
         _queue.Enqueue(endOfNight);
 
         await _sut.AdvanceAsync();
 
         Assert.Equal(endOfNight, _sut.CurrentItem);
-        await _audio.Received(1).SelectAsync(new Uri("/audio/last-waltz.mp3"));
+        await _audio.Received(1).SelectAsync(new Uri(EndOfNightPath));
         await _audio.Received(1).PlayAsync();
     }
 
     [Fact]
     public async Task AdvanceAsync_EndOfNight_RecordsThatTheEveningEnded()
     {
-        _queue.Enqueue(new EndOfNightQueueItem("/audio/last-waltz.mp3", TimeSpan.FromMinutes(4)));
+        _queue.Enqueue(new EndOfNightQueueItem(EndOfNightPath, TimeSpan.FromMinutes(4)));
         await _sut.AdvanceAsync();
 
         await _sut.AdvanceAsync();
