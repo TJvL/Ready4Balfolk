@@ -30,6 +30,8 @@ public sealed class ReviewViewModelTests : IDisposable
     private readonly ITrackStore _trackStore = Substitute.For<ITrackStore>();
     private readonly List<(string Path, TrackField Field, string Value)> _approved = [];
     private readonly IConfirmationService _confirmations = Substitute.For<IConfirmationService>();
+    private readonly IPreviewPlaybackService _preview = Substitute.For<IPreviewPlaybackService>();
+    private readonly NavigationService _navigation = new();
     private readonly ReviewViewModel _sut;
 
     private ApplicationSettings _stored = new ApplicationSettings() with { MusicDirectoryPath = Root };
@@ -67,10 +69,9 @@ public sealed class ReviewViewModelTests : IDisposable
                 return Task.CompletedTask;
             });
 
-        var preview = Substitute.For<IPreviewPlaybackService>();
-        preview.WhenPreviewChanged.Returns(Observable.Never<string?>());
-        preview.WhenProgressChanged.Returns(Observable.Never<TimeSpan>());
-        preview.WhenDurationChanged.Returns(Observable.Never<TimeSpan>());
+        _preview.WhenPreviewChanged.Returns(Observable.Never<string?>());
+        _preview.WhenProgressChanged.Returns(Observable.Never<TimeSpan>());
+        _preview.WhenDurationChanged.Returns(Observable.Never<TimeSpan>());
 
         // Says yes, so a folder answer is tested rather than the dialog: the dialog has its own
         // test below.
@@ -83,8 +84,21 @@ public sealed class ReviewViewModelTests : IDisposable
             settingsStore, _libraryIndex, danceListStore, trackStoreForDiscovery, Substitute.For<ILoggerService>());
 
         _sut = new ReviewViewModel(
-            _libraryIndex, danceListStore, settingsStore, _trackStore, preview,
-            Substitute.For<INotificationService>(), _confirmations, discovery, Substitute.For<ILoggerService>());
+            _libraryIndex, danceListStore, settingsStore, _trackStore, _preview,
+            Substitute.For<INotificationService>(), _confirmations, discovery, _navigation,
+            Substitute.For<ILoggerService>());
+    }
+
+    [Fact]
+    public void LeavingTheScreen_StopsThePreview()
+    {
+        // A preview left playing must not keep sounding at a screen nobody is looking at it from.
+        _navigation.CurrentScreen = Screen.Review;
+        _preview.ClearReceivedCalls();
+
+        _navigation.CurrentScreen = Screen.Main;
+
+        _preview.Received().StopAsync();
     }
 
     public void Dispose() => _sut.Dispose();

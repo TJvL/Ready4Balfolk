@@ -76,6 +76,15 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
             .ToProperty(this, x => x.CurrentStep);
         _currentStepHelper.DisposeWith(_disposables);
 
+        // A preview playing on the review step must not keep sounding after Back. Finishing the
+        // wizard is covered by the screen change, which the review model watches itself.
+        this.WhenAnyValue(x => x.CurrentStep)
+            .Skip(1)
+            .Where(step => step is not ReviewStepViewModel)
+            .Subscribe(_ => reviewStep.Review.StopPreviewAsync().SafeFireAndForget(exception =>
+                _loggerService.ErrorAsync("Failed to stop the preview on leaving the review step", exception)))
+            .DisposeWith(_disposables);
+
         _progressTextHelper = this.WhenAnyValue(x => x.CurrentIndex)
             .Select(index => string.Format(
                 CultureInfo.CurrentCulture, UiStrings.Wizard_StepFormat, index + 1, Steps.Count))

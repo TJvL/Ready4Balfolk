@@ -69,6 +69,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         INotificationService notifications,
         IConfirmationService confirmations,
         DiscoveryViewModel discovery,
+        NavigationService navigation,
         ILoggerService loggerService)
     {
         Discovery = discovery;
@@ -98,6 +99,16 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         preview.WhenPreviewChanged
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(OnPreviewChanged)
+            .DisposeWith(_disposables);
+
+        // The screen owns its preview. Navigating away must not leave the room hearing a file
+        // nobody is looking at; the wizard's inner steps are handled by the wizard, since no
+        // screen change happens between them.
+        navigation.WhenAnyValue(x => x.CurrentScreen)
+            .Skip(1)
+            .Where(screen => screen is not Screen.Review)
+            .Subscribe(_ => StopPreviewAsync().SafeFireAndForget(exception =>
+                _loggerService.ErrorAsync("Failed to stop the preview on leaving the screen", exception)))
             .DisposeWith(_disposables);
 
         preview.WhenProgressChanged

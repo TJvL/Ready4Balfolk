@@ -25,6 +25,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
     private readonly BehaviorSubject<DanceListStatus> _statusSubject = new(DanceListStatus.Unknown);
     private readonly IDanceListFeed _feed = Substitute.For<IDanceListFeed>();
     private readonly NavigationService _navigation = new();
+    private readonly IPreviewPlaybackService _preview = Substitute.For<IPreviewPlaybackService>();
     private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
     private readonly FakeTimeProvider _now = new();
     private readonly SetupWizardViewModel _sut;
@@ -66,16 +67,15 @@ public sealed class SetupWizardViewModelTests : IDisposable
         libraryIndex.GetIgnoredValuesAsync(Arg.Any<CancellationToken>())
             .Returns(new HashSet<string>());
 
-        var preview = Substitute.For<IPreviewPlaybackService>();
-        preview.WhenPreviewChanged.Returns(Observable.Never<string?>());
-        preview.WhenProgressChanged.Returns(Observable.Never<TimeSpan>());
-        preview.WhenDurationChanged.Returns(Observable.Never<TimeSpan>());
+        _preview.WhenPreviewChanged.Returns(Observable.Never<string?>());
+        _preview.WhenProgressChanged.Returns(Observable.Never<TimeSpan>());
+        _preview.WhenDurationChanged.Returns(Observable.Never<TimeSpan>());
 
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.IsLoading.Returns(Observable.Return(false));
 
         var discovery = new DiscoveryViewModel(_settingsStore, libraryIndex, _danceListStore, trackStore, logger);
-        var review = new ReviewViewModel(libraryIndex, _danceListStore, _settingsStore, trackStore, preview, notifications, Substitute.For<IConfirmationService>(), discovery, logger);
+        var review = new ReviewViewModel(libraryIndex, _danceListStore, _settingsStore, trackStore, _preview, notifications, Substitute.For<IConfirmationService>(), discovery, new NavigationService(), logger);
 
         return new SetupWizardViewModel(
             new WelcomeStepViewModel(),
@@ -274,6 +274,19 @@ public sealed class SetupWizardViewModelTests : IDisposable
         _sut.Dispose();
         _danceListSubject.Dispose();
         _statusSubject.Dispose();
+    }
+
+    [Fact]
+    public void GoingBackFromTheReviewStep_StopsThePreview()
+    {
+        GoTo<MusicDirectoryStepViewModel>().MusicDirectoryPath = Path.GetTempPath();
+        GoTo<ReviewStepViewModel>();
+        _preview.ClearReceivedCalls();
+
+        _sut.BackCommand.Execute().Subscribe();
+
+        Assert.IsNotType<ReviewStepViewModel>(_sut.CurrentStep);
+        _preview.Received().StopAsync();
     }
 
     private T GoTo<T>() where T : WizardStepViewModel
