@@ -12,10 +12,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download Windows artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: Ready4Balfolk-win-x64
           path: download
@@ -32,7 +32,7 @@ jobs:
           APP_VERSION: ${{ inputs.version }}
 
       - name: Upload installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Ready4Balfolk-win-x64-setup
           path: installer-output/*.exe
