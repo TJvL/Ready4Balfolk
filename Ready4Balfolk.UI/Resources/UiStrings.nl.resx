@@ -840,6 +840,15 @@
   <data name="Discovery_TagsHint" xml:space="preserve">
     <value>Welke tagvelden in jouw bibliotheek welke waarde bevatten. Standaard gelden artiest en albumartiest als artiest, het titelveld als titel, en geldt geen enkele tag als dans. Een dansnaam uit je lijst wordt hoe dan ook in elke tag herkend.</value>
   </data>
+  <data name="Discovery_CustomDanceTag" xml:space="preserve">
+    <value>Eigen danstag</value>
+  </data>
+  <data name="Discovery_CustomDanceTagHint" xml:space="preserve">
+    <value>De naam van een eigen tag in je bestanden waarvan de waarde de dans is, zoals DANCE of STYLE. Laat leeg als je bestanden zo'n tag niet hebben.</value>
+  </data>
+  <data name="Discovery_CustomDanceTagPlaceholder" xml:space="preserve">
+    <value>tagnaam</value>
+  </data>
   <data name="Discovery_UseDefault" xml:space="preserve">
     <value>Laat dit aan de applicatie over</value>
   </data>

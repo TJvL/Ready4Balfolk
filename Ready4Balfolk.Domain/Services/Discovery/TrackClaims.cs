@@ -118,6 +118,14 @@ public static partial class TrackClaims
             }
         }
 
+        // A custom tag the user named holds the dance. Naming it is the declaration, so it is read
+        // whole exactly like a trusted field: recognised or not, what it says is what parks or
+        // passes the track.
+        if (declared.CustomDanceTag is { } customTag && evidence.CustomTags.TryGetValue(customTag, out var customValue))
+        {
+            AddIfSaid(claims, TrackField.Dance, customValue, ClaimSource.Tag(customTag), ClaimTrust.Declared);
+        }
+
         var fileName = evidence.FileNameWithoutExtension;
         var bracketed = BracketedGroups(fileName);
         var fileMatches = DanceNameScanner.Scan(fileName, index);

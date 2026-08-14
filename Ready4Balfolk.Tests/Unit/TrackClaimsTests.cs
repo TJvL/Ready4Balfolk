@@ -262,13 +262,61 @@ public sealed class TrackClaimsTests
         Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "mazurka");
     }
 
+    [Fact]
+    public void ADeclaredCustomTag_IsReadWhole()
+    {
+        // Named by the user, so it is a declaration like a trusted field: the value is the dance
+        // even when the list has never heard of it, which is what parks the track.
+        var claims = Collect(
+            Evidence("01 - Something") with { CustomTags = Tags(("DANCE", "Rond de Landéda")) },
+            Declared(customDanceTag: "DANCE"));
+
+        Assert.Contains(claims, claim =>
+            claim.Field == TrackField.Dance
+            && claim.Value == "Rond de Landéda"
+            && claim.Trust == ClaimTrust.Declared
+            && claim.Source.Kind == ClaimSourceKind.Tag
+            && claim.Source.Detail == "DANCE");
+    }
+
+    [Fact]
+    public void ACustomTagName_IsMatchedCaseInsensitively()
+    {
+        var claims = Collect(
+            Evidence("01 - Something") with { CustomTags = Tags(("dance", "Mazurka")) },
+            Declared(customDanceTag: "DANCE"));
+
+        Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Trust == ClaimTrust.Declared);
+    }
+
+    [Fact]
+    public void AnUndeclaredCustomTag_SaysNothing() =>
+        // The tag sits in the file either way; without the user naming it, no field of the track
+        // is read from it, because what a free-form tag means is not a thing a library can be asked.
+        Assert.DoesNotContain(
+            Collect(Evidence("01 - Something") with { CustomTags = Tags(("DANCE", "Rond de Landéda")) }),
+            claim => claim.Field == TrackField.Dance);
+
+    [Fact]
+    public void ADeclaredCustomTagTheFileDoesNotCarry_ClaimsNothing() =>
+        Assert.DoesNotContain(
+            Collect(Evidence("01 - Something"), Declared(customDanceTag: "DANCE")),
+            claim => claim.Field == TrackField.Dance);
+
+    private static Dictionary<string, string> Tags(params (string Name, string Value)[] entries) =>
+        entries.ToDictionary(entry => entry.Name, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
+
     private static DeclaredDiscovery Declared(
-        IReadOnlyList<string>? patterns = null, IReadOnlyList<FolderRole>? roles = null, TagTrust? trust = null) =>
+        IReadOnlyList<string>? patterns = null,
+        IReadOnlyList<FolderRole>? roles = null,
+        TagTrust? trust = null,
+        string? customDanceTag = null) =>
         DeclaredDiscovery.Compile(new DiscoverySettings
         {
             FileNamePatterns = patterns ?? [],
             FolderRoles = roles ?? [],
-            TagTrust = trust ?? new TagTrust()
+            TagTrust = trust ?? new TagTrust(),
+            CustomDanceTag = customDanceTag
         });
 
     private IReadOnlyList<Claim> Collect(

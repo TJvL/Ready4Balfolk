@@ -915,6 +915,15 @@
   <data name="Discovery_TagsHint" xml:space="preserve">
     <value>Which tag fields hold which value in your library. Left alone, artist and album artist are read as the artist, the title tag as the title, and no tag is read as the dance. A dance name from your list is still found in any tag, whatever you set here.</value>
   </data>
+  <data name="Discovery_CustomDanceTag" xml:space="preserve">
+    <value>Custom dance tag</value>
+  </data>
+  <data name="Discovery_CustomDanceTagHint" xml:space="preserve">
+    <value>The name of a custom tag in your files whose value is the dance, such as DANCE or STYLE. Leave empty if your files carry no such tag.</value>
+  </data>
+  <data name="Discovery_CustomDanceTagPlaceholder" xml:space="preserve">
+    <value>tag name</value>
+  </data>
   <data name="Discovery_UseDefault" xml:space="preserve">
     <value>Leave this to the application</value>
   </data>

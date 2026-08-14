@@ -26,11 +26,22 @@ public sealed record DiscoverySettings
 
     public TagTrust TagTrust { get; init; } = new();
 
+    /// <summary>
+    /// The name of a custom tag whose value is the dance, or null when none is declared.
+    /// </summary>
+    /// <remarks>
+    /// Some libraries carry the dance in a free-form tag (an ID3v2 TXXX frame or a Xiph field), and
+    /// what that tag is called is theirs. Naming it here is the declaration: the field is read
+    /// whole, recognised or not, exactly like a trusted tag field.
+    /// </remarks>
+    public string? CustomDanceTag { get; init; }
+
     /// <summary>True when the user has stated anything at all.</summary>
     public bool DeclaresAnything =>
         FileNamePatterns.Count > 0
         || FolderRoles.Any(role => role is not FolderRole.Unknown)
-        || TagTrust.IsDeclared;
+        || TagTrust.IsDeclared
+        || !string.IsNullOrWhiteSpace(CustomDanceTag);
 
     /// <summary>The role declared for a level, counted from 1 outermost.</summary>
     public FolderRole RoleForLevel(int level) =>
@@ -48,7 +59,9 @@ public sealed record DiscoverySettings
         other is not null
         && FileNamePatterns.SequenceEqual(other.FileNamePatterns, StringComparer.Ordinal)
         && FolderRoles.SequenceEqual(other.FolderRoles)
-        && TagTrust == other.TagTrust;
+        && TagTrust == other.TagTrust
+        && string.Equals(CustomDanceTag, other.CustomDanceTag, StringComparison.Ordinal);
 
-    public override int GetHashCode() => HashCode.Combine(FileNamePatterns.Count, FolderRoles.Count, TagTrust);
+    public override int GetHashCode() =>
+        HashCode.Combine(FileNamePatterns.Count, FolderRoles.Count, TagTrust, CustomDanceTag);
 }

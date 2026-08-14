@@ -11,11 +11,15 @@ namespace Ready4Balfolk.Domain.Services.Discovery;
 public sealed class DeclaredDiscovery
 {
     private DeclaredDiscovery(
-        IReadOnlyList<FileNamePattern> patterns, IReadOnlyList<FolderRole> folderRoles, TagTrust tagTrust)
+        IReadOnlyList<FileNamePattern> patterns,
+        IReadOnlyList<FolderRole> folderRoles,
+        TagTrust tagTrust,
+        string? customDanceTag)
     {
         Patterns = patterns;
         FolderRoles = folderRoles;
         TagTrust = tagTrust;
+        CustomDanceTag = customDanceTag;
     }
 
     /// <summary>Nothing declared: what discovery runs on until a user says otherwise.</summary>
@@ -27,10 +31,14 @@ public sealed class DeclaredDiscovery
 
     public TagTrust TagTrust { get; }
 
+    /// <summary>The custom tag declared to hold the dance, or null when none is.</summary>
+    public string? CustomDanceTag { get; }
+
     public static DeclaredDiscovery Compile(DiscoverySettings settings) => new(
         [.. settings.FileNamePatterns.Select(text => FileNamePattern.Parse(text).Pattern).OfType<FileNamePattern>()],
         settings.FolderRoles,
-        settings.TagTrust);
+        settings.TagTrust,
+        string.IsNullOrWhiteSpace(settings.CustomDanceTag) ? null : settings.CustomDanceTag.Trim());
 
     /// <summary>The role declared for a level, counted from 1 outermost.</summary>
     public FolderRole RoleForLevel(int level) =>

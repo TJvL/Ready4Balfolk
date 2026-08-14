@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 
@@ -29,6 +30,7 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
                 TagAlbumArtist = tag.FirstAlbumArtist,
                 TagAlbum = tag.Album,
                 TagComment = tag.Comment,
+                CustomTags = file.GetCustomTags(),
                 Duration = file.Properties.Duration,
                 Format = format,
                 ContentHash = AudioContentHasher.Compute(

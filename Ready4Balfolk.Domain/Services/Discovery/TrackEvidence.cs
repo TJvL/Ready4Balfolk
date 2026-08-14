@@ -32,6 +32,16 @@ public sealed record TrackEvidence
 
     public string? TagComment { get; init; }
 
+    /// <summary>The file's free-form tags (ID3v2 TXXX, Xiph fields), keyed case-insensitively.</summary>
+    /// <remarks>
+    /// Gathered whole rather than looked up by a declared name, so deciding stays a pure function:
+    /// renaming the declared tag re-resolves without the file being opened again.
+    /// </remarks>
+    public IReadOnlyDictionary<string, string> CustomTags { get; init; } = EmptyCustomTags;
+
+    private static readonly IReadOnlyDictionary<string, string> EmptyCustomTags =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
     public required TimeSpan Duration { get; init; }
 
     public required AudioFormat Format { get; init; }

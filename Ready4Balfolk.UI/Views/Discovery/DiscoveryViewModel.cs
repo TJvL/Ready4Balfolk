@@ -65,6 +65,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         _loggerService = loggerService;
 
         DraftPattern = string.Empty;
+        CustomDanceTag = string.Empty;
         DraftSummary = string.Empty;
         CoverageSummary = string.Empty;
         DraftSamples = [];
@@ -135,6 +136,9 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     public ObservableCollection<FolderLevelViewModel> Levels { get; } = [];
 
     public IReadOnlyList<TagTrustFieldViewModel> TagFields { get; }
+
+    /// <summary>The name of the custom tag declared to hold the dance, empty for none.</summary>
+    [Reactive] public partial string CustomDanceTag { get; set; }
 
     /// <summary>
     /// What the library's own strings suggest, measured over what no rule covers yet.
@@ -233,7 +237,8 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
                 Dance = TagFields[0].Declared,
                 Artist = TagFields[1].Declared,
                 Title = TagFields[2].Declared
-            }
+            },
+            CustomDanceTag = string.IsNullOrWhiteSpace(CustomDanceTag) ? null : CustomDanceTag.Trim()
         });
 
     public void Dispose() => _disposables.Dispose();
@@ -288,6 +293,8 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
 
             TagFields[i].UsesDefault = declared is null;
         }
+
+        CustomDanceTag = settings.CustomDanceTag ?? string.Empty;
 
         Measure(settings);
 

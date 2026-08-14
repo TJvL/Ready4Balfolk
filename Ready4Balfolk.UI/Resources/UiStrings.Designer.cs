@@ -802,6 +802,15 @@ public static class UiStrings
     public static string Discovery_TagsHint =>
         ResourceManager.GetString("Discovery_TagsHint", Culture)!;
 
+    public static string Discovery_CustomDanceTag =>
+        ResourceManager.GetString("Discovery_CustomDanceTag", Culture)!;
+
+    public static string Discovery_CustomDanceTagHint =>
+        ResourceManager.GetString("Discovery_CustomDanceTagHint", Culture)!;
+
+    public static string Discovery_CustomDanceTagPlaceholder =>
+        ResourceManager.GetString("Discovery_CustomDanceTagPlaceholder", Culture)!;
+
     public static string Discovery_UseDefault =>
         ResourceManager.GetString("Discovery_UseDefault", Culture)!;
 

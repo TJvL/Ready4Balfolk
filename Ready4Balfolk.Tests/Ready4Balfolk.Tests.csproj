@@ -25,6 +25,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <EmbeddedResource Include="..\scripts\smoke-test-media\scale.mp3" LogicalName="scale.mp3" />
+        <EmbeddedResource Include="..\scripts\smoke-test-media\scale.ogg" LogicalName="scale.ogg" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\Ready4Balfolk.Domain\Ready4Balfolk.Domain.csproj" />
       <ProjectReference Include="..\Ready4Balfolk.UI\Ready4Balfolk.UI.csproj" />
       <ProjectReference Include="..\Ready4Balfolk.Web\Ready4Balfolk.Web.csproj" />
