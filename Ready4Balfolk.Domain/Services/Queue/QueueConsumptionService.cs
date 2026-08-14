@@ -290,6 +290,15 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         };
 
         await _history.AddAsync(entry);
+
+        // The evening being over is the moment to file it. Nothing can follow the end of the night
+        // in the queue, so this is the last thing that will ever happen in this night, and the next
+        // one starts clean without anybody having to remember to press anything while packing up.
+        if (entry is EndOfNightHistoryEntry)
+        {
+            await _history.EndNightAsync();
+        }
+
         _itemCompleted.OnNext(Unit.Default);
     }
 

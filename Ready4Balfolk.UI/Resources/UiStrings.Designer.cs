@@ -90,8 +90,11 @@ public static class UiStrings
     public static string HistoryToolbar_ExportLabel =>
         ResourceManager.GetString("HistoryToolbar_ExportLabel", Culture)!;
 
-    public static string HistoryToolbar_ClearLabel =>
-        ResourceManager.GetString("HistoryToolbar_ClearLabel", Culture)!;
+    public static string HistoryToolbar_NewNightLabel =>
+        ResourceManager.GetString("HistoryToolbar_NewNightLabel", Culture)!;
+
+    public static string HistoryToolbar_DeleteLabel =>
+        ResourceManager.GetString("HistoryToolbar_DeleteLabel", Culture)!;
 
     public static string TrackCatalog_ClearSearchLabel =>
         ResourceManager.GetString("TrackCatalog_ClearSearchLabel", Culture)!;
@@ -368,17 +371,29 @@ public static class UiStrings
     public static string HistoryToolbar_ExportHistory =>
         ResourceManager.GetString("HistoryToolbar_ExportHistory", Culture)!;
 
-    public static string HistoryToolbar_ClearHistory =>
-        ResourceManager.GetString("HistoryToolbar_ClearHistory", Culture)!;
+    public static string HistoryToolbar_NewNight =>
+        ResourceManager.GetString("HistoryToolbar_NewNight", Culture)!;
 
-    public static string HistoryToolbar_ClearHistoryTitle =>
-        ResourceManager.GetString("HistoryToolbar_ClearHistoryTitle", Culture)!;
+    public static string HistoryToolbar_NewNightTitle =>
+        ResourceManager.GetString("HistoryToolbar_NewNightTitle", Culture)!;
 
-    public static string HistoryToolbar_ClearHistoryMessage =>
-        ResourceManager.GetString("HistoryToolbar_ClearHistoryMessage", Culture)!;
+    public static string HistoryToolbar_NewNightMessage =>
+        ResourceManager.GetString("HistoryToolbar_NewNightMessage", Culture)!;
 
-    public static string HistoryToolbar_ClearButton =>
-        ResourceManager.GetString("HistoryToolbar_ClearButton", Culture)!;
+    public static string HistoryToolbar_NewNightButton =>
+        ResourceManager.GetString("HistoryToolbar_NewNightButton", Culture)!;
+
+    public static string HistoryToolbar_DeleteNight =>
+        ResourceManager.GetString("HistoryToolbar_DeleteNight", Culture)!;
+
+    public static string HistoryToolbar_DeleteNightTitle =>
+        ResourceManager.GetString("HistoryToolbar_DeleteNightTitle", Culture)!;
+
+    public static string HistoryToolbar_DeleteNightMessage =>
+        ResourceManager.GetString("HistoryToolbar_DeleteNightMessage", Culture)!;
+
+    public static string HistoryToolbar_DeleteButton =>
+        ResourceManager.GetString("HistoryToolbar_DeleteButton", Culture)!;
 
     public static string HistoryToolbar_CancelButton =>
         ResourceManager.GetString("HistoryToolbar_CancelButton", Culture)!;
@@ -531,6 +546,18 @@ public static class UiStrings
 
     public static string App_ExitMessage =>
         ResourceManager.GetString("App_ExitMessage", Culture)!;
+
+    public static string App_UnfinishedNightTitle =>
+        ResourceManager.GetString("App_UnfinishedNightTitle", Culture)!;
+
+    public static string App_UnfinishedNightMessage =>
+        ResourceManager.GetString("App_UnfinishedNightMessage", Culture)!;
+
+    public static string App_UnfinishedNightStartFresh =>
+        ResourceManager.GetString("App_UnfinishedNightStartFresh", Culture)!;
+
+    public static string App_UnfinishedNightCarryOn =>
+        ResourceManager.GetString("App_UnfinishedNightCarryOn", Culture)!;
 
     public static string Settings_LanguageRestartTitle =>
         ResourceManager.GetString("Settings_LanguageRestartTitle", Culture)!;

@@ -1,5 +1,4 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Microsoft.Data.Sqlite;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -10,59 +9,35 @@ namespace Ready4Balfolk.Tests.Integration;
 
 public sealed class QueueHistoryStoreTests : IDisposable
 {
-    private static readonly JsonSerializerOptions SJsonOptions = new()
-    {
-        WriteIndented = true,
-        Converters =
-        {
-            new JsonStringEnumConverter()
-        }
-    };
-
     private readonly DirectoryInfo _tempDir;
+    private readonly IApplicationSettingsDirectory _directory;
     private readonly QueueHistoryStore _sut;
+    private readonly List<QueueHistoryStore> _reopened = [];
 
     public QueueHistoryStoreTests()
     {
         _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
 
-        var sub = Substitute.For<IApplicationSettingsDirectory>();
-        sub.DirectoryInfoRoot.Returns(_ => _tempDir);
-        _sut = new QueueHistoryStore(sub, new NoOpLoggerService());
+        _directory = Substitute.For<IApplicationSettingsDirectory>();
+        _directory.DirectoryInfoRoot.Returns(_ => _tempDir);
+        _sut = new QueueHistoryStore(_directory, new NoOpLoggerService());
     }
 
     [Fact]
-    public async Task LoadAsync_ExistingFile_LoadsHistory()
+    public async Task LoadAsync_NoDatabase_KeepsEmpty()
     {
-        // Write a valid history file
-        var history = new QueueHistory(DateTime.Now, [
-            new TrackHistoryEntry("/tmp/test.mp3", "Mazurka", "Artist", "Title",
-                TimeSpan.FromMinutes(3), false, CompletionStatus.Finished)
-        ]);
-        await WriteHistoryFile(history);
+        await _sut.LoadAsync(TestContext.Current.CancellationToken);
 
-        await _sut.LoadAsync(CancellationToken.None);
-
-        Assert.Single(_sut.Current.Entries);
-        Assert.NotNull(_sut.Current.StartedAt);
-    }
-
-    [Fact]
-    public async Task LoadAsync_NoFile_KeepsEmpty()
-    {
-        await _sut.LoadAsync(CancellationToken.None);
         Assert.Empty(_sut.Current.Entries);
         Assert.Null(_sut.Current.StartedAt);
+        Assert.True(_sut.Current.IsOpen);
     }
 
     [Fact]
     public async Task AddAsync_AppendsEntry()
     {
-        var entry = new TrackHistoryEntry("/tmp/test.mp3", "Mazurka", "Artist", "Title",
-            TimeSpan.FromMinutes(3), false, CompletionStatus.Finished);
-
-        await _sut.AddAsync(entry);
+        await _sut.AddAsync(Track());
 
         Assert.Single(_sut.Current.Entries);
         Assert.IsType<TrackHistoryEntry>(_sut.Current.Entries[0]);
@@ -71,47 +46,93 @@ public sealed class QueueHistoryStoreTests : IDisposable
     [Fact]
     public async Task AddAsync_SetsStartedAtOnFirst()
     {
-        var entry = new TrackHistoryEntry("/tmp/test.mp3", "Mazurka", "Artist", "Title",
-            TimeSpan.FromMinutes(3), false, CompletionStatus.Finished);
-
         Assert.Null(_sut.Current.StartedAt);
-        await _sut.AddAsync(entry);
+
+        await _sut.AddAsync(Track());
+
         Assert.NotNull(_sut.Current.StartedAt);
     }
 
     [Fact]
     public async Task AddAsync_PreservesStartedAtOnSubsequent()
     {
-        var entry1 = new TrackHistoryEntry("/tmp/test.mp3", "Mazurka", "Artist", "Title",
-            TimeSpan.FromMinutes(3), false, CompletionStatus.Finished);
-        await _sut.AddAsync(entry1);
+        await _sut.AddAsync(Track());
         var firstStartedAt = _sut.Current.StartedAt;
 
-        var entry2 = new DelayHistoryEntry(TimeSpan.FromSeconds(30), CompletionStatus.Finished);
-        await _sut.AddAsync(entry2);
+        await _sut.AddAsync(new DelayHistoryEntry(TimeSpan.FromSeconds(30), CompletionStatus.Finished));
 
         Assert.Equal(firstStartedAt, _sut.Current.StartedAt);
     }
 
+    /// <summary>Closing the application mid-evening does not begin a second night.</summary>
     [Fact]
-    public async Task ClearAsync_ResetsHistory()
+    public async Task AddAsync_SurvivesAReopen()
     {
-        var entry = new TrackHistoryEntry("/tmp/test.mp3", "Mazurka", "Artist", "Title",
-            TimeSpan.FromMinutes(3), false, CompletionStatus.Finished);
-        await _sut.AddAsync(entry);
+        await _sut.AddAsync(Track());
+        await _sut.AddAsync(new StopHistoryEntry(CompletionStatus.Finished));
 
-        await _sut.ClearAsync();
+        var reopened = await ReopenAsync();
+
+        Assert.Equal(2, reopened.Current.Entries.Count);
+        Assert.IsType<TrackHistoryEntry>(reopened.Current.Entries[0]);
+        Assert.IsType<StopHistoryEntry>(reopened.Current.Entries[1]);
+        Assert.NotNull(reopened.Current.StartedAt);
+    }
+
+    [Fact]
+    public async Task EndNightAsync_LeavesTheNextNightEmpty()
+    {
+        await _sut.AddAsync(Track());
+
+        await _sut.EndNightAsync();
 
         Assert.Empty(_sut.Current.Entries);
         Assert.Null(_sut.Current.StartedAt);
+        Assert.True(_sut.Current.IsOpen);
+    }
+
+    /// <summary>Ending a night files it. Nothing is thrown away, which is the whole of the design.</summary>
+    [Fact]
+    public async Task EndNightAsync_KeepsTheNightThatFinished()
+    {
+        await _sut.AddAsync(Track());
+
+        await _sut.EndNightAsync();
+
+        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM nights WHERE ended_at IS NOT NULL;"));
+        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM entries;"));
+
+        // And the filed night is not handed back as the current one.
+        var reopened = await ReopenAsync();
+        Assert.Empty(reopened.Current.Entries);
+    }
+
+    [Fact]
+    public async Task EndNightAsync_WithNothingInIt_WritesNothing()
+    {
+        await _sut.LoadAsync(TestContext.Current.CancellationToken);
+
+        await _sut.EndNightAsync();
+
+        Assert.Equal(0, await CountAsync("SELECT COUNT(*) FROM nights;"));
+    }
+
+    [Fact]
+    public async Task DeleteNightAsync_ThrowsTheNightAway()
+    {
+        await _sut.AddAsync(Track());
+
+        await _sut.DeleteNightAsync();
+
+        Assert.Empty(_sut.Current.Entries);
+        Assert.Equal(0, await CountAsync("SELECT COUNT(*) FROM nights;"));
+        Assert.Equal(0, await CountAsync("SELECT COUNT(*) FROM entries;"));
     }
 
     [Fact]
     public async Task ExportAsync_WritesFile()
     {
-        var entry = new TrackHistoryEntry("/tmp/test.mp3", "Mazurka", "Artist", "Title",
-            TimeSpan.FromMinutes(3), false, CompletionStatus.Finished);
-        await _sut.AddAsync(entry);
+        await _sut.AddAsync(Track());
 
         var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "history.json"));
         await _sut.ExportAsync(exportFile);
@@ -124,37 +145,60 @@ public sealed class QueueHistoryStoreTests : IDisposable
     [Fact]
     public async Task TotalDuration_SumsCorrectly()
     {
-        await _sut.AddAsync(new TrackHistoryEntry("/tmp/a.mp3", "Mazurka", "A", "T",
-            TimeSpan.FromMinutes(3), false, CompletionStatus.Finished));
-        await _sut.AddAsync(new DelayHistoryEntry(
-            TimeSpan.FromSeconds(30), CompletionStatus.Finished));
+        await _sut.AddAsync(Track());
+        await _sut.AddAsync(new DelayHistoryEntry(TimeSpan.FromSeconds(30), CompletionStatus.Finished));
         await _sut.AddAsync(new StopHistoryEntry(CompletionStatus.Finished));
 
-        var total = _sut.Current.TotalDuration;
-        Assert.Equal(TimeSpan.FromMinutes(3) + TimeSpan.FromSeconds(30), total);
+        Assert.Equal(TimeSpan.FromMinutes(3) + TimeSpan.FromSeconds(30), _sut.Current.TotalDuration);
     }
 
     [Fact]
     public async Task Observe_EmitsOnAdd()
     {
         var emissions = new List<QueueHistory>();
-        using var sub = _sut.Observe().Subscribe(emissions.Add);
+        using var subscription = _sut.Observe().Subscribe(emissions.Add);
 
         await _sut.AddAsync(new StopHistoryEntry(CompletionStatus.Finished));
 
         Assert.True(emissions.Count >= 2); // initial + update
     }
 
-    private async Task WriteHistoryFile(QueueHistory history)
+    private static TrackHistoryEntry Track() => new(
+        "/tmp/test.mp3", "Mazurka", "Artist", "Title",
+        TimeSpan.FromMinutes(3), false, CompletionStatus.Finished, DateTime.Now);
+
+    /// <summary>A second store over the same directory, which is what a restart amounts to.</summary>
+    private async Task<QueueHistoryStore> ReopenAsync()
     {
-        var filePath = Path.Combine(_tempDir.FullName, "queue_history.json");
-        await using var stream = File.Create(filePath);
-        await JsonSerializer.SerializeAsync(stream, history, SJsonOptions);
+        var reopened = new QueueHistoryStore(_directory, new NoOpLoggerService());
+        _reopened.Add(reopened);
+        await reopened.LoadAsync(TestContext.Current.CancellationToken);
+        return reopened;
+    }
+
+    private async Task<long> CountAsync(string sql)
+    {
+        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = Path.Combine(_tempDir.FullName, "history.sqlite"),
+            Mode = SqliteOpenMode.ReadOnly,
+            Pooling = false
+        }.ToString());
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
     }
 
     public void Dispose()
     {
         _sut.Dispose();
+        foreach (var store in _reopened)
+        {
+            store.Dispose();
+        }
+
         try
         {
             _tempDir.Delete(true);

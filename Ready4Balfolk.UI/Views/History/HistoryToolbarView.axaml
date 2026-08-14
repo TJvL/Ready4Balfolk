@@ -29,12 +29,20 @@
                                     Text="{x:Static res:UiStrings.HistoryToolbar_ExportLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Command="{Binding ClearHistoryCommand}"
-                ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ClearHistory}"
+        <Button Command="{Binding StartNewNightCommand}"
+                ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_NewNight}"
+                Padding="8"
+                Focusable="False">
+            <controls:ButtonContent Icon="{StaticResource IconRestart}"
+                                    Text="{x:Static res:UiStrings.HistoryToolbar_NewNightLabel}"
+                                    IconSize="16" />
+        </Button>
+        <Button Command="{Binding DeleteNightCommand}"
+                ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_DeleteNight}"
                 Padding="8"
                 Focusable="False">
             <controls:ButtonContent Icon="{StaticResource IconDelete}"
-                                    Text="{x:Static res:UiStrings.HistoryToolbar_ClearLabel}"
+                                    Text="{x:Static res:UiStrings.HistoryToolbar_DeleteLabel}"
                                     IconSize="16" />
         </Button>
     </StackPanel>

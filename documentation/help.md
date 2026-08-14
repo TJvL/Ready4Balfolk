@@ -192,7 +192,7 @@ At the bottom of the queue panel:
 
 ## History
 
-The history view shows a log of items that have been played or skipped during the current session.
+The history view shows a log of items that have been played or skipped during the current night.
 
 ### Viewing History
 
@@ -205,8 +205,15 @@ Switch to the history view using the toggle button in the queue toolbar. Each en
 ### History Toolbar
 
 - **Toggle to Queue**: Switch back to the queue view
-- **Export History**: Save the history to a CSV file. Useful for keeping records of what was played at an event.
-- **Clear History**: Delete all history entries (with confirmation)
+- **Export History**: Save the night to a JSON file. Useful for keeping records of what was played at an event.
+- **New night**: Keep tonight and start a new one (with confirmation). Nothing is deleted: the evening is filed and the history starts empty. Use it after a soundcheck, or on any evening that did not end with the end-of-the-night audio.
+- **Delete**: Throw tonight's history away (with confirmation). This cannot be undone.
+
+### Nights
+
+An evening ends by itself once the end-of-the-night audio has played: the night is kept and the history starts fresh, so nothing has to be remembered while packing up. The exported file and the history on screen are always the current night, never a mix of tonight and last month.
+
+If an evening was never ended, because the application was closed or the laptop went flat, it is still there when the application starts again. After more than eight hours of quiet it asks once, before anything is playing, whether to keep it and start fresh or carry on with it. Neither answer deletes anything.
 
 ### Status Bar
 

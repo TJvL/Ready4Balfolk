@@ -159,6 +159,9 @@ public sealed class App : Application
                 .Subscribe(_ =>
                 {
                     ShowSetupIfNeeded(settingsStore);
+                    AskAboutUnfinishedNightAsync().SafeFireAndForget(exception =>
+                        Services.GetRequiredService<ILoggerService>()
+                            .ErrorAsync("Failed to ask about an unfinished night", exception));
                     RefreshDanceListInTheBackground();
                 }));
 
@@ -276,6 +279,56 @@ public sealed class App : Application
         }
 
         ShowSetup();
+    }
+
+    /// <summary>How long a silence has to be before it stops being the same evening.</summary>
+    /// <remarks>
+    /// A gap rather than a date, because a ball crossing midnight is normal and a night that ran
+    /// until two would otherwise be two nights.
+    /// </remarks>
+    private static readonly TimeSpan UnfinishedNightGap = TimeSpan.FromHours(8);
+
+    /// <summary>Asks once, about an evening that was never ended.</summary>
+    /// <remarks>
+    /// The application was closed, the laptop went flat, the night simply stopped. Startup is the
+    /// one place this can be asked without interrupting a room, and neither answer deletes anything.
+    /// Not for the smoke test, for the same reason the wizard is not: nobody is there to answer.
+    /// </remarks>
+    private static async Task AskAboutUnfinishedNightAsync()
+    {
+        if (Program.IsSmokeTest)
+        {
+            return;
+        }
+
+        var historyStore = Services.GetRequiredService<IQueueHistoryStore>();
+        var night = historyStore.Current;
+        if (night.Entries.Count == 0 || !night.IsOpen || night.LastActivityAt is not { } lastActivity)
+        {
+            return;
+        }
+
+        if (DateTime.Now - lastActivity < UnfinishedNightGap)
+        {
+            return;
+        }
+
+        var message = string.Format(
+            CultureInfo.CurrentCulture,
+            UiStrings.App_UnfinishedNightMessage,
+            lastActivity.ToString("d MMMM", CultureInfo.CurrentCulture),
+            night.Entries.Count);
+
+        var startFresh = await Services.GetRequiredService<IConfirmationService>().ConfirmAsync(
+            UiStrings.App_UnfinishedNightTitle,
+            message,
+            UiStrings.App_UnfinishedNightStartFresh,
+            UiStrings.App_UnfinishedNightCarryOn);
+
+        if (startFresh)
+        {
+            await historyStore.EndNightAsync();
+        }
     }
 
     internal static void ShowSetup() =>

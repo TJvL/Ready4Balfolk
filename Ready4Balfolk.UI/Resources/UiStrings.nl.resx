@@ -106,8 +106,11 @@
   <data name="HistoryToolbar_ExportLabel" xml:space="preserve">
     <value>Exporteren</value>
   </data>
-  <data name="HistoryToolbar_ClearLabel" xml:space="preserve">
-    <value>Wissen</value>
+  <data name="HistoryToolbar_NewNightLabel" xml:space="preserve">
+    <value>Nieuwe avond</value>
+  </data>
+  <data name="HistoryToolbar_DeleteLabel" xml:space="preserve">
+    <value>Verwijderen</value>
   </data>
   <data name="TrackCatalog_ClearSearchLabel" xml:space="preserve">
     <value>Wissen</value>
@@ -389,17 +392,29 @@
   <data name="HistoryToolbar_ExportHistory" xml:space="preserve">
     <value>Geschiedenis exporteren</value>
   </data>
-  <data name="HistoryToolbar_ClearHistory" xml:space="preserve">
-    <value>Geschiedenis wissen</value>
+  <data name="HistoryToolbar_NewNight" xml:space="preserve">
+    <value>Begin een nieuwe avond</value>
   </data>
-  <data name="HistoryToolbar_ClearHistoryTitle" xml:space="preserve">
-    <value>Geschiedenis wissen</value>
+  <data name="HistoryToolbar_NewNightTitle" xml:space="preserve">
+    <value>Nieuwe avond beginnen</value>
   </data>
-  <data name="HistoryToolbar_ClearHistoryMessage" xml:space="preserve">
-    <value>Alle geschiedenisvermeldingen verwijderen?</value>
+  <data name="HistoryToolbar_NewNightMessage" xml:space="preserve">
+    <value>Deze avond bewaren en een nieuwe beginnen?</value>
   </data>
-  <data name="HistoryToolbar_ClearButton" xml:space="preserve">
-    <value>Wissen</value>
+  <data name="HistoryToolbar_NewNightButton" xml:space="preserve">
+    <value>Beginnen</value>
+  </data>
+  <data name="HistoryToolbar_DeleteNight" xml:space="preserve">
+    <value>Deze avond verwijderen</value>
+  </data>
+  <data name="HistoryToolbar_DeleteNightTitle" xml:space="preserve">
+    <value>Deze avond verwijderen</value>
+  </data>
+  <data name="HistoryToolbar_DeleteNightMessage" xml:space="preserve">
+    <value>De geschiedenis van deze avond verwijderen? Dit kan niet ongedaan worden gemaakt.</value>
+  </data>
+  <data name="HistoryToolbar_DeleteButton" xml:space="preserve">
+    <value>Verwijderen</value>
   </data>
   <data name="HistoryToolbar_CancelButton" xml:space="preserve">
     <value>Annuleren</value>
@@ -560,6 +575,18 @@
   </data>
   <data name="App_ExitMessage" xml:space="preserve">
     <value>Weet u zeker dat u wilt afsluiten?</value>
+  </data>
+  <data name="App_UnfinishedNightTitle" xml:space="preserve">
+    <value>Onafgesloten avond</value>
+  </data>
+  <data name="App_UnfinishedNightMessage" xml:space="preserve">
+    <value>Er is een avond van {0} met {1} vermeldingen die nooit is afgesloten. Bewaren en opnieuw beginnen, of ermee doorgaan?</value>
+  </data>
+  <data name="App_UnfinishedNightStartFresh" xml:space="preserve">
+    <value>Opnieuw beginnen</value>
+  </data>
+  <data name="App_UnfinishedNightCarryOn" xml:space="preserve">
+    <value>Doorgaan</value>
   </data>
   <data name="Settings_LanguageRestartTitle" xml:space="preserve">
     <value>Taal wijzigen</value>

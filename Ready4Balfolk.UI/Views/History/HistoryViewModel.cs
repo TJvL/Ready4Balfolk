@@ -36,17 +36,34 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
     // ReSharper disable once MemberCanBePrivate.Global
     [Reactive] public partial bool HasItems { get; set; }
 
-    private IObservable<bool> CanClearHistory => this.WhenAnyValue(x => x.HasItems);
+    private IObservable<bool> HasANight => this.WhenAnyValue(x => x.HasItems);
 
-    [ReactiveCommand(CanExecute = nameof(CanClearHistory))]
-    private async Task ClearHistory()
+    /// <remarks>
+    /// Named from the side somebody is standing on. The soundcheck is the real case: three tracks
+    /// played while testing the speakers at seven o'clock have already opened a night, and what is
+    /// wanted then is to start again rather than to end anything. It keeps a confirmation all the
+    /// same, because pressing it mid-set splits one evening into two.
+    /// </remarks>
+    [ReactiveCommand(CanExecute = nameof(HasANight))]
+    private async Task StartNewNight()
     {
-        if (!await _confirmationService.ConfirmAsync(UiStrings.HistoryToolbar_ClearHistoryTitle, UiStrings.HistoryToolbar_ClearHistoryMessage, UiStrings.HistoryToolbar_ClearButton, UiStrings.HistoryToolbar_CancelButton))
+        if (!await _confirmationService.ConfirmAsync(UiStrings.HistoryToolbar_NewNightTitle, UiStrings.HistoryToolbar_NewNightMessage, UiStrings.HistoryToolbar_NewNightButton, UiStrings.HistoryToolbar_CancelButton))
         {
             return;
         }
 
-        await _historyStore.ClearAsync();
+        await _historyStore.EndNightAsync();
+    }
+
+    [ReactiveCommand(CanExecute = nameof(HasANight))]
+    private async Task DeleteNight()
+    {
+        if (!await _confirmationService.ConfirmAsync(UiStrings.HistoryToolbar_DeleteNightTitle, UiStrings.HistoryToolbar_DeleteNightMessage, UiStrings.HistoryToolbar_DeleteButton, UiStrings.HistoryToolbar_CancelButton))
+        {
+            return;
+        }
+
+        await _historyStore.DeleteNightAsync();
     }
 
     public async Task ExportAsync(FileInfo file) => await _historyStore.ExportAsync(file);

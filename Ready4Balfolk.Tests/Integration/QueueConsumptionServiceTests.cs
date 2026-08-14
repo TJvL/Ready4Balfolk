@@ -241,6 +241,29 @@ public sealed class QueueConsumptionServiceTests : IDisposable
             e!.Duration == TimeSpan.FromMinutes(4) && e.StartedAt != null));
     }
 
+    /// <summary>Nothing can follow the end of the night, so the night is filed and the next opens.</summary>
+    [Fact]
+    public async Task AdvanceAsync_EndOfNight_FilesTheNight()
+    {
+        _queue.Enqueue(new EndOfNightQueueItem(EndOfNightPath, TimeSpan.FromMinutes(4)));
+        await _sut.AdvanceAsync();
+
+        await _sut.AdvanceAsync();
+
+        await _history.Received(1).EndNightAsync();
+    }
+
+    [Fact]
+    public async Task AdvanceAsync_Track_DoesNotFileTheNight()
+    {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+
+        await _sut.AdvanceAsync();
+
+        await _history.DidNotReceive().EndNightAsync();
+    }
+
     public void Dispose()
     {
         _sut.Dispose();
