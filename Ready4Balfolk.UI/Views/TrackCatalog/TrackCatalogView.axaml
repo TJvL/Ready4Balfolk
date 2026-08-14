@@ -12,6 +12,7 @@
     <DataGrid
         x:Name="TracksDataGrid"
         ItemsSource="{Binding Tracks}"
+        SelectedItem="{Binding SelectedTrack, Mode=TwoWay}"
         AutoGenerateColumns="False"
         IsReadOnly="True"
         CanUserReorderColumns="True"
@@ -21,6 +22,16 @@
         SelectionMode="Single"
         Sorting="DataGridSorting"
         DoubleTapped="DataGridDoubleTapped">
+        <DataGrid.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="{x:Static res:UiStrings.TrackCatalog_EditTrack}"
+                          Command="{Binding EditTrackCommand}">
+                    <MenuItem.Icon>
+                        <PathIcon Data="{StaticResource IconPencil}" Width="14" Height="14" />
+                    </MenuItem.Icon>
+                </MenuItem>
+            </ContextMenu>
+        </DataGrid.ContextMenu>
         <DataGrid.Styles>
             <Style Selector="DataGridCell:focus /template/ Grid#FocusVisual">
                 <Setter Property="IsVisible" Value="False" />

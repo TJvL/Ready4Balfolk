@@ -1,4 +1,3 @@
-using System.IO.Abstractions.TestingHelpers;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
@@ -32,9 +31,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void EvaluateAdd_TrackAlreadyInQueue_Denies()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         var item = new TrackQueueItem(track, false);
         var existing = new TrackQueueItem(track, false);
 
@@ -46,9 +43,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void EvaluateAdd_TrackCurrentlyPlaying_Denies()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         var item = new TrackQueueItem(track, false);
         _currentItem = new TrackQueueItem(track, false);
 
@@ -60,9 +55,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void EvaluateAdd_TrackFinishedInHistory_Denies()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         var item = new TrackQueueItem(track, false);
         _historyStore.Current.Returns(new QueueHistory(null,
         [
@@ -78,9 +71,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void EvaluateAdd_TrackSkippedInHistory_NoOpinion()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         var item = new TrackQueueItem(track, false);
         _historyStore.Current.Returns(new QueueHistory(null,
         [
@@ -95,9 +86,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void EvaluateAdd_UniqueTrack_NoOpinion()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         var item = new TrackQueueItem(track, false);
 
         var verdict = _sut.EvaluateAdd(item, []);
@@ -107,9 +96,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void GetPreAddRemovalPredicate_AlwaysNull()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(), false);
         Assert.Null(_sut.GetPreAddRemovalPredicate(track, []));
     }
 
@@ -118,12 +105,10 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void GetEvictionIndices_NoDuplicates_ReturnsEmpty()
     {
-        var mockFileSystem = new MockFileSystem();
-
         IReadOnlyList<IQueueItem> items =
         [
-            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false),
-            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false)
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
+            new TrackQueueItem(TestData.CreateTrack("B"), false)
         ];
         Assert.Empty(_sut.GetEvictionIndices(items));
     }
@@ -131,13 +116,11 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void GetEvictionIndices_IntraQueueDuplicate_EvictsLater()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         IReadOnlyList<IQueueItem> items =
         [
             new TrackQueueItem(track, false),
-            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false),
+            new TrackQueueItem(TestData.CreateTrack("B"), false),
             new TrackQueueItem(track, false)
         ];
         var indices = _sut.GetEvictionIndices(items);
@@ -147,9 +130,7 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void GetEvictionIndices_MatchesHistory_Evicts()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         _historyStore.Current.Returns(new QueueHistory(null,
         [
             new TrackHistoryEntry(track.FileInfo.FullName, "Mazurka", "Artist", "Title",
@@ -158,7 +139,7 @@ public sealed class DuplicateTrackRuleTests
 
         IReadOnlyList<IQueueItem> items =
         [
-            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false),
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
             new TrackQueueItem(track, false)
         ];
         var indices = _sut.GetEvictionIndices(items);
@@ -168,15 +149,13 @@ public sealed class DuplicateTrackRuleTests
     [Fact]
     public void GetEvictionIndices_MatchesPlaying_Evicts()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         _currentItem = new TrackQueueItem(track, false);
 
         IReadOnlyList<IQueueItem> items =
         [
             new TrackQueueItem(track, false),
-            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false)
+            new TrackQueueItem(TestData.CreateTrack("B"), false)
         ];
         var indices = _sut.GetEvictionIndices(items);
         Assert.Equal([0], indices);

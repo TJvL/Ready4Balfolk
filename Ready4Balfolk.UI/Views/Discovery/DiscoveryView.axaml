@@ -1,0 +1,355 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Ready4Balfolk.UI.Views.Discovery"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+             x:Class="Ready4Balfolk.UI.Views.Discovery.DiscoveryView"
+             x:DataType="local:DiscoveryViewModel">
+    <ScrollViewer>
+        <StackPanel Spacing="20" Margin="16">
+            <!-- First, because a dance the list does not carry is the one thing no rule here can
+                 answer: the way out is a proposal there rather than a setting on this screen. -->
+            <StackPanel Spacing="2">
+                <Button Click="OnDanceListClick"
+                        Content="{x:Static res:UiStrings.Discovery_DanceListUrl}"
+                        HorizontalAlignment="Left"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{DynamicResource SystemAccentColor}"
+                        Cursor="Hand" />
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_DanceListHint}"
+                           TextWrapping="Wrap"
+                           FontSize="11"
+                           Opacity="0.7" />
+            </StackPanel>
+
+            <TextBlock Text="{x:Static res:UiStrings.Discovery_Intro}"
+                       TextWrapping="Wrap"
+                       Opacity="0.8" />
+
+            <TextBlock Text="{x:Static res:UiStrings.Discovery_Scanning}"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding IsScanning}" />
+            <TextBlock Text="{Binding CoverageSummary}"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding !IsScanning}" />
+
+            <!-- What the library itself suggests, measured over what no rule covers yet. Computed
+                 when this screen opens and never pushed: a "480 files look like this, declare it?"
+                 popup during a dance is unforgivable. -->
+            <StackPanel Spacing="8" IsVisible="{Binding HasProposals}">
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_ProposalsHeader}"
+                           FontSize="18"
+                           FontWeight="Bold" />
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_ProposalsHint}"
+                           TextWrapping="Wrap"
+                           FontSize="11"
+                           Opacity="0.7" />
+
+                <ItemsControl ItemsSource="{Binding Proposals}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="local:ProposalViewModel">
+                            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8"
+                                    Margin="0,0,0,6">
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto,Auto">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Headline}"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" />
+                                        <Button Grid.Column="1"
+                                                Content="{x:Static res:UiStrings.Discovery_ProposalAccept}"
+                                                Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).AcceptProposalCommand}"
+                                                CommandParameter="{Binding}"
+                                                IsVisible="{Binding CanAccept}"
+                                                Focusable="False"
+                                                Margin="8,0,0,0" />
+                                        <Button Grid.Column="2"
+                                                Content="{x:Static res:UiStrings.Discovery_ProposalDismiss}"
+                                                Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).DismissProposalCommand}"
+                                                CommandParameter="{Binding}"
+                                                Focusable="False"
+                                                Margin="4,0,0,0" />
+                                    </Grid>
+
+                                    <ItemsControl ItemsSource="{Binding Evidence}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" FontSize="11" Opacity="0.75" TextWrapping="Wrap" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <ToggleButton Content="{x:Static res:UiStrings.Discovery_ProposalSamples}"
+                                                  IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                  HorizontalAlignment="Left"
+                                                  Padding="6,2"
+                                                  FontSize="11" />
+
+                                    <ItemsControl ItemsSource="{Binding Samples}" IsVisible="{Binding IsExpanded}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Patterns. The draft is measured against what no rule has taken yet, because that is
+                 the pile the next rule is actually aimed at. -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_PatternsHeader}"
+                           FontSize="18"
+                           FontWeight="Bold" />
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_PatternsHint}"
+                           TextWrapping="Wrap"
+                           FontSize="11"
+                           Opacity="0.7" />
+
+                <ItemsControl ItemsSource="{Binding Patterns}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="local:DeclaredPatternViewModel">
+                            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8"
+                                    Margin="0,0,0,6">
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                                        <StackPanel Grid.Column="0" Spacing="2">
+                                            <TextBlock Text="{Binding Text}" FontFamily="monospace" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Summary}" FontSize="11" Opacity="0.75" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Content="{x:Static res:UiStrings.Discovery_MoveUp}"
+                                                Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).MovePatternUpCommand}"
+                                                CommandParameter="{Binding}"
+                                                Focusable="False"
+                                                Margin="4,0,0,0" />
+                                        <Button Grid.Column="2"
+                                                Content="{x:Static res:UiStrings.Discovery_MoveDown}"
+                                                Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).MovePatternDownCommand}"
+                                                CommandParameter="{Binding}"
+                                                Focusable="False"
+                                                Margin="4,0,0,0" />
+                                        <Button Grid.Column="3"
+                                                Content="{x:Static res:UiStrings.Discovery_Remove}"
+                                                Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).RemovePatternCommand}"
+                                                CommandParameter="{Binding}"
+                                                Focusable="False"
+                                                Margin="4,0,0,0" />
+                                    </Grid>
+
+                                    <ToggleButton Content="{x:Static res:UiStrings.Discovery_ShowDetails}"
+                                                  IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                  HorizontalAlignment="Left"
+                                                  Padding="6,2"
+                                                  FontSize="11" />
+
+                                    <ItemsControl ItemsSource="{Binding Samples}" IsVisible="{Binding IsExpanded}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="local:PatternSampleRow">
+                                                <Grid ColumnDefinitions="2*,*,*,*" Margin="0,2">
+                                                    <TextBlock Grid.Column="0" Text="{Binding FileName}" FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Dance}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding Artist}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="3" Text="{Binding Title}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding DraftPattern, Mode=TwoWay}"
+                             Watermark="{x:Static res:UiStrings.Discovery_DraftWatermark}"
+                             FontFamily="monospace" />
+                    <Button Grid.Column="1"
+                            Content="{x:Static res:UiStrings.Discovery_Declare}"
+                            Command="{Binding DeclareDraftCommand}"
+                            IsEnabled="{Binding CanDeclareDraft}"
+                            Margin="8,0,0,0"
+                            Focusable="False" />
+                </Grid>
+
+                <TextBlock Text="{Binding DraftSummary}" TextWrapping="Wrap" FontWeight="SemiBold" />
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="{x:Static res:UiStrings.Discovery_SamplesHeader}"
+                                   FontSize="11"
+                                   Opacity="0.7"
+                                   IsVisible="{Binding HasDraftSamples}" />
+                        <ItemsControl ItemsSource="{Binding DraftSamples}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="local:PatternSampleRow">
+                                    <Grid ColumnDefinitions="*,*,*" Margin="0,1">
+                                        <TextBlock Grid.Column="0" Text="{Binding Dance}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Artist}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Title}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Spacing="4">
+                        <TextBlock Text="{x:Static res:UiStrings.Discovery_MissesHeader}"
+                                   FontSize="11"
+                                   Opacity="0.7"
+                                   IsVisible="{Binding HasDraftMisses}" />
+                        <ItemsControl ItemsSource="{Binding DraftMisses}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis" Margin="0,1" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+
+            <!-- Folder levels -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_FoldersHeader}" FontSize="18" FontWeight="Bold" />
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_FoldersHint}"
+                           TextWrapping="Wrap"
+                           FontSize="11"
+                           Opacity="0.7" />
+
+                <ItemsControl ItemsSource="{Binding Levels}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="local:FolderLevelViewModel">
+                            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8"
+                                    Margin="0,0,0,6">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <StackPanel Grid.Column="0" Spacing="2" Width="120">
+                                        <TextBlock Text="{Binding LevelText}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding DepthText}" FontSize="11" Opacity="0.7" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Values}" Margin="12,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" FontSize="11" Opacity="0.75" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <ComboBox Grid.Column="2"
+                                              ItemsSource="{Binding AvailableRoles}"
+                                              SelectedItem="{Binding Role, Mode=TwoWay}"
+                                              MinWidth="160"
+                                              VerticalAlignment="Top">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding, Converter={x:Static local:FolderRoleDisplayConverter.Instance}}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Tag trust -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_TagsHeader}" FontSize="18" FontWeight="Bold" />
+                <TextBlock Text="{x:Static res:UiStrings.Discovery_TagsHint}"
+                           TextWrapping="Wrap"
+                           FontSize="11"
+                           Opacity="0.7" />
+
+                <ItemsControl ItemsSource="{Binding TagFields}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="local:TagTrustFieldViewModel">
+                            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8"
+                                    Margin="0,0,0,6">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                                    <CheckBox Content="{x:Static res:UiStrings.Discovery_UseDefault}"
+                                              IsChecked="{Binding UsesDefault, Mode=TwoWay}" />
+                                    <ItemsControl ItemsSource="{Binding Toggles}" IsEnabled="{Binding !UsesDefault}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="local:TagFieldToggle">
+                                                <CheckBox Content="{Binding Label}"
+                                                          IsChecked="{Binding IsTrusted, Mode=TwoWay}"
+                                                          Margin="0,0,12,0" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="8"
+                        Margin="0,0,0,6">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{x:Static res:UiStrings.Discovery_CustomDanceTag}" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Static res:UiStrings.Discovery_CustomDanceTagHint}"
+                                   TextWrapping="Wrap"
+                                   FontSize="11"
+                                   Opacity="0.7" />
+                        <TextBox Text="{Binding CustomDanceTag, Mode=TwoWay}"
+                                 PlaceholderText="{x:Static res:UiStrings.Discovery_CustomDanceTagPlaceholder}"
+                                 MaxWidth="240"
+                                 HorizontalAlignment="Left" />
+                        <TextBlock Text="{Binding CustomDanceTagSummary}"
+                                   IsVisible="{Binding CustomDanceTagSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                   FontSize="11"
+                                   Opacity="0.7" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Spacing="8"
+                            IsVisible="{Binding $parent[local:DiscoveryView].ShowSaveButton}">
+                    <TextBlock Text="{x:Static res:UiStrings.Discovery_ApplyHint}"
+                               FontSize="11"
+                               Opacity="0.7"
+                               TextWrapping="Wrap" />
+                    <Button Content="{x:Static res:UiStrings.Discovery_ApplyRolesAndTags}"
+                            Command="{Binding ApplyRolesAndTagsCommand}"
+                            HorizontalAlignment="Left"
+                            Focusable="False" />
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

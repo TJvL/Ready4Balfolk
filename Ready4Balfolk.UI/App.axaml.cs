@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AsyncAwaitBestPractices;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
@@ -17,11 +18,11 @@ using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Reactive;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
-using Ready4Balfolk.Domain.Stores.Synonym;
 using Ready4Balfolk.Domain.Stores.Tracks;
-using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
@@ -40,7 +41,6 @@ public sealed class App : Application
     private readonly CompositeDisposable _compositeDisposable = [];
     private static bool _closing;
 
-
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
     public override void OnFrameworkInitializationCompleted()
@@ -54,6 +54,7 @@ public sealed class App : Application
             desktop.MainWindow = mainWindow;
 
             Services.GetRequiredService<ConfirmationService>().SetOwner(mainWindow);
+            Services.GetRequiredService<TrackEditorService>().SetOwner(mainWindow);
 
             mainWindow.Opened += (_, _) =>
             {
@@ -81,6 +82,20 @@ public sealed class App : Application
                     .Subscribe(ApplyTheme));
 
                 var trackStore = Services.GetRequiredService<ITrackStore>();
+
+                // Before the music directory, deliberately. The declarations are what a scan reads
+                // with, and setting them second would scan the whole library once under the old
+                // rules and then immediately again under the new ones.
+                _compositeDisposable.Add(settingsStore.Observe()
+                    .Select(s => s.Discovery)
+                    .DistinctUntilChanged()
+                    .Subscribe(discovery => trackStore.DiscoverySettings = discovery));
+
+                _compositeDisposable.Add(settingsStore.Observe()
+                    .Select(s => s.AllowDancesOutsideTheList)
+                    .DistinctUntilChanged()
+                    .Subscribe(allow => trackStore.AllowDancesOutsideTheList = allow));
+
                 _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.MusicDirectoryPath)
                     .Where(path => !string.IsNullOrWhiteSpace(path))
@@ -130,12 +145,22 @@ public sealed class App : Application
                 .Take(1)
                 .SelectMany(_ =>
                     Observable.Merge(
-                        RunLoad<IDanceTreeStore>((s, token) => s.LoadAsync(token), "Failed to load dance tree"),
-                        RunLoad<IDanceSynonymStore>((s, token) => s.LoadAsync(token), "Failed to load dance synonyms"),
+                        RunLoad<IDanceListStore>((s, token) => s.LoadAsync(token), "Failed to load the dance list"),
+                        // Opened before anything asks it a question: the track store reads it on
+                        // the first music directory it is handed, which can be immediately.
+                        RunLoad<ILibraryIndex>((s, token) => s.OpenAsync(token), "Failed to open the library index"),
                         RunLoad<IQueueHistoryStore>((s, token) => s.LoadAsync(token), "Failed to load queue history")
-                    )
+                    // ToList waits for every load to finish before emitting once. The wizard reads
+                    // the dance list to decide what to show, so it cannot open while that load is
+                    // still in flight, or a profile that has a list looks like a fresh one.
+                    ).ToList()
                 )
-                .Subscribe());
+                .ObserveOn(RxSchedulers.MainThreadScheduler)
+                .Subscribe(_ =>
+                {
+                    ShowSetupIfNeeded(settingsStore);
+                    RefreshDanceListInTheBackground();
+                }));
 
             mainWindow.Closing += (_, e) =>
             {
@@ -196,10 +221,6 @@ public sealed class App : Application
                 w.IsBorderless);
         }).ToList();
 
-        var mainVm = Services.GetRequiredService<MainWindowViewModel>();
-        var collapsedBranches = mainVm.DanceTree?.GetCollapsedBranches()
-                                ?? settingsStore.Current.CollapsedBranches;
-
         await settingsStore.UpdateAsync(s => s with
         {
             MainWindowState = new DomainWindowState(
@@ -208,8 +229,7 @@ public sealed class App : Application
                 bounds.Width,
                 bounds.Height,
                 isMaximized),
-            PresentationWindowStates = presentationStates,
-            CollapsedBranches = collapsedBranches
+            PresentationWindowStates = presentationStates
         });
 
         // Asked to stop, never waited for. The process is about to end and the socket goes with
@@ -238,6 +258,29 @@ public sealed class App : Application
         mainWindow.Close();
     }
 
+    /// <summary>Opens the setup wizard on a profile that has never been through it.</summary>
+    /// <remarks>
+    /// Not for the smoke test: it drives the application with nobody there to answer a wizard, and a
+    /// modal window would simply hold it until CI gave up.
+    /// </remarks>
+    /// <summary>Sends a profile that has never been through setup to it.</summary>
+    /// <remarks>
+    /// Not for the smoke test: it drives the application with nobody there to answer a wizard, and
+    /// it would simply sit on the first step until CI gave up.
+    /// </remarks>
+    internal static void ShowSetupIfNeeded(ISettingsStore settingsStore)
+    {
+        if (Program.IsSmokeTest || settingsStore.Current.SetupCompleted)
+        {
+            return;
+        }
+
+        ShowSetup();
+    }
+
+    internal static void ShowSetup() =>
+        Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Setup;
+
     private static WebServerOptions ToWebServerOptions(ApplicationSettings settings) => new(
         settings.WebServerEnabled,
         settings.WebServerPortClamped,
@@ -248,6 +291,15 @@ public sealed class App : Application
         server.ApplyAsync(ToWebServerOptions(settings)).SafeFireAndForget(ex =>
             Services.GetRequiredService<ILoggerService>()
                 .ErrorAsync("Failed to start the presentation server", ex));
+
+    /// <summary>
+    /// Asks BigBalfolkList for a newer list, without anybody waiting for the answer. The window is
+    /// already open on the list it has, and a hall with no wifi must cost nothing but a log line.
+    /// </summary>
+    private static void RefreshDanceListInTheBackground() =>
+        Services.GetRequiredService<IDanceListStore>().RefreshAsync().SafeFireAndForget(exception =>
+            Services.GetRequiredService<ILoggerService>()
+                .ErrorAsync("Failed to refresh the dance list", exception));
 
     private static IObservable<Unit> RunLoad<T>(Func<T, CancellationToken, Task> loader, string errorMessage) where T : notnull
     {

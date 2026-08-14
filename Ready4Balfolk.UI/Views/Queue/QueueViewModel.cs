@@ -16,17 +16,17 @@ using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.DanceTree;
 
 namespace Ready4Balfolk.UI.Views.Queue;
 
 public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 {
+    private readonly TrackEditorService _trackEditor;
     private readonly IQueueService _queueService;
     private readonly IQueueConsumptionService _consumptionService;
     private readonly ISettingsStore _settingsStore;
     private readonly IRandomTrackService _randomTrackService;
-    private readonly DanceTreeViewModel _danceTreeViewModel;
+    private readonly IDancePool _dancePool;
     private readonly IConfirmationService _confirmationService;
     private readonly INotificationService _notificationService;
     private readonly CompositeDisposable _disposables = [];
@@ -38,6 +38,32 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     public ReadOnlyObservableCollection<IQueueItem> QueuedItems => _queuedItems;
 
     [Reactive] public partial IQueueItem? SelectedItem { get; set; }
+
+    private IObservable<bool> CanEditSelected =>
+        this.WhenAnyValue(x => x.SelectedItem).Select(item => TrackOf(item) is not null);
+
+    /// <summary>
+    /// Opens the edit dialog for the selected item's track, same as the catalog's right-click.
+    /// </summary>
+    /// <remarks>
+    /// The queued item keeps the snapshot it was enqueued with; the correction shows in the
+    /// library at once and on this queue entry the next time the track is enqueued.
+    /// </remarks>
+    [ReactiveCommand(CanExecute = nameof(CanEditSelected))]
+    private async Task EditSelectedTrackAsync()
+    {
+        if (TrackOf(SelectedItem) is { } track)
+        {
+            await _trackEditor.EditAsync(track);
+        }
+    }
+
+    private static Domain.Models.Tracks.Track? TrackOf(IQueueItem? item) => item switch
+    {
+        TrackQueueItem track => track.Track,
+        AutoTrackQueueItem auto => auto.TrackQueueItem.Track,
+        _ => null
+    };
     [Reactive] public partial string ItemCountText { get; set; }
     [Reactive] public partial string FinishTimeText { get; set; }
 
@@ -61,7 +87,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     [ReactiveCommand]
     private void QueueRandomTrack()
     {
-        var scope = GetMarkedScope();
+        var scope = GetPoolScope();
         var track = _randomTrackService.PickRandomTrack(
             scope, _settingsStore.Current.AllowDuplicateTracksInQueue);
         if (track is not null)
@@ -78,12 +104,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private RandomSelectionScope GetMarkedScope() => _danceTreeViewModel.Marked switch
-    {
-        MarkedSelection.Branch b => new RandomSelectionScope.Subtree(b.Path),
-        MarkedSelection.Leaf l => new RandomSelectionScope.SingleDance(l.ParentPath, l.LeafIndex),
-        _ => new RandomSelectionScope.EntireTree()
-    };
+    private RandomSelectionScope GetPoolScope() => _dancePool.Scope;
 
     [ReactiveCommand]
     private void EnqueueStop()
@@ -168,15 +189,17 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         IQueueConsumptionService consumptionService,
         ISettingsStore settingsStore,
         IRandomTrackService randomTrackService,
-        DanceTreeViewModel danceTreeViewModel,
+        IDancePool dancePool,
         IConfirmationService confirmationService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        TrackEditorService trackEditor)
     {
+        _trackEditor = trackEditor;
         _queueService = queueService;
         _consumptionService = consumptionService;
         _settingsStore = settingsStore;
         _randomTrackService = randomTrackService;
-        _danceTreeViewModel = danceTreeViewModel;
+        _dancePool = dancePool;
         _confirmationService = confirmationService;
         _notificationService = notificationService;
         ItemCountText = UiStrings.Queue_Empty;
@@ -384,7 +407,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        var scope = GetMarkedScope();
+        var scope = GetPoolScope();
         var track = _randomTrackService.PickRandomTrack(scope, _settingsStore.Current.AllowDuplicateTracksInQueue);
         if (track is null)
         {
@@ -407,7 +430,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         _queueService.RemoveWhere(i => i is AutoTrackQueueItem);
         _suppressAutoEnqueue = false;
 
-        var scope = GetMarkedScope();
+        var scope = GetPoolScope();
         var allowDuplicates = _settingsStore.Current.AllowDuplicateTracksInQueue;
         var track = _randomTrackService.PickRandomTrack(scope, allowDuplicates);
 

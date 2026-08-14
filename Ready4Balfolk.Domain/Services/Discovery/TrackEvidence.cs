@@ -1,0 +1,59 @@
+using Ready4Balfolk.Domain.Models.Tracks;
+
+namespace Ready4Balfolk.Domain.Services.Discovery;
+
+/// <summary>Everything one file has to say about itself, before anything is decided.</summary>
+/// <remarks>
+/// Gathering and deciding are kept apart on purpose. Gathering opens a file; deciding is a pure
+/// function of what was gathered plus the dance list, so it can be re-run when the list changes,
+/// and tested without a file existing at all.
+/// </remarks>
+public sealed record TrackEvidence
+{
+    /// <summary>The file's own name, extension and all.</summary>
+    /// <remarks>
+    /// Kept whole because a declared pattern may ask about the extension, and derived rather than
+    /// stored twice so the two can never disagree.
+    /// </remarks>
+    public required string FileName { get; init; }
+
+    public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(FileName);
+
+    /// <summary>The folders between the music directory and the file, outermost first.</summary>
+    public required IReadOnlyList<string> PathSegments { get; init; }
+
+    public string? TagTitle { get; init; }
+
+    public string? TagArtist { get; init; }
+
+    public string? TagAlbumArtist { get; init; }
+
+    public string? TagAlbum { get; init; }
+
+    public string? TagComment { get; init; }
+
+    /// <summary>The file's free-form tags (ID3v2 TXXX, Xiph fields), keyed case-insensitively.</summary>
+    /// <remarks>
+    /// Gathered whole rather than looked up by a declared name, so deciding stays a pure function:
+    /// renaming the declared tag re-resolves without the file being opened again.
+    /// </remarks>
+    public IReadOnlyDictionary<string, string> CustomTags { get; init; } = EmptyCustomTags;
+
+    private static readonly IReadOnlyDictionary<string, string> EmptyCustomTags =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    public required TimeSpan Duration { get; init; }
+
+    public required AudioFormat Format { get; init; }
+
+    public required byte[] ContentHash { get; init; }
+
+    /// <summary>
+    /// The folder the file sits in, which is what "the rest of these files" is decided over.
+    /// </summary>
+    /// <remarks>
+    /// A grouping and nothing more. Whether that folder is an album, a compilation, a year or a
+    /// dance is not something the path can say, so nothing here claims it.
+    /// </remarks>
+    public string? FolderKey => PathSegments.Count == 0 ? null : string.Join('/', PathSegments);
+}

@@ -12,5 +12,5 @@ public partial class TrackCatalogToolbarView : ReactiveUserControl<TrackCatalogV
         InitializeComponent();
     }
 
-    private void OnToggleClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().IsTreeViewMode = true;
+    private void OnToggleClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().IsDanceListMode = true;
 }

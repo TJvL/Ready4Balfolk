@@ -12,7 +12,11 @@ public enum Screen
     Main,
     Settings,
     Help,
-    Synonyms
+    /// <summary>The gate into the library: everything waiting for a person, over tracks.</summary>
+    Review,
+
+    /// <summary>First-run setup. A screen, not a dialog: its steps need the whole window.</summary>
+    Setup
 }
 
 public sealed partial class NavigationService : ReactiveObject, IDisposable
@@ -21,12 +25,13 @@ public sealed partial class NavigationService : ReactiveObject, IDisposable
 
     [Reactive] public partial Screen CurrentScreen { get; set; }
     [Reactive] public partial bool IsHistoryMode { get; set; }
-    [Reactive] public partial bool IsTreeViewMode { get; set; }
+    [Reactive] public partial bool IsDanceListMode { get; set; }
 
     [ObservableAsProperty] public partial bool IsMainScreen { get; }
     [ObservableAsProperty] public partial bool IsSettingsScreen { get; }
     [ObservableAsProperty] public partial bool IsHelpScreen { get; }
-    [ObservableAsProperty] public partial bool IsSynonymsScreen { get; }
+    [ObservableAsProperty] public partial bool IsReviewScreen { get; }
+    [ObservableAsProperty] public partial bool IsSetupScreen { get; }
 
     public NavigationService()
     {
@@ -45,10 +50,15 @@ public sealed partial class NavigationService : ReactiveObject, IDisposable
             .ToProperty(this, x => x.IsHelpScreen);
         _isHelpScreenHelper.DisposeWith(_disposables);
 
-        _isSynonymsScreenHelper = this.WhenAnyValue(x => x.CurrentScreen)
-            .Select(s => s == Screen.Synonyms)
-            .ToProperty(this, x => x.IsSynonymsScreen);
-        _isSynonymsScreenHelper.DisposeWith(_disposables);
+        _isReviewScreenHelper = this.WhenAnyValue(x => x.CurrentScreen)
+            .Select(s => s == Screen.Review)
+            .ToProperty(this, x => x.IsReviewScreen);
+        _isReviewScreenHelper.DisposeWith(_disposables);
+
+        _isSetupScreenHelper = this.WhenAnyValue(x => x.CurrentScreen)
+            .Select(s => s == Screen.Setup)
+            .ToProperty(this, x => x.IsSetupScreen);
+        _isSetupScreenHelper.DisposeWith(_disposables);
     }
 
     public void Dispose() => _disposables.Dispose();

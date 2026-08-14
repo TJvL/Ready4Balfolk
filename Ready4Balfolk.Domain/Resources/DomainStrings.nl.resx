@@ -64,124 +64,14 @@
   </data>
 
   <!-- Editor action descriptions -->
-  <data name="DanceTreeAction_AddCategory" xml:space="preserve">
-    <value>Categorie toevoegen</value>
-  </data>
-  <data name="DanceTreeAction_AddDance" xml:space="preserve">
-    <value>Dans toevoegen</value>
-  </data>
-  <data name="DanceTreeAction_AddDanceWithName" xml:space="preserve">
-    <value>Dans '{0}' toevoegen</value>
-  </data>
-  <data name="DanceTreeAction_DeleteCategory" xml:space="preserve">
-    <value>Categorie '{0}' verwijderen</value>
-  </data>
-  <data name="DanceTreeAction_DeleteDance" xml:space="preserve">
-    <value>Dans '{0}' verwijderen</value>
-  </data>
-  <data name="DanceTreeAction_RenameCategory" xml:space="preserve">
-    <value>Categorie hernoemen naar '{0}'</value>
-  </data>
-  <data name="DanceTreeAction_ReweightCategory" xml:space="preserve">
-    <value>Categoriegewicht wijzigen naar {0}</value>
-  </data>
-  <data name="DanceTreeAction_RenameDance" xml:space="preserve">
-    <value>Dans hernoemen naar '{0}'</value>
-  </data>
-  <data name="DanceTreeAction_ReweightDance" xml:space="preserve">
-    <value>Dansgewicht wijzigen naar {0}</value>
-  </data>
 
   <!-- DanceTreeAction validation errors -->
-  <data name="DanceTreeAction_CannotAddDanceToRoot" xml:space="preserve">
-    <value>Kan geen dans toevoegen op het hoofdniveau.</value>
-  </data>
-  <data name="DanceTreeAction_DanceNameEmpty" xml:space="preserve">
-    <value>Dansnaam mag niet leeg zijn.</value>
-  </data>
-  <data name="DanceTreeAction_DanceNameExists" xml:space="preserve">
-    <value>Er bestaat al een dans met de naam '{0}'.</value>
-  </data>
-  <data name="DanceTreeAction_CategoryNameEmpty" xml:space="preserve">
-    <value>Categorienaam mag niet leeg zijn.</value>
-  </data>
-  <data name="DanceTreeAction_CategoryNameExists" xml:space="preserve">
-    <value>Er bestaat al een categorie met de naam '{0}'.</value>
-  </data>
-  <data name="DanceTreeAction_WeightMustBePositive" xml:space="preserve">
-    <value>Gewicht moet nul of positief zijn.</value>
-  </data>
 
   <!-- DanceSynonymAction descriptions -->
-  <data name="DanceSynonymAction_AddDanceName" xml:space="preserve">
-    <value>Dansnaam toevoegen</value>
-  </data>
-  <data name="DanceSynonymAction_DeleteDanceName" xml:space="preserve">
-    <value>Dansnaam '{0}' verwijderen</value>
-  </data>
-  <data name="DanceSynonymAction_RenameDanceName" xml:space="preserve">
-    <value>Dansnaam hernoemen naar '{0}'</value>
-  </data>
-  <data name="DanceSynonymAction_AddSynonym" xml:space="preserve">
-    <value>Synoniem toevoegen</value>
-  </data>
-  <data name="DanceSynonymAction_AddSynonymWithName" xml:space="preserve">
-    <value>Synoniem '{0}' toevoegen</value>
-  </data>
-  <data name="DanceSynonymAction_DeleteSynonym" xml:space="preserve">
-    <value>Synoniem '{0}' verwijderen</value>
-  </data>
-  <data name="DanceSynonymAction_RenameSynonym" xml:space="preserve">
-    <value>Synoniem hernoemen naar '{0}'</value>
-  </data>
 
   <!-- DanceSynonymAction validation errors -->
-  <data name="DanceSynonymAction_NameAlreadyInUse" xml:space="preserve">
-    <value>De naam '{0}' is al in gebruik.</value>
-  </data>
-  <data name="DanceSynonymAction_DanceNameEmpty" xml:space="preserve">
-    <value>Dansnaam mag niet leeg zijn.</value>
-  </data>
-  <data name="DanceSynonymAction_SynonymNameEmpty" xml:space="preserve">
-    <value>Synoniem mag niet leeg zijn.</value>
-  </data>
 
   <!-- Default names -->
-  <data name="DanceTreeTransforms_NewDance" xml:space="preserve">
-    <value>Nieuwe dans</value>
-  </data>
-  <data name="DanceTreeTransforms_NewCategory" xml:space="preserve">
-    <value>Nieuwe categorie</value>
-  </data>
-  <data name="DanceSynonymTransforms_NewDance" xml:space="preserve">
-    <value>Nieuwe dans</value>
-  </data>
-  <data name="DanceSynonymTransforms_NewSynonym" xml:space="preserve">
-    <value>Nieuw synoniem</value>
-  </data>
-
-  <!-- Import errors -->
-  <data name="ImportFileNotFound" xml:space="preserve">
-    <value>Importbestand niet gevonden.</value>
-  </data>
-  <data name="ImportFileContainsNull" xml:space="preserve">
-    <value>Importbestand bevat null.</value>
-  </data>
-  <data name="DanceTreeStore_InvalidJson" xml:space="preserve">
-    <value>Importbestand is geen geldige JSON-structuur voor de dansboom.</value>
-  </data>
-  <data name="DanceTreeStore_MissingNames" xml:space="preserve">
-    <value>Importbestand bevat takken zonder naam.</value>
-  </data>
-  <data name="DanceSynonymStore_InvalidJson" xml:space="preserve">
-    <value>Importbestand is geen geldige JSON-structuur voor danssynoniemen.</value>
-  </data>
-  <data name="DanceSynonymStore_MissingNames" xml:space="preserve">
-    <value>Importbestand bevat items zonder naam.</value>
-  </data>
-  <data name="DanceSynonymStore_DuplicateNames" xml:space="preserve">
-    <value>Importbestand bevat dubbele namen: {0}.</value>
-  </data>
 
   <!-- Queue item descriptions -->
   <data name="StopQueueItem_Description" xml:space="preserve">
@@ -189,5 +79,25 @@
   </data>
   <data name="DelayQueueItem_Description" xml:space="preserve">
     <value>Pauze</value>
+  </data>
+
+  <!-- Dance list -->
+  <data name="DanceList_BuiltInMissing" xml:space="preserve">
+    <value>De dansenlijst die met deze versie is meegeleverd ontbreekt.</value>
+  </data>
+  <data name="DanceList_InvalidJson" xml:space="preserve">
+    <value>Dat is geen dansenlijst: het bestand is geen leesbare JSON.</value>
+  </data>
+  <data name="DanceList_NoDances" xml:space="preserve">
+    <value>Dat bestand bevat geen dansen, dus overnemen zou je met niets achterlaten.</value>
+  </data>
+  <data name="DanceList_WrongFormatVersion" xml:space="preserve">
+    <value>Die dansenlijst is versie {0}, en deze versie van Ready4Balfolk leest versie {1}.</value>
+  </data>
+  <data name="DanceList_DuplicateNames" xml:space="preserve">
+    <value>Die dansenlijst gebruikt dezelfde naam voor meer dan één dans: {0}.</value>
+  </data>
+  <data name="DanceList_Invalid" xml:space="preserve">
+    <value>Die dansenlijst breekt de regels waarop de lijst gebouwd is, dus hij is niet overgenomen.</value>
   </data>
 </root>

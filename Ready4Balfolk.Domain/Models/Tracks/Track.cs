@@ -4,24 +4,16 @@ namespace Ready4Balfolk.Domain.Models.Tracks;
 
 public sealed record Track(string Dance, string Artist, string Title, IFileInfo FileInfo, TimeSpan Length, AudioFormat Format)
 {
+    /// <summary>What the file itself claims, before the dance list had a say.</summary>
     public string OriginalDance { get; init; } = Dance;
 
-    public static Track FromSegments(Dictionary<PatternSegment, string> segments, IFileInfo fileInfo, TimeSpan length, AudioFormat format)
-    {
-        var dance = segments.GetValueOrDefault(PatternSegment.Dance, "");
-        var artist = segments.GetValueOrDefault(PatternSegment.Artist, "");
-        var title = segments.GetValueOrDefault(PatternSegment.Title, "");
-
-        return new Track(dance, artist, title, fileInfo, length, format);
-    }
-
-    public bool IsValid()
-    {
-        var validDance = !string.IsNullOrWhiteSpace(Dance);
-        var validTitle = !string.IsNullOrWhiteSpace(Title);
-        var validArtist = !string.IsNullOrWhiteSpace(Artist);
-        var validDuration = Length >= TimeSpan.Zero;
-
-        return validDance && validTitle && validArtist && validDuration;
-    }
+    /// <summary>
+    /// The dance this track resolved to, or null when the list does not know the name.
+    /// </summary>
+    /// <remarks>
+    /// The slug, not a name: it survives respelling, reordering and renaming, so a track keeps
+    /// pointing at the same dance however the user edits their list. <see cref="Dance"/> is only
+    /// what that slug is currently displayed as.
+    /// </remarks>
+    public string? DanceSlug { get; init; }
 }

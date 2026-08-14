@@ -1,16 +1,21 @@
-using Ready4Balfolk.Domain.Helpers;
+using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
-using Ready4Balfolk.Domain.Models.Tree;
 using Ready4Balfolk.Domain.Services.Queue;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Tracks;
-using Ready4Balfolk.Domain.Stores.Tree;
 
 namespace Ready4Balfolk.Domain.Services.Tracks;
 
+/// <summary>Picks a track at random from the dances a scope reaches.</summary>
+/// <remarks>
+/// Every dance in the pool is equally likely, and a dance's own tracks share its share. So a dance
+/// with forty recordings is no likelier to come up than one with four, which is what stops a
+/// well-stocked waltz drowning out everything else in the pool.
+/// </remarks>
 public sealed class RandomTrackService(
-    IDanceTreeStore danceTreeStore,
+    IDanceListStore danceListStore,
     ITrackStore trackStore,
     IQueueHistoryStore queueHistoryStore,
     IQueueService queueService,
@@ -21,41 +26,37 @@ public sealed class RandomTrackService(
 
     public Models.Tracks.Track? PickRandomTrack(RandomSelectionScope scope, bool allowDuplicates)
     {
-        var roots = danceTreeStore.Current;
-        var weightedLeaves = CollectWeightedLeaves(roots, scope);
-
-        if (weightedLeaves.Count == 0)
+        var slugs = CollectDanceSlugs(danceListStore.Current, scope);
+        if (slugs.Count == 0)
         {
             return null;
         }
 
-        var tracks = trackStore.Current;
-        var tracksByDance = tracks
-            .GroupBy(t => StringNormalizer.Normalize(t.Dance))
-            .ToDictionary(g => g.Key, g => g.ToList());
+        // Grouped by slug, so a track follows the dance it resolved to rather than whatever the
+        // dance happens to be spelled as at the moment.
+        var tracksBySlug = trackStore.Current
+            .Where(track => track.DanceSlug is not null)
+            .GroupBy(track => track.DanceSlug!, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
 
         var candidates = new List<(Models.Tracks.Track Track, double Weight)>();
-        foreach (var leaf in weightedLeaves)
+        foreach (var slug in slugs)
         {
-            var normalizedName = StringNormalizer.Normalize(leaf.Name);
-            if (!tracksByDance.TryGetValue(normalizedName, out var matchingTracks))
+            if (!tracksBySlug.TryGetValue(slug, out var matching))
             {
+                // A dance nobody owns a track for simply cannot come up, which is why the list
+                // needs no notion of the dances this user plays.
                 continue;
             }
 
-            var weightPerTrack = leaf.EffectiveWeight / matchingTracks.Count;
-            candidates.AddRange(matchingTracks.Select(track => (track, weightPerTrack)));
-        }
-
-        if (candidates.Count == 0)
-        {
-            return null;
+            var weightPerTrack = 1.0 / matching.Count;
+            candidates.AddRange(matching.Select(track => (track, weightPerTrack)));
         }
 
         if (!allowDuplicates)
         {
             var excluded = GetExcludedFilePaths();
-            candidates.RemoveAll(c => excluded.Contains(c.Track.FileInfo.FullName));
+            candidates.RemoveAll(candidate => excluded.Contains(candidate.Track.FileInfo.FullName));
         }
 
         if (candidates.Count == 0)
@@ -63,7 +64,7 @@ public sealed class RandomTrackService(
             return null;
         }
 
-        var totalWeight = candidates.Sum(c => c.Weight);
+        var totalWeight = candidates.Sum(candidate => candidate.Weight);
         if (totalWeight <= 0)
         {
             return null;
@@ -83,101 +84,21 @@ public sealed class RandomTrackService(
         return candidates[^1].Track;
     }
 
-    private static List<WeightedLeaf> CollectWeightedLeaves(
-        IReadOnlyList<DanceBranch> roots, RandomSelectionScope scope)
-    {
-        return scope switch
+    private static List<string> CollectDanceSlugs(DanceList list, RandomSelectionScope scope) =>
+        scope switch
         {
-            RandomSelectionScope.EntireTree => CollectFromBranches(roots, 1.0),
-            RandomSelectionScope.Subtree subtree => CollectFromSubtree(roots, subtree.BranchPath),
-            RandomSelectionScope.SingleDance single => CollectSingleLeaf(roots, single.ParentPath, single.LeafIndex),
+            RandomSelectionScope.Pool pool =>
+                [.. list.WithAnyTag(pool.Tags)
+                    .Where(dance => !pool.ExcludedTags.Any(dance.HasTag))
+                    .Select(dance => dance.Slug)],
+
+            // Named outright, so it stands whether or not the dance is in the pool: asking for a
+            // hanter dro is an answer, not a filter.
+            RandomSelectionScope.SingleDance single =>
+                list.FindDance(single.Slug) is null ? [] : [single.Slug],
+
             _ => []
         };
-    }
-
-    private static List<WeightedLeaf> CollectFromBranches(
-        IEnumerable<DanceBranch> branches, double parentWeight)
-    {
-        var result = new List<WeightedLeaf>();
-        foreach (var branch in branches)
-        {
-            var branchWeight = parentWeight * branch.Weight;
-            if (branchWeight <= 0)
-            {
-                continue;
-            }
-
-            foreach (var leaf in branch.Leafs)
-            {
-                var leafWeight = branchWeight * leaf.Weight;
-                if (leafWeight > 0)
-                {
-                    result.Add(new WeightedLeaf(leaf.Name, leafWeight));
-                }
-            }
-
-            result.AddRange(CollectFromBranches(branch.Branches.ToList(), branchWeight));
-        }
-
-        return result;
-    }
-
-    private static List<WeightedLeaf> CollectFromSubtree(
-        IReadOnlyList<DanceBranch> roots, IReadOnlyList<int> branchPath)
-    {
-        var branch = ResolveBranch(roots, branchPath);
-        if (branch is null)
-        {
-            return [];
-        }
-
-        var result = (from leaf in branch.Leafs where leaf.Weight > 0 select new WeightedLeaf(leaf.Name, leaf.Weight)).ToList();
-
-        result.AddRange(CollectFromBranches(branch.Branches.ToList(), 1.0));
-        return result;
-    }
-
-    private static List<WeightedLeaf> CollectSingleLeaf(
-        IReadOnlyList<DanceBranch> roots, IReadOnlyList<int> parentPath, int leafIndex)
-    {
-        var branch = ResolveBranch(roots, parentPath);
-        if (branch is null)
-        {
-            return [];
-        }
-
-        var leafs = branch.Leafs.ToList();
-        if (leafIndex < 0 || leafIndex >= leafs.Count)
-        {
-            return [];
-        }
-
-        var leaf = leafs[leafIndex];
-        return leaf.Weight > 0
-            ? [new WeightedLeaf(leaf.Name, leaf.Weight)]
-            : [];
-    }
-
-    private static DanceBranch? ResolveBranch(IReadOnlyList<DanceBranch> roots, IReadOnlyList<int> path)
-    {
-        var level = roots;
-        for (var i = 0; i < path.Count; i++)
-        {
-            if (path[i] < 0 || path[i] >= level.Count)
-            {
-                return null;
-            }
-
-            if (i == path.Count - 1)
-            {
-                return level[path[i]];
-            }
-
-            level = level[path[i]].Branches.ToList();
-        }
-
-        return null;
-    }
 
     private HashSet<string> GetExcludedFilePaths()
     {
@@ -222,6 +143,4 @@ public sealed class RandomTrackService(
 
         return excluded;
     }
-
-    private sealed record WeightedLeaf(string Name, double EffectiveWeight);
 }

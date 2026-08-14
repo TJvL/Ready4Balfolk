@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using DynamicData;
 using DynamicData.Binding;
 using ReactiveUI.Reactive;
@@ -19,6 +20,7 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
 {
     private readonly IQueueService _queueService;
     private readonly INotificationService _notificationService;
+    private readonly TrackEditorService _trackEditor;
     private readonly CompositeDisposable _disposables = [];
     private readonly ReadOnlyObservableCollection<TrackViewModel> _tracks;
 
@@ -28,8 +30,22 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
 
     [Reactive] public partial string SearchText { get; set; }
 
+    /// <summary>The row the context menu acts on. The pencil passes its own row instead.</summary>
+    [Reactive] public partial TrackViewModel? SelectedTrack { get; set; }
+
     [ReactiveCommand]
     private void ClearSearch() => SearchText = "";
+
+    /// <summary>Opens the edit dialog for a row, so a typo is fixed the moment it is seen.</summary>
+    [ReactiveCommand]
+    private async Task EditTrackAsync(TrackViewModel? track)
+    {
+        var target = track ?? SelectedTrack;
+        if (target is { } row)
+        {
+            await _trackEditor.EditAsync(row.Track);
+        }
+    }
 
     [ReactiveCommand]
     private void EnqueueTrack(TrackViewModel track)
@@ -42,10 +58,11 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
     }
 
     public TrackCatalogViewModel(ITrackStore trackStore, IQueueService queueService,
-        INotificationService notificationService)
+        INotificationService notificationService, TrackEditorService trackEditor)
     {
         _queueService = queueService;
         _notificationService = notificationService;
+        _trackEditor = trackEditor;
         SearchText = "";
 
         _isLoadingHelper = trackStore.IsLoading

@@ -42,7 +42,7 @@
       autoAdded: "Added automatically",
 
       randomTrack: "Random track",
-      fromDanceTree: "from the dance tree",
+      fromPool: "from the pool set at the computer",
       openEnded: "open ended",
       delayLength: "Delay length",
       queueDelay: "Queue delay",
@@ -101,7 +101,7 @@
       autoAdded: "Automatisch toegevoegd",
 
       randomTrack: "Willekeurig nummer",
-      fromDanceTree: "uit de dansboom",
+      fromPool: "uit de pool die op de computer is ingesteld",
       openEnded: "zonder eindtijd",
       delayLength: "Pauzeduur",
       queueDelay: "Pauze toevoegen",

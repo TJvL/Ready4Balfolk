@@ -14,4 +14,5 @@ public sealed partial class MainWindow : Window
     }
 
     private void OnBackClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Main;
+
 }

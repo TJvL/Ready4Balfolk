@@ -8,7 +8,7 @@ Ready4Balfolk is a two-project Avalonia desktop application for managing and pla
 
 | Project | Purpose | Key dependencies |
 |---------|---------|-----------------|
-| `Ready4Balfolk.Domain` | Models, stores, services — no UI dependencies | System.Reactive, DynamicData, ManagedBass, System.Text.Json |
+| `Ready4Balfolk.Domain` | Models, stores, services — no UI dependencies | System.Reactive, DynamicData, ManagedBass, System.Text.Json, Microsoft.Data.Sqlite |
 | `Ready4Balfolk.UI` | Views, ViewModels, converters, UI services | Avalonia 11, ReactiveUI, ReactiveUI.SourceGenerators |
 
 **Key principles:**
@@ -30,8 +30,7 @@ All models are **sealed records** with `[JsonPropertyName]` attributes for persi
 |-----------|----------|
 | `Tracks/` | `Track` — file path, dance, artist, title, length. Carries `OriginalDance` for re-resolution. |
 | `QueueItems/` | `IQueueItem` interface + five implementations: `TrackQueueItem`, `DelayQueueItem`, `MessageQueueItem`, `StopQueueItem`, `AutoTrackQueueItem`. |
-| `Tree/` | `DanceBranch` (recursive children + leaf dances) and `DanceLeaf`. Each has a `Weight` for probability-based random selection. |
-| `Synonyms/` | `DanceMainName` (canonical name + list of `DanceSynonym`). |
+| `Dances/` | `DanceList` -> `Dance`, exactly as BigBalfolkList publishes it: a top-level `Tags` vocabulary and a flat list of `{slug, names, tags}`. A dance's identity is its `Slug`; its `Names` are a flat set of equals whose first entry is what gets displayed; everything else is a tag, so nothing is filed under one grouping at the expense of another. There is no hierarchy and no weight. `DanceListIndex` is the folded-name-to-slug lookup built over a list, `DanceListProblems` is what validation reports, and `DanceListStatus`/`DanceListUpdate` say where the list came from and what came of asking for a newer one. |
 | `Settings/` | `ApplicationSettings`, `ApplicationTheme` enum, `WindowState`. |
 | `History/` | `QueueHistoryEntry` (abstract, `[JsonPolymorphic]`) with `TrackHistoryEntry`, `MessageHistoryEntry`, `DelayHistoryEntry`, `StopHistoryEntry`. `QueueHistory` wraps the entry list. |
 
@@ -55,6 +54,60 @@ Impl:       XxxStore   →  BehaviorSubject<T> + SemaphoreSlim + JSON file I/O
 
 The `TrackStore` is different: it uses a DynamicData `SourceList<Track>` instead of `BehaviorSubject`, exposes `Connect()` for reactive collection binding, integrates a `FileSystemWatcher` for live directory monitoring, and uses `Task.WhenEach()` for streaming track discovery.
 
+### Discovery: claims and corroboration
+
+`Services/Discovery/` decides what a track is, in three steps that are deliberately separable: `TrackDiscoveryService.Gather` opens the file, `TrackClaims.Collect` asks everything that can speak about it what it says, and `TrackInformationResolver.Decide` answers each field from those claims plus the dance list. Only the first touches a disk, so the other two re-run whenever the list or the settings change and are tested without a file existing.
+
+**Everything is a claim: a field, a value, a source, and a trust.** One currency for all of it, and the whole of `Claim`.
+
+- **Claims are raw.** A dance claim carries the text somebody wrote, not a slug — turning text into a dance is the list's job, and a claim the list does not recognise is still a claim. That unrecognised value is exactly what parks a track in review and what 21 identical misspellings group by.
+- **Nothing is discarded silently.** Losing claims, and values refused as ripper placeholders, stay on the resolution. A wrong source is only visible next to what it beat, and "the artist tag says Unknown Artist" is a different thing to look at than "there is no artist tag".
+- **Three tiers, and the top one that spoke is the only one considered** (`ClaimTrust`): `Declared` (a discovery setting the user filled in), `Measured` (calibration over the library's own strings), `Observed` (this file's tags and name). A tier is not a vote to be weighed — a user who declares a rule has taken responsibility for it, so a declaration replaces the tags rather than arguing with them, and is not "corroborated" by a weaker source agreeing. Only `Observed` is produced today; the tiers above it arrive with declared settings and calibration.
+- **`DecisionReason` keeps the several meanings of a blank apart** — `NoClaim`, `Unusable`, `Contested` are three different situations, and the review screen has to tell a person which one it is looking at.
+- **Independence is per `ClaimSourceKind`**, not per claim: the title tag and the comment tag are one kind between them, because the same ripper wrote both in the same pass and a dance appearing in both proves nothing.
+
+**The library root is a black box.** Nothing about its shape may be assumed: not that the first folder is an artist, not that the deepest one is an album, not that a file name has fields in it, not that there are folders at all. A real library puts the dance in brackets (`10. Hep Harz (Cercle)`), after a trailing dash (`11-La Violette - valse 5tps`), or nowhere at all, and the `Dance - Artist - Title` split this code used to apply produced a dance column of track numbers and band names.
+
+How each field is then decided:
+
+- **The dance is decided by agreement**, because it is the one field with a real vocabulary behind it. Two independent kinds agreeing wins; one kind alone still answers when nothing contradicts it; two dances with nothing to separate them answer **nothing**, because inventing a confident answer is the failure the feature exists to prevent.
+- **Artist and title are decided in order**, because nothing can check them. An album artist and a performer disagreeing is ordinary rather than a contest, so the first usable claim answers and the order the collector emits them in *is* the trust order (album artist before artist, title tag before file name). Step 3 makes that order declarable.
+- **Brackets break a dance tie**, and nothing else does. `ClaimSource.IsDeliberate` says somebody wrote this as a statement about the track; a dance-shaped word in a sentence is an accident of language. Where the brackets say nothing either, the answer is nothing.
+- **Folder agreement fills gaps only.** A `Folder` claim is dropped the moment any other kind resolves, so a folder of mazurkas with one scottish in it keeps the scottish, and it never corroborates: it is computed from sibling file names, so counting it as a second source is counting one source twice. The folder is a grouping and no more — `TrackEvidence.FolderKey` claims nothing about it being an album.
+- **Matching is on whole words** (`DanceNameScanner`), longest name first: "Bourrée 3 temps" beats the "Bourrée" inside it, and "Andro" must not match inside "Androgyne".
+- **Names are compared on a match key, not on their spelling** (`DanceWords`). The published file carries two word lists: a number word becomes its digit and glue is dropped, so `Bourrée à trois temps`, `Bourrée in 3`, `Bourrée 3t` and `Bourrée 3` are one key and one dance. The same pass runs over a file name before scanning it, which is what lets a library written in French, Dutch or German match at all. Measured on the reference library: 921 file names carried a recognisable dance without it, 972 with, and 9 answers changed — 8 of them corrections, `Valse 8 temps` having been filed as a 3-time waltz.
+- **Glue is stepped over rather than ending a match**, so `valse à 3 temps` finds `valse 3`. The cost is that glue no longer separates: `Valse de la mazurka` reads as `valse mazurka`. That is the same trade the list makes on its own names, and a word that is not glue still ends a match, so `Bourrée du Berry 3 temps` is not `Bourrée 3 temps`.
+- **Genre is not evidence.** Measured on the reference library, of 400 resolved tracks only 69 carry a genre at all and the whole set of values is `Music`, `Folk`, `Balfolk`, `Breton`; across ~530 files a genre supplied a dance name once. It is not read at all.
+- **The artist comes from tags, the title from the title tag or the whole file name.** Neither is taken from a path segment or a file name field, because which level or field means what is exactly what an unconfigured library cannot say. `ArtistNames` still blocks ripper placeholders (`Unknown Artist`, `Various Artists`, digits-only) — dances are a closed set the dance list defines and get a whitelist, artists are open and get a blocklist.
+
+Claims live only as long as the resolution today. Storing them so a review screen can show where a value came from after a restart is the schema work in step 4.
+
+### Declared settings: the informed greenlight
+
+`DiscoverySettings` is what the user has stated about their library: ordered file name patterns, a role per folder level, and which tag fields speak for which field. Empty by default, and that default is the honest one. `DeclaredDiscovery.Compile` turns it into the compiled form a scan runs with, and everything it yields is claimed at `ClaimTrust.Declared`.
+
+- **A declaration is a bulk approval.** Code can measure that strings agree; only a person can say a rule is right. Once they have, the code stops hedging and powers through — which is the only way 2685 files get answered in an evening rather than never.
+- **So the greenlight has to be informed**, and `DeclarationPreview` is what makes it one: how many files a pattern takes, what it makes of a sample of them, and which ones it leaves. The screen measures a draft against the **leftovers** rather than the whole library, because that is the pile the next rule is actually aimed at.
+- **A pattern is refused rather than half-understood** (`PatternProblem`): two fields with no literal between them, the same field twice, a token that is not a token. A rule that quietly means something other than what it looks like is the opposite of the bargain.
+- **Each field stops at the next literal, and the last one takes the rest**, which is the only reading that makes `%a - %t` mean what a person expects of `Bal O'Gadjo - Le badaud - Live`.
+- **The default tag order is a guess and is claimed as one.** `TagTrust` holds null per field for "the built-in default applies", which stays `Observed`; a list the user filled in is a declaration and is claimed at the top tier. An empty list is a real declaration too: "nothing in the tags speaks for this".
+- **Trusting a tag field is not the same as finding a name in it.** A declared field is read whole and is the dance even when the list has never heard of it, which is what parks the track. Scanning any tag for a name from the list needs no declaration: the vocabulary recognising itself is not a guess about what a field means.
+- **Changing the rules re-reads the library** (`TrackStore.DiscoverySettings`), skipping the size-and-mtime shortcut. What the index holds was derived under the rules that just changed, so it cannot answer instead. `App` sets the declarations *before* the music directory for the same reason: the other order scans everything twice.
+
+On a 2685-file library with BigBalfolkList imported and nothing else configured, this answers the dance for something under half of it, a few hundred of those by folder agreement. Everything else answers with nothing, which is a real answer and the reason the review gate exists: the way that number goes up is a user declaring how their library is arranged, not this code guessing harder.
+
+### Library index
+
+`Stores/Library/` is the index of what is in the music directory, in SQLite (`library.sqlite`). It replaced a JSON duration cache, and its job is that **a startup which finds nothing changed opens no audio files at all** — verified on a 345-track library: first run 345 files read, second run 0.
+
+- **`Microsoft.Data.Sqlite` appears in `SqliteLibraryIndex` and nowhere else.** Extracting a `.Data` project later should be a file move, not an untangling.
+- `id INTEGER PRIMARY KEY` is an alias for the rowid, so there is no second index to maintain. **`content_hash BLOB UNIQUE` is the natural key** and what an upsert conflicts on, so a renamed or retagged file keeps its row along with everything the user decided about it.
+- The hash is over **the audio stream only** (`AudioContentHasher`, using TagLib's invariant start/end positions). The application writes tags into files itself, and a whole-file hash would make every one of its own edits look like a new track.
+- The **fast path is path + size + last-write-time**, held in a snapshot read once per scan. Hashing would be a better check and is what the row is keyed by, but it means opening the file, which is the cost the index exists to avoid.
+- The index stores **the slug, not a name**, plus `original_dance` for the review screen to group identical unknown values by. The review count itself is the gate's: the track store publishes how many indexed tracks were held out of the library, so all three hold-back reasons count.
+
+`DanceListStore` owns `dance_list.json` and additionally exposes an `Index`. The index is rebuilt *before* the new list is published, so a subscriber reacting to a change never reads a lookup built from the list it just replaced.
+
 **To add a new store:**
 
 1. Create `IXxxStore` in `Stores/{Feature}/` with `Current`, `Observe()`, `LoadAsync()`, `UpdateAsync()`.
@@ -71,9 +124,13 @@ Services hold **ephemeral runtime state** and operational logic — queue manage
 | `QueueService` | In-memory queue backed by `SourceList<IQueueItem>`. Delegates all validation to a `QueueGuard` (see below). |
 | `QueueConsumptionService` | Dequeues items, drives playback, tracks elapsed time, records history. |
 | `AudioPlaybackService` | ManagedBass wrapper for audio playback (play, pause, seek, volume). |
-| `RandomTrackService` | Weighted random selection from the dance tree, with deduplication against queue + history + currently playing. |
-| `SynonymResolutionService` | Maintains an in-memory `Dictionary<string, string>` (normalised name → canonical name). Rebuilds atomically via `Interlocked.Exchange` when synonyms change. |
-| `TrackDiscoveryService` | Reads audio metadata (TagLib) to produce `Track` records. |
+| `RandomTrackService` | Random selection over the dances a `RandomSelectionScope` reaches: a `Pool` of tags (empty means every dance) or one `SingleDance`. Every dance in the pool is equally likely and a dance's tracks share its share, so forty recordings of one waltz do not drown out the rest. Deduplicates against queue + history + currently playing, and groups tracks by slug so an unresolved track never takes part. |
+| `DancePool` | The tags a pick draws from, held in memory and read by the dance panel, the auto-queue and the phone remote alike. Not persisted: it is a decision about tonight. |
+| `TrackDiscoveryService` | Opens a file once and reports what it says about itself (`TrackEvidence`): filename, path segments, tags, duration, format, content hash. It decides nothing. |
+| `AudioContentHasher` | SHA-256 over the audio between the tags, so the application's own tag edits do not move a row in the library index. |
+| `DanceListReader` | The one door the list comes through, from all four sources: the copy shipped in `Domain/Assets/dances.json`, the cached download, a fetch, and a file the user picked. Refuses anything that is not format version 4, is empty, or breaks validation. Static, because it is a pure function of the bytes. |
+| `DanceListFeed` | Downloads the raw `dances.json` from the BigBalfolkList repository. Caching off: the reason to press update is that something was merged a minute ago. |
+| `DanceListValidation` | Checks the invariants everything else rests on: a name belongs to exactly one dance, slugs are unique, and every tag a dance carries is declared at the top of the file. |
 
 **To add a new service:**
 
@@ -117,27 +174,9 @@ The `QueueService` does not contain any validation logic itself. Instead, it del
 3. Add unit tests for the rule in isolation (see `AutoTrackRuleTests`, `DuplicateTrackRuleTests`, `MaxItemsRuleTests` for examples).
 4. If the rule interacts with other rules during eviction, add a combined test in `QueueGuardTests`.
 
-### Editor System
-
-The editor system implements **undo/redo** via the Command pattern combined with immutable transforms.
-
-**Components:**
-
-- **`IEditorAction`** — interface with `ExecuteAsync()`, `UndoAsync()`, and `Description`.
-- **`EditorHistoryService`** — manages two stacks (`_undoStack`, `_redoStack`). Exposes `CanUndo`, `CanRedo`, `UndoDescription`, `RedoDescription` as `IObservable<T>` via `BehaviorSubject`. Executing a new action clears the redo stack.
-- **`DanceTreeAction` / `DanceSynonymAction`** — concrete `IEditorAction` implementations using static factory methods. Each captures a `_before` snapshot, applies a pure transform via `Store.UpdateAsync()`, and undoes by restoring `_before`. An optional `_validate` closure is checked before execution.
-- **`DanceTreeTransforms` / `DanceSynonymTransforms`** — static classes containing pure functions that transform immutable data structures. Tree transforms use recursive `ReplaceBranchAtDepth` with `int[]` path-based navigation and record `with` expressions.
-
-**To add a new editor action:**
-
-1. Add a static factory method on `DanceTreeAction` or `DanceSynonymAction` (e.g. `public static DanceTreeAction MoveLeaf(...)`).
-2. Write the pure transform function in the corresponding `*Transforms` class.
-3. Optionally add a `_validate` closure for pre-execution validation.
-4. Call it from the ViewModel via `editorHistoryService.DoActionAsync(DanceTreeAction.MoveLeaf(store, ...))`.
-
 ### Helpers
 
-`StringNormalizer.Normalize(string)` — decomposes Unicode (FormD), strips diacritics (non-spacing marks), keeps only letters/digits/spaces, lowercases, and collapses whitespace. Used throughout for case-insensitive, accent-insensitive name matching (synonym resolution, uniqueness checks, search filtering).
+`StringNormalizer.Normalize(string)` — decomposes Unicode (FormD), strips diacritics (non-spacing marks), keeps only letters/digits/spaces, lowercases, and collapses whitespace. Used throughout for case-insensitive, accent-insensitive name matching (resolving a name to a dance, uniqueness checks, search filtering).
 
 ---
 
@@ -160,6 +199,15 @@ The editor system implements **undo/redo** via the Command pattern combined with
 
 **To register a new service or ViewModel:** add a line in `ConfigureServices` in `Program.cs`. Use `AddSingleton` for shared state, `AddTransient` for per-resolution instances.
 
+### Setup wizard
+
+`Views/Wizard/` holds a first-run wizard shown when `ApplicationSettings.SetupCompleted` is false (and never during a smoke test, which has nobody to answer it). It is also reachable from Settings -> Troubleshooting -> *Run setup again*.
+
+- A step is a `WizardStepViewModel`: `Title`, `Explanation`, an optional `CanContinue` observable, and `EnterAsync`/`CommitAsync`. `SetupWizardViewModel` owns the ordered list, and its continue command follows `CurrentStep.CanContinue` through `.Switch()` so a step's opinion stops counting the moment it is left.
+- Steps are registered `AddTransient`, so a second run starts from what is on disk rather than from the last visit. Each needs an `IViewFor<T>` registration for `ViewModelViewHost` to resolve it.
+- The wizard is modal over the main window, so it takes over confirmation ownership for as long as it is open (`ConfirmationService.UseOwner`). Without that, a confirmation raised from a step is parented to a window the user cannot reach: it closes immediately and reads as a button that does nothing.
+- Order: explain, fetch the dance list, point at the music, then answer what could not be placed. The dance list comes first because it is the vocabulary everything else is said in, and its step asks nothing: it fetches the published list and shows what arrived. It never blocks either, because the copy shipped with the build is a perfectly good list and a hall with no wifi is an ordinary place to start in.
+
 ### Views & ViewModels
 
 Every feature lives in `Views/{Feature}/` containing:
@@ -170,7 +218,7 @@ Every feature lives in `Views/{Feature}/` containing:
 
 Namespace: `Ready4Balfolk.UI.Views.{Feature}`.
 
-Some features also include sub-item ViewModels (e.g. `TrackViewModel`, `DanceSynonymEntryViewModel`, `HistoryItemViewModel`), node types (e.g. `DanceCategoryNode`, `DanceItem`), and converters.
+Some features also include sub-item ViewModels (e.g. `TrackViewModel`, `DanceCardViewModel`, `TagChipViewModel`, `HistoryItemViewModel`) and converters. Converters used by more than one feature live in `Converters/`.
 
 **MainWindow** is the shell. Its `MainWindowViewModel` receives all sub-ViewModels via constructor injection. Navigation uses `IsVisible` bindings on `Panel` children — one panel per screen, all stacked. The `NotificationOverlayView` is always visible on top.
 
@@ -208,17 +256,16 @@ Common cases:
 | Pattern | Example |
 |---------|---------|
 | **Drag-drop reorder** | `QueueView.axaml.cs` — pointer tracking, `DragDrop.DoDragDropAsync`, drop indicator positioning. Calls `ViewModel.MoveItem()`. |
-| **TreeView expansion sync** | `DanceTreeView.axaml.cs` — static class handler on `TreeViewItem.IsExpandedProperty.Changed` writes back to `DanceCategoryNode.IsExpanded`. |
 | **ContainerPrepared styling** | `QueueView.axaml.cs` — adds CSS class `"autoTrack"` to `ListBoxItem` containers for `AutoTrackQueueItem`. |
 | **Focus management** | Various views — programmatic focus after inline edit starts. |
 | **Navigation clicks** | `ToolbarView.axaml.cs`, `MainWindow.axaml.cs` — set `NavigationService.CurrentScreen`. |
 
 ### Navigation
 
-`NavigationService` holds a `[Reactive] Screen CurrentScreen` property and derived `[ObservableAsProperty]` booleans (`IsMainScreen`, `IsSettingsScreen`, `IsHelpScreen`, `IsSynonymsScreen`). The main screen also has `IsHistoryMode` and `IsTreeViewMode` toggles for switching between Queue/History and TrackCatalog/DanceTree panels.
+`NavigationService` holds a `[Reactive] Screen CurrentScreen` property and derived `[ObservableAsProperty]` booleans (`IsMainScreen`, `IsSettingsScreen`, `IsHelpScreen`). The main screen also has `IsHistoryMode` and `IsDanceListMode` toggles for switching between the Queue/History and TrackCatalog/DanceList panels.
 
 ```csharp
-public enum Screen { Main, Settings, Help, Synonyms }
+public enum Screen { Main, Settings, Help }
 ```
 
 **To add a new screen:**
@@ -288,7 +335,7 @@ Three global handlers in `Program.cs` catch unhandled exceptions and route them 
 2. `TaskScheduler.UnobservedTaskException` — unobserved async failures (error, marked observed).
 3. `RxApp.DefaultExceptionHandler` — unhandled Rx pipeline errors (error).
 
-UI-level errors (e.g. failed editor actions, missing tracks) are shown to the user via `NotificationService.Show(message, Severity.Error)`.
+UI-level errors (e.g. a failed refresh, missing tracks) are shown to the user via `NotificationService.Show(message, Severity.Error)`.
 
 ### Continuous Integration
 
@@ -340,9 +387,8 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 | Mechanism | Where used |
 |-----------|-----------|
 | `SemaphoreSlim(1, 1)` | All stores — serialises file I/O. `FileLoggerService` — serialises log writes. |
-| `Interlocked.Exchange` | `SynonymResolutionService` — atomically swaps the lookup dictionary when synonyms change. |
 | `ObserveOn(RxApp.MainThreadScheduler)` | All ViewModel subscriptions that touch UI-bound properties or collections. |
-| `ObserveOn(TaskPoolScheduler.Default)` | Domain services that rebuild caches off the UI thread (e.g. synonym lookup). |
+| `ObserveOn(TaskPoolScheduler.Default)` | Work that must stay off the UI thread, such as `TrackStore` re-resolving every track when the dance list changes. |
 
 ---
 
@@ -357,4 +403,4 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 7. **Register ViewModel** — add to `Program.cs` as singleton. Add as a property on `MainWindowViewModel` if it is a top-level screen.
 8. **Navigation** — add to `Screen` enum, wire `IsXxxScreen`, add `IsVisible` panel in `MainWindow.axaml`, add toolbar button.
 9. **Converters** — if needed, add with the static `Instance` pattern in the feature folder.
-10. **Editor actions** — if the feature edits tree/synonym data, add factory methods on `DanceTreeAction` / `DanceSynonymAction` and pure transforms in the `*Transforms` class.
+10. **Strings** — add the English text to `UiStrings.resx`, the Dutch to `UiStrings.nl.resx`, and the property to `UiStrings.Designer.cs`. The three are kept in step by hand.

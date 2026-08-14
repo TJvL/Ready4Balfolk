@@ -11,7 +11,7 @@
     <DockPanel>
         <Button DockPanel.Dock="Left"
                 Click="OnToggleClick"
-                ToolTip.Tip="{x:Static res:UiStrings.TrackCatalog_SwitchToDanceTree}"
+                ToolTip.Tip="{x:Static res:UiStrings.TrackCatalog_SwitchToDanceList}"
                 Padding="8"
                 Focusable="False">
             <controls:ButtonContent Icon="{StaticResource IconTreeStructure}"

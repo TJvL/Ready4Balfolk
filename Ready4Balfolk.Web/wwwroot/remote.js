@@ -1,5 +1,5 @@
-/* The phone remote. Everything here is a reaction to the room: the library, the dance tree and the
-   settings stay on the laptop, where preparation happens. */
+/* The phone remote. Everything here is a reaction to the room: the library, the dance pool and the
+   settings stay on the computer, where preparation happens. */
 
 (function () {
   "use strict";
@@ -201,7 +201,7 @@
     text("upnextKicker", t("next"));
 
     text("randomLabel", t("randomTrack"));
-    text("randomHint", t("fromDanceTree"));
+    text("randomHint", t("fromPool"));
     text("stopLabel", t("stop"));
     text("stopHint", t("openEnded"));
     text("delayLengthLabel", t("delayLength"));

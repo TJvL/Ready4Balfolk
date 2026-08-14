@@ -3,14 +3,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:Ready4Balfolk.UI.Views.Equalizer"
-             xmlns:danceTree="using:Ready4Balfolk.UI.Views.DanceTree"
+             xmlns:conv="using:Ready4Balfolk.UI.Converters"
              xmlns:res="using:Ready4Balfolk.UI.Resources"
              xmlns:settings="using:Ready4Balfolk.Domain.Models.Settings"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="260"
              x:Class="Ready4Balfolk.UI.Views.Equalizer.EqualizerView"
              x:DataType="local:EqualizerViewModel">
     <UserControl.Resources>
-        <danceTree:BoolToStringConverter x:Key="EnabledLabelConverter"
+        <conv:BoolToStringConverter x:Key="EnabledLabelConverter"
                                          TrueValue="{x:Static res:UiStrings.Equalizer_On}"
                                          FalseValue="{x:Static res:UiStrings.Equalizer_Off}" />
     </UserControl.Resources>

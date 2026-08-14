@@ -2,29 +2,44 @@ using TagLib;
 
 namespace Ready4Balfolk.Domain.Helpers;
 
+/// <summary>Reads the free-form tags a file carries beyond the standard fields.</summary>
+/// <remarks>
+/// ID3v2 keeps these as TXXX frames with a description, Xiph/Vorbis as arbitrarily named fields.
+/// They are gathered whole rather than looked up by one name, because which name means anything is
+/// the user's to declare, and gathering must not depend on settings.
+/// </remarks>
 public static class CustomTagExtractor
 {
-    public static string[]? GetCustomTag(this TagLib.File file, string key) => ExtractId3v2(file, key) ?? ExtractXiphTag(file, key);
-
-    private static string[]? ExtractId3v2(TagLib.File file, string key)
+    /// <summary>Every custom tag the file carries, keyed case-insensitively by its name.</summary>
+    /// <remarks>The first value wins when a name appears in both tag formats.</remarks>
+    public static IReadOnlyDictionary<string, string> GetCustomTags(this TagLib.File file)
     {
-        if (file.GetTag(TagTypes.Id3v2, false) is not TagLib.Id3v2.Tag id3v2)
+        var tags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (file.GetTag(TagTypes.Id3v2, false) is TagLib.Id3v2.Tag id3v2)
         {
-            return null;
+            foreach (var frame in id3v2.GetFrames<TagLib.Id3v2.UserTextInformationFrame>())
+            {
+                var value = frame.Text.FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
+                if (!string.IsNullOrWhiteSpace(frame.Description) && value is not null)
+                {
+                    tags.TryAdd(frame.Description, value);
+                }
+            }
         }
 
-        var frame = TagLib.Id3v2.UserTextInformationFrame.Get(id3v2, key, false);
-        return frame?.Text;
-    }
-
-    private static string[]? ExtractXiphTag(TagLib.File file, string key)
-    {
-        var xiph = file.GetTag(TagTypes.Xiph, false) as TagLib.Ogg.XiphComment;
-        var values = xiph?.GetField(key);
-        return values switch
+        if (file.GetTag(TagTypes.Xiph, false) is TagLib.Ogg.XiphComment xiph)
         {
-            { Length: > 0 } => values,
-            _ => null
-        };
+            foreach (var name in xiph)
+            {
+                var value = xiph.GetField(name).FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
+                if (value is not null)
+                {
+                    tags.TryAdd(name, value);
+                }
+            }
+        }
+
+        return tags;
     }
 }

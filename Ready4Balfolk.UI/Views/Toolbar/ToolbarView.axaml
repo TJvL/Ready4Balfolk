@@ -36,13 +36,25 @@
                                     Text="{x:Static res:UiStrings.Toolbar_SettingsLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Click="OnSynonymsClick"
-                ToolTip.Tip="{x:Static res:UiStrings.Toolbar_DanceSynonyms}"
+        <Button Click="OnReviewClick"
+                ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Review}"
                 Padding="8"
                 Focusable="False">
-            <controls:ButtonContent Icon="{StaticResource IconBook}"
-                                    Text="{x:Static res:UiStrings.Toolbar_DanceSynonymsLabel}"
-                                    IconSize="16" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <!-- A tick, not the book the tagging button carries: with button text off, two
+                     identical icons side by side are two buttons nobody can tell apart. -->
+                <controls:ButtonContent Icon="{StaticResource IconCheck}"
+                                        Text="{x:Static res:UiStrings.Toolbar_ReviewLabel}"
+                                        IconSize="16" />
+                <!-- What is waiting for a person. A count, and only when there is one: nothing here
+                     interrupts a room. -->
+                <Border IsVisible="{Binding HasInReview}"
+                        Background="{DynamicResource SystemAccentColor}"
+                        CornerRadius="8"
+                        Padding="6,1">
+                    <TextBlock Text="{Binding InReviewCount}" FontSize="11" FontWeight="SemiBold" />
+                </Border>
+            </StackPanel>
         </Button>
     </StackPanel>
 </UserControl>

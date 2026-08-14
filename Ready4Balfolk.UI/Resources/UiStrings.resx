@@ -181,86 +181,11 @@
   <data name="HistoryToolbar_ClearLabel" xml:space="preserve">
     <value>Clear</value>
   </data>
-  <data name="TrackCatalog_DancesLabel" xml:space="preserve">
-    <value>Dances</value>
-  </data>
   <data name="TrackCatalog_ClearSearchLabel" xml:space="preserve">
     <value>Clear</value>
   </data>
   <data name="MainWindow_BackLabel" xml:space="preserve">
     <value>Back</value>
-  </data>
-  <data name="DanceTreeToolbar_TrackListLabel" xml:space="preserve">
-    <value>Tracks</value>
-  </data>
-  <data name="DanceTreeToolbar_UndoLabel" xml:space="preserve">
-    <value>Undo</value>
-  </data>
-  <data name="DanceTreeToolbar_RedoLabel" xml:space="preserve">
-    <value>Redo</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportLabel" xml:space="preserve">
-    <value>Import</value>
-  </data>
-  <data name="DanceTreeToolbar_ExportLabel" xml:space="preserve">
-    <value>Export</value>
-  </data>
-  <data name="DanceTree_RandomLabel" xml:space="preserve">
-    <value>Random</value>
-  </data>
-  <data name="DanceTree_AddCategoryLabel" xml:space="preserve">
-    <value>Add group</value>
-  </data>
-  <data name="DanceTree_AddDanceLabel" xml:space="preserve">
-    <value>Add dance</value>
-  </data>
-  <data name="DanceTree_EditLabel" xml:space="preserve">
-    <value>Edit</value>
-  </data>
-  <data name="DanceTree_ConfirmLabel" xml:space="preserve">
-    <value>Done</value>
-  </data>
-  <data name="DanceTree_DeleteLabel" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="DanceTree_CancelLabel" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceSynonyms_BackLabel" xml:space="preserve">
-    <value>Back</value>
-  </data>
-  <data name="DanceSynonyms_UndoLabel" xml:space="preserve">
-    <value>Undo</value>
-  </data>
-  <data name="DanceSynonyms_RedoLabel" xml:space="preserve">
-    <value>Redo</value>
-  </data>
-  <data name="DanceSynonyms_ImportLabel" xml:space="preserve">
-    <value>Import</value>
-  </data>
-  <data name="DanceSynonyms_ExportLabel" xml:space="preserve">
-    <value>Export</value>
-  </data>
-  <data name="DanceSynonyms_AddDanceLabel" xml:space="preserve">
-    <value>Add dance</value>
-  </data>
-  <data name="DanceSynonyms_EditLabel" xml:space="preserve">
-    <value>Edit</value>
-  </data>
-  <data name="DanceSynonyms_ConfirmLabel" xml:space="preserve">
-    <value>Done</value>
-  </data>
-  <data name="DanceSynonyms_DeleteLabel" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="DanceSynonyms_CancelLabel" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceSynonyms_RemoveLabel" xml:space="preserve">
-    <value>Remove</value>
-  </data>
-  <data name="DanceSynonyms_AddSynonymLabel" xml:space="preserve">
-    <value>Add synonym</value>
   </data>
   <data name="Queue_RefreshAutoTrackLabel" xml:space="preserve">
     <value>Reroll</value>
@@ -277,9 +202,6 @@
   <data name="Toolbar_SettingsLabel" xml:space="preserve">
     <value>Settings</value>
   </data>
-  <data name="Toolbar_DanceSynonymsLabel" xml:space="preserve">
-    <value>Synonyms</value>
-  </data>
   <data name="Settings_ShowButtonText" xml:space="preserve">
     <value>Show text on buttons instead of icons</value>
   </data>
@@ -294,9 +216,6 @@
   </data>
   <data name="Toolbar_Settings" xml:space="preserve">
     <value>Settings</value>
-  </data>
-  <data name="Toolbar_DanceSynonyms" xml:space="preserve">
-    <value>Dance Synonyms</value>
   </data>
 
   <!-- Settings -->
@@ -585,9 +504,6 @@
   <data name="TrackCatalog_ColumnLength" xml:space="preserve">
     <value>Length</value>
   </data>
-  <data name="TrackCatalog_SwitchToDanceTree" xml:space="preserve">
-    <value>Switch to dance tree</value>
-  </data>
   <data name="TrackCatalog_SearchWatermark" xml:space="preserve">
     <value>Search tracks...</value>
   </data>
@@ -596,161 +512,10 @@
   </data>
 
   <!-- Dance Tree -->
-  <data name="DanceTree_MarkRootRandom" xml:space="preserve">
-    <value>Mark as root for random selection</value>
-  </data>
-  <data name="DanceTree_MarkRandom" xml:space="preserve">
-    <value>Mark for random selection</value>
-  </data>
-  <data name="DanceTree_AddCategory" xml:space="preserve">
-    <value>Add category</value>
-  </data>
-  <data name="DanceTree_AddDance" xml:space="preserve">
-    <value>Add dance</value>
-  </data>
-  <data name="DanceTree_Confirm" xml:space="preserve">
-    <value>Confirm</value>
-  </data>
-  <data name="DanceTree_Edit" xml:space="preserve">
-    <value>Edit</value>
-  </data>
-  <data name="DanceTree_Cancel" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceTree_Delete" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="DanceTree_RootName" xml:space="preserve">
-    <value>Dance</value>
-  </data>
-  <data name="DanceTree_NoTracksAvailable" xml:space="preserve">
-    <value>No tracks available for random selection</value>
-  </data>
-  <data name="DanceTree_NameEmpty" xml:space="preserve">
-    <value>Name cannot be empty.</value>
-  </data>
-  <data name="DanceTree_CategoryNameExists" xml:space="preserve">
-    <value>A category named &#x2018;{0}&#x2019; already exists.</value>
-  </data>
-  <data name="DanceTree_DanceNameExists" xml:space="preserve">
-    <value>A dance named &#x2018;{0}&#x2019; already exists.</value>
-  </data>
 
   <!-- Dance Tree Toolbar -->
-  <data name="DanceTreeToolbar_SwitchToTrackList" xml:space="preserve">
-    <value>Switch to track list</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportDanceTree" xml:space="preserve">
-    <value>Import dance tree</value>
-  </data>
-  <data name="DanceTreeToolbar_ExportDanceTree" xml:space="preserve">
-    <value>Export dance tree</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportTitle" xml:space="preserve">
-    <value>Import Dance Tree</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportConfirmMessage" xml:space="preserve">
-    <value>Importing will permanently overwrite the current dance tree. Consider exporting a backup first.
-
-Continue with import?</value>
-  </data>
-  <data name="DanceTreeToolbar_ImportButton" xml:space="preserve">
-    <value>Import</value>
-  </data>
-  <data name="DanceTreeToolbar_CancelButton" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceTreeToolbar_ExportTitle" xml:space="preserve">
-    <value>Export Dance Tree</value>
-  </data>
-  <data name="DanceTreeToolbar_UndoFormat" xml:space="preserve">
-    <value>Undo: {0} (Ctrl+Z)</value>
-  </data>
-  <data name="DanceTreeToolbar_UndoDefault" xml:space="preserve">
-    <value>Undo (Ctrl+Z)</value>
-  </data>
-  <data name="DanceTreeToolbar_RedoFormat" xml:space="preserve">
-    <value>Redo: {0} (Ctrl+Y)</value>
-  </data>
-  <data name="DanceTreeToolbar_RedoDefault" xml:space="preserve">
-    <value>Redo (Ctrl+Y)</value>
-  </data>
 
   <!-- Dance Synonyms -->
-  <data name="DanceSynonyms_Title" xml:space="preserve">
-    <value>Dance Synonyms</value>
-  </data>
-  <data name="DanceSynonyms_Back" xml:space="preserve">
-    <value>Back</value>
-  </data>
-  <data name="DanceSynonyms_ImportSynonyms" xml:space="preserve">
-    <value>Import synonyms</value>
-  </data>
-  <data name="DanceSynonyms_ExportSynonyms" xml:space="preserve">
-    <value>Export synonyms</value>
-  </data>
-  <data name="DanceSynonyms_AddNewDance" xml:space="preserve">
-    <value>Add new dance</value>
-  </data>
-  <data name="DanceSynonyms_DanceNameWatermark" xml:space="preserve">
-    <value>Dance name</value>
-  </data>
-  <data name="DanceSynonyms_SynonymWatermark" xml:space="preserve">
-    <value>synonym</value>
-  </data>
-  <data name="DanceSynonyms_Edit" xml:space="preserve">
-    <value>Edit</value>
-  </data>
-  <data name="DanceSynonyms_Confirm" xml:space="preserve">
-    <value>Confirm</value>
-  </data>
-  <data name="DanceSynonyms_Delete" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="DanceSynonyms_Cancel" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceSynonyms_AddSynonym" xml:space="preserve">
-    <value>Add synonym</value>
-  </data>
-  <data name="DanceSynonyms_NameEmpty" xml:space="preserve">
-    <value>Name cannot be empty.</value>
-  </data>
-  <data name="DanceSynonyms_NameInUse" xml:space="preserve">
-    <value>The name '{0}' is already in use.</value>
-  </data>
-  <data name="DanceSynonyms_ImportTitle" xml:space="preserve">
-    <value>Import Synonyms</value>
-  </data>
-  <data name="DanceSynonyms_ImportConfirmMessage" xml:space="preserve">
-    <value>Importing will permanently overwrite the current dance synonyms. Consider exporting a backup first.
-
-Continue with import?</value>
-  </data>
-  <data name="DanceSynonyms_ImportButton" xml:space="preserve">
-    <value>Import</value>
-  </data>
-  <data name="DanceSynonyms_CancelButton" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="DanceSynonyms_ImportFilePickerTitle" xml:space="preserve">
-    <value>Import Dance Synonyms</value>
-  </data>
-  <data name="DanceSynonyms_ExportFilePickerTitle" xml:space="preserve">
-    <value>Export Dance Synonyms</value>
-  </data>
-  <data name="DanceSynonyms_UndoFormat" xml:space="preserve">
-    <value>Undo: {0} (Ctrl+Z)</value>
-  </data>
-  <data name="DanceSynonyms_UndoDefault" xml:space="preserve">
-    <value>Undo (Ctrl+Z)</value>
-  </data>
-  <data name="DanceSynonyms_RedoFormat" xml:space="preserve">
-    <value>Redo: {0} (Ctrl+Y)</value>
-  </data>
-  <data name="DanceSynonyms_RedoDefault" xml:space="preserve">
-    <value>Redo (Ctrl+Y)</value>
-  </data>
 
   <!-- Presentation -->
   <data name="Presentation_WindowTitle" xml:space="preserve">
@@ -899,5 +664,524 @@ Continue with import?</value>
   </data>
   <data name="Settings_WebServerStopping" xml:space="preserve">
     <value>Stopping</value>
+  </data>
+
+  <!-- Setup wizard -->
+  <data name="Wizard_Title" xml:space="preserve">
+    <value>Set up Ready4Balfolk</value>
+  </data>
+  <data name="Wizard_StepFormat" xml:space="preserve">
+    <value>Step {0} of {1}</value>
+  </data>
+  <data name="Wizard_Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Wizard_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Wizard_Finish" xml:space="preserve">
+    <value>Finish</value>
+  </data>
+  <data name="Wizard_DanceList_Title" xml:space="preserve">
+    <value>The dance list</value>
+  </data>
+  <data name="Wizard_DanceList_Explanation" xml:space="preserve">
+    <value>Every dance the balfolk scene dances, and every name each one goes by. It comes from BigBalfolkList and is used exactly as published, so there is nothing to answer here: the names in your filenames are matched against it, and it is what a random pick draws from.</value>
+  </data>
+  <data name="Wizard_DanceList_Source" xml:space="preserve">
+    <value>It comes from</value>
+  </data>
+  <data name="Wizard_Music_Title" xml:space="preserve">
+    <value>Your music</value>
+  </data>
+  <data name="Wizard_Music_Explanation" xml:space="preserve">
+    <value>Point Ready4Balfolk at the folder your music lives in. Everything below it is included, however it is arranged.</value>
+  </data>
+  <data name="Wizard_Music_Note" xml:space="preserve">
+    <value>You can leave this for now and set it in the settings screen later.</value>
+  </data>
+  <data name="Settings_RunSetupAgain" xml:space="preserve">
+    <value>Run setup again</value>
+  </data>
+  <data name="Settings_RunSetupAgainDescription" xml:space="preserve">
+    <value>Opens the setup wizard. Your dance list and your music folder stay as they are unless you change them there.</value>
+  </data>
+
+  <!-- Dance panel -->
+  <data name="Wizard_DanceList_Summary" xml:space="preserve">
+    <value>{0} dances, {1} tags</value>
+  </data>
+  <data name="Wizard_DanceList_Detail" xml:space="preserve">
+    <value>A copy is shipped with the application, so this works with no internet. It is refreshed when Ready4Balfolk starts, and you can ask for a newer one at any time from the dance panel.</value>
+  </data>
+  <data name="DanceList_SearchWatermark" xml:space="preserve">
+    <value>Search every spelling…</value>
+  </data>
+  <data name="DanceList_TagsHeader" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="DanceList_PoolEverything" xml:space="preserve">
+    <value>Drawing from every dance</value>
+  </data>
+  <data name="DanceList_PoolFormat" xml:space="preserve">
+    <value>Drawing from {0} · {1} dances</value>
+  </data>
+  <data name="DanceList_PoolAnyTag" xml:space="preserve">
+    <value>every dance</value>
+  </data>
+  <data name="DanceList_PoolNever" xml:space="preserve">
+    <value> · never {0}</value>
+  </data>
+  <data name="DanceList_ClearPool" xml:space="preserve">
+    <value>Everything</value>
+  </data>
+  <data name="DanceList_ClearPoolTip" xml:space="preserve">
+    <value>Draw from every dance again</value>
+  </data>
+  <data name="DanceList_Summary" xml:space="preserve">
+    <value>{0} of {1} dances</value>
+  </data>
+  <data name="DanceList_Obtained" xml:space="preserve">
+    <value>fetched {0:d MMMM yyyy}</value>
+  </data>
+  <data name="DanceList_ObtainedBuiltIn" xml:space="preserve">
+    <value>shipped with this version</value>
+  </data>
+  <data name="DanceList_Update" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="DanceList_UpdateTip" xml:space="preserve">
+    <value>Fetch the list as BigBalfolkList publishes it right now</value>
+  </data>
+  <data name="DanceList_UpdateFromFile" xml:space="preserve">
+    <value>From a file</value>
+  </data>
+  <data name="DanceList_UpdateFromFileTip" xml:space="preserve">
+    <value>Take the list from a dances.json on this computer</value>
+  </data>
+  <data name="DanceList_Updated" xml:space="preserve">
+    <value>Dance list updated. {0} dances are new.</value>
+  </data>
+  <data name="DanceList_AlreadyCurrent" xml:space="preserve">
+    <value>The dance list was already the published one.</value>
+  </data>
+  <data name="DanceList_UpdateFailed" xml:space="preserve">
+    <value>The dance list could not be updated: {0}. The one you have is still in use.</value>
+  </data>
+  <data name="DanceList_TrackCount" xml:space="preserve">
+    <value>{0} tracks</value>
+  </data>
+  <data name="DanceList_NoTracks" xml:space="preserve">
+    <value>no tracks</value>
+  </data>
+  <data name="DanceList_PickThisDance" xml:space="preserve">
+    <value>Queue a random track of this dance</value>
+  </data>
+  <data name="DanceList_NoTrackForDance" xml:space="preserve">
+    <value>You have no track for {0}.</value>
+  </data>
+  <data name="Wizard_DanceList_SourceUrl" xml:space="preserve">
+    <value>github.com/TJvL/BigBalfolkList</value>
+  </data>
+  <data name="DanceList_Title" xml:space="preserve">
+    <value>Dance list</value>
+  </data>
+
+  <!-- Setup wizard: emptying the list -->
+
+  <!-- Dance list scope -->
+  <data name="DanceListToolbar_SwitchToTrackList" xml:space="preserve">
+    <value>Switch to the track list</value>
+  </data>
+  <data name="DanceListToolbar_TrackListLabel" xml:space="preserve">
+    <value>Tracks</value>
+  </data>
+  <data name="TrackCatalog_SwitchToDanceList" xml:space="preserve">
+    <value>Switch to the dance list</value>
+  </data>
+  <data name="TrackCatalog_DancesLabel" xml:space="preserve">
+    <value>Dances</value>
+  </data>
+
+
+  <!-- Setup: welcome -->
+  <data name="Wizard_Welcome_Title" xml:space="preserve">
+    <value>Setting up Ready4Balfolk</value>
+  </data>
+  <data name="Wizard_Welcome_Explanation" xml:space="preserve">
+    <value>This takes a few minutes. Nothing here is permanent: every one of these screens is in the application afterwards, and you can come back to this from the settings whenever you like.</value>
+  </data>
+  <data name="Wizard_Welcome_Stage1" xml:space="preserve">
+    <value>1. The dance list</value>
+  </data>
+  <data name="Wizard_Welcome_Stage1Detail" xml:space="preserve">
+    <value>Every balfolk dance and every name it goes by, published by BigBalfolkList and used as it stands. It is fetched for you, there is nothing to fill in, and it is what your music is matched against.</value>
+  </data>
+  <data name="Wizard_Welcome_Stage2" xml:space="preserve">
+    <value>2. Where your music is</value>
+  </data>
+  <data name="Wizard_Welcome_Stage2Detail" xml:space="preserve">
+    <value>One folder. Everything below it counts, however it is arranged, and no particular naming convention is needed.</value>
+  </data>
+  <data name="Wizard_Welcome_Stage3" xml:space="preserve">
+    <value>3. How your files are named</value>
+  </data>
+  <data name="Wizard_Welcome_Stage3Detail" xml:space="preserve">
+    <value>Optional. If your files follow a shape, say so once and every file that matches is answered in one act. If they do not, nothing is assumed.</value>
+  </data>
+  <data name="Wizard_Welcome_Source" xml:space="preserve">
+    <value>The dance list is published at</value>
+  </data>
+  <data name="Wizard_Music_Required" xml:space="preserve">
+    <value>Choose a folder to continue.</value>
+  </data>
+  <data name="Settings_MusicDirectoryChangeHint" xml:space="preserve">
+    <value>Changing this re-reads your whole library, so it is part of setup rather than a setting on its own.</value>
+  </data>
+
+  <!-- Advanced discovery -->
+  <data name="Settings_AdvancedDiscovery" xml:space="preserve">
+    <value>Advanced discovery</value>
+  </data>
+  <data name="Settings_AdvancedDiscoveryHint" xml:space="preserve">
+    <value>Tell the application how your files are named and arranged. Nothing is assumed about your library until you do.</value>
+  </data>
+  <data name="Discovery_Title" xml:space="preserve">
+    <value>Advanced discovery</value>
+  </data>
+  <data name="Discovery_Intro" xml:space="preserve">
+    <value>Your library is read as it is found: no folder is assumed to be an artist and no file name is assumed to have fields in it. A rule you state here answers every file it matches in one go, so you are shown what it would do before you add it.</value>
+  </data>
+  <data name="Discovery_PatternsHeader" xml:space="preserve">
+    <value>File name patterns</value>
+  </data>
+  <data name="Discovery_PatternsHint" xml:space="preserve">
+    <value>%d dance, %a artist, %t title, %n track number, %i ignore, %ex extension. Everything else has to be there exactly. The first pattern that matches a whole name wins, so order them from most specific to least.</value>
+  </data>
+  <data name="Discovery_DraftWatermark" xml:space="preserve">
+    <value>%d - %a - %t</value>
+  </data>
+  <data name="Discovery_Declare" xml:space="preserve">
+    <value>Add this rule</value>
+  </data>
+  <data name="Discovery_PatternMatches" xml:space="preserve">
+    <value>Matches {0} of {1} files, and leaves {2}.</value>
+  </data>
+  <data name="Discovery_Coverage" xml:space="preserve">
+    <value>Your rules account for {0} of {1} files. {2} are left for you.</value>
+  </data>
+  <data name="Discovery_SamplesHeader" xml:space="preserve">
+    <value>What it makes of them</value>
+  </data>
+  <data name="Discovery_MissesHeader" xml:space="preserve">
+    <value>What it does not match</value>
+  </data>
+  <data name="Discovery_ShowDetails" xml:space="preserve">
+    <value>Show what it did</value>
+  </data>
+  <data name="Discovery_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Discovery_MoveUp" xml:space="preserve">
+    <value>Earlier</value>
+  </data>
+  <data name="Discovery_MoveDown" xml:space="preserve">
+    <value>Later</value>
+  </data>
+  <data name="Discovery_ProblemUnknownToken" xml:space="preserve">
+    <value>That is not one of the tokens.</value>
+  </data>
+  <data name="Discovery_ProblemNoFields" xml:space="preserve">
+    <value>This picks out nothing, so it would answer nothing.</value>
+  </data>
+  <data name="Discovery_ProblemAdjacentFields" xml:space="preserve">
+    <value>Two fields with nothing between them: where one ends cannot be known.</value>
+  </data>
+  <data name="Discovery_ProblemDuplicateField" xml:space="preserve">
+    <value>The same field twice, which cannot both be true.</value>
+  </data>
+  <data name="Discovery_FoldersHeader" xml:space="preserve">
+    <value>Folder levels</value>
+  </data>
+  <data name="Discovery_FoldersHint" xml:space="preserve">
+    <value>Counted from the outside in. A level only speaks for the files that are actually that deep.</value>
+  </data>
+  <data name="Discovery_LevelLabel" xml:space="preserve">
+    <value>Level {0}</value>
+  </data>
+  <data name="Discovery_LevelDepth" xml:space="preserve">
+    <value>{0} of {1} files are this deep</value>
+  </data>
+  <data name="Discovery_LevelValue" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Discovery_TagsHeader" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Discovery_TagsHint" xml:space="preserve">
+    <value>Which tag fields hold which value in your library. Left alone, artist and album artist are read as the artist, the title tag as the title, and no tag is read as the dance. A dance name from your list is still found in any tag, whatever you set here.</value>
+  </data>
+  <data name="Discovery_CustomDanceTag" xml:space="preserve">
+    <value>Custom dance tag</value>
+  </data>
+  <data name="Discovery_CustomDanceTagHint" xml:space="preserve">
+    <value>The name of a custom tag in your files whose value is the dance, such as DANCE or STYLE. Leave empty if your files carry no such tag.</value>
+  </data>
+  <data name="Discovery_CustomDanceTagPlaceholder" xml:space="preserve">
+    <value>tag name</value>
+  </data>
+  <data name="Discovery_CustomDanceTagCount" xml:space="preserve">
+    <value>Found on {0} of {1} files.</value>
+  </data>
+  <data name="Discovery_UseDefault" xml:space="preserve">
+    <value>Leave this to the application</value>
+  </data>
+  <data name="Discovery_ApplyRolesAndTags" xml:space="preserve">
+    <value>Save folders and tags</value>
+  </data>
+  <data name="Discovery_FieldDance" xml:space="preserve">
+    <value>Dance</value>
+  </data>
+  <data name="TrackCatalog_EditTrack" xml:space="preserve">
+    <value>Edit track</value>
+  </data>
+  <data name="EditTrack_WindowTitle" xml:space="preserve">
+    <value>Edit track</value>
+  </data>
+  <data name="EditTrack_UnknownDance" xml:space="preserve">
+    <value>The dance list does not know "{0}". A missing dance is a proposal at BigBalfolkList, not a local override.</value>
+  </data>
+  <data name="Discovery_FieldArtist" xml:space="preserve">
+    <value>Artist</value>
+  </data>
+  <data name="Discovery_FieldTitle" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Discovery_TagTitle" xml:space="preserve">
+    <value>title</value>
+  </data>
+  <data name="Discovery_TagArtist" xml:space="preserve">
+    <value>artist</value>
+  </data>
+  <data name="Discovery_TagAlbumArtist" xml:space="preserve">
+    <value>album artist</value>
+  </data>
+  <data name="Discovery_TagAlbum" xml:space="preserve">
+    <value>album</value>
+  </data>
+  <data name="Discovery_TagComment" xml:space="preserve">
+    <value>comment</value>
+  </data>
+  <data name="Discovery_RoleUnknown" xml:space="preserve">
+    <value>Not stated</value>
+  </data>
+  <data name="Discovery_RoleArtist" xml:space="preserve">
+    <value>Artist</value>
+  </data>
+  <data name="Discovery_RoleAlbum" xml:space="preserve">
+    <value>Album</value>
+  </data>
+  <data name="Discovery_RoleDance" xml:space="preserve">
+    <value>Dance</value>
+  </data>
+  <data name="Discovery_RoleIgnore" xml:space="preserve">
+    <value>Means nothing</value>
+  </data>
+
+  <!-- Review -->
+  <data name="Review_Title" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Review_Intro" xml:space="preserve">
+    <value>Nothing is waiting. New files, retagged files and renamed ones come back here on their own.</value>
+  </data>
+  <data name="Review_Keys" xml:space="preserve">
+    <value>Tab between the fields, up and down between the tracks. Enter answers one, Shift+Enter the whole folder. Shift+Space listens, Escape stops, and the arrows then skip five seconds. The least certain come first, so stopping early still leaves your library better.</value>
+  </data>
+  <data name="Review_Waiting" xml:space="preserve">
+    <value>{0} tracks waiting, in {1} folders.</value>
+  </data>
+  <data name="Review_NothingWaiting" xml:space="preserve">
+    <value>Nothing is waiting.</value>
+  </data>
+  <data name="Review_Approve" xml:space="preserve">
+    <value>Answer (Enter)</value>
+  </data>
+  <data name="Review_ApproveFolder" xml:space="preserve">
+    <value>Answer this folder (Shift+Enter)</value>
+  </data>
+  <data name="Review_Dance" xml:space="preserve">
+    <value>Dance</value>
+  </data>
+  <data name="Review_Artist" xml:space="preserve">
+    <value>Artist</value>
+  </data>
+  <data name="Review_TitleField" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Review_FromTag" xml:space="preserve">
+    <value>from the {0} tag</value>
+  </data>
+  <data name="Review_FromFileName" xml:space="preserve">
+    <value>from the file name ({0})</value>
+  </data>
+  <data name="Review_FromFolder" xml:space="preserve">
+    <value>from the folder ({0})</value>
+  </data>
+  <data name="Review_FromRule" xml:space="preserve">
+    <value>by your rule {0}</value>
+  </data>
+  <data name="Review_FromYou" xml:space="preserve">
+    <value>you answered this</value>
+  </data>
+  <data name="Review_FromNothing" xml:space="preserve">
+    <value>nothing said anything</value>
+  </data>
+  <data name="Review_ReasonMissing" xml:space="preserve">
+    <value>something is missing</value>
+  </data>
+  <data name="Review_ReasonUnapproved" xml:space="preserve">
+    <value>waiting for you</value>
+  </data>
+  <data name="Review_ReasonUnknownDance" xml:space="preserve">
+    <value>that dance is not in the list</value>
+  </data>
+  <data name="Review_ReasonChanged" xml:space="preserve">
+    <value>the file changed after you answered it</value>
+  </data>
+  <data name="Review_Answered" xml:space="preserve">
+    <value>answered</value>
+  </data>
+  <data name="Review_ParkedOnUnknownDance" xml:space="preserve">
+    <value>waiting for the list</value>
+  </data>
+  <data name="Review_UnknownDanceHint" xml:space="preserve">
+    <value>The dance list is shared, so a missing dance is a proposal at BigBalfolkList rather than something to add here. Your answer is kept, and the track goes into the library the moment the list carries the name.</value>
+  </data>
+  <data name="Toolbar_Review" xml:space="preserve">
+    <value>Everything waiting for you</value>
+  </data>
+  <data name="Toolbar_ReviewLabel" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Toolbar_ReviewCount" xml:space="preserve">
+    <value>{0} tracks waiting</value>
+  </data>
+  <data name="Wizard_Review_Title" xml:space="preserve">
+    <value>What is waiting for you</value>
+  </data>
+  <data name="Wizard_Review_Explanation" xml:space="preserve">
+    <value>Nothing reaches your library until it has an artist, a title, a dance from the published list, and you agreeing to all three. The least certain come first, so answering the top of the list is worth the most. You can answer these now or leave them: the same screen is in the application, and nothing here has to be finished before you use it.</value>
+  </data>
+  <data name="Review_Scanning" xml:space="preserve">
+    <value>Reading your library. {0} tracks so far.</value>
+  </data>
+  <data name="Review_ScanningHint" xml:space="preserve">
+    <value>The first time takes a few minutes. Nothing can be answered until it is done, because a queue built from half a library is worse than no queue.</value>
+  </data>
+  <data name="Wizard_Welcome_Stage4" xml:space="preserve">
+    <value>4. What is waiting for you</value>
+  </data>
+  <data name="Wizard_Welcome_Stage4Detail" xml:space="preserve">
+    <value>Your music is read once, which takes a few minutes the first time. Nothing reaches your library until it has an artist, a title, a dance from the list and your say-so, so whatever is left over waits for you. Answer as much or as little of it as you feel like.</value>
+  </data>
+  <data name="Wizard_Discovery_Title" xml:space="preserve">
+    <value>How your files are named</value>
+  </data>
+  <data name="Wizard_Discovery_Explanation" xml:space="preserve">
+    <value>Optional, and worth a minute if your files follow a shape. A rule stated here answers every file it matches in one act, so the step after this is the leftovers rather than your whole library. Nothing is assumed if you skip it.</value>
+  </data>
+  <data name="Discovery_Scanning" xml:space="preserve">
+    <value>Reading your library. A rule can be measured once that is done.</value>
+  </data>
+  <data name="Discovery_ApplyHint" xml:space="preserve">
+    <value>The folder levels and tags above do nothing until you save them. Your library is read again afterwards, so a rule answers the files already in it.</value>
+  </data>
+  <data name="Review_Preview" xml:space="preserve">
+    <value>Listen to a bit of this</value>
+  </data>
+  <data name="Review_StopPreview" xml:space="preserve">
+    <value>Stop listening</value>
+  </data>
+  <data name="Review_PreviewRefused" xml:space="preserve">
+    <value>The room is listening to the queue, so nothing is played here.</value>
+  </data>
+  <data name="Review_UseForAll" xml:space="preserve">
+    <value>Use for all {0} that say "{1}"</value>
+  </data>
+  <data name="Review_UsedForAll" xml:space="preserve">
+    <value>{0} tracks now say {1}. They still want confirming, one by one.</value>
+  </data>
+  <data name="Review_NotADance" xml:space="preserve">
+    <value>"{0}" is not a dance</value>
+  </data>
+  <data name="Review_NotADanceHint" xml:space="preserve">
+    <value>Clears it everywhere it appears and remembers it, so a rescan does not put it back. The tracks still need a real dance.</value>
+  </data>
+  <data name="Discovery_ProposalsHeader" xml:space="preserve">
+    <value>What your library looks like</value>
+  </data>
+  <data name="Discovery_ProposalsHint" xml:space="preserve">
+    <value>Measured from your own files, and applied to nothing until you say so. Where the measurements do not agree, the shape is shown and nothing is named.</value>
+  </data>
+  <data name="Discovery_ProposalShape" xml:space="preserve">
+    <value>{0} of {1} files are shaped like {2}</value>
+  </data>
+  <data name="Discovery_ProposalShapeUnnamed" xml:space="preserve">
+    <value>{0} of {1} files share a shape, and nothing in it can be named</value>
+  </data>
+  <data name="Discovery_ProposalLevel" xml:space="preserve">
+    <value>Level {0} looks like the {1}. {2} of {3} agree.</value>
+  </data>
+  <data name="Discovery_ProposalPosition" xml:space="preserve">
+    <value>position {0}: {1} — {2} of {5} are dance names, {3} different values, {4} agree with a tag</value>
+  </data>
+  <data name="Discovery_ProposalNothing" xml:space="preserve">
+    <value>nothing can say</value>
+  </data>
+  <data name="Discovery_ProposalAccept" xml:space="preserve">
+    <value>Declare it</value>
+  </data>
+  <data name="Discovery_ProposalDismiss" xml:space="preserve">
+    <value>Not that</value>
+  </data>
+  <data name="Discovery_ProposalSamples" xml:space="preserve">
+    <value>Show the files</value>
+  </data>
+  <data name="Review_Rules" xml:space="preserve">
+    <value>Rules</value>
+  </data>
+  <data name="Review_RulesHint" xml:space="preserve">
+    <value>How your files are named. A rule here empties this queue in one go.</value>
+  </data>
+  <data name="Review_AllowOutsideTheList" xml:space="preserve">
+    <value>Let dances outside the published list into my library</value>
+  </data>
+  <data name="Review_AllowOutsideTheListHint" xml:space="preserve">
+    <value>Off, a dance the list does not carry keeps its track here until a proposal at BigBalfolkList is merged. On, your answer is enough — but a random pick draws by tag, and a dance nobody has published has none, so those tracks never come up on their own.</value>
+  </data>
+  <data name="Review_ApproveFolderCount" xml:space="preserve">
+    <value>Answer all {0} here (Shift+Enter)</value>
+  </data>
+  <data name="Review_ApproveFolderConfirmTitle" xml:space="preserve">
+    <value>Answer all of them?</value>
+  </data>
+  <data name="Review_ApproveFolderConfirm" xml:space="preserve">
+    <value>This answers {0} tracks in {1}, taking the artist and title each one already has. Nothing is filled in for you, and a track still missing something is left alone.</value>
+  </data>
+  <data name="Review_ApproveFolderYes" xml:space="preserve">
+    <value>Answer them</value>
+  </data>
+  <data name="Review_ApproveFolderNo" xml:space="preserve">
+    <value>Leave them</value>
+  </data>
+  <data name="Review_LooseFiles" xml:space="preserve">
+    <value>Loose in your music folder</value>
+  </data>
+  <data name="Discovery_DanceListUrl" xml:space="preserve">
+    <value>tjvl.github.io/BigBalfolkList</value>
+  </data>
+  <data name="Discovery_DanceListHint" xml:space="preserve">
+    <value>The dance list every track is matched against. It is shared, so a dance missing from it is proposed there rather than added here, and your tracks waiting on one go into your library the moment it carries the name.</value>
   </data>
 </root>

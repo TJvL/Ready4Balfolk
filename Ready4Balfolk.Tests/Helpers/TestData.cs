@@ -1,75 +1,52 @@
-using System.IO.Abstractions;
-using Ready4Balfolk.Domain.Models.Synonyms;
+using System.IO.Abstractions.TestingHelpers;
+using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Tracks;
-using Ready4Balfolk.Domain.Models.Tree;
 
 namespace Ready4Balfolk.Tests.Helpers;
 
 public static class TestData
 {
-    public static Track CreateTrack(IFileSystem fileSystem, string dance = "Mazurka", string artist = "Artist",
-        string title = "Title", int lengthSeconds = 180, AudioFormat format = AudioFormat.Mp3)
-    {
-        var filename = $"/tmp/test/{dance}_{artist}_{title}.mp3".Replace(' ', '_');
+    // One shared in-memory filesystem for every fixture-built track: the tracks only ever need a
+    // path identity, never a file that exists.
+    private static readonly MockFileSystem FileSystem = new();
 
-        var fileInfo = fileSystem.FileInfo.New(filename);
-        fileInfo.Directory?.Create();
-        using var stream = fileInfo.Create();
-
-        return new(dance, artist, title, fileInfo,
-            TimeSpan.FromSeconds(lengthSeconds), format);
-    }
-
-    public static DanceBranch CreateBranch(string name, int weight = 1,
-        IEnumerable<DanceBranch>? children = null, IEnumerable<DanceLeaf>? leaves = null)
-        => new()
+    /// <summary>
+    /// A track. <paramref name="slug"/> defaults to the dance name lowercased, which matches the
+    /// slugs in <see cref="CreateSimpleDanceList"/>; pass null for a track the list does not know.
+    /// </summary>
+    public static Track CreateTrack(string dance = "Mazurka", string artist = "Artist",
+        string title = "Title", int lengthSeconds = 180, AudioFormat format = AudioFormat.Mp3,
+        string? slug = "")
+        => new(dance, artist, title,
+            FileSystem.FileInfo.New($"/tmp/test/{dance}_{artist}_{title}.mp3".Replace(' ', '_')),
+            TimeSpan.FromSeconds(lengthSeconds), format)
         {
-            Name = name,
-            Weight = weight,
-            Branches = children ?? [],
-            Leafs = leaves ?? []
+            DanceSlug = slug == string.Empty ? dance.ToLowerInvariant() : slug
         };
 
-    public static DanceLeaf CreateLeaf(string name, int weight = 1)
-        => new(name, weight);
-
-    public static DanceMainName CreateMainName(string name, params string[] synonyms)
-        => new(name, synonyms.Select(s => new DanceSynonym(s)).ToList());
-
-    /// <summary>
-    /// Standard tree:
-    /// Root
-    ///   ├─ Folk (weight 2)
-    ///   │   ├─ Mazurka (leaf, weight 1)
-    ///   │   └─ Schottische (leaf, weight 1)
-    ///   └─ Bal (weight 1)
-    ///       ├─ Bourree (leaf, weight 1)
-    ///       └─ Waltz (leaf, weight 2)
-    /// </summary>
-    public static IReadOnlyList<DanceBranch> CreateSimpleTree()
-        =>
-        [
-            CreateBranch("Folk", 2, leaves:
-            [
-                CreateLeaf("Mazurka"),
-                CreateLeaf("Schottische")
-            ]),
-            CreateBranch("Bal", leaves:
-            [
-                CreateLeaf("Bourree"),
-                CreateLeaf("Waltz", 2)
-            ])
-        ];
+    public static Dance CreateDance(string slug, string[]? tags = null, params string[] names)
+        => new()
+        {
+            Slug = slug,
+            Names = names.Length > 0 ? names : [slug],
+            Tags = tags ?? []
+        };
 
     /// <summary>
-    /// Standard synonyms:
-    ///   Mazurka → [Mazurk, Mazou]
-    ///   Scottisch → [Schottische, Reinlander]
+    /// Standard dance list, in the shape BigBalfolkList publishes:
+    /// mazurka [Mazurka, Mazurk]      common
+    /// scottish [Scottish, Schottische] common
+    /// plinn [Plinn]                  bretagne, suite
     /// </summary>
-    public static IReadOnlyList<DanceMainName> CreateSimpleSynonyms()
-        =>
-        [
-            CreateMainName("Mazurka", "Mazurk", "Mazou"),
-            CreateMainName("Scottisch", "Schottische", "Reinlander")
-        ];
+    public static DanceList CreateSimpleDanceList()
+        => new()
+        {
+            Tags = ["bretagne", "common", "suite"],
+            Dances =
+            [
+                CreateDance("mazurka", ["common"], "Mazurka", "Mazurk"),
+                CreateDance("scottish", ["common"], "Scottish", "Schottische"),
+                CreateDance("plinn", ["bretagne", "suite"], "Plinn")
+            ]
+        };
 }

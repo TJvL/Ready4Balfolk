@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Models.Settings;
 
@@ -11,13 +10,10 @@ public sealed record ApplicationSettings(
     bool AutoQueueRandomTrack,
     bool AllowDuplicateTracksInQueue,
     bool RequirePlaybackConfirmation,
-    bool AdditionalSongInformationRetrieval,
-    DiscoveryPattern DiscoveryPattern,
     ApplicationTheme ApplicationTheme,
     ApplicationLanguage ApplicationLanguage,
     WindowState MainWindowState,
     IEnumerable<WindowState> PresentationWindowStates,
-    IEnumerable<string> CollapsedBranches,
     // Last, and with a default, so settings files written before this existed still deserialize.
     bool ShowButtonText = false,
     bool QueueCutoffEnabled = false,
@@ -37,10 +33,21 @@ public sealed record ApplicationSettings(
     // reach it can skip the track a hall full of people is dancing to.
     bool WebRemoteControlEnabled = false,
     // Empty until the remote is first enabled, at which point one is generated.
-    string WebRemoteControlPin = "")
+    string WebRemoteControlPin = "",
+    // False on a settings file written before the wizard existed, which is the right answer: those
+    // profiles have no dance list either, so they get the same first run as a new one.
+    bool SetupCompleted = false,
+    // Null rather than an instance, for the same reason as the equalizer: a constructor default has
+    // to be a compile-time constant. Read it through Discovery, never directly.
+    DiscoverySettings? DiscoveryOrNull = null,
+    // Off, because the shared list is what makes a dance name mean the same thing to everybody, and
+    // a local answer is a proposal at BigBalfolkList waiting to be made. On, a track you have
+    // answered reaches the library whatever you called the dance — at the price that a random pick
+    // draws by tag, and a dance the list has never heard of carries none.
+    bool AllowDancesOutsideTheList = false)
 {
-    public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, true, DiscoveryPattern.DefaultDefault, ApplicationTheme.Automatic,
-        ApplicationLanguage.English, new WindowState(), [], [])
+    public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
+        ApplicationLanguage.English, new WindowState(), [])
     {
     }
 
@@ -54,6 +61,10 @@ public sealed record ApplicationSettings(
     /// <remarks>Below 1024 needs root on Linux, which this app will never have.</remarks>
     [JsonIgnore]
     public int WebServerPortClamped => Math.Clamp(WebServerPort, 1024, 65535);
+
+    /// <summary>What the user has declared about the shape of their library, empty until they do.</summary>
+    [JsonIgnore]
+    public DiscoverySettings Discovery => DiscoveryOrNull ?? DiscoverySettings.Undeclared;
 
     /// <summary>Output equalizer, flat when the settings file predates it.</summary>
     /// <remarks>

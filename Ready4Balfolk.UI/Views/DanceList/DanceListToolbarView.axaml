@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:res="using:Ready4Balfolk.UI.Resources"
+             xmlns:controls="using:Ready4Balfolk.UI.Controls"
+             xmlns:danceList="using:Ready4Balfolk.UI.Views.DanceList"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="40"
+             x:Class="Ready4Balfolk.UI.Views.DanceList.DanceListToolbarView"
+             x:DataType="danceList:DanceListViewModel">
+    <StackPanel Orientation="Horizontal" Spacing="4">
+        <Button Click="OnToggleClick"
+                ToolTip.Tip="{x:Static res:UiStrings.DanceListToolbar_SwitchToTrackList}"
+                Padding="8"
+                Focusable="False">
+            <controls:ButtonContent Icon="{StaticResource IconMenu}"
+                                    Text="{x:Static res:UiStrings.DanceListToolbar_TrackListLabel}"
+                                    IconSize="16" />
+        </Button>
+
+        <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
+
+        <!-- What a random pick is drawing from, said out loud: the pool is set by clicking tags in
+             the rail, which is easy to do on the way past and impossible to notice afterwards. -->
+        <PathIcon Data="{StaticResource IconDice}"
+                  Width="14" Height="14"
+                  Opacity="0.7"
+                  VerticalAlignment="Center" />
+        <TextBlock Text="{CompiledBinding PoolDescription}"
+                   VerticalAlignment="Center"
+                   FontSize="12"
+                   Opacity="0.7" />
+        <Button Command="{CompiledBinding ClearPoolCommand}"
+                IsVisible="{CompiledBinding HasPool}"
+                ToolTip.Tip="{x:Static res:UiStrings.DanceList_ClearPoolTip}"
+                Padding="8"
+                Focusable="False">
+            <controls:ButtonContent Icon="{StaticResource IconClose}"
+                                    Text="{x:Static res:UiStrings.DanceList_ClearPool}"
+                                    IconSize="14" />
+        </Button>
+    </StackPanel>
+</UserControl>

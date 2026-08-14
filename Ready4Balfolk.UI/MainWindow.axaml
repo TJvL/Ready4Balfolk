@@ -9,7 +9,8 @@
         xmlns:queue="using:Ready4Balfolk.UI.Views.Queue"
         xmlns:history="using:Ready4Balfolk.UI.Views.History"
         xmlns:trackCatalog="using:Ready4Balfolk.UI.Views.TrackCatalog"
-        xmlns:danceTree="using:Ready4Balfolk.UI.Views.DanceTree"
+        xmlns:danceList="using:Ready4Balfolk.UI.Views.DanceList"
+        xmlns:wizard="using:Ready4Balfolk.UI.Views.Wizard"
         xmlns:notifications="using:Ready4Balfolk.UI.Views.Notifications"
         xmlns:rxui="http://reactiveui.net"
         xmlns:res="using:Ready4Balfolk.UI.Resources"
@@ -53,23 +54,23 @@
                 </Panel>
             </DockPanel>
 
-            <!-- Right Column: TrackCatalog/DanceTree -->
+            <!-- Right Column: TrackCatalog/DanceList -->
             <DockPanel Grid.Column="1" Margin="8,0,0,0">
-                <!-- TrackCatalog/DanceTree toolbar swap -->
+                <!-- TrackCatalog/DanceList toolbar swap -->
                 <Panel DockPanel.Dock="Top">
                     <trackCatalog:TrackCatalogToolbarView DataContext="{Binding TrackCatalog}"
-                                                          IsVisible="{Binding $parent[Window].((ui:MainWindowViewModel)DataContext).Navigation.IsTreeViewMode, Converter={x:Static BoolConverters.Not}}"
+                                                          IsVisible="{Binding $parent[Window].((ui:MainWindowViewModel)DataContext).Navigation.IsDanceListMode, Converter={x:Static BoolConverters.Not}}"
                                                           Margin="0,0,0,4" />
-                    <danceTree:DanceTreeToolbarView DataContext="{Binding DanceTree}"
-                                                    IsVisible="{Binding $parent[Window].((ui:MainWindowViewModel)DataContext).Navigation.IsTreeViewMode}"
+                    <danceList:DanceListToolbarView DataContext="{Binding DanceList}"
+                                                    IsVisible="{Binding $parent[Window].((ui:MainWindowViewModel)DataContext).Navigation.IsDanceListMode}"
                                                     Margin="0,0,0,4" />
                 </Panel>
-                <!-- TrackCatalog/DanceTree content swap -->
+                <!-- TrackCatalog/DanceList content swap -->
                 <Panel>
                     <trackCatalog:TrackCatalogView DataContext="{Binding TrackCatalog}"
-                                                    IsVisible="{Binding $parent[Window].((ui:MainWindowViewModel)DataContext).Navigation.IsTreeViewMode, Converter={x:Static BoolConverters.Not}}" />
-                    <danceTree:DanceTreeView DataContext="{Binding DanceTree}"
-                                             IsVisible="{Binding $parent[Window].((ui:MainWindowViewModel)DataContext).Navigation.IsTreeViewMode}" />
+                                                    IsVisible="{Binding $parent[Window].((ui:MainWindowViewModel)DataContext).Navigation.IsDanceListMode, Converter={x:Static BoolConverters.Not}}" />
+                    <danceList:DanceListView DataContext="{Binding DanceList}"
+                                             IsVisible="{Binding $parent[Window].((ui:MainWindowViewModel)DataContext).Navigation.IsDanceListMode}" />
                 </Panel>
             </DockPanel>
         </Grid>
@@ -98,10 +99,21 @@
             <rxui:ViewModelViewHost ViewModel="{Binding Help}" />
         </DockPanel>
 
-        <!-- Synonyms Screen -->
-        <Panel IsVisible="{Binding Navigation.IsSynonymsScreen}"
-               Margin="16">
-            <rxui:ViewModelViewHost ViewModel="{Binding DanceSynonyms}" />
+        <!-- Review Screen -->
+        <DockPanel IsVisible="{Binding Navigation.IsReviewScreen}"
+                   Margin="16">
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
+                <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
+                    <controls:ButtonContent Icon="{StaticResource IconArrowLeft}" Text="{x:Static res:UiStrings.MainWindow_BackLabel}" IconSize="16" />
+                </Button>
+                <TextBlock Text="{x:Static res:UiStrings.Review_Title}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
+            </StackPanel>
+            <rxui:ViewModelViewHost ViewModel="{Binding Review}" />
+        </DockPanel>
+
+        <!-- Setup: the whole window, because its steps are full screens in their own right -->
+        <Panel IsVisible="{Binding Navigation.IsSetupScreen}">
+            <rxui:ViewModelViewHost ViewModel="{Binding Setup}" />
         </Panel>
 
         <!-- Notification Overlay -->

@@ -1,17 +1,14 @@
-using System.IO.Abstractions.TestingHelpers;
 using System.Reactive.Subjects;
 using DynamicData;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
-using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.DanceTree;
 using Ready4Balfolk.UI.Views.Queue;
 using RxUnit = System.Reactive.Unit;
 
@@ -21,7 +18,7 @@ public sealed class QueueViewModelTests : IDisposable
 {
     private readonly IQueueService _queueService;
     private readonly IRandomTrackService _randomTrackService;
-    private readonly DanceTreeViewModel _danceTreeVm;
+    private readonly IDancePool _dancePool = new DancePool();
     private readonly IConfirmationService _confirmation;
     private readonly INotificationService _notification;
     private readonly QueueViewModel _sut;
@@ -106,39 +103,13 @@ public sealed class QueueViewModelTests : IDisposable
             Arg.Any<string>(), Arg.Any<string>()).Returns(true);
         _notification = Substitute.For<INotificationService>();
 
-        _danceTreeVm = CreateMinimalDanceTreeVm();
-
         _sut = new QueueViewModel(
             _queueService, consumption, settingsStore,
-            _randomTrackService, _danceTreeVm, _confirmation, _notification);
-    }
-
-    private DanceTreeViewModel CreateMinimalDanceTreeVm()
-    {
-        var treeStore = Substitute.For<Domain.Stores.Tree.IDanceTreeStore>();
-        treeStore.Current.Returns(TestData.CreateSimpleTree());
-        treeStore.Observe()
-            .Returns(new BehaviorSubject<IReadOnlyList<Domain.Models.Tree.DanceBranch>>(TestData.CreateSimpleTree()));
-
-        var editorHistory = Substitute.For<Domain.Services.Editor.IEditorHistoryService>();
-        editorHistory.CanUndo.Returns(new BehaviorSubject<bool>(false));
-        editorHistory.CanRedo.Returns(new BehaviorSubject<bool>(false));
-        editorHistory.UndoDescription.Returns(new BehaviorSubject<string?>(null));
-        editorHistory.RedoDescription.Returns(new BehaviorSubject<string?>(null));
-
-        var trackStore = Substitute.For<Domain.Stores.Tracks.ITrackStore>();
-        trackStore.Connect().Returns(new SourceList<Track>().Connect());
-
-        var settingsStore = Substitute.For<ISettingsStore>();
-        settingsStore.Current.Returns(new ApplicationSettings());
-        settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(new ApplicationSettings()));
-
-        var randomTrack = Substitute.For<IRandomTrackService>();
-        var queueService = Substitute.For<IQueueService>();
-        queueService.Connect().Returns(new SourceList<IQueueItem>().Connect());
-
-        return new DanceTreeViewModel(treeStore, editorHistory, trackStore,
-            settingsStore, randomTrack, queueService, _notification, new NoOpLoggerService());
+            _randomTrackService, _dancePool, _confirmation, _notification,
+            new TrackEditorService(
+                Substitute.For<Domain.Stores.Dances.IDanceListStore>(),
+                Substitute.For<Domain.Stores.Library.ILibraryIndex>(),
+                Substitute.For<Domain.Stores.Tracks.ITrackStore>()));
     }
 
     // --- QueueRandomTrack ---
@@ -146,9 +117,7 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void QueueRandomTrack_WithTrack_Enqueues()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         _randomTrackService.PickRandomTrack(Arg.Any<RandomSelectionScope>(), Arg.Any<bool>())
             .Returns(track);
 
@@ -171,9 +140,7 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void QueueRandomTrack_QueueFull_ShowsWarning()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         _randomTrackService.PickRandomTrack(Arg.Any<RandomSelectionScope>(), Arg.Any<bool>())
             .Returns(track);
         _queueService.Enqueue(Arg.Any<IQueueItem>())
@@ -216,9 +183,7 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void RemoveSelected_AutoTrackBlocked()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
         _sut.SelectedItem = auto;
 
         // CanRemoveSelected should be false for AutoTrackQueueItem
@@ -231,9 +196,7 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void ClearQueue_WithConfirmation_Clears()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
 
         _sut.ClearQueueCommand.Execute().Subscribe();
 
@@ -243,11 +206,9 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void ClearQueue_WithoutConfirmation_DoesNotClear()
     {
-        var mockFileSystem = new MockFileSystem();
-
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<string>()).Returns(false);
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
 
         _sut.ClearQueueCommand.Execute().Subscribe();
 
@@ -259,10 +220,8 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void MoveItem_ValidIndices_Moves()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("B"), false));
 
         _sut.MoveItem(0, 1);
 
@@ -272,11 +231,9 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void MoveItem_AutoTrack_DelegatesToService()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
         _queueSource.Add(auto);
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("B"), false));
 
         _sut.MoveItem(0, 1);
 
@@ -292,11 +249,9 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void MoveSelectedUp_DuplicateStops_MovesSelectedInstance()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("A"), false));
         _queueSource.Add(new StopQueueItem());
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("B"), false));
         var lastStop = new StopQueueItem();
         _queueSource.Add(lastStop);
 
@@ -309,10 +264,8 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void MoveStates_DuplicateStops_UseSelectedInstancePosition()
     {
-        var mockFileSystem = new MockFileSystem();
-
         _queueSource.Add(new StopQueueItem());
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
         var lastStop = new StopQueueItem();
         _queueSource.Add(lastStop);
 
@@ -325,10 +278,8 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void DeleteSelectedItem_DuplicateStops_RemovesSelectedInstance()
     {
-        var mockFileSystem = new MockFileSystem();
-
         _queueSource.Add(new StopQueueItem());
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
         var lastStop = new StopQueueItem();
         _queueSource.Add(lastStop);
 
@@ -346,19 +297,15 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void ItemCountText_OneItem()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
         Assert.Equal("1 item", _sut.ItemCountText);
     }
 
     [Fact]
     public void ItemCountText_MultipleItems()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false));
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("B"), false));
         Assert.Equal("2 items", _sut.ItemCountText);
     }
 
@@ -367,9 +314,7 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void HasItems_ExcludesAutoTrack()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
         _queueSource.Add(auto);
         Assert.False(_sut.HasItems);
     }
@@ -377,9 +322,7 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void HasItems_TrueForRegularItems()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
         Assert.True(_sut.HasItems);
     }
 
@@ -388,13 +331,12 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void AutoTrack_Enqueued_WhenQueueHasRequests()
     {
-        var mockFileSystem = new MockFileSystem();
-        var track = TestData.CreateTrack(mockFileSystem, "Auto");
+        var track = TestData.CreateTrack("Auto");
         _randomTrackService.PickRandomTrack(Arg.Any<RandomSelectionScope>(), Arg.Any<bool>())
             .Returns(track);
-        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Playing"), false));
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Playing"), false));
 
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Request"), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("Request"), false));
 
         _queueService.Received().Enqueue(Arg.Is<AutoTrackQueueItem>(a => a!.TrackQueueItem.Track == track));
     }
@@ -402,14 +344,13 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void AutoTrack_NotEnqueued_WhenOneIsAlreadyPresent()
     {
-        var mockFileSystem = new MockFileSystem();
         _randomTrackService.PickRandomTrack(Arg.Any<RandomSelectionScope>(), Arg.Any<bool>())
-            .Returns(TestData.CreateTrack(mockFileSystem, "Auto"));
-        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Playing"), false));
-        _queueSource.Add(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Existing"), true)));
+            .Returns(TestData.CreateTrack("Auto"));
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Playing"), false));
+        _queueSource.Add(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Existing"), true)));
         _queueService.ClearReceivedCalls();
 
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Request"), false));
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("Request"), false));
 
         _queueService.DidNotReceive().Enqueue(Arg.Any<AutoTrackQueueItem>());
     }
@@ -417,10 +358,9 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void MoveDown_Blocked_ForItemAboveAutoTrack()
     {
-        var mockFileSystem = new MockFileSystem();
-        var request = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Request"), false);
+        var request = new TrackQueueItem(TestData.CreateTrack("Request"), false);
         _queueSource.Add(request);
-        _queueSource.Add(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Auto"), true)));
+        _queueSource.Add(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true)));
 
         _sut.SelectedItem = request;
 
@@ -432,8 +372,7 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void PinAutoTrack_QueueFull_KeepsSameAutoTrackAndWarns()
     {
-        var mockFileSystem = new MockFileSystem();
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Auto"), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true));
         _queueSource.Add(auto);
         _queueService.InsertAt(Arg.Any<int>(), Arg.Any<IQueueItem>())
             .Returns(QueueAddResult.Deny("Queue is full (max 6 items)."));
@@ -448,8 +387,7 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void PinAutoTrack_Allowed_DoesNotReAddAutoTrack()
     {
-        var mockFileSystem = new MockFileSystem();
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Auto"), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true));
         _queueSource.Add(auto);
 
         _sut.PinAutoTrack(auto);
@@ -462,9 +400,7 @@ public sealed class QueueViewModelTests : IDisposable
     [Fact]
     public void PinAutoTrack_ConvertsToRegularTrack()
     {
-        var mockFileSystem = new MockFileSystem();
-
-        var innerTrack = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true);
+        var innerTrack = new TrackQueueItem(TestData.CreateTrack(), true);
         var auto = new AutoTrackQueueItem(innerTrack);
         _queueSource.Add(auto);
 
@@ -478,7 +414,6 @@ public sealed class QueueViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
-        _danceTreeVm.Dispose();
         _queueSource.Dispose();
         _currentItem.Dispose();
         _elapsed.Dispose();

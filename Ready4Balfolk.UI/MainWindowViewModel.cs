@@ -3,16 +3,17 @@ using System.Reactive.Linq;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.DanceSynonyms;
-using Ready4Balfolk.UI.Views.DanceTree;
+using Ready4Balfolk.UI.Views.DanceList;
 using Ready4Balfolk.UI.Views.Equalizer;
 using Ready4Balfolk.UI.Views.Help;
 using Ready4Balfolk.UI.Views.History;
 using Ready4Balfolk.UI.Views.Playback;
 using Ready4Balfolk.UI.Views.Queue;
+using Ready4Balfolk.UI.Views.Review;
 using Ready4Balfolk.UI.Views.Settings;
 using Ready4Balfolk.UI.Views.Toolbar;
 using Ready4Balfolk.UI.Views.TrackCatalog;
+using Ready4Balfolk.UI.Views.Wizard;
 
 namespace Ready4Balfolk.UI;
 
@@ -26,10 +27,11 @@ public sealed partial class MainWindowViewModel : ReactiveObject
     public TrackCatalogViewModel TrackCatalog { get; }
 
     [Reactive] public partial HistoryViewModel? History { get; set; }
-    [Reactive] public partial DanceTreeViewModel? DanceTree { get; set; }
+    [Reactive] public partial DanceListViewModel? DanceList { get; set; }
     [Reactive] public partial SettingsViewModel? Settings { get; set; }
     [Reactive] public partial HelpViewModel? Help { get; set; }
-    [Reactive] public partial DanceSynonymsViewModel? DanceSynonyms { get; set; }
+    [Reactive] public partial ReviewViewModel? Review { get; set; }
+    [Reactive] public partial SetupWizardViewModel? Setup { get; set; }
 
     public MainWindowViewModel(
         NavigationService navigation,
@@ -39,10 +41,11 @@ public sealed partial class MainWindowViewModel : ReactiveObject
         QueueViewModel queue,
         TrackCatalogViewModel trackCatalog,
         Lazy<HistoryViewModel> lazyHistory,
-        Lazy<DanceTreeViewModel> lazyDanceTree,
+        Lazy<DanceListViewModel> lazyDanceList,
         Lazy<SettingsViewModel> lazySettings,
         Lazy<HelpViewModel> lazyHelp,
-        Lazy<DanceSynonymsViewModel> lazyDanceSynonyms)
+        Lazy<ReviewViewModel> lazyReview,
+        Func<SetupWizardViewModel> setupFactory)
     {
         Navigation = navigation;
         Toolbar = toolbar;
@@ -63,9 +66,20 @@ public sealed partial class MainWindowViewModel : ReactiveObject
                 {
                     Help = lazyHelp.Value;
                 }
-                else if (screen is Screen.Synonyms && DanceSynonyms is null)
+                else if (screen is Screen.Setup)
                 {
-                    DanceSynonyms = lazyDanceSynonyms.Value;
+                    // Built fresh each time, so running setup again starts from what is on disk
+                    // rather than from where the last visit left off. The previous run's
+                    // subscriptions go with it, or every visit leaks a live wizard.
+                    Setup?.Dispose();
+                    Setup = setupFactory();
+                }
+                else if (screen is Screen.Review)
+                {
+                    Review ??= lazyReview.Value;
+                    // Rebuilt on every visit, which is what makes the queue resumable: it is
+                    // derived from the index rather than remembered from the last time.
+                    Review.RefreshCommand.Execute().Subscribe();
                 }
             });
 
@@ -75,9 +89,9 @@ public sealed partial class MainWindowViewModel : ReactiveObject
             .Take(1)
             .Subscribe(_ => History = lazyHistory.Value);
 
-        navigation.WhenAnyValue(x => x.IsTreeViewMode)
+        navigation.WhenAnyValue(x => x.IsDanceListMode)
             .Where(active => active)
             .Take(1)
-            .Subscribe(_ => DanceTree = lazyDanceTree.Value);
+            .Subscribe(_ => DanceList = lazyDanceList.Value);
     }
 }

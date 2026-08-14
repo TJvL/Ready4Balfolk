@@ -10,10 +10,17 @@
       <PackageReference Include="AsyncAwaitBestPractices" Version="10.0.0" />
       <PackageReference Include="DynamicData" Version="9.4.33" />
       <PackageReference Include="ManagedBass" Version="4.0.2" />
-      <PackageReference Include="morelinq" Version="4.4.0" />
       <PackageReference Include="System.IO.Abstractions" Version="22.2.0" />
       <PackageReference Include="ManagedBass.Fx" Version="4.0.2" />
+      <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+      <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
       <PackageReference Include="TagLibSharp" Version="2.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <!-- The published dance list, shipped so a first run with no network still has one. It is
+           replaced wholesale by a fetch; nothing merges into it. -->
+      <EmbeddedResource Include="Assets\dances.json" LogicalName="Ready4Balfolk.Domain.Assets.dances.json" />
     </ItemGroup>
 
     <ItemGroup>

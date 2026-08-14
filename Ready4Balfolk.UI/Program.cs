@@ -12,32 +12,31 @@ using ReactiveUI;
 using ReactiveUI.Avalonia.Reactive.Splat;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
-using Ready4Balfolk.Domain.Services.Editor;
+using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
-using Ready4Balfolk.Domain.Services.Synonym;
 using Ready4Balfolk.Domain.Services.Tracks;
-using Ready4Balfolk.Domain.Services.Tracks.Discovery;
-using Ready4Balfolk.Domain.Services.Tracks.Discovery.Services;
 using Ready4Balfolk.Domain.Stores;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
-using Ready4Balfolk.Domain.Stores.Synonym;
 using Ready4Balfolk.Domain.Stores.Tracks;
-using Ready4Balfolk.Domain.Stores.Tree;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.DanceSynonyms;
-using Ready4Balfolk.UI.Views.DanceTree;
+using Ready4Balfolk.UI.Views.DanceList;
+using Ready4Balfolk.UI.Views.Discovery;
 using Ready4Balfolk.UI.Views.Equalizer;
 using Ready4Balfolk.UI.Views.Help;
 using Ready4Balfolk.UI.Views.History;
 using Ready4Balfolk.UI.Views.Playback;
 using Ready4Balfolk.UI.Views.Presentation;
 using Ready4Balfolk.UI.Views.Queue;
+using Ready4Balfolk.UI.Views.Review;
 using Ready4Balfolk.UI.Views.Settings;
 using Ready4Balfolk.UI.Views.Toolbar;
 using Ready4Balfolk.UI.Views.TrackCatalog;
+using Ready4Balfolk.UI.Views.Wizard;
 using Ready4Balfolk.Web;
 using FileLogSinkService = Ready4Balfolk.UI.Services.FileLogSinkService;
 
@@ -171,26 +170,18 @@ public static class Program
         });
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
         services.AddSingleton<IApplicationSettingsDirectory, ApplicationSettingsDirectory>();
-        services.AddTransient<IEditorHistoryService, EditorHistoryService>();
-        services.AddSingleton<ITrackDurationCache, TrackDurationCache>();
+        services.AddSingleton<ILibraryIndex, SqliteLibraryIndex>();
+        services.AddSingleton<IFileSystem>(new FileSystem());
+        services.AddSingleton<TrackEditorService>();
+        services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
-        services.AddSingleton<ISynonymResolutionService, SynonymResolutionService>();
         services.AddSingleton<IPresentationStateService, PresentationStateService>();
-
-        // Discovery Files
-        services.AddSingleton<ITrackDiscoveryService, TrackInformationDiscoveryService>();
-        services.AddSingleton<OrderedSegmentDiscovery>();
-        services.AddSingleton<ITagFileFactory, TagFileFactory>();
-        services.AddSingleton<IPatternSegmentDiscovery, TagSegmentDiscovery>();
-        services.AddSingleton<IPatternSegmentDiscovery, DanceFileDiscovery>();
-        services.AddSingleton<IPatternSegmentDiscovery, FilenameSegmentDiscovery>(sp => new FilenameSegmentDiscovery(() => sp.GetRequiredService<ISettingsStore>().Current.DiscoveryPattern));
-        services.AddSingleton<IDanceFileDiscoveryService, DanceFileDiscoveryService>();
-        services.AddSingleton<DanceFileService>();
+        services.AddSingleton<IPreviewPlaybackService, PreviewPlaybackService>();
 
         // Stores
-        services.AddSingleton<IFileSystem>(new FileSystem());
-        services.AddSingleton<IDanceTreeStore, DanceTreeStore>();
-        services.AddSingleton<IDanceSynonymStore, DanceSynonymStore>();
+        services.AddSingleton<IDanceListStore, DanceListStore>();
+        services.AddSingleton<IDanceListFeed, DanceListFeed>();
+        services.AddSingleton<IDancePool, DancePool>();
         services.AddSingleton<ISettingsStore, SettingsStore>();
         services.AddSingleton<IQueueHistoryStore, QueueHistoryStore>();
         services.AddSingleton<ITrackStore, TrackStore>();
@@ -218,21 +209,39 @@ public static class Program
         services.AddSingleton<QueueViewModel>();
         services.AddSingleton<HistoryViewModel>();
         services.AddSingleton<TrackCatalogViewModel>();
-        services.AddSingleton<DanceTreeViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<HelpViewModel>();
-        services.AddSingleton<DanceSynonymsViewModel>();
+        services.AddSingleton<DanceListViewModel>();
+        services.AddSingleton<DiscoveryViewModel>();
+        services.AddSingleton<ReviewViewModel>();
+        services.AddSingleton<Lazy<DanceListViewModel>>(sp => new(sp.GetRequiredService<DanceListViewModel>));
+
+        // Setup wizard. Transient: it is built when the wizard opens and thrown away when it
+        // closes, so a second run starts from what is on disk rather than from the last visit.
+        services.AddTransient<WelcomeStepViewModel>();
+        services.AddTransient<DanceListStepViewModel>();
+        services.AddTransient<DiscoveryStepViewModel>();
+        services.AddTransient<ReviewStepViewModel>();
+        services.AddTransient<MusicDirectoryStepViewModel>();
+        services.AddTransient<SetupWizardViewModel>();
+        services.AddSingleton<Func<SetupWizardViewModel>>(sp => sp.GetRequiredService<SetupWizardViewModel>);
+        services.AddTransient<IViewFor<SetupWizardViewModel>, SetupWizardView>();
+        services.AddTransient<IViewFor<WelcomeStepViewModel>, WelcomeStepView>();
+        services.AddTransient<IViewFor<DanceListStepViewModel>, DanceListStepView>();
+        services.AddTransient<IViewFor<DiscoveryStepViewModel>, DiscoveryStepView>();
+        services.AddTransient<IViewFor<ReviewStepViewModel>, ReviewStepView>();
+        services.AddTransient<IViewFor<MusicDirectoryStepViewModel>, MusicDirectoryStepView>();
 
         // Lazy wrappers — defers ViewModel creation until first navigation/toggle
         services.AddSingleton<Lazy<HistoryViewModel>>(sp => new(sp.GetRequiredService<HistoryViewModel>));
-        services.AddSingleton<Lazy<DanceTreeViewModel>>(sp => new(sp.GetRequiredService<DanceTreeViewModel>));
         services.AddSingleton<Lazy<SettingsViewModel>>(sp => new(sp.GetRequiredService<SettingsViewModel>));
         services.AddSingleton<Lazy<HelpViewModel>>(sp => new(sp.GetRequiredService<HelpViewModel>));
-        services.AddSingleton<Lazy<DanceSynonymsViewModel>>(sp => new(sp.GetRequiredService<DanceSynonymsViewModel>));
+        services.AddSingleton<Lazy<ReviewViewModel>>(sp => new(sp.GetRequiredService<ReviewViewModel>));
         // View registrations for ViewModelViewHost resolution
         services.AddTransient<IViewFor<SettingsViewModel>, SettingsView>();
         services.AddTransient<IViewFor<HelpViewModel>, HelpView>();
-        services.AddTransient<IViewFor<DanceSynonymsViewModel>, DanceSynonymsView>();
+        services.AddTransient<IViewFor<DiscoveryViewModel>, DiscoveryView>();
+        services.AddTransient<IViewFor<ReviewViewModel>, ReviewView>();
 
         services.AddSingleton<PresentationDisplayViewModel>();
 

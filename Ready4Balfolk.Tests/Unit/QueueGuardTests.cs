@@ -1,4 +1,3 @@
-using System.IO.Abstractions.TestingHelpers;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
@@ -30,10 +29,8 @@ public sealed class QueueGuardTests
     [Fact]
     public void EvaluateAdd_Regular_UnderLimit_Allows()
     {
-        var mockFileSystem = new MockFileSystem();
-
         var guard = CreateGuard(maxItems: 3);
-        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(), false);
 
         var result = guard.EvaluateAdd(track, []);
         Assert.True(result.Allowed);
@@ -42,14 +39,12 @@ public sealed class QueueGuardTests
     [Fact]
     public void EvaluateAdd_Regular_AtLimit_Denies()
     {
-        var mockFileSystem = new MockFileSystem();
-
         var guard = CreateGuard(maxItems: 2);
-        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "New"), false);
+        var track = new TrackQueueItem(TestData.CreateTrack("New"), false);
         IReadOnlyList<IQueueItem> items =
         [
-            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false),
-            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false)
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
+            new TrackQueueItem(TestData.CreateTrack("B"), false)
         ];
 
         var result = guard.EvaluateAdd(track, items);
@@ -59,16 +54,14 @@ public sealed class QueueGuardTests
     [Fact]
     public void EvaluateAdd_Regular_AtLimitWithAutoTrack_AutoTrackDoesNotCount()
     {
-        var mockFileSystem = new MockFileSystem();
-
         // max=2, queue has 1 real + 1 auto. The auto-track does not count, so 1 < 2 → allowed,
         // and nothing is removed to make room.
         var guard = CreateGuard(maxItems: 2);
-        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "New"), false);
+        var track = new TrackQueueItem(TestData.CreateTrack("New"), false);
         IReadOnlyList<IQueueItem> items =
         [
-            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false),
-            new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), true))
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
+            new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true))
         ];
 
         var result = guard.EvaluateAdd(track, items);
@@ -79,11 +72,9 @@ public sealed class QueueGuardTests
     [Fact]
     public void EvaluateAdd_AutoTrack_QueueHasRequests_Allows()
     {
-        var mockFileSystem = new MockFileSystem();
-
         var guard = CreateGuard();
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
-        IReadOnlyList<IQueueItem> items = [new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), false)];
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
+        IReadOnlyList<IQueueItem> items = [new TrackQueueItem(TestData.CreateTrack("A"), false)];
 
         var result = guard.EvaluateAdd(auto, items);
         Assert.True(result.Allowed);
@@ -92,11 +83,10 @@ public sealed class QueueGuardTests
     [Fact]
     public void EvaluateAdd_AutoTrack_AlreadyPresent_Denies()
     {
-        var mockFileSystem = new MockFileSystem();
         var guard = CreateGuard();
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
         IReadOnlyList<IQueueItem> items =
-            [new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "A"), true))];
+            [new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("A"), true))];
 
         var result = guard.EvaluateAdd(auto, items);
         Assert.False(result.Allowed);
@@ -105,23 +95,19 @@ public sealed class QueueGuardTests
     [Fact]
     public void CanRemove_FirstDenyWins()
     {
-        var mockFileSystem = new MockFileSystem();
-
         var guard = CreateGuard();
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), true));
+        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
         Assert.False(guard.CanRemove(auto));
 
-        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(), false);
         Assert.True(guard.CanRemove(track));
     }
 
     [Fact]
     public void CanClear_DefaultsToTrue()
     {
-        var mockFileSystem = new MockFileSystem();
-
         var guard = CreateGuard();
-        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false);
+        var track = new TrackQueueItem(TestData.CreateTrack(), false);
         Assert.True(guard.CanClear([track]));
     }
 
@@ -130,16 +116,14 @@ public sealed class QueueGuardTests
     [Fact]
     public void GetEvictionIndices_CombinesRules()
     {
-        var mockFileSystem = new MockFileSystem();
-
         // max=2, no duplicates, queue has 3 items with a duplicate
         var guard = CreateGuard(maxItems: 2, allowDuplicates: false);
-        var track = TestData.CreateTrack(mockFileSystem);
+        var track = TestData.CreateTrack();
         IReadOnlyList<IQueueItem> items =
         [
             new TrackQueueItem(track, false),
             new TrackQueueItem(track, false), // duplicate at index 1
-            new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "B"), false) // over limit at index 2
+            new TrackQueueItem(TestData.CreateTrack("B"), false) // over limit at index 2
         ];
 
         var indices = guard.GetEvictionIndices(items);
