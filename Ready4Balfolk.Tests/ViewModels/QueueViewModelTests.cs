@@ -309,6 +309,55 @@ public sealed class QueueViewModelTests : IDisposable
         Assert.Equal("2 items", _sut.ItemCountText);
     }
 
+    // --- FinishTimeText ---
+
+    [Fact]
+    public void FinishTimeText_AutoQueueOff_ProjectsTheEnd()
+    {
+        _settingsSubject.OnNext(_settingsSubject.Value with { AutoQueueRandomTrack = false });
+
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
+
+        Assert.StartsWith("Playlist finishes at:", _sut.FinishTimeText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FinishTimeText_AutoQueueOnWithoutCutoff_GivesNoTime()
+    {
+        // A projected time here only ever describes the next few minutes: the auto-queue puts a new
+        // track in the moment the current one runs out.
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
+
+        Assert.Equal("Playlist keeps going until you stop it", _sut.FinishTimeText);
+    }
+
+    [Fact]
+    public void FinishTimeText_AutoQueueOnWithCutoff_ShowsTheCutoff()
+    {
+        _settingsSubject.OnNext(_settingsSubject.Value with
+        {
+            QueueCutoffEnabled = true,
+            QueueCutoffMinutesOfDay = 23 * 60
+        });
+
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
+
+        Assert.Equal("Playlist winds down at: 23:00", _sut.FinishTimeText);
+    }
+
+    [Fact]
+    public void FinishTimeText_HaltQueued_StillSaysWhenItHalts()
+    {
+        // A stop is a knowable point even with the auto-queue on, and the cutoff is paused past it.
+        _settingsSubject.OnNext(_settingsSubject.Value with { QueueCutoffEnabled = true });
+
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
+        _queueSource.Add(new StopQueueItem());
+
+        Assert.StartsWith("Playlist halts at:", _sut.FinishTimeText, StringComparison.Ordinal);
+        Assert.EndsWith("limit paused for the stop", _sut.FinishTimeText, StringComparison.Ordinal);
+    }
+
     // --- HasItems ---
 
     [Fact]

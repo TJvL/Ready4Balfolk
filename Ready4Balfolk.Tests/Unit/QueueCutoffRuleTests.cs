@@ -16,6 +16,9 @@ public sealed class QueueCutoffRuleTests
     private static TrackQueueItem Track(int minutes) =>
         new(TestData.CreateTrack(lengthSeconds: minutes * 60), false);
 
+    private static AutoTrackQueueItem Auto(int minutes) =>
+        new(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: minutes * 60), true));
+
     // 22:45 + 5 minutes is nowhere near 23:00.
     [Fact]
     public void EvaluateAdd_WellInsideCutoff_NoOpinion() =>
@@ -86,13 +89,27 @@ public sealed class QueueCutoffRuleTests
     }
 
     [Fact]
-    public void EvaluateAdd_AutoTrackIsNeverRefused()
+    public void EvaluateAdd_AutoTrackPastCutoff_Denies()
     {
-        // The auto-track is a placeholder rather than a request, as with the max items limit.
+        // The auto-track is what keeps the queue refilling itself, so exempting it would leave the
+        // evening running past midnight while the setting claims it ends at 23:00.
         var sut = CreateSut();
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
 
-        Assert.Null(sut.EvaluateAdd(auto, [Track(60)]));
+        Assert.NotNull(sut.EvaluateAdd(Auto(10), [Track(10)]));
+    }
+
+    [Fact]
+    public void EvaluateAdd_AutoTrackInsideCutoff_NoOpinion() =>
+        Assert.Null(CreateSut().EvaluateAdd(Auto(5), []));
+
+    [Fact]
+    public void EvaluateAdd_AutoTrackPastCutoffWithStopQueued_NoOpinion()
+    {
+        // Nothing is refused past a halt, and the auto-track is no exception.
+        var sut = CreateSut();
+        IReadOnlyList<IQueueItem> queued = [new StopQueueItem()];
+
+        Assert.Null(sut.EvaluateAdd(Auto(60), queued));
     }
 
     [Fact]

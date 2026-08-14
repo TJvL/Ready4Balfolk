@@ -251,6 +251,12 @@ public static class UiStrings
     public static string Queue_PlaylistHaltsAt =>
         ResourceManager.GetString("Queue_PlaylistHaltsAt", Culture)!;
 
+    public static string Queue_PlaylistWindsDownAt =>
+        ResourceManager.GetString("Queue_PlaylistWindsDownAt", Culture)!;
+
+    public static string Queue_PlaylistOpenEnded =>
+        ResourceManager.GetString("Queue_PlaylistOpenEnded", Culture)!;
+
     // Queue Toolbar
     public static string QueueToolbar_SwitchToHistory =>
         ResourceManager.GetString("QueueToolbar_SwitchToHistory", Culture)!;

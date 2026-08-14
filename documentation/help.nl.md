@@ -154,7 +154,7 @@ De wachtrij toont wat er gaat komen, in volgorde van boven naar beneden.
 De wachtrij kan verschillende soorten items bevatten, elk met een eigen uiterlijk:
 
 - **Nummer**: een muziekbestand. Toont dans, artiest, titel en duur.
-- **Auto-nummer**: een willekeurig gekozen nummer, vervaagd weergegeven met een recycle-icoon. Auto-nummers verschijnen wanneer de auto-wachtrij aanstaat en de wachtrij leeg is. Ze hebben twee extra acties:
+- **Auto-nummer**: een willekeurig gekozen nummer, vervaagd weergegeven met een recycle-icoon. Het staat onderaan de wachtrij, onder de verzoeken, zolang de auto-wachtrij aanstaat en er iets speelt. Het heeft twee extra acties:
   - **Vernieuwen**: kies een ander willekeurig nummer
   - **Vastzetten**: maak van het auto-nummer een gewoon nummer dat blijft staan
 - **Stop**: een markering waar het afspelen pauzeert tot jij verdergaat. Oranje gemarkeerd.
@@ -185,7 +185,7 @@ De werkbalk boven de wachtrij biedt:
 Onderaan het wachtrijpaneel:
 
 - **Aantal items**: het aantal in de wachtrij, of "Wachtrij leeg"
-- **Eindtijd**: geschatte tijd waarop de lijst klaar is, als "Speellijst klaar om HH:mm". Bevat de wachtrij een stop of een bericht zonder duur, dan staat er "stopt om", want daar pauzeert het afspelen.
+- **Eindtijd**: wat de wachtrij gaat doen. Staat de auto-wachtrij uit, dan is het de geschatte tijd waarop de lijst klaar is, als "Afspeellijst eindigt om HH:mm". Staat hij aan, dan bestaat dat moment niet, want de wachtrij vult zichzelf steeds aan: heb je een eindtijd ingesteld, dan staat die er, als "Afspeellijst loopt af om HH:mm", en anders staat er dat de lijst doorgaat tot jij hem stopt. Een stop of een bericht zonder duur gaat daar overheen met "stopt om", want daar pauzeert het afspelen.
 
 ---
 
@@ -426,8 +426,10 @@ in de wachtrijwerkbalk gebruikt.
 
 Een eindtijd voor de avond. Zodra de wachtrij voorbij die tijd zou lopen (plus een respijt in
 minuten), worden nieuwe items geweigerd — zo eindigt de laatste dans wanneer de zaal sluit in
-plaats van twintig minuten erna. Staat er een stop in de wachtrij, dan is de eindtijd onbekend en
-geldt de grens niet; gebruik een pauze als je weet hoe lang de onderbreking duurt.
+plaats van twintig minuten erna. De auto-wachtrij houdt zich aan dezelfde grens en stopt met
+aanvullen, in plaats van de avond op eigen houtje door te laten lopen. Staat er een stop in de
+wachtrij, dan is de eindtijd onbekend en geldt de grens niet; gebruik een pauze als je weet hoe lang
+de onderbreking duurt.
 
 ### Tekst op knoppen
 
@@ -445,9 +447,11 @@ voor projectors of externe schermen die de zaal ziet.
 
 ### Automatisch willekeurig nummer
 
-Aangezet wordt er automatisch een willekeurig nummer toegevoegd wanneer de wachtrij tijdens het
-spelen leeg raakt. Het auto-nummer verschijnt vervaagd en kan vernieuwd (ander nummer) of vastgezet
-(blijft staan) worden. Auto-nummers verdwijnen vanzelf zodra je zelf iets toevoegt.
+Aangezet staat er onderaan de wachtrij altijd een willekeurig gekozen nummer klaar zolang er iets
+speelt, zodat de muziek niet zomaar ophoudt. Het auto-nummer verschijnt vervaagd en kan vernieuwd
+(ander nummer) of vastgezet (blijft staan) worden. Het blijft onder alles staan wat je zelf
+toevoegt, en er wordt een nieuw nummer gekozen zodra het vorige begint te spelen. Heb je een
+eindtijd voor de avond ingesteld, dan stopt het aanvullen zodra een nummer daar voorbij zou lopen.
 
 ### Dubbele nummers toestaan
 

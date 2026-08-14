@@ -14,6 +14,11 @@ namespace Ready4Balfolk.Domain.Services.Queue;
 /// long a pause lasts), so once one is queued there is no end time to judge and the cutoff stops
 /// refusing anything rather than pretending to know.
 /// </remarks>
+/// <remarks>
+/// The auto-track is judged like any other entry. It is the thing that keeps refilling the queue, so
+/// exempting it would make the cutoff say the evening ends at 23:00 while the music plays on past
+/// midnight of its own accord.
+/// </remarks>
 public sealed class QueueCutoffRule(
     TimeSpan cutoff,
     TimeSpan grace,
@@ -25,9 +30,9 @@ public sealed class QueueCutoffRule(
 
     public QueueRuleVerdict? EvaluateAdd(IQueueItem item, IReadOnlyList<IQueueItem> adjustedItems)
     {
-        // Control items are how the user manages the evening, and the auto-track is a placeholder
-        // rather than a request, so none of them are refused.
-        if (item is AutoTrackQueueItem || IsHalt(item))
+        // A halt is how the user hands the evening over to something unmeasurable, so it is never
+        // refused; past one there is nothing to project against anyway.
+        if (IsHalt(item))
         {
             return null;
         }

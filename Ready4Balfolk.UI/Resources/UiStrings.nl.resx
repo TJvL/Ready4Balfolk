@@ -269,6 +269,12 @@
   <data name="Queue_PlaylistHaltsAt" xml:space="preserve">
     <value>Afspeellijst stopt om: {0}</value>
   </data>
+  <data name="Queue_PlaylistWindsDownAt" xml:space="preserve">
+    <value>Afspeellijst loopt af om: {0}</value>
+  </data>
+  <data name="Queue_PlaylistOpenEnded" xml:space="preserve">
+    <value>Afspeellijst blijft doorgaan tot je stopt</value>
+  </data>
 
   <!-- Queue Toolbar -->
   <data name="QueueToolbar_SwitchToHistory" xml:space="preserve">

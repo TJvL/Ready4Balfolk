@@ -486,16 +486,38 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             queueDuration += item.Duration ?? TimeSpan.Zero;
         }
 
+        var settings = _settingsStore.Current;
         var finishTime = DateTime.Now + currentRemaining + queueDuration;
-        var text = halts
-            ? string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistHaltsAt, finishTime.ToString("HH:mm", CultureInfo.CurrentCulture))
-            : string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistFinishesAt, finishTime.ToString("HH:mm", CultureInfo.CurrentCulture));
-
-        // Say when the cutoff is not being applied, rather than leaving the user to wonder why a
-        // request went through: past a halt there is no end time to judge it against.
-        if (halts && _settingsStore.Current.QueueCutoffEnabled)
+        string text;
+        if (halts)
         {
-            text += $" \u2014 {UiStrings.Queue_CutoffPaused}";
+            text = string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistHaltsAt,
+                finishTime.ToString("HH:mm", CultureInfo.CurrentCulture));
+
+            // Say when the cutoff is not being applied, rather than leaving the user to wonder why a
+            // request went through: past a halt there is no end time to judge it against.
+            if (settings.QueueCutoffEnabled)
+            {
+                text += $" \u2014 {UiStrings.Queue_CutoffPaused}";
+            }
+        }
+        else if (!settings.AutoQueueRandomTrack)
+        {
+            text = string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistFinishesAt,
+                finishTime.ToString("HH:mm", CultureInfo.CurrentCulture));
+        }
+        else if (settings.QueueCutoffEnabled)
+        {
+            // The auto-queue keeps refilling until the cutoff refuses the next track, so the cutoff
+            // is the end of the evening rather than the moment the current contents run out.
+            text = string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistWindsDownAt,
+                (DateTime.Today + settings.QueueCutoff).ToString("HH:mm", CultureInfo.CurrentCulture));
+        }
+        else
+        {
+            // A projected time here would only ever describe the next few minutes: it moves forward
+            // every time a track ends, and it reads as an answer while never being one.
+            text = UiStrings.Queue_PlaylistOpenEnded;
         }
 
         FinishTimeText = text;
