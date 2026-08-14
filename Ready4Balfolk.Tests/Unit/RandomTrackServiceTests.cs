@@ -1,3 +1,4 @@
+using System.IO.Abstractions.TestingHelpers;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
@@ -31,11 +32,13 @@ public sealed class RandomTrackServiceTests
     [Fact]
     public void EntireTree_ReturnsMatchingTrack()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var tree = TestData.CreateSimpleTree();
         _treeStore.Current.Returns(tree);
         _trackStore.Current.Returns(new List<Track>
         {
-            TestData.CreateTrack()
+            TestData.CreateTrack(mockFileSystem)
         });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
@@ -47,11 +50,13 @@ public sealed class RandomTrackServiceTests
     [Fact]
     public void Subtree_ReturnsMatchingTrack()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var tree = TestData.CreateSimpleTree();
         _treeStore.Current.Returns(tree);
         _trackStore.Current.Returns(new List<Track>
         {
-            TestData.CreateTrack(), TestData.CreateTrack("Bourree")
+            TestData.CreateTrack(mockFileSystem), TestData.CreateTrack(mockFileSystem, "Bourree")
         });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.Subtree([0]), true);
@@ -63,11 +68,13 @@ public sealed class RandomTrackServiceTests
     [Fact]
     public void SingleDance_ReturnsMatchingTrack()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var tree = TestData.CreateSimpleTree();
         _treeStore.Current.Returns(tree);
         _trackStore.Current.Returns(new List<Track>
         {
-            TestData.CreateTrack(), TestData.CreateTrack("Bourree")
+            TestData.CreateTrack(mockFileSystem), TestData.CreateTrack(mockFileSystem, "Bourree")
         });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.SingleDance([0], 0), true);
@@ -79,11 +86,13 @@ public sealed class RandomTrackServiceTests
     [Fact]
     public void NoMatchingTracks_ReturnsNull()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var tree = TestData.CreateSimpleTree();
         _treeStore.Current.Returns(tree);
         _trackStore.Current.Returns(new List<Track>
         {
-            TestData.CreateTrack("Polka")
+            TestData.CreateTrack(mockFileSystem, "Polka")
         });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
@@ -94,6 +103,8 @@ public sealed class RandomTrackServiceTests
     [Fact]
     public void AllZeroWeight_ReturnsNull()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var tree = new List<Domain.Models.Tree.DanceBranch>
         {
             TestData.CreateBranch("Folk", 0, leaves: [TestData.CreateLeaf("Mazurka", 0)])
@@ -101,7 +112,7 @@ public sealed class RandomTrackServiceTests
         _treeStore.Current.Returns(tree);
         _trackStore.Current.Returns(new List<Track>
         {
-            TestData.CreateTrack()
+            TestData.CreateTrack(mockFileSystem)
         });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
@@ -112,10 +123,12 @@ public sealed class RandomTrackServiceTests
     [Fact]
     public void NoDuplicates_ExcludesQueuedAndFinished()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var tree = TestData.CreateSimpleTree();
         _treeStore.Current.Returns(tree);
 
-        var mazurkaTrack = TestData.CreateTrack();
+        var mazurkaTrack = TestData.CreateTrack(mockFileSystem);
         _trackStore.Current.Returns(new List<Track>
         {
             mazurkaTrack
@@ -135,10 +148,12 @@ public sealed class RandomTrackServiceTests
     [Fact]
     public void AllowDuplicates_IncludesQueuedTracks()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var tree = TestData.CreateSimpleTree();
         _treeStore.Current.Returns(tree);
 
-        var mazurkaTrack = TestData.CreateTrack();
+        var mazurkaTrack = TestData.CreateTrack(mockFileSystem);
         _trackStore.Current.Returns(new List<Track>
         {
             mazurkaTrack
@@ -157,10 +172,12 @@ public sealed class RandomTrackServiceTests
     [Fact]
     public void EmptyTree_ReturnsNull()
     {
+        var mockFileSystem = new MockFileSystem();
+
         _treeStore.Current.Returns(new List<Domain.Models.Tree.DanceBranch>());
         _trackStore.Current.Returns(new List<Track>
         {
-            TestData.CreateTrack()
+            TestData.CreateTrack(mockFileSystem)
         });
 
         var result = _sut.PickRandomTrack(new RandomSelectionScope.EntireTree(), true);
@@ -171,10 +188,12 @@ public sealed class RandomTrackServiceTests
     [Fact]
     public void NoDuplicates_ExcludesCurrentlyPlaying()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var tree = TestData.CreateSimpleTree();
         _treeStore.Current.Returns(tree);
 
-        var mazurkaTrack = TestData.CreateTrack();
+        var mazurkaTrack = TestData.CreateTrack(mockFileSystem);
         _trackStore.Current.Returns(new List<Track>
         {
             mazurkaTrack
@@ -190,10 +209,12 @@ public sealed class RandomTrackServiceTests
     [Fact]
     public void NoDuplicates_ExcludesFinishedHistory()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var tree = TestData.CreateSimpleTree();
         _treeStore.Current.Returns(tree);
 
-        var mazurkaTrack = TestData.CreateTrack();
+        var mazurkaTrack = TestData.CreateTrack(mockFileSystem);
         _trackStore.Current.Returns(new List<Track>
         {
             mazurkaTrack

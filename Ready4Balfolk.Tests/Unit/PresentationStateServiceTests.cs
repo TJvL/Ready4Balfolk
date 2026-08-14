@@ -1,3 +1,4 @@
+using System.IO.Abstractions.TestingHelpers;
 using Ready4Balfolk.Domain.Models.Presentation;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Presentation;
@@ -25,7 +26,8 @@ public sealed class PresentationStateServiceTests
     [Fact]
     public void Map_Track_CarriesDanceArtistAndTitle()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack("Scottish", "Naragonia", "Sur le Pont"), false);
+        var mockFileSystem = new MockFileSystem();
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Scottish", "Naragonia", "Sur le Pont"), false);
 
         var item = PresentationStateService.Map(track);
 
@@ -39,7 +41,8 @@ public sealed class PresentationStateServiceTests
     [Fact]
     public void Map_AutoTrack_IsIndistinguishableFromATrack()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack("An Dro", "Sowieso", "Kleine An Dro"), true);
+        var mockFileSystem = new MockFileSystem();
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "An Dro", "Sowieso", "Kleine An Dro"), true);
 
         var item = PresentationStateService.Map(new AutoTrackQueueItem(track));
 
@@ -51,7 +54,8 @@ public sealed class PresentationStateServiceTests
     [Fact]
     public void Map_TrackWithoutTitle_HasNoTitleAndStillHasASubtitle()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack("Cercle Circassien", "Bal O'Gadjo", ""), false);
+        var mockFileSystem = new MockFileSystem();
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Cercle Circassien", "Bal O'Gadjo", ""), false);
 
         var item = PresentationStateService.Map(track);
 

@@ -1,3 +1,4 @@
+using System.IO.Abstractions.TestingHelpers;
 using System.Reactive.Subjects;
 using DynamicData;
 using NSubstitute;
@@ -49,7 +50,9 @@ public sealed class PlaybackViewModelTests : IDisposable
     [Fact]
     public void TrackItem_SetsTrackDisplay()
     {
-        var track = new TrackQueueItem(TestData.CreateTrack("Mazurka", "Artist1", "Title1"), false);
+        var mockFileSystem = new MockFileSystem();
+
+        var track = new TrackQueueItem(TestData.CreateTrack(mockFileSystem, "Mazurka", "Artist1", "Title1"), false);
         _currentItem.OnNext(track);
 
         Assert.Equal("Mazurka", _sut.DanceName);
@@ -63,8 +66,10 @@ public sealed class PlaybackViewModelTests : IDisposable
     [Fact]
     public void AutoTrackItem_SetsTrackDisplay()
     {
+        var mockFileSystem = new MockFileSystem();
+
         var auto = new AutoTrackQueueItem(new TrackQueueItem(
-            TestData.CreateTrack("Waltz", "ArtistW", "TitleW"), true));
+            TestData.CreateTrack(mockFileSystem, "Waltz", "ArtistW", "TitleW"), true));
         _currentItem.OnNext(auto);
 
         Assert.Equal("Waltz", _sut.DanceName);
@@ -107,7 +112,9 @@ public sealed class PlaybackViewModelTests : IDisposable
     [Fact]
     public void NullItem_ClearsState()
     {
-        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack(), false));
+        var mockFileSystem = new MockFileSystem();
+
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
         _currentItem.OnNext(null);
 
         Assert.False(_sut.HasTrack);
@@ -151,7 +158,9 @@ public sealed class PlaybackViewModelTests : IDisposable
     [Fact]
     public void ShowNextIcon_TrueWhenQueueHasItems()
     {
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
+        var mockFileSystem = new MockFileSystem();
+
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(mockFileSystem), false));
         Assert.True(_sut.ShowNextIcon);
     }
 

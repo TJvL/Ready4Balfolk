@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -29,19 +30,22 @@ public sealed class TrackStore : ITrackStore, IDisposable
     // cleared them.
     private readonly SemaphoreSlim _loadGate = new(1, 1);
     private CancellationTokenSource? _loadCts;
-    private FileSystemWatcher? _watcher;
+    private IFileSystemWatcher? _watcher;
     private bool _disposed;
+    private readonly IFileSystem _fileSystem;
 
     public TrackStore(
         ILoggerService loggerService,
         ITrackDiscoveryService discoveryService,
         ISynonymResolutionService synonymService,
-        ITrackDurationCache durationCache)
+        ITrackDurationCache durationCache,
+        IFileSystem fileSystem)
     {
         _loggerService = loggerService;
         _discoveryService = discoveryService;
         _synonymService = synonymService;
         _durationCache = durationCache;
+        _fileSystem = fileSystem;
 
         _synonymSubscription = synonymService.Changed
             .ObserveOn(TaskPoolScheduler.Default)
@@ -57,7 +61,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
     public IReadOnlyList<Track> Current => _tracks.Items.ToList();
 
-    public DirectoryInfo? MusicDirectory
+    public IDirectoryInfo? MusicDirectory
     {
         set
         {
@@ -144,7 +148,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         };
     }
 
-    private static ICollection<FileInfo> DiscoverFiles(DirectoryInfo directory)
+    private static ICollection<IFileInfo> DiscoverFiles(IDirectoryInfo directory)
     {
         return
         [
@@ -153,7 +157,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         ];
     }
 
-    private async Task LoadDirectoryAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    private async Task LoadDirectoryAsync(IDirectoryInfo directory, CancellationToken cancellationToken)
     {
         _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
 
@@ -174,7 +178,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private async Task LoadDirectoryCoreAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    private async Task LoadDirectoryCoreAsync(IDirectoryInfo directory, CancellationToken cancellationToken)
     {
         _watcher?.Dispose();
         _watcher = null;
@@ -201,7 +205,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 .Merge(MaxAmountOfFileReaderThreads)
                 .Buffer(TimeSpan.FromMilliseconds(200), 50);
 
-            await trackLoaded.Where(r => r.Any()).ForEachAsync(tracksBatch =>
+            await trackLoaded
+                .Where(r => r.Any()).ForEachAsync(tracksBatch =>
             {
                 _tracks.Edit(innerList => innerList.AddRange(tracksBatch));
 
@@ -212,13 +217,17 @@ public sealed class TrackStore : ITrackStore, IDisposable
             await _durationCache.SaveAsync([.. audioFiles.Select(r => r.FullName)]);
             StartWatching(directory, cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // this can happen when the ForEachAsync takes too long
+        }
         finally
         {
             _isLoading.OnNext(false);
         }
     }
 
-    private IObservable<Track> LoadTrackObservable(FileInfo file)
+    private IObservable<Track> LoadTrackObservable(IFileInfo file)
     {
         // Defer keeps the inner observable cold so Merge(MaxAmountOfFileReaderThreads)
         // actually caps how many LoadTrack calls run concurrently.
@@ -231,7 +240,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             });
     }
 
-    private Track LoadTrack(FileInfo file)
+    private Track LoadTrack(IFileInfo file)
     {
         var cachedDuration = _durationCache.TryGetDuration(file.FullName, file.LastWriteTimeUtc);
         if (cachedDuration.HasValue)
@@ -244,7 +253,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         return track;
     }
 
-    private void StartWatching(FileSystemInfo directory, CancellationToken cancellationToken)
+    private void StartWatching(IFileSystemInfo directory, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested || _disposed)
         {
@@ -257,11 +266,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
         // Local capture: the FromEventPattern remove-handlers must close over this
         // instance, not the _watcher field, which is nulled on the next reload
         // before the old subscriptions are disposed.
-        var watcher = new FileSystemWatcher(directory.FullName)
-        {
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.FileName
-        };
+
+        var watcher = _fileSystem.FileSystemWatcher.New(directory.FullName);
+        watcher.IncludeSubdirectories = true;
+        watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite;
+
         _watcher = watcher;
 
         var createdObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
@@ -301,12 +310,16 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         try
         {
-            var fileInfo = new FileInfo(fileSystemEventArgs.FullPath);
+            var fileInfo = _fileSystem.FileInfo.New(fileSystemEventArgs.FullPath);
             var track = _discoveryService.LoadTrack(fileInfo);
             _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
             return ResolveTrackDance(track);
         }
-        catch (Exception ex) when (ex is FormatException or IOException)
+        // Broad on purpose: this runs inside the watcher's Rx pipeline, whose
+        // Subscribe has no error handler, so anything escaping here takes the
+        // process down. Discovery throws more than FormatException/IOException
+        // (TrackInformationDiscoveryException, TagLib's CorruptFileException).
+        catch (Exception ex)
         {
             _ = _loggerService.ErrorAsync(ex.Message, ex);
         }
@@ -345,12 +358,16 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         try
         {
-            var fileInfo = new FileInfo(renamedEventArgs.FullPath);
+            var fileInfo = _fileSystem.FileInfo.New(renamedEventArgs.FullPath);
             var track = _discoveryService.LoadTrack(fileInfo);
             _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
             return ResolveTrackDance(track);
         }
-        catch (Exception ex) when (ex is FormatException or IOException)
+        // Broad on purpose: this runs inside the watcher's Rx pipeline, whose
+        // Subscribe has no error handler, so anything escaping here takes the
+        // process down. Discovery throws more than FormatException/IOException
+        // (TrackInformationDiscoveryException, TagLib's CorruptFileException).
+        catch (Exception ex)
         {
             _ = _loggerService.ErrorAsync(ex.Message, ex);
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO.Abstractions;
 using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,8 @@ using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Synonym;
 using Ready4Balfolk.Domain.Services.Tracks;
+using Ready4Balfolk.Domain.Services.Tracks.Discovery;
+using Ready4Balfolk.Domain.Services.Tracks.Discovery.Services;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -170,12 +173,22 @@ public static class Program
         services.AddSingleton<IApplicationSettingsDirectory, ApplicationSettingsDirectory>();
         services.AddTransient<IEditorHistoryService, EditorHistoryService>();
         services.AddSingleton<ITrackDurationCache, TrackDurationCache>();
-        services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<ISynonymResolutionService, SynonymResolutionService>();
         services.AddSingleton<IPresentationStateService, PresentationStateService>();
 
+        // Discovery Files
+        services.AddSingleton<ITrackDiscoveryService, TrackInformationDiscoveryService>();
+        services.AddSingleton<OrderedSegmentDiscovery>();
+        services.AddSingleton<ITagFileFactory, TagFileFactory>();
+        services.AddSingleton<IPatternSegmentDiscovery, TagSegmentDiscovery>();
+        services.AddSingleton<IPatternSegmentDiscovery, DanceFileDiscovery>();
+        services.AddSingleton<IPatternSegmentDiscovery, FilenameSegmentDiscovery>(sp => new FilenameSegmentDiscovery(() => sp.GetRequiredService<ISettingsStore>().Current.DiscoveryPattern));
+        services.AddSingleton<IDanceFileDiscoveryService, DanceFileDiscoveryService>();
+        services.AddSingleton<DanceFileService>();
+
         // Stores
+        services.AddSingleton<IFileSystem>(new FileSystem());
         services.AddSingleton<IDanceTreeStore, DanceTreeStore>();
         services.AddSingleton<IDanceSynonymStore, DanceSynonymStore>();
         services.AddSingleton<ISettingsStore, SettingsStore>();

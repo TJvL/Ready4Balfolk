@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Models.Settings;
 
@@ -10,6 +11,8 @@ public sealed record ApplicationSettings(
     bool AutoQueueRandomTrack,
     bool AllowDuplicateTracksInQueue,
     bool RequirePlaybackConfirmation,
+    bool AdditionalSongInformationRetrieval,
+    DiscoveryPattern DiscoveryPattern,
     ApplicationTheme ApplicationTheme,
     ApplicationLanguage ApplicationLanguage,
     WindowState MainWindowState,
@@ -36,7 +39,7 @@ public sealed record ApplicationSettings(
     // Empty until the remote is first enabled, at which point one is generated.
     string WebRemoteControlPin = "")
 {
-    public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
+    public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, true, DiscoveryPattern.DefaultDefault, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [], [])
     {
     }
