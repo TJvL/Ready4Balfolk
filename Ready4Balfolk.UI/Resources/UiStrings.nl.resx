@@ -651,6 +651,12 @@
   <data name="DanceList_PoolFormat" xml:space="preserve">
     <value>Trekt uit {0} · {1} dansen</value>
   </data>
+  <data name="DanceList_PoolAnyTag" xml:space="preserve">
+    <value>alle dansen</value>
+  </data>
+  <data name="DanceList_PoolNever" xml:space="preserve">
+    <value> · nooit {0}</value>
+  </data>
   <data name="DanceList_ClearPool" xml:space="preserve">
     <value>Alles</value>
   </data>

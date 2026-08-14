@@ -618,6 +618,12 @@ public static class UiStrings
     public static string DanceList_PoolFormat =>
         ResourceManager.GetString("DanceList_PoolFormat", Culture)!;
 
+    public static string DanceList_PoolAnyTag =>
+        ResourceManager.GetString("DanceList_PoolAnyTag", Culture)!;
+
+    public static string DanceList_PoolNever =>
+        ResourceManager.GetString("DanceList_PoolNever", Culture)!;
+
     public static string DanceList_ClearPool =>
         ResourceManager.GetString("DanceList_ClearPool", Culture)!;
 

@@ -88,7 +88,9 @@ public sealed class RandomTrackService(
         scope switch
         {
             RandomSelectionScope.Pool pool =>
-                [.. list.WithAnyTag(pool.Tags).Select(dance => dance.Slug)],
+                [.. list.WithAnyTag(pool.Tags)
+                    .Where(dance => !pool.ExcludedTags.Any(dance.HasTag))
+                    .Select(dance => dance.Slug)],
 
             // Named outright, so it stands whether or not the dance is in the pool: asking for a
             // hanter dro is an answer, not a filter.

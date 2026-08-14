@@ -8,10 +8,14 @@ namespace Ready4Balfolk.Domain.Services.Tracks;
 public abstract record RandomSelectionScope
 {
     /// <summary>
-    /// The dances carrying any of these tags. An empty pool is everything, which is what makes
-    /// "no tags chosen" mean the whole list rather than nothing at all.
+    /// The dances carrying any of these tags and none of the excluded ones. An empty pool is
+    /// everything, which is what makes "no tags chosen" mean the whole list rather than nothing at
+    /// all; an exclusion always wins, so "bretagne but never chain" means exactly that.
     /// </summary>
-    public sealed record Pool(IReadOnlyList<string> Tags) : RandomSelectionScope;
+    public sealed record Pool(IReadOnlyList<string> Tags, IReadOnlyList<string>? ExcludedTags = null) : RandomSelectionScope
+    {
+        public IReadOnlyList<string> ExcludedTags { get; init; } = ExcludedTags ?? [];
+    }
 
     public sealed record SingleDance(string Slug) : RandomSelectionScope;
 

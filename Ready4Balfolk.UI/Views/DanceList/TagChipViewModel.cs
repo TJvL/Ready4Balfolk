@@ -12,15 +12,16 @@ public sealed class TagChipViewModel
     public const double SmallestSize = 12;
     public const double LargestSize = 22;
 
-    public TagChipViewModel(string tag, int count, int largestCount, bool isInPool, bool isReachable)
+    public TagChipViewModel(string tag, int count, int largestCount, bool isInPool, bool isExcluded, bool isReachable)
     {
         Tag = tag;
         Count = count;
         IsInPool = isInPool;
+        IsExcluded = isExcluded;
 
         // Dimmed rather than hidden: a tag that the search has filtered out of view still exists,
         // and a rail that reshuffles itself as you type is impossible to aim at.
-        IsDimmed = !isInPool && !isReachable;
+        IsDimmed = !isInPool && !isExcluded && !isReachable;
 
         var scale = largestCount <= 1 ? 0.5 : Math.Sqrt(count) / Math.Sqrt(largestCount);
         Size = SmallestSize + ((LargestSize - SmallestSize) * Math.Clamp(scale, 0, 1));
@@ -31,6 +32,9 @@ public sealed class TagChipViewModel
     public int Count { get; }
 
     public bool IsInPool { get; }
+
+    /// <summary>Never drawn: the tag's third state, after "in the pool".</summary>
+    public bool IsExcluded { get; }
 
     public bool IsDimmed { get; }
 

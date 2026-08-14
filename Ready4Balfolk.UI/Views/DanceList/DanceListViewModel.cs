@@ -117,9 +117,9 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
             .Select(_ => System.Reactive.Unit.Default)
             .StartWith(System.Reactive.Unit.Default);
 
-        lists.CombineLatest(pools, searches, tracks, (list, poolTags, search, _) => (list, poolTags, search))
+        lists.CombineLatest(pools, searches, tracks, (list, selection, search, _) => (list, selection, search))
             .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(x => Rebuild(x.list, x.poolTags, x.search))
+            .Subscribe(x => Rebuild(x.list, x.selection, x.search))
             .DisposeWith(_disposables);
 
         store.ObserveStatus()
@@ -222,10 +222,11 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private void Rebuild(DanceListModel list, IReadOnlyList<string> poolTags, string search)
+    private void Rebuild(DanceListModel list, DancePoolSelection selection, string search)
     {
         var folded = StringNormalizer.Normalize(search);
-        var inPool = poolTags.ToHashSet(StringComparer.Ordinal);
+        var inPool = selection.Tags.ToHashSet(StringComparer.Ordinal);
+        var excluded = selection.ExcludedTags.ToHashSet(StringComparer.Ordinal);
 
         var trackCounts = _trackStore.Current
             .Where(track => track.DanceSlug is not null)
@@ -233,8 +234,10 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
 
         // The pool narrows what is shown as well as what is drawn, so the panel is never claiming
-        // to draw from something you cannot see.
-        var matching = list.WithAnyTag(poolTags)
+        // to draw from something you cannot see. An exclusion beats an inclusion, here as in the
+        // draw itself.
+        var matching = list.WithAnyTag(selection.Tags)
+            .Where(dance => !excluded.Any(dance.HasTag))
             .Where(dance => Matches(dance, folded))
             .ToList();
 
@@ -254,17 +257,24 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
             .. list.Tags
                 .OrderBy(tag => tag, StringComparer.Ordinal)
                 .Select(tag => new TagChipViewModel(
-                    tag, counts[tag], largest, inPool.Contains(tag), reachable.Contains(tag)))
+                    tag, counts[tag], largest, inPool.Contains(tag), excluded.Contains(tag), reachable.Contains(tag)))
         ];
 
-        HasPool = poolTags.Count > 0;
-        PoolDescription = poolTags.Count == 0
+        HasPool = !selection.IsEverything;
+        var drawable = list.WithAnyTag(selection.Tags).Count(dance => !excluded.Any(dance.HasTag));
+        var description = selection.Tags.Count == 0 && excluded.Count == 0
             ? UiStrings.DanceList_PoolEverything
             : string.Format(
                 CultureInfo.CurrentCulture,
                 UiStrings.DanceList_PoolFormat,
-                string.Join(", ", poolTags),
-                list.WithAnyTag(poolTags).Count());
+                selection.Tags.Count == 0
+                    ? UiStrings.DanceList_PoolAnyTag
+                    : string.Join(", ", selection.Tags),
+                drawable);
+        PoolDescription = excluded.Count == 0
+            ? description
+            : description + string.Format(
+                CultureInfo.CurrentCulture, UiStrings.DanceList_PoolNever, string.Join(", ", selection.ExcludedTags));
 
         SummaryText = string.Format(
             CultureInfo.CurrentCulture, UiStrings.DanceList_Summary, Dances.Count, list.Dances.Count);

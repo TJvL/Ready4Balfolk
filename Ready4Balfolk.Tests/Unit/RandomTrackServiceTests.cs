@@ -53,6 +53,28 @@ public sealed class RandomTrackServiceTests
     }
 
     [Fact]
+    public void Pool_NeverPicksADanceCarryingAnExcludedTag()
+    {
+        // "bretagne, but never suite": plinn carries both, so the exclusion wins and nothing is
+        // eligible.
+        Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
+
+        Assert.Null(_sut.PickRandomTrack(new RandomSelectionScope.Pool(["bretagne"], ["suite"]), true));
+    }
+
+    [Fact]
+    public void Pool_ExclusionsAloneNarrowTheWholeList()
+    {
+        // Nothing chosen, one thing forbidden: everything except the common dances.
+        Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));
+
+        var result = _sut.PickRandomTrack(new RandomSelectionScope.Pool([], ["common"]), true);
+
+        Assert.NotNull(result);
+        Assert.Equal("plinn", result.DanceSlug);
+    }
+
+    [Fact]
     public void Pool_IsAUnion_NotAnIntersection()
     {
         Tracks(TestData.CreateTrack(), TestData.CreateTrack("Plinn"));

@@ -726,6 +726,12 @@
   <data name="DanceList_PoolFormat" xml:space="preserve">
     <value>Drawing from {0} · {1} dances</value>
   </data>
+  <data name="DanceList_PoolAnyTag" xml:space="preserve">
+    <value>every dance</value>
+  </data>
+  <data name="DanceList_PoolNever" xml:space="preserve">
+    <value> · never {0}</value>
+  </data>
   <data name="DanceList_ClearPool" xml:space="preserve">
     <value>Everything</value>
   </data>

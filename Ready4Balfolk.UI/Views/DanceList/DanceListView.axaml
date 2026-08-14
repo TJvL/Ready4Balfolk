@@ -23,6 +23,13 @@
         <Style Selector="Button.chip.dimmed">
             <Setter Property="Opacity" Value="0.35" />
         </Style>
+        <Style Selector="Button.chip.excluded">
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlErrorTextForegroundBrush}" />
+            <Setter Property="BorderThickness" Value="1.5" />
+        </Style>
+        <Style Selector="Button.chip.excluded TextBlock.tagname">
+            <Setter Property="TextDecorations" Value="Strikethrough" />
+        </Style>
     </UserControl.Styles>
 
     <Grid ColumnDefinitions="240,12,*" RowDefinitions="Auto,*">
@@ -108,12 +115,13 @@
                                 <Button Classes="chip"
                                         Classes.pooled="{Binding IsInPool}"
                                         Classes.dimmed="{Binding IsDimmed}"
+                                        Classes.excluded="{Binding IsExcluded}"
                                         Margin="0,0,4,4"
                                         FontSize="{Binding Size}"
                                         Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).ToggleTagCommand}"
                                         CommandParameter="{Binding Tag}">
                                     <StackPanel Orientation="Horizontal" Spacing="4">
-                                        <TextBlock Text="{Binding Tag}" />
+                                        <TextBlock Classes="tagname" Text="{Binding Tag}" />
                                         <TextBlock Text="{Binding Count}" Opacity="0.5" />
                                     </StackPanel>
                                 </Button>
