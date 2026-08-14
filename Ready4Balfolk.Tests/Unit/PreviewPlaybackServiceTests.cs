@@ -16,6 +16,10 @@ public sealed class PreviewPlaybackServiceTests : IDisposable
     private IQueueItem? _currentItem;
     private readonly PreviewPlaybackService _sut;
 
+    // Absolute on both platforms: PlayAsync builds a Uri from it, and "/music/a.mp3" is a valid
+    // file URI on Linux and a relative path on Windows, where the constructor throws.
+    private static readonly string TrackPath = Path.Combine(Path.GetTempPath(), "a.mp3");
+
     public PreviewPlaybackServiceTests()
     {
         _playback.WhenPlaybackEnded.Returns(Observable.Never<System.Reactive.Unit>());
@@ -28,7 +32,7 @@ public sealed class PreviewPlaybackServiceTests : IDisposable
     [Fact]
     public async Task TheQueueTakingTheOutput_EndsThePreviewWithoutTouchingPlayback()
     {
-        await _sut.PlayAsync("/music/a.mp3");
+        await _sut.PlayAsync(TrackPath);
 
         // The room starts dancing: the queue owns the one output now.
         _currentItem = new TrackQueueItem(TestData.CreateTrack(), false);
@@ -41,7 +45,7 @@ public sealed class PreviewPlaybackServiceTests : IDisposable
     [Fact]
     public async Task StoppingAStalePreview_NeverSilencesTheQueue()
     {
-        await _sut.PlayAsync("/music/a.mp3");
+        await _sut.PlayAsync(TrackPath);
         _currentItem = new TrackQueueItem(TestData.CreateTrack(), false);
 
         // Even if the takeover signal was missed, stopping must not clear the queue's stream.
@@ -53,7 +57,7 @@ public sealed class PreviewPlaybackServiceTests : IDisposable
     [Fact]
     public async Task StoppingAPreview_ClearsTheOutputWhenNobodyElseOwnsIt()
     {
-        await _sut.PlayAsync("/music/a.mp3");
+        await _sut.PlayAsync(TrackPath);
 
         await _sut.StopAsync();
 
