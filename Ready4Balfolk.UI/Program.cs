@@ -172,6 +172,7 @@ public static class Program
         services.AddSingleton<IApplicationSettingsDirectory, ApplicationSettingsDirectory>();
         services.AddSingleton<ILibraryIndex, SqliteLibraryIndex>();
         services.AddSingleton<IFileSystem>(new FileSystem());
+        services.AddSingleton<TrackEditorService>();
         services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<IPresentationStateService, PresentationStateService>();

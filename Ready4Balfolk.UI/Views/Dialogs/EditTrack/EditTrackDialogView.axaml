@@ -1,0 +1,90 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:editTrack="clr-namespace:Ready4Balfolk.UI.Views.Dialogs.EditTrack"
+        xmlns:review="clr-namespace:Ready4Balfolk.UI.Views.Review"
+        xmlns:res="using:Ready4Balfolk.UI.Resources"
+        mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="380"
+        x:Class="Ready4Balfolk.UI.Views.Dialogs.EditTrack.EditTrackDialogView"
+        x:DataType="editTrack:EditTrackDialogViewModel"
+        Title="{x:Static res:UiStrings.EditTrack_WindowTitle}"
+        Width="460"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False">
+    <Window.Styles>
+        <Style Selector="Button.match">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Focusable" Value="False" />
+        </Style>
+        <Style Selector="Button.match.highlighted">
+            <Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
+        </Style>
+    </Window.Styles>
+
+    <StackPanel Margin="20" Spacing="12">
+        <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:UiStrings.Discovery_FieldDance}" />
+            <TextBox x:Name="DanceBox" Text="{CompiledBinding Dance}" />
+            <!-- Inline rather than a Popup: a popup steals focus from the box being typed into.
+                 Same reasoning as the review row's picker. -->
+            <Border IsVisible="{CompiledBinding IsPickerOpen}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    MaxHeight="180">
+                <ScrollViewer>
+                    <ItemsControl x:Name="MatchList" ItemsSource="{CompiledBinding DanceMatches}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="review:DanceMatch">
+                                <Button Classes="match"
+                                        Classes.highlighted="{Binding IsHighlighted}"
+                                        Content="{Binding Name}"
+                                        Command="{Binding $parent[Window].((editTrack:EditTrackDialogViewModel)DataContext).TakeCommand}"
+                                        CommandParameter="{Binding Name}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+            <TextBlock Text="{CompiledBinding Problem}"
+                       IsVisible="{CompiledBinding HasProblem}"
+                       Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}"
+                       TextWrapping="Wrap"
+                       FontSize="12" />
+        </StackPanel>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:UiStrings.Discovery_FieldArtist}" />
+            <TextBox Text="{CompiledBinding Artist}" />
+        </StackPanel>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:UiStrings.Discovery_FieldTitle}" />
+            <TextBox Text="{CompiledBinding Title}" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,8,0,0">
+            <Button Content="{x:Static res:UiStrings.Dialog_Cancel}"
+                    Command="{CompiledBinding CancelCommand}"
+                    MinWidth="80"
+                    IsCancel="True" />
+            <!-- The accent class is provided by FluentAvalonia at runtime, so these are false positives. -->
+            <!-- ReSharper disable once Xaml.StyleClassNotFound -->
+            <Button Content="{x:Static res:UiStrings.Dialog_OK}"
+                    Command="{CompiledBinding SaveCommand}"
+                    MinWidth="80"
+                    Classes="accent"
+                    IsDefault="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>

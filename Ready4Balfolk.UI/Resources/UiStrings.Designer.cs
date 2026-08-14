@@ -826,6 +826,15 @@ public static class UiStrings
     public static string Discovery_FieldDance =>
         ResourceManager.GetString("Discovery_FieldDance", Culture)!;
 
+    public static string TrackCatalog_EditTrack =>
+        ResourceManager.GetString("TrackCatalog_EditTrack", Culture)!;
+
+    public static string EditTrack_WindowTitle =>
+        ResourceManager.GetString("EditTrack_WindowTitle", Culture)!;
+
+    public static string EditTrack_UnknownDance =>
+        ResourceManager.GetString("EditTrack_UnknownDance", Culture)!;
+
     public static string Discovery_FieldArtist =>
         ResourceManager.GetString("Discovery_FieldArtist", Culture)!;
 

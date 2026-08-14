@@ -939,6 +939,15 @@
   <data name="Discovery_FieldDance" xml:space="preserve">
     <value>Dance</value>
   </data>
+  <data name="TrackCatalog_EditTrack" xml:space="preserve">
+    <value>Edit track</value>
+  </data>
+  <data name="EditTrack_WindowTitle" xml:space="preserve">
+    <value>Edit track</value>
+  </data>
+  <data name="EditTrack_UnknownDance" xml:space="preserve">
+    <value>The dance list does not know "{0}". A missing dance is a proposal at BigBalfolkList, not a local override.</value>
+  </data>
   <data name="Discovery_FieldArtist" xml:space="preserve">
     <value>Artist</value>
   </data>

@@ -861,6 +861,15 @@
   <data name="Discovery_ApplyRolesAndTags" xml:space="preserve">
     <value>Mappen en tags opslaan</value>
   </data>
+  <data name="TrackCatalog_EditTrack" xml:space="preserve">
+    <value>Nummer bewerken</value>
+  </data>
+  <data name="EditTrack_WindowTitle" xml:space="preserve">
+    <value>Nummer bewerken</value>
+  </data>
+  <data name="EditTrack_UnknownDance" xml:space="preserve">
+    <value>De danslijst kent "{0}" niet. Een ontbrekende dans is een voorstel bij BigBalfolkList, geen lokale uitzondering.</value>
+  </data>
   <data name="Discovery_FieldDance" xml:space="preserve">
     <value>Dans</value>
   </data>

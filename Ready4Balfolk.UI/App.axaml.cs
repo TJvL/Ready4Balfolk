@@ -54,6 +54,7 @@ public sealed class App : Application
             desktop.MainWindow = mainWindow;
 
             Services.GetRequiredService<ConfirmationService>().SetOwner(mainWindow);
+            Services.GetRequiredService<TrackEditorService>().SetOwner(mainWindow);
 
             mainWindow.Opened += (_, _) =>
             {
