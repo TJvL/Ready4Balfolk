@@ -930,6 +930,9 @@
   <data name="Discovery_CustomDanceTagPlaceholder" xml:space="preserve">
     <value>tag name</value>
   </data>
+  <data name="Discovery_CustomDanceTagCount" xml:space="preserve">
+    <value>Found on {0} of {1} files.</value>
+  </data>
   <data name="Discovery_UseDefault" xml:space="preserve">
     <value>Leave this to the application</value>
   </data>

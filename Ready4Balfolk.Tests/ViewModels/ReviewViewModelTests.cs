@@ -58,12 +58,15 @@ public sealed class ReviewViewModelTests : IDisposable
         _libraryIndex.ApprovalsAsync().Returns(_ =>
             new Dictionary<string, IReadOnlyList<TrackApproval>>(StringComparer.Ordinal));
         _libraryIndex.ApproveIndividuallyAsync(
-                Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<TrackField>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+                Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<IReadOnlyCollection<FieldAnswer>>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {
                 foreach (var path in call.Arg<IReadOnlyCollection<string>>()!)
                 {
-                    _approved.Add((path, call.Arg<TrackField>(), call.Arg<string>()!));
+                    foreach (var answer in call.Arg<IReadOnlyCollection<FieldAnswer>>()!)
+                    {
+                        _approved.Add((path, answer.Field, answer.Value));
+                    }
                 }
 
                 return Task.CompletedTask;

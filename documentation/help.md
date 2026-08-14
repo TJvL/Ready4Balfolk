@@ -33,6 +33,7 @@ If your library *does* follow a shape, you can say so. Open **Review** and press
 - **File name patterns.** `%d` dance, `%a` artist, `%t` title, `%n` track number, `%i` ignore, `%ex` extension; anything else has to be there exactly. `%d - %a - %t` reads `Mazurka - Naragonia - Idiosyncrasie.mp3`. A pattern has to match a whole name, and the first pattern in the list that does is the one that answers, so put the most specific first.
 - **Folder levels.** Counted from the outside in. Saying level 1 is the artist reads that folder as the artist for every file deep enough to have one, and says nothing about the files that are not.
 - **Tags.** Which tag fields hold which value. Left alone, artist and album artist are read as the artist, the title tag as the title, and no tag is read as the dance. A dance name from your list is still recognised inside any tag whatever you set here.
+- **A custom dance tag.** Some libraries carry the dance in a free-form tag of their own — an ID3v2 `TXXX` frame or a Xiph field named `DANCE`, `STYLE`, or whatever your tagger called it. Name that tag here and its value is read as the dance, whole: a value the list does not know parks the track exactly as any other declared answer would. The panel shows how many of your files carry a tag of that name before you commit to it.
 
 **A rule is a bulk approval**, which is the point of it: rather than answering two thousand files one at a time, you agree once to the rule that answers them. So you are shown what it does before you add it, in the numbers that matter — how many files it takes, what it makes of them, and how many would be left. Adding, removing or reordering a rule re-reads your library, because a rule is meant to answer the files already sitting in it.
 
@@ -238,6 +239,14 @@ Use the search box in the toolbar to filter tracks. The search matches against t
 
 Double-click a track to add it to the end of the queue. If duplicate prevention is enabled in settings, tracks that are currently playing, already in the queue, or already in the history cannot be added again.
 
+### Fixing a typo where you see it
+
+Right-click a track — here, or on a track sitting in the queue — and choose **Edit track** to
+correct its dance, artist or title on the spot. The track never leaves your library while you do:
+what you change is saved as your own answer, and only the fields you actually changed are touched.
+The dance still has to be one the published list knows; a missing dance is a proposal at
+[BigBalfolkList](https://tjvl.github.io/BigBalfolkList/), not a local override.
+
 ### Toggle to Dance List
 
 Use the toggle button in the toolbar to switch the right panel to the dance list.
@@ -268,9 +277,11 @@ checks for a newer one each time it starts.
 
 ### Choosing what random picks from
 
-The tags in the left-hand rail are the **pool**: click a tag to put it in, click it again to take it
-out. A random pick, and the auto-queue, draw from the dances carrying any tag in the pool. With
-nothing chosen the pool is every dance.
+The tags in the left-hand rail are the **pool**. A click walks a tag through three states: out,
+**drawn from** (filled), and **never drawn** (red border, struck through); a third click puts it
+back out. A random pick, and the auto-queue, draw from the dances carrying any included tag and
+none of the excluded ones — an exclusion always wins, so *bretagne* but never *chain* means exactly
+that. With nothing chosen the pool is every dance.
 
 The toolbar always says what is being drawn from, because a tag is easy to click on the way past and
 hard to notice afterwards. **Everything** empties the pool again.
@@ -396,6 +407,22 @@ The maximum number of items allowed in the queue, between 1 and 100. When the qu
 
 The default duration (in seconds) for delay markers added to the queue, between 1 and 300 seconds. This value is used when you click "Enqueue Delay" in the queue toolbar.
 
+### Stop accepting requests after a set time
+
+An end time for the night. Once the queue would run past it (plus a grace period in minutes), new
+entries are refused, so the last dance ends when the hall closes rather than twenty minutes after.
+While a stop request is queued the end time is unknown and the limit is not applied; use a delay
+instead if you know how long the pause will be.
+
+### Show text on buttons
+
+Replaces the icons on buttons with a short description of what they do. Useful while learning the
+application, or for anyone who prefers words to pictograms.
+
+### Language
+
+The application language, English or Dutch. Takes effect after a restart.
+
 ### Presentation Displays
 
 The number of presentation windows to show, between 0 and 10. Set to 0 to disable presentation windows entirely. Presentation windows are designed to be shown on projectors or external screens visible to dancers.
@@ -439,3 +466,22 @@ Presentation windows are full-screen displays intended for projectors or externa
 ### Configuration
 
 Set the number of presentation windows in **Settings > Presentation Displays**. Each window can be moved to a different screen and will remember its position between sessions.
+
+---
+
+## Phone Remote and Web Display
+
+Ready4Balfolk can serve two pages over your local network from a small built-in web server:
+
+- **The display page** shows what is playing and what comes next, for any device with a browser —
+  a spare tablet by the stage works as a presentation screen without a video cable.
+- **The remote** can play, pause, skip, queue a random track, a stop, a delay or a message, and
+  search the library — the controls a DJ needs while away from the desk, and nothing more.
+  Deliberately, it cannot change the pool: what random picks draw from is decided at the computer,
+  and the remote draws from whatever the screen there says.
+
+Both are enabled in **Settings**. The remote is off unless you turn it on, and it is guarded by a
+PIN: anyone who can reach the page and knows the PIN can change what the room is dancing to, so
+treat it accordingly. **New PIN** mints a fresh one and disconnects every phone using the old one.
+
+The random pick on the remote draws from the same pool as the desktop, exclusions included.

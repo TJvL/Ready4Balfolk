@@ -154,17 +154,20 @@ public static class ReviewQueueBuilder
         }
 
         // Counted over the queue rather than over the library: what matters is how many of the
-        // tracks still waiting would be answered by one decision.
+        // tracks still waiting would be answered by one decision. A value that folds to nothing
+        // ("???") is grouped with nothing: an empty key would lump it with every row that has no
+        // value at all, and one decision must never answer those.
         var sharedBy = waiting
-            .Where(track => track.UnknownValue.Length > 0)
+            .Where(track => StringNormalizer.Normalize(track.UnknownValue).Length > 0)
             .GroupBy(track => StringNormalizer.Normalize(track.UnknownValue), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
 
         waiting =
         [
-            .. waiting.Select(track => track.UnknownValue.Length == 0
-                ? track
-                : track with { SharedBy = sharedBy[StringNormalizer.Normalize(track.UnknownValue)] })
+            .. waiting.Select(track =>
+                sharedBy.TryGetValue(StringNormalizer.Normalize(track.UnknownValue), out var count)
+                    ? track with { SharedBy = count }
+                    : track)
         ];
 
         return

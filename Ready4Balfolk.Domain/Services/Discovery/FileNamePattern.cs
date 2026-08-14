@@ -75,6 +75,11 @@ public sealed class FileNamePattern
     /// <summary>Whether it is matched against the name with its extension on.</summary>
     public bool UsesExtension { get; }
 
+    // Parsed once per distinct text: the rules screen re-measures coverage, leftovers and previews
+    // on every change, and each of those calls used to compile the same regexes again. Cleared when
+    // it grows silly, because the draft box mints a new key per keystroke.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (FileNamePattern? Pattern, PatternProblem Problem)> Parsed = new(StringComparer.Ordinal);
+
     /// <summary>Compiles a pattern, or says why it will not do.</summary>
     public static (FileNamePattern? Pattern, PatternProblem Problem) Parse(string? text)
     {
@@ -82,6 +87,22 @@ public sealed class FileNamePattern
         {
             return (null, PatternProblem.Empty);
         }
+
+        if (Parsed.TryGetValue(text, out var known))
+        {
+            return known;
+        }
+
+        if (Parsed.Count > 256)
+        {
+            Parsed.Clear();
+        }
+
+        return Parsed.GetOrAdd(text, ParseUncached);
+    }
+
+    private static (FileNamePattern? Pattern, PatternProblem Problem) ParseUncached(string text)
+    {
 
         var expression = new StringBuilder("^");
         var seen = new List<TokenKind>();

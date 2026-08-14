@@ -51,6 +51,8 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     private IReadOnlyList<string> _fileNames = [];
     private IReadOnlyList<IReadOnlyList<string>> _folders = [];
     private IReadOnlyList<CalibrationFile> _library = [];
+    private Dictionary<string, int> _customTagCounts = new(StringComparer.OrdinalIgnoreCase);
+    private int _indexedFiles;
 
     public DiscoveryViewModel(
         ISettingsStore settingsStore,
@@ -66,6 +68,13 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
 
         DraftPattern = string.Empty;
         CustomDanceTag = string.Empty;
+        CustomDanceTagSummary = string.Empty;
+
+        // Live, like the pattern preview: naming a tag is a declaration and a bulk approval, and
+        // the greenlight has to be informed. This is the blast radius of the custom dance tag.
+        this.WhenAnyValue(x => x.CustomDanceTag)
+            .Subscribe(_ => SummariseCustomTag())
+            .DisposeWith(_disposables);
         DraftSummary = string.Empty;
         CoverageSummary = string.Empty;
         DraftSamples = [];
@@ -140,6 +149,9 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     /// <summary>The name of the custom tag declared to hold the dance, empty for none.</summary>
     [Reactive] public partial string CustomDanceTag { get; set; }
 
+    /// <summary>How many files carry a tag of that name, so the declaration is given knowingly.</summary>
+    [Reactive] public partial string CustomDanceTagSummary { get; private set; }
+
     /// <summary>
     /// What the library's own strings suggest, measured over what no rule covers yet.
     /// </summary>
@@ -164,6 +176,11 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
             var root = _settingsStore.Current.MusicDirectoryPath;
 
             _fileNames = [.. snapshot.Keys.Select(Path.GetFileName).OfType<string>()];
+            _indexedFiles = snapshot.Count;
+            _customTagCounts = snapshot.Values
+                .SelectMany(entry => entry.CustomTagNames.Distinct(StringComparer.OrdinalIgnoreCase))
+                .GroupBy(name => name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
             _folders = [.. snapshot.Keys.Select(path => SegmentsBetween(path, root))];
             _library =
             [
@@ -291,10 +308,11 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
                 _ => settings.TagTrust.Title
             };
 
-            TagFields[i].UsesDefault = declared is null;
+            TagFields[i].ShowDeclared(declared);
         }
 
         CustomDanceTag = settings.CustomDanceTag ?? string.Empty;
+        SummariseCustomTag();
 
         Measure(settings);
 
@@ -317,9 +335,14 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     {
         Proposals.Clear();
 
-        var leftovers = DeclarationPreview.Leftovers(settings, _fileNames).ToHashSet(StringComparer.Ordinal);
+        // Leftovers carry extensions and calibration files do not; compared without them, so a
+        // .flac library is measured too rather than only whatever happened to be an .mp3.
+        var leftovers = DeclarationPreview.Leftovers(settings, _fileNames)
+            .Select(Path.GetFileNameWithoutExtension)
+            .OfType<string>()
+            .ToHashSet(StringComparer.Ordinal);
         var waiting = _library
-            .Where(file => leftovers.Contains(file.FileName) || leftovers.Contains(file.FileName + ".mp3"))
+            .Where(file => leftovers.Contains(file.FileName))
             .ToList();
 
         var report = Calibration.Measure(
@@ -382,6 +405,18 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     {
         var deepest = _folders.Count == 0 ? 0 : _folders.Max(segments => segments.Count);
         return Math.Min(deepest, MaximumFolderLevels);
+    }
+
+    private void SummariseCustomTag()
+    {
+        var name = CustomDanceTag.Trim();
+        CustomDanceTagSummary = name.Length == 0
+            ? string.Empty
+            : string.Format(
+                CultureInfo.CurrentCulture,
+                UiStrings.Discovery_CustomDanceTagCount,
+                _customTagCounts.GetValueOrDefault(name),
+                _indexedFiles);
     }
 
     /// <summary>Measures the draft now rather than on the typing throttle.</summary>

@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
 using ReactiveUI.Reactive;
-using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.UI.Resources;
@@ -25,6 +24,7 @@ public sealed class EditTrackDialogViewModel : ReactiveObject
 {
     private readonly DanceListIndex _index;
     private readonly IReadOnlyList<string> _allDances;
+    private readonly string _originalDance;
     private bool _taking;
 
     public EditTrackDialogViewModel(Track track, DanceListIndex index)
@@ -37,6 +37,7 @@ public sealed class EditTrackDialogViewModel : ReactiveObject
                 .OrderBy(name => name, StringComparer.CurrentCulture)
         ];
 
+        _originalDance = track.Dance;
         Dance = track.Dance;
         Artist = track.Artist;
         Title = track.Title;
@@ -124,24 +125,23 @@ public sealed class EditTrackDialogViewModel : ReactiveObject
     public string? ResolvedDance =>
         _index.ResolveSlug(Dance) is { } slug ? _index.DisplayNameFor(slug) : null;
 
+    /// <summary>What saving writes as the dance, or null while the dialog refuses.</summary>
+    /// <remarks>
+    /// The track's own dance survives even when the list does not know it: a track let in through
+    /// the outside-the-list door must stay editable on its other fields, so only a NEW unknown
+    /// name is refused. Leaving the dance alone is not a claim the list has to vouch for.
+    /// </remarks>
+    public string? DanceToSave =>
+        ResolvedDance ?? (DanceIsUntouched ? _originalDance : null);
+
+    private bool DanceIsUntouched => string.Equals(Dance.Trim(), _originalDance, StringComparison.Ordinal);
+
     /// <summary>The name the keys are on, or nothing when the list is closed.</summary>
     public string? HighlightedDance => DanceMatches.FirstOrDefault(match => match.IsHighlighted)?.Name;
 
     public void MoveHighlight(int direction)
     {
-        if (DanceMatches.Count == 0)
-        {
-            return;
-        }
-
-        var at = DanceMatches.ToList().FindIndex(match => match.IsHighlighted);
-        var next = (at + direction + DanceMatches.Count) % DanceMatches.Count;
-
-        for (var i = 0; i < DanceMatches.Count; i++)
-        {
-            DanceMatches[i].IsHighlighted = i == next;
-        }
-
+        DancePicking.MoveHighlight(DanceMatches, direction);
         this.RaisePropertyChanged(nameof(HighlightedDance));
     }
 
@@ -176,40 +176,18 @@ public sealed class EditTrackDialogViewModel : ReactiveObject
             return;
         }
 
-        var typed = StringNormalizer.Normalize(Dance);
-        if (typed.Length == 0)
-        {
-            ClosePicker();
-            return;
-        }
-
-        // Starting with what was typed first, then merely containing it: somebody typing "bou"
-        // means bourrée, and the dances that only mention it belong underneath.
-        var matches = _allDances
-            .Select(name => (Name: name, Folded: StringNormalizer.Normalize(name)))
-            .Where(candidate => candidate.Folded.Contains(typed, StringComparison.Ordinal))
-            .OrderByDescending(candidate => candidate.Folded.StartsWith(typed, StringComparison.Ordinal))
-            .ThenBy(candidate => candidate.Name, StringComparer.CurrentCulture)
-            .Select(candidate => candidate.Name)
-            .Take(12)
-            .ToList();
-
-        DanceMatches = [.. matches.Select((name, index) => new DanceMatch(name) { IsHighlighted = index == 0 })];
-
-        // Nothing to choose between when the only match is what is already written.
-        IsPickerOpen = matches.Count > 0
-            && !(matches.Count == 1 && string.Equals(StringNormalizer.Normalize(matches[0]), typed, StringComparison.Ordinal));
+        (DanceMatches, IsPickerOpen) = DancePicking.MatchesFor(_allDances, Dance);
     }
 
     private void Validate()
     {
-        var known = ResolvedDance is not null;
+        var acceptable = DanceToSave is not null;
 
-        Problem = !known && !string.IsNullOrWhiteSpace(Dance)
+        Problem = !acceptable && !string.IsNullOrWhiteSpace(Dance)
             ? string.Format(CultureInfo.CurrentCulture, UiStrings.EditTrack_UnknownDance, Dance.Trim())
             : string.Empty;
 
-        CanSave = known
+        CanSave = acceptable
             && !string.IsNullOrWhiteSpace(Artist)
             && !string.IsNullOrWhiteSpace(Title);
     }

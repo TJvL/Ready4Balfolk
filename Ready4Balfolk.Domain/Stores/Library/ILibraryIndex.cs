@@ -3,6 +3,9 @@ using Ready4Balfolk.Domain.Models.Tracks;
 namespace Ready4Balfolk.Domain.Stores.Library;
 
 /// <summary>The index of what is in the music directory, so a startup can avoid opening files.</summary>
+/// <summary>One field a person answered, for approving a row in a single transaction.</summary>
+public readonly record struct FieldAnswer(TrackField Field, string Value);
+
 public interface ILibraryIndex : IDisposable
 {
     /// <summary>Opens the database and creates the schema if it is not there yet.</summary>
@@ -43,12 +46,18 @@ public interface ILibraryIndex : IDisposable
     /// </remarks>
     Task RevokeRuleApprovalsAsync(CancellationToken token = default);
 
-    /// <summary>Approves one field of the tracks at these paths, as a person deciding.</summary>
+    /// <summary>Approves fields of the tracks at these paths, as a person deciding, in one write.</summary>
     Task ApproveIndividuallyAsync(
-        IReadOnlyCollection<string> paths, TrackField field, string value, CancellationToken token = default);
+        IReadOnlyCollection<string> paths, IReadOnlyCollection<FieldAnswer> answers, CancellationToken token = default);
 
     /// <summary>Forgets every row whose path is not in the set, after a scan has been through.</summary>
     Task DeleteMissingAsync(IReadOnlyCollection<string> existingPaths, CancellationToken token = default);
+
+    /// <summary>
+    /// Forgets one path, for the watcher noticing a file go. An audio nothing points at any more is
+    /// gone along with what was decided about it, exactly as a full scan would conclude.
+    /// </summary>
+    Task DeletePathAsync(string path, CancellationToken token = default);
 
     /// <summary>
     /// The values the user has said not to ask about again, folded for comparison.
@@ -68,6 +77,10 @@ public interface ILibraryIndex : IDisposable
     /// Over paths, because that is what the user sees. A track is in the library or in review and
     /// never both, so this is the number the review badge is for.
     /// </remarks>
-    Task<int> CountInReviewAsync(CancellationToken token = default);
+    /// <summary>
+    /// How many files the index knows, for a scan's progress line. Whether one is in review is the
+    /// gate's decision, not a query: the published library reports that count itself.
+    /// </summary>
+    Task<int> CountIndexedAsync(CancellationToken token = default);
 
 }

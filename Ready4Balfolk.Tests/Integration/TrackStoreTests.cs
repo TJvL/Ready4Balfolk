@@ -105,6 +105,16 @@ public sealed class TrackStoreTests : IDisposable
 
                 return Task.CompletedTask;
             });
+        _libraryIndex.DeletePathAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                lock (_indexSnapshot)
+                {
+                    _indexSnapshot.Remove(call.Arg<string>()!);
+                }
+
+                return Task.CompletedTask;
+            });
         _libraryIndex.ApprovalsAsync(Arg.Any<CancellationToken>()).Returns(_ => Approved());
 
         _sut = new TrackStore(_loggerService, discoveryService, danceListStore, _libraryIndex, _fileSystem);
@@ -172,6 +182,35 @@ public sealed class TrackStoreTests : IDisposable
             }
         });
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "c.mp3"));
+    }
+
+    [Fact]
+    public async Task ADeletedFile_LeavesTheIndexAsWellAsTheLibrary()
+    {
+        // Without the index delete the next rebuild resurrects the file: any refresh republishes
+        // whatever rows the index still holds.
+        CreateFile(_dirA, "a.mp3");
+        _sut.MusicDirectory = _dirA;
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        _fileSystem.File.Delete(_fileSystem.Path.Combine(_dirA.FullName, "a.mp3"));
+        IFileSystemWatcher watcher;
+        lock (_watchers)
+        {
+            watcher = _watchers.Last(w => string.Equals(w.Path, _dirA.FullName, StringComparison.Ordinal)).Watcher;
+        }
+
+        watcher.Deleted += Raise.Event<FileSystemEventHandler>(
+            watcher, new FileSystemEventArgs(WatcherChangeTypes.Deleted, _dirA.FullName, "a.mp3"));
+
+        await WaitUntilAsync(() =>
+        {
+            lock (_indexSnapshot)
+            {
+                return _indexSnapshot.Count == 0;
+            }
+        });
+        await WaitUntilAsync(() => _sut.Current.Count == 0);
     }
 
     [Fact]
@@ -269,18 +308,24 @@ public sealed class TrackStoreTests : IDisposable
         var isLoading = true;
         using var loading = _sut.IsLoading.Subscribe(value => isLoading = value);
 
+        var inReview = 0;
+        using var counting = _sut.InReviewCount.Subscribe(count => inReview = count);
+
         _sut.MusicDirectory = _dirA;
         await WaitUntilAsync(() => _indexSnapshot.Count == 1 && !isLoading);
 
         // Approved on every field, and still not in the library: the list has never heard of the
-        // dance, so the gate holds it.
+        // dance, so the gate holds it. The badge count has to say so too: a SQL count keyed on
+        // "fewer than three approvals" once reported zero here, and the badge lied.
         Assert.Empty(_sut.Current);
+        Assert.Equal(1, inReview);
 
         var carried = new DanceList { Dances = [TestData.CreateDance("mazurka", names: ["Mazurka"])] };
         _danceIndex = DanceListIndex.Build(carried);
         _danceLists.OnNext(carried);
 
         await WaitUntilAsync(() => _sut.Current.Count == 1);
+        Assert.Equal(0, inReview);
     }
 
     public void Dispose() => _sut.Dispose();

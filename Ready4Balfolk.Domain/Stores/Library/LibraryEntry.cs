@@ -38,6 +38,12 @@ public sealed record LibraryEntry
     public string? Title { get; init; }
 
     /// <summary>
+    /// The names of the file's free-form tags (ID3v2 TXXX, Xiph fields), for the rules panel to
+    /// count against a declared custom dance tag without opening a single file.
+    /// </summary>
+    public IReadOnlyList<string> CustomTagNames { get; init; } = [];
+
+    /// <summary>
     /// What answered each field, and how well.
     /// </summary>
     /// <remarks>

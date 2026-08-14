@@ -71,22 +71,35 @@ public sealed partial class TagTrustFieldViewModel : ReactiveObject
     {
         Field = field;
         Label = label;
+        Toggles = [.. System.Enum.GetValues<TagField>().Select(tag => new TagFieldToggle(tag))];
+        ShowDeclared(declared);
+    }
+
+    /// <summary>
+    /// Shows a stored declaration, or the default when there is none.
+    /// </summary>
+    /// <remarks>
+    /// The toggles as well as the checkbox: syncing only <see cref="UsesDefault"/> leaves the
+    /// toggles empty after a restart, and saving the screen then persists an empty declaration
+    /// over what the user actually stated.
+    /// </remarks>
+    public void ShowDeclared(IReadOnlyList<TagField>? declared)
+    {
         UsesDefault = declared is null;
 
-        var defaults = field switch
+        var trusted = declared ?? Defaults(Field);
+        foreach (var toggle in Toggles)
         {
-            TrackField.Artist => TagTrust.DefaultForArtist,
-            TrackField.Title => TagTrust.DefaultForTitle,
-            _ => TagTrust.DefaultForDance
-        };
-
-        var trusted = declared ?? defaults;
-        Toggles =
-        [
-            .. System.Enum.GetValues<TagField>()
-                .Select(tag => new TagFieldToggle(tag) { IsTrusted = trusted.Contains(tag) })
-        ];
+            toggle.IsTrusted = trusted.Contains(toggle.Field);
+        }
     }
+
+    private static IReadOnlyList<TagField> Defaults(TrackField field) => field switch
+    {
+        TrackField.Artist => TagTrust.DefaultForArtist,
+        TrackField.Title => TagTrust.DefaultForTitle,
+        _ => TagTrust.DefaultForDance
+    };
 
     public TrackField Field { get; }
 

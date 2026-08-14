@@ -69,7 +69,9 @@ public sealed partial class MainWindowViewModel : ReactiveObject
                 else if (screen is Screen.Setup)
                 {
                     // Built fresh each time, so running setup again starts from what is on disk
-                    // rather than from where the last visit left off.
+                    // rather than from where the last visit left off. The previous run's
+                    // subscriptions go with it, or every visit leaks a live wizard.
+                    Setup?.Dispose();
                     Setup = setupFactory();
                 }
                 else if (screen is Screen.Review)

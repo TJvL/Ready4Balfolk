@@ -817,6 +817,9 @@ public static class UiStrings
     public static string Discovery_CustomDanceTagPlaceholder =>
         ResourceManager.GetString("Discovery_CustomDanceTagPlaceholder", Culture)!;
 
+    public static string Discovery_CustomDanceTagCount =>
+        ResourceManager.GetString("Discovery_CustomDanceTagCount", Culture)!;
+
     public static string Discovery_UseDefault =>
         ResourceManager.GetString("Discovery_UseDefault", Culture)!;
 

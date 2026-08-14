@@ -6,7 +6,6 @@ using System.Reactive.Linq;
 using Avalonia.Threading;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
-using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
@@ -245,47 +244,13 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
             return;
         }
 
-        var typed = StringNormalizer.Normalize(Dance);
-        if (typed.Length == 0)
-        {
-            ClosePicker();
-            return;
-        }
-
-        // Starting with what was typed first, then merely containing it: somebody typing "bou"
-        // means bourrée, and the dances that only mention it belong underneath.
-        var matches = _allDances
-            .Select(name => (Name: name, Folded: StringNormalizer.Normalize(name)))
-            .Where(candidate => candidate.Folded.Contains(typed, StringComparison.Ordinal))
-            .OrderByDescending(candidate => candidate.Folded.StartsWith(typed, StringComparison.Ordinal))
-            .ThenBy(candidate => candidate.Name, StringComparer.CurrentCulture)
-            .Select(candidate => candidate.Name)
-            .Take(12)
-            .ToList();
-
-        DanceMatches = [.. matches.Select((name, index) => new DanceMatch(name) { IsHighlighted = index == 0 })];
-
-        // Nothing to choose between when the only match is what is already written.
-        IsPickerOpen = matches.Count > 0
-            && !(matches.Count == 1 && string.Equals(StringNormalizer.Normalize(matches[0]), typed, StringComparison.Ordinal));
+        (DanceMatches, IsPickerOpen) = DancePicking.MatchesFor(_allDances, Dance);
     }
 
     /// <summary>Walks the offered names, wrapping, which is the whole reason this list is ours.</summary>
     public void MoveHighlight(int direction)
     {
-        if (DanceMatches.Count == 0)
-        {
-            return;
-        }
-
-        var at = DanceMatches.ToList().FindIndex(match => match.IsHighlighted);
-        var next = (at + direction + DanceMatches.Count) % DanceMatches.Count;
-
-        for (var i = 0; i < DanceMatches.Count; i++)
-        {
-            DanceMatches[i].IsHighlighted = i == next;
-        }
-
+        DancePicking.MoveHighlight(DanceMatches, direction);
         this.RaisePropertyChanged(nameof(HighlightedDance));
     }
 

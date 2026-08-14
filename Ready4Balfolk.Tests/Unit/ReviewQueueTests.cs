@@ -149,6 +149,23 @@ public sealed class ReviewQueueTests
     }
 
     [Fact]
+    public void AValueThatFoldsToNothing_SharesWithNothing()
+    {
+        // "???" folds to the empty string, and so does a row with no value at all. Grouping them
+        // would hand one "use for all" click every unanswered row in the queue.
+        var queue = Build(
+        [
+            Entry("/music/a.mp3", [1], slug: null, originalDance: "???"),
+            Entry("/music/b.mp3", [2], slug: null, originalDance: "???"),
+            Entry("/music/c.mp3", [3], slug: null, originalDance: null)
+        ]);
+
+        var tracks = queue.SelectMany(group => group.Tracks).ToList();
+        Assert.Equal(0, tracks.Single(track => track.FileName == "a.mp3").SharedBy);
+        Assert.Equal(0, tracks.Single(track => track.FileName == "c.mp3").SharedBy);
+    }
+
+    [Fact]
     public void ARecognisedDance_IsNotAnUnknownValue()
     {
         var queue = Build([Entry("/music/a.mp3", [1])]);

@@ -263,6 +263,38 @@ public sealed class TrackClaimsTests
     }
 
     [Fact]
+    public void ABracketedNameWithGlueWords_IsStillDeliberate()
+    {
+        // The scanner's matched names are match keys, glue dropped; the bracket text has to be
+        // folded the same way or "(Rond de Saint-Vincent)" never reads as written-on-purpose.
+        var index = DanceListIndex.Build(new DanceList
+        {
+            IgnoredWords = ["de"],
+            Dances = [TestData.CreateDance("rond-de-saint-vincent", names: ["Rond de Saint-Vincent"])]
+        });
+
+        var claims = TrackClaims.Collect(Evidence("Some tune (Rond de Saint-Vincent)"), index);
+
+        Assert.Contains(claims, claim =>
+            claim.Field == TrackField.Dance && claim.Source.IsDeliberate);
+    }
+
+    [Fact]
+    public void ABracketedNameWithNumberWords_IsStillDeliberate()
+    {
+        var index = DanceListIndex.Build(new DanceList
+        {
+            NumberWords = new Dictionary<string, string> { ["trois"] = "3" },
+            Dances = [TestData.CreateDance("bourree-3-temps", names: ["Bourrée 3 temps"])]
+        });
+
+        var claims = TrackClaims.Collect(Evidence("05 - A tune (Bourrée à trois temps)"), index);
+
+        Assert.Contains(claims, claim =>
+            claim.Field == TrackField.Dance && claim.Source.IsDeliberate);
+    }
+
+    [Fact]
     public void ADeclaredCustomTag_IsReadWhole()
     {
         // Named by the user, so it is a declaration like a trusted field: the value is the dance

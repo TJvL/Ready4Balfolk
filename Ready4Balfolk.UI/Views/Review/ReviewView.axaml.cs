@@ -43,6 +43,12 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         // the selected row: clicking into a box does not move the selection, and the picker that
         // opened belongs to where the typing is.
         var typing = (e.Source as Control)?.DataContext as ReviewRowViewModel ?? selected;
+
+        // After this keystroke has done its work, including opening the picker: the overlay adds
+        // no layout extent, so a bottom-of-viewport row's list is clipped with provably no room
+        // below unless the scroller is asked to show the space it paints into.
+        Dispatcher.UIThread.Post(() => BringPickerIntoView(typing), DispatcherPriority.Background);
+
         if (typing.IsPickerOpen)
         {
             if (e.Key is Key.Up or Key.Down)
@@ -197,6 +203,20 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
     /// Closes a row's picker the moment its box is left. The picker overlays the rows beneath, so
     /// one left open under another would paint two lists into the same space.
     /// </summary>
+    /// <summary>Enough vertical room for the picker's twelve rows and its border.</summary>
+    private const double PickerAllowance = 340;
+
+    private void BringPickerIntoView(ReviewRowViewModel row)
+    {
+        if (!row.IsPickerOpen || Queue.ContainerFromItem(row) is not { } container)
+        {
+            return;
+        }
+
+        container.BringIntoView(new Rect(
+            0, 0, container.Bounds.Width, container.Bounds.Height + PickerAllowance));
+    }
+
     private void OnDanceLostFocus(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: ReviewRowViewModel row })

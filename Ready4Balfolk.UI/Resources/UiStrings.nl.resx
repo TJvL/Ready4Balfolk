@@ -855,6 +855,9 @@
   <data name="Discovery_CustomDanceTagPlaceholder" xml:space="preserve">
     <value>tagnaam</value>
   </data>
+  <data name="Discovery_CustomDanceTagCount" xml:space="preserve">
+    <value>Op {0} van {1} bestanden gevonden.</value>
+  </data>
   <data name="Discovery_UseDefault" xml:space="preserve">
     <value>Laat dit aan de applicatie over</value>
   </data>

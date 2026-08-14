@@ -8,6 +8,17 @@ namespace Ready4Balfolk.Domain.Stores.Tracks;
 public interface ITrackStore : ILoadableStore
 {
     IReadOnlyList<Track> Current { get; }
+
+    /// <summary>
+    /// How many indexed tracks the gate is holding out of the library, replayed to new subscribers.
+    /// </summary>
+    /// <remarks>
+    /// Derived from the same rebuild that publishes the library, so it counts everything the review
+    /// screen shows: missing fields, a dance the list does not carry, and a file changed since its
+    /// approval alike. A SQL count once knew only the first kind and the badge lied.
+    /// </remarks>
+    IObservable<int> InReviewCount { get; }
+
     IDirectoryInfo? MusicDirectory { set; }
 
     /// <summary>

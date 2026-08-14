@@ -22,6 +22,7 @@ public sealed class PreviewPlaybackService : IPreviewPlaybackService, IDisposabl
     private readonly IQueueConsumptionService _consumption;
     private readonly BehaviorSubject<string?> _previewing = new(null);
     private readonly IDisposable _endedSubscription;
+    private readonly IDisposable _takenOverSubscription;
 
     public PreviewPlaybackService(IAudioPlaybackService playback, IQueueConsumptionService consumption)
     {
@@ -32,6 +33,13 @@ public sealed class PreviewPlaybackService : IPreviewPlaybackService, IDisposabl
         // than sitting there claiming to play something finished.
         _endedSubscription = playback.WhenPlaybackEnded
             .Where(_ => _previewing.Value is not null)
+            .Subscribe(_ => _previewing.OnNext(null));
+
+        // The queue taking the output ends the preview as a fact, whatever this service believes.
+        // Kept in step here, because a stale "previewing" later turns StopAsync into clearing the
+        // track the whole room is dancing to.
+        _takenOverSubscription = consumption.WhenCurrentItemChanged
+            .Where(item => item is not null && _previewing.Value is not null)
             .Subscribe(_ => _previewing.OnNext(null));
     }
 
@@ -67,9 +75,14 @@ public sealed class PreviewPlaybackService : IPreviewPlaybackService, IDisposabl
         }
 
         _previewing.OnNext(null);
+
         // Cleared rather than paused: the queue takes this same output next, and it must not
-        // inherit a track nobody queued.
-        await _playback.ClearAsync();
+        // inherit a track nobody queued. Only while the queue does not already own the output:
+        // clearing then would silence the room.
+        if (_consumption.CurrentItem is null)
+        {
+            await _playback.ClearAsync();
+        }
     }
 
     public Task SeekAsync(TimeSpan position) =>
@@ -78,6 +91,7 @@ public sealed class PreviewPlaybackService : IPreviewPlaybackService, IDisposabl
     public void Dispose()
     {
         _endedSubscription.Dispose();
+        _takenOverSubscription.Dispose();
         _previewing.Dispose();
     }
 }

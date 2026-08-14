@@ -50,6 +50,16 @@
                      FontSize="18"
                      ClipToBounds="True"
                      DragDrop.AllowDrop="True">
+                <ListBox.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{x:Static res:UiStrings.TrackCatalog_EditTrack}"
+                                  Command="{Binding EditSelectedTrackCommand}">
+                            <MenuItem.Icon>
+                                <PathIcon Data="{StaticResource IconPencil}" Width="14" Height="14" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                    </ContextMenu>
+                </ListBox.ContextMenu>
                 <ListBox.DataTemplates>
                     <!-- Track template -->
                     <DataTemplate DataType="queueItems:TrackQueueItem">

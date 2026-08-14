@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Ready4Balfolk.Domain.Models.Tracks;
@@ -29,7 +30,7 @@ public sealed class TrackEditorService(
         var dialog = new EditTrackDialogView { DataContext = vm };
         await dialog.ShowDialog(_owner);
 
-        if (vm.DialogResult == true && vm.ResolvedDance is { } dance)
+        if (vm.DialogResult == true && vm.DanceToSave is { } dance)
         {
             await ApplyAsync(track, dance, vm.Artist.Trim(), vm.Title.Trim());
         }
@@ -43,29 +44,25 @@ public sealed class TrackEditorService(
     /// </remarks>
     public async Task ApplyAsync(Track track, string dance, string artist, string title)
     {
-        var path = track.FileInfo.FullName;
-        var wrote = false;
-
+        var answers = new List<FieldAnswer>();
         if (!string.Equals(dance, track.Dance, System.StringComparison.Ordinal))
         {
-            await libraryIndex.ApproveIndividuallyAsync([path], TrackField.Dance, dance);
-            wrote = true;
+            answers.Add(new FieldAnswer(TrackField.Dance, dance));
         }
 
         if (!string.Equals(artist, track.Artist, System.StringComparison.Ordinal))
         {
-            await libraryIndex.ApproveIndividuallyAsync([path], TrackField.Artist, artist);
-            wrote = true;
+            answers.Add(new FieldAnswer(TrackField.Artist, artist));
         }
 
         if (!string.Equals(title, track.Title, System.StringComparison.Ordinal))
         {
-            await libraryIndex.ApproveIndividuallyAsync([path], TrackField.Title, title);
-            wrote = true;
+            answers.Add(new FieldAnswer(TrackField.Title, title));
         }
 
-        if (wrote)
+        if (answers.Count > 0)
         {
+            await libraryIndex.ApproveIndividuallyAsync([track.FileInfo.FullName], answers);
             await trackStore.RefreshLibraryAsync();
         }
     }

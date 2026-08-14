@@ -35,33 +35,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            if (_connection is not null)
-            {
-                return;
-            }
-
-            dataDirectory.DirectoryInfoRoot.Create();
-            var path = Path.Combine(dataDirectory.DirectoryInfoRoot.FullName, DatabaseFileName);
-
-            var connection = new SqliteConnection(new SqliteConnectionStringBuilder
-            {
-                DataSource = path,
-                Mode = SqliteOpenMode.ReadWriteCreate,
-                // One connection is opened and held for as long as the application runs, so a pool
-                // buys nothing — and a pooled handle outlives Dispose, which on Windows means the
-                // file stays locked and cannot be deleted or moved by anything, including us.
-                Pooling = false
-            }.ToString());
-
-            await connection.OpenAsync(token);
-
-            // WAL so a crash mid-scan leaves a readable database rather than a truncated one.
-            await ExecuteAsync(connection, "PRAGMA journal_mode=WAL;", token);
-            await ExecuteAsync(connection, "PRAGMA synchronous=NORMAL;", token);
-            await ExecuteAsync(connection, Schema, token);
-
-            _connection = connection;
-            _ = loggerService.InfoAsync($"Library index opened at {path}");
+            await EnsureOpenLockedAsync(token);
         }
         finally
         {
@@ -69,12 +43,81 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         }
     }
 
+    /// <summary>The open connection, opening it first when nobody has yet. The gate must be held.</summary>
+    /// <remarks>
+    /// On demand rather than at a blessed moment in startup: the settings replay and the toolbar's
+    /// badge count both reached this store before the window's Opened handler got to call
+    /// <see cref="OpenAsync"/>, and "not opened yet" is an ordering accident the caller can do
+    /// nothing about.
+    /// </remarks>
+    private async Task<SqliteConnection> EnsureOpenLockedAsync(CancellationToken token)
+    {
+        if (_connection is not null)
+        {
+            return _connection;
+        }
+
+        dataDirectory.DirectoryInfoRoot.Create();
+        var path = Path.Combine(dataDirectory.DirectoryInfoRoot.FullName, DatabaseFileName);
+
+        try
+        {
+            _connection = await OpenAtAsync(path, token);
+        }
+        catch (SqliteException exception)
+        {
+            // Everything here except the approvals is recomputed by the next scan, and a database
+            // SQLite cannot open has lost them either way. Rebuilding beats an application that
+            // starts with an empty library and an error toast forever.
+            await loggerService.ErrorAsync(
+                $"Library index at {path} is unreadable and will be rebuilt", exception);
+
+            File.Delete(path);
+            File.Delete(path + "-wal");
+            File.Delete(path + "-shm");
+            _connection = await OpenAtAsync(path, token);
+        }
+
+        return _connection;
+    }
+
+    private async Task<SqliteConnection> OpenAtAsync(string path, CancellationToken token)
+    {
+        var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = path,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            // One connection is opened and held for as long as the application runs, so a pool
+            // buys nothing — and a pooled handle outlives Dispose, which on Windows means the
+            // file stays locked and cannot be deleted or moved by anything, including us.
+            Pooling = false
+        }.ToString());
+
+        try
+        {
+            await connection.OpenAsync(token);
+
+            // WAL so a crash mid-scan leaves a readable database rather than a truncated one.
+            await ExecuteAsync(connection, "PRAGMA journal_mode=WAL;", token);
+            await ExecuteAsync(connection, "PRAGMA synchronous=NORMAL;", token);
+            await ExecuteAsync(connection, Schema, token);
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
+
+        _ = loggerService.InfoAsync($"Library index opened at {path}");
+        return connection;
+    }
+
     public async Task<IReadOnlyDictionary<string, LibraryEntry>> SnapshotByPathAsync(CancellationToken token = default)
     {
         await _gate.WaitAsync(token);
         try
         {
-            var connection = Require();
+            var connection = await EnsureOpenLockedAsync(token);
             var entries = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal);
 
             await using var command = connection.CreateCommand();
@@ -83,7 +126,8 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                        t.duration_ticks, t.format, t.dance_slug, t.original_dance, t.artist, t.title,
                        t.dance_kind, t.dance_detail, t.dance_reason,
                        t.artist_kind, t.artist_detail, t.artist_reason,
-                       t.title_kind, t.title_detail, t.title_reason
+                       t.title_kind, t.title_detail, t.title_reason,
+                       t.custom_tag_names
                 FROM track_paths p
                 JOIN tracks t ON t.content_hash = p.content_hash;
                 """;
@@ -105,7 +149,10 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                     Title = reader.IsDBNull(9) ? null : reader.GetString(9),
                     Dance = ReadSource(reader, 10),
                     ArtistFrom = ReadSource(reader, 13),
-                    TitleFrom = ReadSource(reader, 16)
+                    TitleFrom = ReadSource(reader, 16),
+                    CustomTagNames = reader.IsDBNull(19)
+                        ? []
+                        : System.Text.Json.JsonSerializer.Deserialize<string[]>(reader.GetString(19)) ?? []
                 };
 
                 entries[entry.Path] = entry;
@@ -129,7 +176,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            var connection = Require();
+            var connection = await EnsureOpenLockedAsync(token);
             await using var transaction = await connection.BeginTransactionAsync(token);
             await using var command = connection.CreateCommand();
             command.Transaction = (SqliteTransaction)transaction;
@@ -140,21 +187,19 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             // touch.
             command.CommandText = """
                 INSERT INTO tracks
-                    (content_hash, path, file_size, last_write_utc, duration_ticks, format,
-                     dance_slug, original_dance, artist, title,
+                    (content_hash, duration_ticks, format,
+                     dance_slug, original_dance, artist, title, custom_tag_names,
                      dance_kind, dance_detail, dance_reason,
                      artist_kind, artist_detail, artist_reason,
                      title_kind, title_detail, title_reason)
-                VALUES ($hash, $path, $size, $written, $duration, $format,
-                        $slug, $originalDance, $artist, $title,
+                VALUES ($hash, $duration, $format,
+                        $slug, $originalDance, $artist, $title, $customTagNames,
                         $danceKind, $danceDetail, $danceReason,
                         $artistKind, $artistDetail, $artistReason,
                         $titleKind, $titleDetail, $titleReason)
                 ON CONFLICT(content_hash) DO UPDATE SET
-                    path = excluded.path,
-                    file_size = excluded.file_size,
-                    last_write_utc = excluded.last_write_utc,
                     duration_ticks = excluded.duration_ticks,
+                    custom_tag_names = excluded.custom_tag_names,
                     format = excluded.format,
                     dance_slug = excluded.dance_slug,
                     original_dance = excluded.original_dance,
@@ -187,15 +232,13 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             var pathWritten = pathCommand.Parameters.Add("$written", SqliteType.Integer);
 
             var hash = command.Parameters.Add("$hash", SqliteType.Blob);
-            var path = command.Parameters.Add("$path", SqliteType.Text);
-            var size = command.Parameters.Add("$size", SqliteType.Integer);
-            var written = command.Parameters.Add("$written", SqliteType.Integer);
             var duration = command.Parameters.Add("$duration", SqliteType.Integer);
             var format = command.Parameters.Add("$format", SqliteType.Integer);
             var slug = command.Parameters.Add("$slug", SqliteType.Text);
             var originalDance = command.Parameters.Add("$originalDance", SqliteType.Text);
             var artist = command.Parameters.Add("$artist", SqliteType.Text);
             var title = command.Parameters.Add("$title", SqliteType.Text);
+            var customTagNames = command.Parameters.Add("$customTagNames", SqliteType.Text);
             var sources = SourceColumns
                 .Select(field => (
                     Kind: command.Parameters.Add($"${field}Kind", SqliteType.Integer),
@@ -206,15 +249,15 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             foreach (var entry in entries)
             {
                 hash.Value = entry.ContentHash;
-                path.Value = entry.Path;
-                size.Value = entry.FileSize;
-                written.Value = entry.LastWriteUtc.Ticks;
                 duration.Value = entry.Duration.Ticks;
                 format.Value = (int)entry.Format;
                 slug.Value = (object?)entry.DanceSlug ?? DBNull.Value;
                 originalDance.Value = (object?)entry.OriginalDance ?? DBNull.Value;
                 artist.Value = (object?)entry.Artist ?? DBNull.Value;
                 title.Value = (object?)entry.Title ?? DBNull.Value;
+                customTagNames.Value = entry.CustomTagNames.Count == 0
+                    ? DBNull.Value
+                    : System.Text.Json.JsonSerializer.Serialize(entry.CustomTagNames);
 
                 foreach (var (source, from) in sources.Zip(
                         [entry.Dance, entry.ArtistFrom, entry.TitleFrom]))
@@ -247,7 +290,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            await using var command = Require().CreateCommand();
+            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
             command.CommandText = "SELECT content_hash, field, value, kind, rule, file_write_utc FROM approvals;";
 
             var byTrack = new Dictionary<string, List<TrackApproval>>(StringComparer.Ordinal);
@@ -293,7 +336,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            var connection = Require();
+            var connection = await EnsureOpenLockedAsync(token);
             await using var transaction = await connection.BeginTransactionAsync(token);
             await using var command = connection.CreateCommand();
             command.Transaction = (SqliteTransaction)transaction;
@@ -341,7 +384,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            await ExecuteAsync(Require(), $"DELETE FROM approvals WHERE kind = {(int)ApprovalKind.ByRule};", token);
+            await ExecuteAsync(await EnsureOpenLockedAsync(token), $"DELETE FROM approvals WHERE kind = {(int)ApprovalKind.ByRule};", token);
         }
         finally
         {
@@ -350,9 +393,9 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
     }
 
     public async Task ApproveIndividuallyAsync(
-        IReadOnlyCollection<string> paths, TrackField field, string value, CancellationToken token = default)
+        IReadOnlyCollection<string> paths, IReadOnlyCollection<FieldAnswer> answers, CancellationToken token = default)
     {
-        if (paths.Count == 0)
+        if (paths.Count == 0 || answers.Count == 0)
         {
             return;
         }
@@ -360,17 +403,20 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            var connection = Require();
+            var connection = await EnsureOpenLockedAsync(token);
             await using var transaction = await connection.BeginTransactionAsync(token);
             await using var command = connection.CreateCommand();
             command.Transaction = (SqliteTransaction)transaction;
 
             // By path, but it lands on the audio, so both copies of a duplicated track get the
-            // answer rather than only the one that happened to be clicked. The file's write time
-            // comes from the row, so a later retag is what marks it changed since it was approved.
+            // answer rather than only the one that happened to be clicked. The write time is the
+            // NEWEST among the copies, for the same reason: an approval given via the older copy
+            // must not leave the newer one reading as "changed since" forever. A later retag of
+            // any copy still moves past it and flags the track.
             command.CommandText = """
                 INSERT INTO approvals (content_hash, field, value, kind, rule, file_write_utc)
-                SELECT p.content_hash, $field, $value, $kind, NULL, p.last_write_utc
+                SELECT p.content_hash, $field, $value, $kind, NULL,
+                       (SELECT MAX(q.last_write_utc) FROM track_paths q WHERE q.content_hash = p.content_hash)
                 FROM track_paths p WHERE p.path = $path
                 ON CONFLICT(content_hash, field) DO UPDATE SET
                     value = excluded.value,
@@ -379,15 +425,22 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                     file_write_utc = excluded.file_write_utc;
                 """;
 
-            command.Parameters.AddWithValue("$field", (int)field);
-            command.Parameters.AddWithValue("$value", value);
+            var field = command.Parameters.Add("$field", SqliteType.Integer);
+            var value = command.Parameters.Add("$value", SqliteType.Text);
             command.Parameters.AddWithValue("$kind", (int)ApprovalKind.Individual);
             var path = command.Parameters.Add("$path", SqliteType.Text);
 
-            foreach (var target in paths)
+            // One transaction for a whole answer: a row confirms three fields, a folder dozens of
+            // rows, and a transaction per field made that 3N commits.
+            foreach (var answer in answers)
             {
-                path.Value = target;
-                await command.ExecuteNonQueryAsync(token);
+                field.Value = (int)answer.Field;
+                value.Value = answer.Value;
+                foreach (var target in paths)
+                {
+                    path.Value = target;
+                    await command.ExecuteNonQueryAsync(token);
+                }
             }
 
             await transaction.CommitAsync(token);
@@ -403,7 +456,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            var connection = Require();
+            var connection = await EnsureOpenLockedAsync(token);
             await using var transaction = await connection.BeginTransactionAsync(token);
 
             // A temporary table rather than a giant IN clause: a music directory can hold more paths
@@ -445,12 +498,46 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         }
     }
 
+    public async Task DeletePathAsync(string path, CancellationToken token = default)
+    {
+        await _gate.WaitAsync(token);
+        try
+        {
+            var connection = await EnsureOpenLockedAsync(token);
+            await using var transaction = await connection.BeginTransactionAsync(token);
+
+            await using (var delete = connection.CreateCommand())
+            {
+                delete.Transaction = (SqliteTransaction)transaction;
+                delete.CommandText = "DELETE FROM track_paths WHERE path = $path;";
+                delete.Parameters.AddWithValue("$path", path);
+                await delete.ExecuteNonQueryAsync(token);
+            }
+
+            // The same conclusion a full scan draws: an audio nothing points at any more is gone,
+            // along with whatever was decided about it. A rename must therefore write the new path
+            // before deleting the old one, or the approvals fall through this hole.
+            await ExecuteAsync(connection,
+                "DELETE FROM tracks WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
+                token, (SqliteTransaction)transaction);
+            await ExecuteAsync(connection,
+                "DELETE FROM approvals WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
+                token, (SqliteTransaction)transaction);
+
+            await transaction.CommitAsync(token);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public async Task<IReadOnlySet<string>> GetIgnoredValuesAsync(CancellationToken token = default)
     {
         await _gate.WaitAsync(token);
         try
         {
-            await using var command = Require().CreateCommand();
+            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
             command.CommandText = "SELECT folded_value FROM ignored_values;";
 
             var values = new HashSet<string>(StringComparer.Ordinal);
@@ -473,7 +560,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            await using var command = Require().CreateCommand();
+            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
             command.CommandText =
                 "INSERT OR IGNORE INTO ignored_values (folded_value, value) VALUES ($folded, $value);";
             command.Parameters.AddWithValue("$folded", StringNormalizer.Normalize(value));
@@ -491,7 +578,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            await using var command = Require().CreateCommand();
+            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
             command.CommandText = "DELETE FROM ignored_values WHERE folded_value = $folded;";
             command.Parameters.AddWithValue("$folded", StringNormalizer.Normalize(value));
             await command.ExecuteNonQueryAsync(token);
@@ -502,20 +589,13 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         }
     }
 
-    public async Task<int> CountInReviewAsync(CancellationToken token = default)
+    public async Task<int> CountIndexedAsync(CancellationToken token = default)
     {
         await _gate.WaitAsync(token);
         try
         {
-            await using var command = Require().CreateCommand();
-            // Approved on all three fields is the cheapest form of the gate that SQL can answer. The
-            // rest of it, whether the dance is one the published list knows and whether the file has
-            // changed since, needs the list and is decided by ReviewGate.
-            command.CommandText = """
-                SELECT COUNT(*) FROM track_paths p
-                JOIN tracks t ON t.content_hash = p.content_hash
-                WHERE (SELECT COUNT(*) FROM approvals a WHERE a.content_hash = p.content_hash) < 3;
-                """;
+            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM track_paths;";
             return Convert.ToInt32(await command.ExecuteScalarAsync(token), provider: null);
         }
         finally
@@ -537,9 +617,6 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         reader.IsDBNull(at + 1) ? null : reader.GetString(at + 1),
         (DecisionReason)reader.GetInt32(at + 2));
 
-    private SqliteConnection Require() =>
-        _connection ?? throw new InvalidOperationException("The library index has not been opened.");
-
     private static async Task ExecuteAsync(SqliteConnection connection, string sql, CancellationToken token,
         SqliteTransaction? transaction = null)
     {
@@ -558,13 +635,15 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         CREATE TABLE IF NOT EXISTS tracks (
             id             INTEGER PRIMARY KEY,
             content_hash   BLOB    NOT NULL UNIQUE,
-            path           TEXT    NOT NULL,
-            file_size      INTEGER NOT NULL,
-            last_write_utc INTEGER NOT NULL,
+            -- The paths, sizes and write times live in track_paths alone: one audio, many copies,
+            -- and a second copy of any of them here would only be a copy nothing reads.
             duration_ticks INTEGER NOT NULL,
             format         INTEGER NOT NULL,
             dance_slug     TEXT    NULL,
             original_dance TEXT    NULL,
+            -- The file's free-form tag names, as JSON. The rules panel counts these against a
+            -- declared custom dance tag, which must not cost opening every file.
+            custom_tag_names TEXT  NULL,
             artist         TEXT    NULL,
             title          TEXT    NULL,
             -- Where each value came from and how it was decided. Review shows a value next to its
@@ -579,7 +658,6 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             title_detail   TEXT    NULL,
             title_reason   INTEGER NOT NULL DEFAULT 0
         );
-        CREATE INDEX IF NOT EXISTS ix_tracks_path ON tracks (path);
 
         -- One audio, many places it lives. The same recording on two compilations is not an error
         -- and not a collision: it is one track with two copies, and a decision about it applies to

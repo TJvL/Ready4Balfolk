@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
@@ -127,7 +126,7 @@ public static partial class TrackClaims
         }
 
         var fileName = evidence.FileNameWithoutExtension;
-        var bracketed = BracketedGroups(fileName);
+        var bracketed = BracketedGroups(fileName, index.Words);
         var fileMatches = DanceNameScanner.Scan(fileName, index);
 
         foreach (var (_, matchedName) in fileMatches)
@@ -256,11 +255,17 @@ public static partial class TrackClaims
         return inside.Length > 0 && !LooksLikeAYear(inside) ? inside : null;
     }
 
-    /// <summary>The folded contents of every bracketed group in the name.</summary>
-    private static List<string> BracketedGroups(string fileName) =>
+    /// <summary>The contents of every bracketed group in the name, as match keys.</summary>
+    /// <remarks>
+    /// Match keys rather than merely folded text, because the scanner's matched names are match
+    /// keys too: glue dropped and number words as digits. Folded only, "(Rond de Saint-Vincent)"
+    /// keeps its "de" while the matched name has lost it, and a dance written in brackets on
+    /// purpose is never recognised as deliberate.
+    /// </remarks>
+    private static List<string> BracketedGroups(string fileName, DanceWords words) =>
     [
         .. AnyBrackets().Matches(fileName)
-            .Select(match => StringNormalizer.Normalize(match.Groups[1].Value))
+            .Select(match => words.KeyFor(match.Groups[1].Value))
             .Where(text => text.Length > 0)
     ];
 

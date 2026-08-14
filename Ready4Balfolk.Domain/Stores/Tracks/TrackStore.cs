@@ -27,6 +27,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly ILibraryIndex _libraryIndex;
     private readonly SourceList<Track> _tracks = new();
     private readonly BehaviorSubject<bool> _isLoading = new(false);
+    private readonly BehaviorSubject<int> _inReviewCount = new(0);
     private readonly IDisposable _danceListSubscription;
     private readonly CompositeDisposable _fileWatcherSubscriptions = [];
     // Loads are started fire-and-forget from the setter, so without a gate two of them interleave:
@@ -82,6 +83,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
     public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
     public IReadOnlyList<Track> Current => _tracks.Items.ToList();
+
+    public IObservable<int> InReviewCount => _inReviewCount.AsObservable();
 
     public IDirectoryInfo? MusicDirectory
     {
@@ -208,6 +211,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             _watcher?.Dispose();
             _tracks.Dispose();
             _isLoading.Dispose();
+            _inReviewCount.Dispose();
             _loadGate.Dispose();
         }
     }
@@ -319,7 +323,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 written.Add(remaining);
             }
 
-            var rescued = ApplyFolderAgreement(written);
+            var rescued = ApplyFolderAgreement(written, known, directory.FullName);
             if (rescued > 0)
             {
                 await _loggerService.DebugAsync($"Folder agreement resolved {rescued:N0} more tracks");
@@ -395,6 +399,10 @@ public sealed class TrackStore : ITrackStore, IDisposable
             list.Clear();
             list.AddRange(inLibrary);
         });
+
+        // In the library or in review, never both: what the gate held back IS the review count,
+        // whichever of its three reasons applied.
+        _inReviewCount.OnNext(entries.Count - inLibrary.Count);
     }
 
     private IObservable<Track> LoadTrackObservable(
@@ -415,17 +423,31 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// <summary>
     /// Re-resolves the tracks a folder can now speak for, and reports how many were rescued.
     /// </summary>
-    private int ApplyFolderAgreement(IReadOnlyCollection<ScannedFile> scanned)
+    /// <remarks>
+    /// The folder is everything in it, not only what this scan happened to read: unchanged
+    /// siblings are answered from the index and never re-scanned, and without their votes a new
+    /// file dropped into an established folder of mazurkas saw a folder of one.
+    /// </remarks>
+    private int ApplyFolderAgreement(
+        IReadOnlyCollection<ScannedFile> scanned, IReadOnlyDictionary<string, LibraryEntry> known, string rootPath)
     {
-        var byFolder = scanned
-            .GroupBy(file => file.Evidence.FolderKey ?? string.Empty, StringComparer.Ordinal)
-            .ToList();
+        var scannedPaths = scanned.Select(file => file.File.FullName).ToHashSet(StringComparer.Ordinal);
+        var knownSlugsByFolder = known.Values
+            .Where(entry => entry.DanceSlug is not null && !scannedPaths.Contains(entry.Path))
+            .GroupBy(entry => FolderKeyFor(entry.Path, rootPath), StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Select(entry => entry.DanceSlug!).ToList(), StringComparer.Ordinal);
 
         var rescued = 0;
-        foreach (var folder in byFolder)
+        foreach (var folder in scanned.GroupBy(file => file.Evidence.FolderKey ?? string.Empty, StringComparer.Ordinal))
         {
             var siblings = folder.ToList();
-            var agreed = AgreedFolderDance(siblings);
+            var voices = siblings
+                .Where(sibling => sibling.Resolution.DanceSlug is not null)
+                .Select(sibling => sibling.Resolution.DanceSlug!)
+                .Concat(knownSlugsByFolder.GetValueOrDefault(folder.Key, []))
+                .ToList();
+
+            var agreed = AgreedFolderDance(voices);
             if (agreed is null)
             {
                 continue;
@@ -446,6 +468,20 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
 
         return rescued;
+    }
+
+    /// <summary>The folder grouping key an entry's path implies, matching the evidence's key.</summary>
+    private static string FolderKeyFor(string path, string rootPath)
+    {
+        if (Path.GetDirectoryName(path) is not { } parent)
+        {
+            return string.Empty;
+        }
+
+        var relative = Path.GetRelativePath(rootPath, parent);
+        return relative is "." || relative.StartsWith("..", StringComparison.Ordinal)
+            ? string.Empty
+            : relative.Replace(Path.DirectorySeparatorChar, '/');
     }
 
     /// <summary>
@@ -497,6 +533,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         LastWriteUtc = scanned.File.LastWriteTimeUtc,
         Duration = scanned.Evidence.Duration,
         Format = scanned.Evidence.Format,
+        CustomTagNames = [.. scanned.Evidence.CustomTags.Keys],
         DanceSlug = scanned.Resolution.DanceSlug,
         OriginalDance = scanned.Resolution.OriginalDance,
         Artist = scanned.Resolution.Artist,
@@ -578,25 +615,17 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// evidence about the ones that did not, whatever that folder happens to be, and it is the
     /// cheapest way to rescue a run of files that name the dance once and then stop.
     /// </remarks>
-    private static string? AgreedFolderDance(IReadOnlyCollection<ScannedFile> siblings)
+    private static string? AgreedFolderDance(List<string> resolvedSlugs)
     {
-        var resolved = siblings
-            .Where(sibling => sibling.Resolution.DanceSlug is not null)
-            .Select(sibling => sibling.Resolution.DanceSlug!)
-            .ToList();
-
-        if (resolved.Count == 0)
+        if (resolvedSlugs.Count == 0)
         {
             return null;
         }
 
-        var bySlug = resolved.GroupBy(slug => slug, StringComparer.Ordinal)
-            .OrderByDescending(group => group.Count())
-            .ToList();
-
         // One dance, agreed by the folder. A folder holding several dances says nothing about the
         // track that named none of them.
-        return bySlug.Count == 1 ? bySlug[0].Key : null;
+        var distinct = resolvedSlugs.Distinct(StringComparer.Ordinal).ToList();
+        return distinct.Count == 1 ? distinct[0] : null;
     }
 
     /// <summary>A file that was actually opened, and what was made of it.</summary>
@@ -683,7 +712,19 @@ public sealed class TrackStore : ITrackStore, IDisposable
         {
             _tracks.Remove(track);
         }
+
+        // The index as well as the list, or the next rebuild resurrects the deleted file. Even when
+        // nothing published matched: a file still sitting in review has an index row too.
+        ForgetPath(fileSystemEventArgs.FullPath);
     }
+
+    private void ForgetPath(string path) =>
+        Task.Run(async () =>
+        {
+            await _libraryIndex.DeletePathAsync(path);
+            await RefreshLibraryAsync();
+        }).SafeFireAndForget(exception =>
+            _loggerService.ErrorAsync("Failed to forget a file the watcher saw go", exception));
 
     private void OnFileRenamed(RenamedEventArgs renamedEventArgs)
     {
@@ -696,6 +737,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         if (!SupportedAudioFormats.IsSupported(renamedEventArgs.FullPath))
         {
+            // Renamed out of the formats this reads: to the index that is the file going away.
+            ForgetPath(renamedEventArgs.OldFullPath);
             return;
         }
 
@@ -703,7 +746,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         {
             // The audio is unchanged, so its content hash and everything approved about it are too.
             // A rename is a path changing, not a track appearing.
-            IndexAndResolve(_fileSystem.FileInfo.New(renamedEventArgs.FullPath));
+            IndexAndResolve(_fileSystem.FileInfo.New(renamedEventArgs.FullPath), renamedEventArgs.OldFullPath);
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
@@ -718,19 +761,40 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// No dialog and no toast, whatever it turns out to be. The application runs in front of a room,
     /// and a tagging question during a bal is the worst possible moment to ask one.
     /// </remarks>
-    private void IndexAndResolve(IFileInfo fileInfo)
+    private void IndexAndResolve(IFileInfo fileInfo, string? replacesPath = null)
     {
         var root = _musicRoot ?? fileInfo.Directory!;
         var evidence = _discoveryService.Gather(fileInfo, root);
-        var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index, _declared);
-        var scanned = new ScannedFile(fileInfo, evidence, resolution);
 
         // In order and once: written, approved by whatever rule answered it, and only then does the
-        // library get rebuilt, or the rebuild would run against a row that is not there yet.
+        // library get rebuilt, or the rebuild would run against a row that is not there yet. The
+        // old path of a rename goes after the write, so the audio's hash is never unreferenced and
+        // the approvals riding on it survive.
         Task.Run(async () =>
         {
+            // What the rest of the folder turned out to be speaks for a dropped-in file exactly as
+            // it does during a scan; the watcher path once resolved blind and the same file got a
+            // different answer depending on who noticed it.
+            var known = await _libraryIndex.SnapshotByPathAsync();
+            var folderKey = evidence.FolderKey ?? string.Empty;
+            var agreed = AgreedFolderDance([
+                .. known.Values
+                    .Where(entry => entry.DanceSlug is not null
+                        && !string.Equals(entry.Path, fileInfo.FullName, StringComparison.Ordinal)
+                        && string.Equals(FolderKeyFor(entry.Path, root.FullName), folderKey, StringComparison.Ordinal))
+                    .Select(entry => entry.DanceSlug!)
+            ]);
+
+            var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index, _declared, agreed);
+            var scanned = new ScannedFile(fileInfo, evidence, resolution);
+
             await _libraryIndex.WriteAsync([ToEntry(scanned)]);
             await _libraryIndex.ApproveAsync([.. ByRuleApprovals(scanned)]);
+            if (replacesPath is not null)
+            {
+                await _libraryIndex.DeletePathAsync(replacesPath);
+            }
+
             await RefreshLibraryAsync();
         }).SafeFireAndForget(exception =>
             _loggerService.ErrorAsync("Failed to index a file the watcher noticed", exception));

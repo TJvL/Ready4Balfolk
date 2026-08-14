@@ -124,11 +124,30 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UseBeforeOpen_Throws()
+    public async Task UseBeforeOpen_OpensOnDemand()
     {
+        // Not an error: the settings replay and the toolbar badge reach the store before startup's
+        // explicit open, and that ordering accident must not become an error toast on every launch.
         using var unopened = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => unopened.SnapshotByPathAsync(Token));
+        await unopened.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+
+        Assert.Single(await unopened.SnapshotByPathAsync(Token));
+    }
+
+    [Fact]
+    public async Task ACorruptDatabase_IsRebuiltRatherThanFatal()
+    {
+        // Everything but the approvals is recomputed by the next scan, and a file SQLite cannot
+        // open has lost them either way. The old duration cache healed itself the same way.
+        _sut.Dispose();
+        await File.WriteAllTextAsync(
+            Path.Combine(_tempDir.FullName, "library.sqlite"), "this is not a database", Token);
+
+        using var healed = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        await healed.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+
+        Assert.Single(await healed.SnapshotByPathAsync(Token));
     }
 
     public ValueTask DisposeAsync()
@@ -165,7 +184,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         // The bug this whole table exists for: the row is upserted on every rescan, and the answer a
         // person gave used to be one of the columns it overwrote.
         await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: "mazurka")], Token);
-        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Dance, "scottish", Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Dance, "scottish")], Token);
 
         await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: "waltz")], Token);
 
@@ -180,7 +199,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         // Same audio, new path. The content hash is what the answer hangs on, so nobody is asked
         // again because a file was renamed or retagged.
         await _sut.WriteAsync([Entry("/music/a.mp3", [7])], Token);
-        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Artist, "Naragonia", Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Artist, "Naragonia")], Token);
 
         await _sut.WriteAsync([Entry("/music/renamed.mp3", [7])], Token);
 
@@ -193,8 +212,8 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     {
         await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
 
-        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Title, "First", Token);
-        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Title, "Second", Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Title, "First")], Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Title, "Second")], Token);
 
         var approval = Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
         Assert.Equal("Second", approval.Value);
@@ -205,7 +224,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     {
         await _sut.WriteAsync([Entry("/music/a.mp3", [9]), Entry("/music/compilation/a.mp3", [9])], Token);
 
-        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Dance, "mazurka", Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Dance, "mazurka")], Token);
 
         Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([9])]);
     }
@@ -215,7 +234,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     {
         await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
         await _sut.ApproveAsync([ByRule([1], TrackField.Artist, "Naragonia")], Token);
-        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Title, "Le badaud", Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Title, "Le badaud")], Token);
 
         await _sut.RevokeRuleApprovalsAsync(Token);
 
@@ -237,7 +256,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     public async Task AudioNothingPointsAtAnyMore_TakesItsApprovalsWithIt()
     {
         await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
-        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], TrackField.Dance, "mazurka", Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Dance, "mazurka")], Token);
 
         await _sut.DeleteMissingAsync([], Token);
 
@@ -245,15 +264,30 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task InReview_CountsWhatIsNotAnsweredOnEveryField()
+    public async Task ApprovingViaTheOlderCopy_DoesNotFlagTheNewerOneAsChanged()
+    {
+        // One audio at two paths with different write times. The approval lands on the audio, so
+        // it must carry the newest write time among the copies, or the newer copy reads as
+        // "changed since approval" forever and sits in review claiming a retag that never happened.
+        var older = Entry("/music/old.mp3", [1], slug: null);
+        var newer = Entry("/music/new.mp3", [1], slug: null) with
+        {
+            LastWriteUtc = older.LastWriteUtc.AddHours(2)
+        };
+        await _sut.WriteAsync([older, newer], Token);
+
+        await _sut.ApproveIndividuallyAsync(["/music/old.mp3"], [new FieldAnswer(TrackField.Dance, "Mazurka")], Token);
+
+        var approval = Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+        Assert.Equal(newer.LastWriteUtc, approval.FileWriteUtc);
+    }
+
+    [Fact]
+    public async Task CountIndexed_IsTheNumberOfKnownPaths()
     {
         await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2])], Token);
-        foreach (var field in new[] { TrackField.Dance, TrackField.Artist, TrackField.Title })
-        {
-            await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], field, "answered", Token);
-        }
 
-        Assert.Equal(1, await _sut.CountInReviewAsync(Token));
+        Assert.Equal(2, await _sut.CountIndexedAsync(Token));
     }
 
     private static TrackApproval ByRule(byte[] hash, TrackField field, string value) => new()
@@ -265,6 +299,34 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         Rule = "%d - %a - %t",
         FileWriteUtc = new DateTime(2026, 8, 8, 20, 0, 0, DateTimeKind.Utc)
     };
+
+    [Fact]
+    public async Task DeletingAPath_ForgetsTheTrackWhenItWasTheLastOne()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: null)], Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Dance, "Mazurka")], Token);
+
+        await _sut.DeletePathAsync("/music/a.mp3", Token);
+
+        Assert.Empty(await _sut.SnapshotByPathAsync(Token));
+        Assert.Empty(await _sut.ApprovalsAsync(Token));
+    }
+
+    [Fact]
+    public async Task ARename_KeepsTheApprovalsWhenTheNewPathIsWrittenFirst()
+    {
+        // The watcher's rename order: write the new path, then forget the old, so the audio's hash
+        // is never unreferenced and the decisions riding on it survive.
+        await _sut.WriteAsync([Entry("/music/old.mp3", [1], slug: null)], Token);
+        await _sut.ApproveIndividuallyAsync(["/music/old.mp3"], [new FieldAnswer(TrackField.Dance, "Mazurka")], Token);
+
+        await _sut.WriteAsync([Entry("/music/new.mp3", [1], slug: null)], Token);
+        await _sut.DeletePathAsync("/music/old.mp3", Token);
+
+        var snapshot = await _sut.SnapshotByPathAsync(Token);
+        Assert.Equal(["/music/new.mp3"], snapshot.Keys);
+        Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+    }
 
     private static LibraryEntry Entry(string path, byte[] hash, string? slug = "mazurka")
         => new()

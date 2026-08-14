@@ -29,11 +29,10 @@ public sealed class TrackEditorServiceTests
         await _sut.ApplyAsync(track, "Mazurka", track.Artist, "Corrected");
 
         await _libraryIndex.Received(1).ApproveIndividuallyAsync(
-            Arg.Any<IReadOnlyCollection<string>>(), TrackField.Title, "Corrected", Arg.Any<CancellationToken>());
-        await _libraryIndex.DidNotReceive().ApproveIndividuallyAsync(
-            Arg.Any<IReadOnlyCollection<string>>(), TrackField.Dance, Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await _libraryIndex.DidNotReceive().ApproveIndividuallyAsync(
-            Arg.Any<IReadOnlyCollection<string>>(), TrackField.Artist, Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<IReadOnlyCollection<string>>(),
+            Arg.Is<IReadOnlyCollection<FieldAnswer>>(answers =>
+                answers != null && answers.Count == 1 && answers.Contains(new FieldAnswer(TrackField.Title, "Corrected"))),
+            Arg.Any<CancellationToken>());
         await _trackStore.Received(1).RefreshLibraryAsync(Arg.Any<CancellationToken>());
     }
 
@@ -45,7 +44,7 @@ public sealed class TrackEditorServiceTests
         await _sut.ApplyAsync(track, track.Dance, track.Artist, track.Title);
 
         await _libraryIndex.DidNotReceiveWithAnyArgs()
-            .ApproveIndividuallyAsync(default!, default, default!, TestContext.Current.CancellationToken);
+            .ApproveIndividuallyAsync(default!, default!, TestContext.Current.CancellationToken);
         await _trackStore.DidNotReceive().RefreshLibraryAsync(Arg.Any<CancellationToken>());
     }
 }

@@ -104,7 +104,7 @@ On a 2685-file library with BigBalfolkList imported and nothing else configured,
 - `id INTEGER PRIMARY KEY` is an alias for the rowid, so there is no second index to maintain. **`content_hash BLOB UNIQUE` is the natural key** and what an upsert conflicts on, so a renamed or retagged file keeps its row along with everything the user decided about it.
 - The hash is over **the audio stream only** (`AudioContentHasher`, using TagLib's invariant start/end positions). The application writes tags into files itself, and a whole-file hash would make every one of its own edits look like a new track.
 - The **fast path is path + size + last-write-time**, held in a snapshot read once per scan. Hashing would be a better check and is what the row is keyed by, but it means opening the file, which is the cost the index exists to avoid.
-- The index stores **the slug, not a name**, plus `original_dance` for the tagging editor to group by. `CountUnresolvedAsync` is a query, so the count of files the dance list has nothing to say about survives a restart for free.
+- The index stores **the slug, not a name**, plus `original_dance` for the review screen to group identical unknown values by. The review count itself is the gate's: the track store publishes how many indexed tracks were held out of the library, so all three hold-back reasons count.
 
 `DanceListStore` owns `dance_list.json` and additionally exposes an `Index`. The index is rebuilt *before* the new list is published, so a subscriber reacting to a change never reads a lookup built from the list it just replaced.
 
@@ -256,7 +256,6 @@ Common cases:
 | Pattern | Example |
 |---------|---------|
 | **Drag-drop reorder** | `QueueView.axaml.cs` — pointer tracking, `DragDrop.DoDragDropAsync`, drop indicator positioning. Calls `ViewModel.MoveItem()`. |
-| **TreeView expansion sync** | `DanceListView.axaml` — a `TreeViewItem` style setter binds `IsExpanded` two-way (ReflectionBinding, since a style setter has no data type to compile against). `DanceListViewModel` subscribes to each node and remembers which keys are open, because every edit rebuilds the whole tree. |
 | **ContainerPrepared styling** | `QueueView.axaml.cs` — adds CSS class `"autoTrack"` to `ListBoxItem` containers for `AutoTrackQueueItem`. |
 | **Focus management** | Various views — programmatic focus after inline edit starts. |
 | **Navigation clicks** | `ToolbarView.axaml.cs`, `MainWindow.axaml.cs` — set `NavigationService.CurrentScreen`. |
@@ -336,7 +335,7 @@ Three global handlers in `Program.cs` catch unhandled exceptions and route them 
 2. `TaskScheduler.UnobservedTaskException` — unobserved async failures (error, marked observed).
 3. `RxApp.DefaultExceptionHandler` — unhandled Rx pipeline errors (error).
 
-UI-level errors (e.g. failed editor actions, missing tracks) are shown to the user via `NotificationService.Show(message, Severity.Error)`.
+UI-level errors (e.g. a failed refresh, missing tracks) are shown to the user via `NotificationService.Show(message, Severity.Error)`.
 
 ### Continuous Integration
 

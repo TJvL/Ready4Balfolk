@@ -21,6 +21,7 @@ namespace Ready4Balfolk.UI.Views.Queue;
 
 public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 {
+    private readonly TrackEditorService _trackEditor;
     private readonly IQueueService _queueService;
     private readonly IQueueConsumptionService _consumptionService;
     private readonly ISettingsStore _settingsStore;
@@ -37,6 +38,32 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     public ReadOnlyObservableCollection<IQueueItem> QueuedItems => _queuedItems;
 
     [Reactive] public partial IQueueItem? SelectedItem { get; set; }
+
+    private IObservable<bool> CanEditSelected =>
+        this.WhenAnyValue(x => x.SelectedItem).Select(item => TrackOf(item) is not null);
+
+    /// <summary>
+    /// Opens the edit dialog for the selected item's track, same as the catalog's right-click.
+    /// </summary>
+    /// <remarks>
+    /// The queued item keeps the snapshot it was enqueued with; the correction shows in the
+    /// library at once and on this queue entry the next time the track is enqueued.
+    /// </remarks>
+    [ReactiveCommand(CanExecute = nameof(CanEditSelected))]
+    private async Task EditSelectedTrackAsync()
+    {
+        if (TrackOf(SelectedItem) is { } track)
+        {
+            await _trackEditor.EditAsync(track);
+        }
+    }
+
+    private static Domain.Models.Tracks.Track? TrackOf(IQueueItem? item) => item switch
+    {
+        TrackQueueItem track => track.Track,
+        AutoTrackQueueItem auto => auto.TrackQueueItem.Track,
+        _ => null
+    };
     [Reactive] public partial string ItemCountText { get; set; }
     [Reactive] public partial string FinishTimeText { get; set; }
 
@@ -164,8 +191,10 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         IRandomTrackService randomTrackService,
         IDancePool dancePool,
         IConfirmationService confirmationService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        TrackEditorService trackEditor)
     {
+        _trackEditor = trackEditor;
         _queueService = queueService;
         _consumptionService = consumptionService;
         _settingsStore = settingsStore;

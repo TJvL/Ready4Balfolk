@@ -105,7 +105,11 @@ public sealed class QueueViewModelTests : IDisposable
 
         _sut = new QueueViewModel(
             _queueService, consumption, settingsStore,
-            _randomTrackService, _dancePool, _confirmation, _notification);
+            _randomTrackService, _dancePool, _confirmation, _notification,
+            new TrackEditorService(
+                Substitute.For<Domain.Stores.Dances.IDanceListStore>(),
+                Substitute.For<Domain.Stores.Library.ILibraryIndex>(),
+                Substitute.For<Domain.Stores.Tracks.ITrackStore>()));
     }
 
     // --- QueueRandomTrack ---

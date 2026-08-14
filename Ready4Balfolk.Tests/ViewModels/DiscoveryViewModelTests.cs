@@ -56,7 +56,8 @@ public sealed class DiscoveryViewModelTests : IDisposable
                 FileSize = 1,
                 LastWriteUtc = DateTime.UnixEpoch,
                 Duration = TimeSpan.FromMinutes(3),
-                Format = AudioFormat.Mp3
+                Format = AudioFormat.Mp3,
+                CustomTagNames = path.Contains("Idiosyncrasie", StringComparison.Ordinal) ? ["DANCE"] : []
             }));
 
         var trackStore = Substitute.For<ITrackStore>();
@@ -218,6 +219,35 @@ public sealed class DiscoveryViewModelTests : IDisposable
         dance.UsesDefault = false;
         dance.Toggles.First(toggle => toggle.Field == TagField.Comment).IsTrusted = true;
 
+        await _sut.ApplyRolesAndTagsCommand.Execute();
+
+        Assert.Equal([TagField.Comment], _stored.Discovery.TagTrust.Dance);
+    }
+
+    [Fact]
+    public async Task NamingACustomTag_ShowsHowManyFilesCarryIt()
+    {
+        // The blast radius, like every other declaration: naming the tag bulk-approves what it
+        // answers, so the count has to be on screen before the greenlight.
+        await Refresh();
+
+        _sut.CustomDanceTag = "dance";
+
+        Assert.Contains("1", _sut.CustomDanceTagSummary, StringComparison.Ordinal);
+        Assert.NotEqual(string.Empty, _sut.CustomDanceTagSummary);
+    }
+
+    [Fact]
+    public async Task AStoredDeclaration_SurvivesTheScreenBeingSavedAgain()
+    {
+        // The restart case: the declaration is on disk, the screen is opened fresh, and saving it
+        // untouched must not wipe what the user stated. Syncing only the checkbox once did.
+        _stored = _stored with
+        {
+            DiscoveryOrNull = new DiscoverySettings { TagTrust = new TagTrust { Dance = [TagField.Comment] } }
+        };
+
+        await Refresh();
         await _sut.ApplyRolesAndTagsCommand.Execute();
 
         Assert.Equal([TagField.Comment], _stored.Discovery.TagTrust.Dance);

@@ -3,12 +3,8 @@ using System.Globalization;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
-using AsyncAwaitBestPractices;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
-using Ready4Balfolk.Domain.Services.Logging;
-using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Resources;
 
@@ -22,8 +18,6 @@ namespace Ready4Balfolk.UI.Views.Toolbar;
 /// </remarks>
 public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
 {
-    private readonly ILibraryIndex _libraryIndex;
-    private readonly ILoggerService _loggerService;
     private readonly CompositeDisposable _disposables = [];
 
     /// <summary>How many tracks are waiting for a person, which is what the gate holds back.</summary>
@@ -31,35 +25,25 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
     [Reactive] public partial string InReviewText { get; private set; }
     [Reactive] public partial bool HasInReview { get; private set; }
 
-    public ToolbarViewModel(ILibraryIndex libraryIndex, ITrackStore trackStore, ILoggerService loggerService)
+    public ToolbarViewModel(ITrackStore trackStore)
     {
-        _libraryIndex = libraryIndex;
-        _loggerService = loggerService;
         InReviewText = string.Empty;
 
-        // Refreshed when a load finishes rather than continuously: nothing changes the count while
-        // the library is sitting still.
-        trackStore.IsLoading
+        // The gate's own number, pushed whenever the library is rebuilt. A SQL count once decided
+        // this independently and missed two of the gate's three reasons to hold a track back.
+        trackStore.InReviewCount
             .DistinctUntilChanged()
-            .Where(loading => !loading)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(_ => Refresh())
+            .Subscribe(waiting =>
+            {
+                InReviewCount = waiting;
+                HasInReview = waiting > 0;
+                InReviewText = waiting > 0
+                    ? string.Format(CultureInfo.CurrentCulture, UiStrings.Toolbar_ReviewCount, waiting)
+                    : string.Empty;
+            })
             .DisposeWith(_disposables);
     }
 
-    public void Refresh() => RefreshAsync().SafeFireAndForget(
-        exception => _loggerService.ErrorAsync("Failed to count what is waiting for review", exception));
-
     public void Dispose() => _disposables.Dispose();
-
-    private async Task RefreshAsync()
-    {
-        // Unreviewed, not unresolved: a track with a dance nobody has agreed to is still waiting.
-        var waiting = await _libraryIndex.CountInReviewAsync();
-        InReviewCount = waiting;
-        HasInReview = waiting > 0;
-        InReviewText = waiting > 0
-            ? string.Format(CultureInfo.CurrentCulture, UiStrings.Toolbar_ReviewCount, waiting)
-            : string.Empty;
-    }
 }

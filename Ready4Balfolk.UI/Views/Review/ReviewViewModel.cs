@@ -160,7 +160,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
                 ? Observable.Interval(TimeSpan.FromSeconds(1)).Select(_ => Unit.Default)
                 : Observable.Empty<Unit>())
             .Switch()
-            .SelectMany(_ => Observable.FromAsync(() => _libraryIndex.CountInReviewAsync()))
+            .SelectMany(_ => Observable.FromAsync(() => _libraryIndex.CountIndexedAsync()))
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(count => ScanProgressText = string.Format(
                 CultureInfo.CurrentCulture, UiStrings.Review_Scanning, count))
@@ -261,9 +261,12 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
 
                     // A folder becomes answerable the moment its last blank is filled, and the
                     // button that says so was being decided once, while every box was still empty.
+                    // Only this row's folder: a keystroke cannot change any other folder's
+                    // count, and regrouping the whole queue per keystroke was O(queue) work on
+                    // exactly the screen that holds thousands of rows.
                     row.WhenAnyValue(candidate => candidate.Dance, candidate => candidate.Artist, candidate => candidate.Title)
                         .Skip(1)
-                        .Subscribe(_ => LabelFolderButtons())
+                        .Subscribe(_ => LabelFolder(row.Folder))
                         .DisposeWith(_rowSubscriptions);
 
                     // What the list can offer for what has been typed, recomputed as it is typed.
@@ -278,7 +281,6 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             // The first row nobody has dealt with. Starting on an answered or parked one makes the
             // first keystroke of a sitting land on work that is already done.
             Selected = FirstWaiting() ?? Rows.FirstOrDefault();
-            AllDances = [.. dances.Dances.Select(dance => dance.DisplayName).OrderBy(name => name, StringComparer.CurrentCulture)];
             IsEmpty = Rows.Count == 0 && !IsScanning;
             Summary = Rows.Count == 0
                 ? UiStrings.Review_NothingWaiting
@@ -422,15 +424,23 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
     {
         foreach (var group in Rows.GroupBy(row => row.Folder, StringComparer.Ordinal))
         {
-            var answerable = group.Count(row => !row.IsApproved && row.CanApprove);
+            Label([.. group]);
+        }
+    }
 
-            foreach (var row in group)
-            {
-                row.AnswerableInFolder = answerable;
-                row.CanAnswerFolder = row.IsInFolder && answerable > 1;
-                row.AnswerFolderText = string.Format(
-                    CultureInfo.CurrentCulture, UiStrings.Review_ApproveFolderCount, answerable);
-            }
+    private void LabelFolder(string folder) =>
+        Label([.. Rows.Where(row => string.Equals(row.Folder, folder, StringComparison.Ordinal))]);
+
+    private static void Label(IReadOnlyList<ReviewRowViewModel> group)
+    {
+        var answerable = group.Count(row => !row.IsApproved && row.CanApprove);
+
+        foreach (var row in group)
+        {
+            row.AnswerableInFolder = answerable;
+            row.CanAnswerFolder = row.IsInFolder && answerable > 1;
+            row.AnswerFolderText = string.Format(
+                CultureInfo.CurrentCulture, UiStrings.Review_ApproveFolderCount, answerable);
         }
     }
 
@@ -524,7 +534,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         var sharing = Sharing(row).ToList();
 
         await _libraryIndex.ApproveIndividuallyAsync(
-            [.. sharing.Select(candidate => candidate.Path)], TrackField.Dance, dance);
+            [.. sharing.Select(candidate => candidate.Path)], [new FieldAnswer(TrackField.Dance, dance)]);
 
         foreach (var candidate in sharing)
         {
@@ -561,13 +571,21 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
     }
 
     /// <summary>Every waiting row claiming the same unknown value, this one included.</summary>
-    private IEnumerable<ReviewRowViewModel> Sharing(ReviewRowViewModel row) =>
-        Rows.Where(candidate =>
-            !candidate.IsApproved
-            && string.Equals(
-                StringNormalizer.Normalize(candidate.UnknownValue),
-                StringNormalizer.Normalize(row.UnknownValue),
-                StringComparison.Ordinal));
+    /// <remarks>
+    /// A value that folds to nothing shares with nothing: "???" folds to the empty string, and so
+    /// does a row with no value at all, so matching on the empty key would hand one decision to
+    /// every unanswered row in the queue.
+    /// </remarks>
+    private IEnumerable<ReviewRowViewModel> Sharing(ReviewRowViewModel row)
+    {
+        var key = StringNormalizer.Normalize(row.UnknownValue);
+
+        return key.Length == 0
+            ? [row]
+            : Rows.Where(candidate =>
+                !candidate.IsApproved
+                && string.Equals(StringNormalizer.Normalize(candidate.UnknownValue), key, StringComparison.Ordinal));
+    }
 
     public void Dispose()
     {
@@ -579,9 +597,12 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
 
     private async Task ApproveRowAsync(ReviewRowViewModel row)
     {
-        await _libraryIndex.ApproveIndividuallyAsync([row.Path], TrackField.Dance, row.Dance.Trim());
-        await _libraryIndex.ApproveIndividuallyAsync([row.Path], TrackField.Artist, row.Artist.Trim());
-        await _libraryIndex.ApproveIndividuallyAsync([row.Path], TrackField.Title, row.Title.Trim());
+        await _libraryIndex.ApproveIndividuallyAsync([row.Path],
+        [
+            new FieldAnswer(TrackField.Dance, row.Dance.Trim()),
+            new FieldAnswer(TrackField.Artist, row.Artist.Trim()),
+            new FieldAnswer(TrackField.Title, row.Title.Trim())
+        ]);
 
         // A dance the published list has never heard of is not a local problem to patch around. The
         // answer is kept, the track parks, and a proposal at BigBalfolkList is what releases it.

@@ -331,6 +331,10 @@
                                  PlaceholderText="{x:Static res:UiStrings.Discovery_CustomDanceTagPlaceholder}"
                                  MaxWidth="240"
                                  HorizontalAlignment="Left" />
+                        <TextBlock Text="{Binding CustomDanceTagSummary}"
+                                   IsVisible="{Binding CustomDanceTagSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                   FontSize="11"
+                                   Opacity="0.7" />
                     </StackPanel>
                 </Border>
 
