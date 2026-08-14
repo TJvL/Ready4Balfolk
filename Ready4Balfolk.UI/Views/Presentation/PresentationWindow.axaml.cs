@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using Ready4Balfolk.UI.Platform;
 
 namespace Ready4Balfolk.UI.Views.Presentation;
 
@@ -24,6 +25,10 @@ public partial class PresentationWindow : Window
     public PresentationWindow()
     {
         InitializeComponent();
+
+        // Before the window is shown, so the compositor already knows the app id when the
+        // surface is mapped. See WaylandAppId.
+        WaylandAppId.Apply(this);
         DataContext = App.Services.GetRequiredService<PresentationDisplayViewModel>();
         DoubleTapped += (_, _) =>
         {
