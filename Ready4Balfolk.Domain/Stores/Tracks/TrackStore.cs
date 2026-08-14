@@ -315,7 +315,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
             _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
             return ResolveTrackDance(track);
         }
-        catch (Exception ex) when (ex is FormatException or IOException)
+        // Broad on purpose: this runs inside the watcher's Rx pipeline, whose
+        // Subscribe has no error handler, so anything escaping here takes the
+        // process down. Discovery throws more than FormatException/IOException
+        // (TrackInformationDiscoveryException, TagLib's CorruptFileException).
+        catch (Exception ex)
         {
             _ = _loggerService.ErrorAsync(ex.Message, ex);
         }
@@ -359,7 +363,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
             _durationCache.SetDuration(fileInfo.FullName, fileInfo.LastWriteTimeUtc, track.Length);
             return ResolveTrackDance(track);
         }
-        catch (Exception ex) when (ex is FormatException or IOException)
+        // Broad on purpose: this runs inside the watcher's Rx pipeline, whose
+        // Subscribe has no error handler, so anything escaping here takes the
+        // process down. Discovery throws more than FormatException/IOException
+        // (TrackInformationDiscoveryException, TagLib's CorruptFileException).
+        catch (Exception ex)
         {
             _ = _loggerService.ErrorAsync(ex.Message, ex);
         }
