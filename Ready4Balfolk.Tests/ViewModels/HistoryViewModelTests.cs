@@ -87,7 +87,7 @@ public sealed class HistoryViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ClearHistory_WithConfirmation_Clears()
+    public void StartNewNight_WithConfirmation_EndsTheNight()
     {
         _historySubject.OnNext(new QueueHistory(DateTime.Now, [
             new TrackHistoryEntry("/tmp/a.mp3", "M", "A", "T",
@@ -96,13 +96,13 @@ public sealed class HistoryViewModelTests : IDisposable
 
         Assert.True(_sut.HasItems);
 
-        _sut.ClearHistoryCommand.Execute().Subscribe();
+        _sut.StartNewNightCommand.Execute().Subscribe();
 
-        _historyStore.Received(1).ClearAsync();
+        _historyStore.Received(1).EndNightAsync();
     }
 
     [Fact]
-    public void ClearHistory_WithoutConfirmation_DoesNotClear()
+    public void StartNewNight_WithoutConfirmation_KeepsTheNightRunning()
     {
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<string>()).Returns(false);
@@ -112,9 +112,38 @@ public sealed class HistoryViewModelTests : IDisposable
                 TimeSpan.FromMinutes(1), false, CompletionStatus.Finished)
         ]));
 
-        _sut.ClearHistoryCommand.Execute().Subscribe();
+        _sut.StartNewNightCommand.Execute().Subscribe();
 
-        _historyStore.DidNotReceive().ClearAsync();
+        _historyStore.DidNotReceive().EndNightAsync();
+    }
+
+    [Fact]
+    public void DeleteNight_WithConfirmation_Deletes()
+    {
+        _historySubject.OnNext(new QueueHistory(DateTime.Now, [
+            new TrackHistoryEntry("/tmp/a.mp3", "M", "A", "T",
+                TimeSpan.FromMinutes(1), false, CompletionStatus.Finished)
+        ]));
+
+        _sut.DeleteNightCommand.Execute().Subscribe();
+
+        _historyStore.Received(1).DeleteNightAsync();
+    }
+
+    [Fact]
+    public void DeleteNight_WithoutConfirmation_KeepsIt()
+    {
+        _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<string>()).Returns(false);
+
+        _historySubject.OnNext(new QueueHistory(DateTime.Now, [
+            new TrackHistoryEntry("/tmp/a.mp3", "M", "A", "T",
+                TimeSpan.FromMinutes(1), false, CompletionStatus.Finished)
+        ]));
+
+        _sut.DeleteNightCommand.Execute().Subscribe();
+
+        _historyStore.DidNotReceive().DeleteNightAsync();
     }
 
     public void Dispose()

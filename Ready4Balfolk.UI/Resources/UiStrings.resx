@@ -181,8 +181,11 @@
   <data name="HistoryToolbar_ExportLabel" xml:space="preserve">
     <value>Export</value>
   </data>
-  <data name="HistoryToolbar_ClearLabel" xml:space="preserve">
-    <value>Clear</value>
+  <data name="HistoryToolbar_NewNightLabel" xml:space="preserve">
+    <value>New night</value>
+  </data>
+  <data name="HistoryToolbar_DeleteLabel" xml:space="preserve">
+    <value>Delete</value>
   </data>
   <data name="TrackCatalog_ClearSearchLabel" xml:space="preserve">
     <value>Clear</value>
@@ -464,17 +467,29 @@
   <data name="HistoryToolbar_ExportHistory" xml:space="preserve">
     <value>Export history</value>
   </data>
-  <data name="HistoryToolbar_ClearHistory" xml:space="preserve">
-    <value>Clear history</value>
+  <data name="HistoryToolbar_NewNight" xml:space="preserve">
+    <value>Start a new night</value>
   </data>
-  <data name="HistoryToolbar_ClearHistoryTitle" xml:space="preserve">
-    <value>Clear History</value>
+  <data name="HistoryToolbar_NewNightTitle" xml:space="preserve">
+    <value>Start a New Night</value>
   </data>
-  <data name="HistoryToolbar_ClearHistoryMessage" xml:space="preserve">
-    <value>Remove all history entries?</value>
+  <data name="HistoryToolbar_NewNightMessage" xml:space="preserve">
+    <value>Keep tonight and start a new night?</value>
   </data>
-  <data name="HistoryToolbar_ClearButton" xml:space="preserve">
-    <value>Clear</value>
+  <data name="HistoryToolbar_NewNightButton" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="HistoryToolbar_DeleteNight" xml:space="preserve">
+    <value>Delete this night</value>
+  </data>
+  <data name="HistoryToolbar_DeleteNightTitle" xml:space="preserve">
+    <value>Delete This Night</value>
+  </data>
+  <data name="HistoryToolbar_DeleteNightMessage" xml:space="preserve">
+    <value>Delete tonight's history? This cannot be undone.</value>
+  </data>
+  <data name="HistoryToolbar_DeleteButton" xml:space="preserve">
+    <value>Delete</value>
   </data>
   <data name="HistoryToolbar_CancelButton" xml:space="preserve">
     <value>Cancel</value>
@@ -635,6 +650,18 @@
   </data>
   <data name="App_ExitMessage" xml:space="preserve">
     <value>Are you sure you want to quit?</value>
+  </data>
+  <data name="App_UnfinishedNightTitle" xml:space="preserve">
+    <value>Unfinished Evening</value>
+  </data>
+  <data name="App_UnfinishedNightMessage" xml:space="preserve">
+    <value>There is an evening from {0} with {1} entries that was never ended. Keep it and start fresh, or carry on with it?</value>
+  </data>
+  <data name="App_UnfinishedNightStartFresh" xml:space="preserve">
+    <value>Start fresh</value>
+  </data>
+  <data name="App_UnfinishedNightCarryOn" xml:space="preserve">
+    <value>Carry on</value>
   </data>
   <data name="Settings_LanguageRestartTitle" xml:space="preserve">
     <value>Change Language</value>

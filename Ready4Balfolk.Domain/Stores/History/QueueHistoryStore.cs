@@ -1,16 +1,32 @@
+using System.Globalization;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Data.Sqlite;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.History;
 
-public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistoryDirectoryInfo, ILoggerService loggerService)
+/// <summary>The nights, in SQLite.</summary>
+/// <remarks>
+/// <para>
+/// A night is a row and every entry is a row appended to it. The file this replaced was rewritten in
+/// full after every single entry, truncated first and then serialised, so a machine that stopped
+/// inside that window left a partial file and the evening read as though it had never happened.
+/// Appending has no such window, and appending is what is actually happening.
+/// </para>
+/// <para>
+/// Entries keep their polymorphic JSON as a payload rather than being flattened into columns: the
+/// models do not change, ordering is the database's problem, and the kind is lifted out of the
+/// payload so a night can be counted without reading it.
+/// </para>
+/// </remarks>
+public sealed class QueueHistoryStore(IApplicationSettingsDirectory dataDirectory, ILoggerService loggerService)
     : IQueueHistoryStore
 {
-    private const string QueueHistoryFileName = "queue_history.json";
+    private const string DatabaseFileName = "history.sqlite";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -25,8 +41,7 @@ public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistory
     private readonly BehaviorSubject<QueueHistory> _history = new(QueueHistory.Empty);
     private readonly BehaviorSubject<bool> _isLoading = new(false);
 
-    private string QueueHistoryFilePath =>
-        Path.Combine(queueHistoryDirectoryInfo.DirectoryInfoRoot.FullName, QueueHistoryFileName);
+    private SqliteConnection? _connection;
 
     public IObservable<bool> IsLoading => _isLoading.AsObservable();
 
@@ -37,27 +52,27 @@ public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistory
     public async Task LoadAsync(CancellationToken token)
     {
         _isLoading.OnNext(true);
+        await _gate.WaitAsync(token);
         try
         {
-            if (!File.Exists(QueueHistoryFilePath))
+            var connection = await EnsureOpenLockedAsync(token);
+            var night = await ReadCurrentNightAsync(connection, token);
+            if (night is not null)
             {
-                return;
-            }
-
-            await using var stream = File.OpenRead(QueueHistoryFilePath);
-            var history = await JsonSerializer.DeserializeAsync<QueueHistory>(stream, JsonOptions, token);
-            if (history != null)
-            {
-                _history.OnNext(history);
-                _ = loggerService.InfoAsync($"Loaded queue history ({history.Entries.Count} entries)");
+                _history.OnNext(night);
+                _ = loggerService.InfoAsync($"Loaded the current night ({night.Entries.Count} entries)");
             }
         }
-        catch (Exception ex) when (ex is JsonException or IOException)
+        catch (Exception exception) when (exception is SqliteException or JsonException)
         {
-            _ = loggerService.ErrorAsync("Failed to load queue history", ex);
+            // Deliberately not deleted and rebuilt the way the library index is. The index is
+            // derived and a scan puts it back; a history is the only copy there is of an evening,
+            // and an unreadable one is a thing to look at rather than a thing to tidy away.
+            await loggerService.ErrorAsync("Failed to read the history database", exception);
         }
         finally
         {
+            _gate.Release();
             _isLoading.OnNext(false);
         }
     }
@@ -68,14 +83,17 @@ public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistory
         try
         {
             var current = Current;
+            var startedAt = current.StartedAt ?? DateTime.Now;
             var entries = new List<QueueHistoryEntry>(current.Entries)
             {
                 entry
             };
-            var startedAt = current.StartedAt ?? DateTime.Now;
-            var updated = new QueueHistory(startedAt, entries);
-            _history.OnNext(updated);
-            await SaveAsync(updated);
+
+            // The screen is updated whether or not the write lands. What is on it is what a person
+            // is reading between tracks, and a database that has gone away is a thing to log rather
+            // than a reason to blank the evening in front of them.
+            var nightId = await AppendEntryAsync(current.Id, startedAt, entry, entries.Count - 1);
+            _history.OnNext(current with { StartedAt = startedAt, Entries = entries, Id = nightId });
         }
         finally
         {
@@ -83,14 +101,47 @@ public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistory
         }
     }
 
-    public async Task ClearAsync()
+    public async Task EndNightAsync()
     {
         await _gate.WaitAsync();
         try
         {
-            var updated = new QueueHistory(null, []);
-            _history.OnNext(updated);
-            await SaveAsync(updated);
+            var current = Current;
+            if (current.Id != 0)
+            {
+                await ExecuteOnNightAsync(
+                    "UPDATE nights SET ended_at = $endedAt WHERE id = $id;",
+                    current.Id,
+                    "Failed to end the night",
+                    command => command.Parameters.AddWithValue("$endedAt", Format(DateTime.Now)));
+            }
+
+            _history.OnNext(QueueHistory.Empty);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task DeleteNightAsync()
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            var current = Current;
+            if (current.Id != 0)
+            {
+                await ExecuteOnNightAsync(
+                    """
+                    DELETE FROM entries WHERE night_id = $id;
+                    DELETE FROM nights WHERE id = $id;
+                    """,
+                    current.Id,
+                    "Failed to delete the night");
+            }
+
+            _history.OnNext(QueueHistory.Empty);
         }
         finally
         {
@@ -106,7 +157,7 @@ public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistory
             destinationFileInfo.Directory?.Create();
             await using var stream = File.Create(destinationFileInfo.FullName);
             await JsonSerializer.SerializeAsync(stream, Current, JsonOptions);
-            _ = loggerService.InfoAsync($"Exported queue history to {destinationFileInfo.FullName}");
+            _ = loggerService.InfoAsync($"Exported the night to {destinationFileInfo.FullName}");
         }
         finally
         {
@@ -116,22 +167,217 @@ public sealed class QueueHistoryStore(IApplicationSettingsDirectory queueHistory
 
     public void Dispose()
     {
+        _connection?.Dispose();
+        _connection = null;
         _gate.Dispose();
         _history.Dispose();
         _isLoading.Dispose();
     }
 
-    private async Task SaveAsync(QueueHistory history)
+    /// <summary>The open connection, opening it first when nobody has yet. The gate must be held.</summary>
+    private async Task<SqliteConnection> EnsureOpenLockedAsync(CancellationToken token)
+    {
+        if (_connection is not null)
+        {
+            return _connection;
+        }
+
+        dataDirectory.DirectoryInfoRoot.Create();
+        var path = Path.Combine(dataDirectory.DirectoryInfoRoot.FullName, DatabaseFileName);
+
+        var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = path,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            // Held for as long as the application runs, so a pool buys nothing, and a pooled handle
+            // outlives Dispose and keeps the file locked after it.
+            Pooling = false
+        }.ToString());
+
+        try
+        {
+            await connection.OpenAsync(token);
+
+            // WAL so a machine that stops mid-evening leaves a readable database rather than a
+            // truncated one. That is the whole reason this is not a file being rewritten.
+            await ExecuteAsync(connection, "PRAGMA journal_mode=WAL;", token);
+            await ExecuteAsync(connection, "PRAGMA synchronous=NORMAL;", token);
+            await ExecuteAsync(connection, Schema, token);
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
+
+        _connection = connection;
+        _ = loggerService.InfoAsync($"History opened at {path}");
+        return connection;
+    }
+
+    /// <summary>The newest night, or nothing when the newest one has already been filed.</summary>
+    private static async Task<QueueHistory?> ReadCurrentNightAsync(SqliteConnection connection, CancellationToken token)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, started_at, ended_at FROM nights ORDER BY id DESC LIMIT 1;";
+
+        long id;
+        DateTime startedAt;
+        await using (var reader = await command.ExecuteReaderAsync(token))
+        {
+            if (!await reader.ReadAsync(token))
+            {
+                return null;
+            }
+
+            // A night that ended is not the current one, and the next has no row until something
+            // happens in it, so there is nothing to come back to.
+            if (!reader.IsDBNull(2))
+            {
+                return null;
+            }
+
+            id = reader.GetInt64(0);
+            startedAt = Parse(reader.GetString(1));
+        }
+
+        return new QueueHistory(startedAt, await ReadEntriesAsync(connection, id, token))
+        {
+            Id = id
+        };
+    }
+
+    private static async Task<List<QueueHistoryEntry>> ReadEntriesAsync(
+        SqliteConnection connection, long nightId, CancellationToken token)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT payload FROM entries WHERE night_id = $id ORDER BY ordinal;";
+        command.Parameters.AddWithValue("$id", nightId);
+
+        var entries = new List<QueueHistoryEntry>();
+        await using var reader = await command.ExecuteReaderAsync(token);
+        while (await reader.ReadAsync(token))
+        {
+            if (JsonSerializer.Deserialize<QueueHistoryEntry>(reader.GetString(0), JsonOptions) is { } entry)
+            {
+                entries.Add(entry);
+            }
+        }
+
+        return entries;
+    }
+
+    /// <summary>Writes the entry, opening the night first when this is the first thing in it.</summary>
+    /// <remarks>Returns the night it was written to, or the one that was passed in when the write failed.</remarks>
+    private async Task<long> AppendEntryAsync(long nightId, DateTime startedAt, QueueHistoryEntry entry, int ordinal)
     {
         try
         {
-            queueHistoryDirectoryInfo.DirectoryInfoRoot.Create();
-            await using var stream = File.Create(QueueHistoryFilePath);
-            await JsonSerializer.SerializeAsync(stream, history, JsonOptions);
+            var connection = await EnsureOpenLockedAsync(CancellationToken.None);
+            await using var transaction = await connection.BeginTransactionAsync(CancellationToken.None);
+            var id = nightId;
+
+            // A night exists once something has happened in it, so an evening nobody played
+            // anything on leaves nothing behind at all.
+            if (id == 0)
+            {
+                await using var openNight = connection.CreateCommand();
+                openNight.Transaction = (SqliteTransaction)transaction;
+                openNight.CommandText =
+                    "INSERT INTO nights (started_at) VALUES ($startedAt); SELECT last_insert_rowid();";
+                openNight.Parameters.AddWithValue("$startedAt", Format(startedAt));
+                id = Convert.ToInt64(await openNight.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
+            }
+
+            var payload = JsonSerializer.Serialize(entry, JsonOptions);
+
+            await using var append = connection.CreateCommand();
+            append.Transaction = (SqliteTransaction)transaction;
+            append.CommandText = """
+                INSERT INTO entries (night_id, ordinal, kind, started_at, payload)
+                VALUES ($nightId, $ordinal, $kind, $startedAt, $payload);
+                """;
+            append.Parameters.AddWithValue("$nightId", id);
+            append.Parameters.AddWithValue("$ordinal", ordinal);
+            append.Parameters.AddWithValue("$kind", KindOf(payload));
+            append.Parameters.AddWithValue("$startedAt",
+                entry.StartedAt is { } at ? Format(at) : DBNull.Value);
+            append.Parameters.AddWithValue("$payload", payload);
+            await append.ExecuteNonQueryAsync();
+
+            await transaction.CommitAsync();
+            return id;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (SqliteException exception)
         {
-            _ = loggerService.ErrorAsync("Failed to save queue history", ex);
+            await loggerService.ErrorAsync("Failed to write a history entry", exception);
+            return nightId;
         }
     }
+
+    private async Task ExecuteOnNightAsync(
+        string sql, long nightId, string failureMessage, Action<SqliteCommand>? bind = null)
+    {
+        try
+        {
+            var connection = await EnsureOpenLockedAsync(CancellationToken.None);
+            await using var command = connection.CreateCommand();
+            command.CommandText = sql;
+            command.Parameters.AddWithValue("$id", nightId);
+            bind?.Invoke(command);
+            await command.ExecuteNonQueryAsync();
+        }
+        catch (SqliteException exception)
+        {
+            await loggerService.ErrorAsync(failureMessage, exception);
+        }
+    }
+
+    private static async Task ExecuteAsync(SqliteConnection connection, string sql, CancellationToken token)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(token);
+    }
+
+    /// <summary>The entry's kind, read back off the payload so the column cannot drift from it.</summary>
+    private static string KindOf(string payload)
+    {
+        using var document = JsonDocument.Parse(payload);
+        return document.RootElement.TryGetProperty("type", out var type)
+            ? type.GetString() ?? ""
+            : "";
+    }
+
+    // Round-trip text rather than ticks: a night is a thing somebody may well open the database to
+    // look at, and a number nobody can read is a poor way to store a date that has to be legible.
+    private static string Format(DateTime value) => value.ToString("O", CultureInfo.InvariantCulture);
+
+    private static DateTime Parse(string value) =>
+        DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+    /// <remarks>
+    /// <c>id INTEGER PRIMARY KEY</c> is an alias for the rowid, so a night carries no second index.
+    /// The entries are keyed on their position in the night, which is the order they are read back
+    /// in and the only order they have ever had.
+    /// </remarks>
+    private const string Schema = """
+        CREATE TABLE IF NOT EXISTS nights (
+            id         INTEGER PRIMARY KEY,
+            started_at TEXT NOT NULL,
+            -- Null while this is the night that is running. Set once, and never by anything but a
+            -- person or the end of the night playing out.
+            ended_at   TEXT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS entries (
+            night_id   INTEGER NOT NULL,
+            ordinal    INTEGER NOT NULL,
+            -- Lifted out of the payload so counting what an evening was made of costs no parsing.
+            kind       TEXT    NOT NULL,
+            started_at TEXT    NULL,
+            payload    TEXT    NOT NULL,
+            PRIMARY KEY (night_id, ordinal)
+        );
+        """;
 }

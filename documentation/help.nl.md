@@ -193,7 +193,7 @@ Onderaan het wachtrijpaneel:
 
 ## Geschiedenis
 
-De geschiedenis is het logboek van wat er deze sessie gespeeld of overgeslagen is.
+De geschiedenis is het logboek van wat er deze avond gespeeld of overgeslagen is.
 
 ### Geschiedenis bekijken
 
@@ -206,8 +206,15 @@ Schakel naar de geschiedenis met de knop in de wachtrijwerkbalk. Elke regel toon
 ### Geschiedeniswerkbalk
 
 - **Naar wachtrij**: terug naar de wachtrijweergave
-- **Geschiedenis exporteren**: bewaart de geschiedenis als CSV. Handig als verslag van een avond.
-- **Geschiedenis wissen**: verwijdert alles (met bevestiging)
+- **Geschiedenis exporteren**: bewaart de avond als JSON. Handig als verslag van een avond.
+- **Nieuwe avond**: bewaart deze avond en begint een nieuwe (met bevestiging). Er wordt niets verwijderd: de avond wordt opgeborgen en de geschiedenis begint leeg. Handig na een soundcheck, of op een avond die niet met het eindsignaal is afgesloten.
+- **Verwijderen**: gooit de geschiedenis van deze avond weg (met bevestiging). Dit kan niet ongedaan worden gemaakt.
+
+### Avonden
+
+Een avond sluit zichzelf af zodra het eindsignaal gespeeld is: de avond wordt bewaard en de geschiedenis begint opnieuw, zodat er tijdens het opruimen niets onthouden hoeft te worden. Het geexporteerde bestand en de geschiedenis op het scherm zijn altijd de huidige avond, nooit een mengsel van vanavond en vorige maand.
+
+Is een avond nooit afgesloten, omdat de applicatie afgesloten werd of de laptop leeg raakte, dan staat hij er bij de volgende start nog. Na meer dan acht uur stilte wordt er een keer gevraagd, voordat er iets speelt, of de avond bewaard moet worden om opnieuw te beginnen of dat ermee doorgegaan wordt. Geen van beide antwoorden verwijdert iets.
 
 ### Statusbalk
 

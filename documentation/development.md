@@ -32,7 +32,7 @@ All models are **sealed records** with `[JsonPropertyName]` attributes for persi
 | `QueueItems/` | `IQueueItem` interface + six implementations: `TrackQueueItem`, `DelayQueueItem`, `MessageQueueItem`, `StopQueueItem`, `AutoTrackQueueItem`, `EndOfNightQueueItem`. The last is the file named in the settings and deliberately not a `TrackQueueItem`: it is not in the library and must never enter it. |
 | `Dances/` | `DanceList` -> `Dance`, exactly as BigBalfolkList publishes it: a top-level `Tags` vocabulary and a flat list of `{slug, names, tags}`. A dance's identity is its `Slug`; its `Names` are a flat set of equals whose first entry is what gets displayed; everything else is a tag, so nothing is filed under one grouping at the expense of another. There is no hierarchy and no weight. `DanceListIndex` is the folded-name-to-slug lookup built over a list, `DanceListProblems` is what validation reports, and `DanceListStatus`/`DanceListUpdate` say where the list came from and what came of asking for a newer one. |
 | `Settings/` | `ApplicationSettings`, `ApplicationTheme` enum, `WindowState`. |
-| `History/` | `QueueHistoryEntry` (abstract, `[JsonPolymorphic]`) with `TrackHistoryEntry`, `MessageHistoryEntry`, `DelayHistoryEntry`, `StopHistoryEntry`, `EndOfNightHistoryEntry`. `QueueHistory` wraps the entry list. |
+| `History/` | `QueueHistoryEntry` (abstract, `[JsonPolymorphic]`) with `TrackHistoryEntry`, `MessageHistoryEntry`, `DelayHistoryEntry`, `StopHistoryEntry`, `EndOfNightHistoryEntry`. `QueueHistory` is one night: `Id`, `StartedAt`, `EndedAt` and the entries. |
 
 **To add a new model:** create a `sealed record` in the appropriate subdirectory. Add `[JsonPropertyName]` attributes if it will be serialised. If it is polymorphic, add `[JsonPolymorphic]` + `[JsonDerivedType]` on the base type.
 
@@ -100,11 +100,21 @@ On a 2685-file library with BigBalfolkList imported and nothing else configured,
 
 `Stores/Library/` is the index of what is in the music directory, in SQLite (`library.sqlite`). It replaced a JSON duration cache, and its job is that **a startup which finds nothing changed opens no audio files at all** — verified on a 345-track library: first run 345 files read, second run 0.
 
-- **`Microsoft.Data.Sqlite` appears in `SqliteLibraryIndex` and nowhere else.** Extracting a `.Data` project later should be a file move, not an untangling.
+- **`Microsoft.Data.Sqlite` appears in `SqliteLibraryIndex` and `QueueHistoryStore` and nowhere else.** Extracting a `.Data` project later should be a file move, not an untangling.
 - `id INTEGER PRIMARY KEY` is an alias for the rowid, so there is no second index to maintain. **`content_hash BLOB UNIQUE` is the natural key** and what an upsert conflicts on, so a renamed or retagged file keeps its row along with everything the user decided about it.
 - The hash is over **the audio stream only** (`AudioContentHasher`, using TagLib's invariant start/end positions). The application writes tags into files itself, and a whole-file hash would make every one of its own edits look like a new track.
 - The **fast path is path + size + last-write-time**, held in a snapshot read once per scan. Hashing would be a better check and is what the row is keyed by, but it means opening the file, which is the cost the index exists to avoid.
 - The index stores **the slug, not a name**, plus `original_dance` for the review screen to group identical unknown values by. The review count itself is the gate's: the track store publishes how many indexed tracks were held out of the library, so all three hold-back reasons count.
+
+### Nights
+
+`Stores/History/` is the evenings, in SQLite (`history.sqlite`), in its own file: the library index is derived and a scan puts it back, and a history is the only copy there is of an evening.
+
+- **A night is a row and every entry is a row appended to it.** The JSON file this replaced was rewritten in full after every entry, truncated first and then serialised, so a machine that stopped inside that window left a partial file and the evening read as though it had never happened.
+- **A night exists once something has happened in it.** `StartedAt` is set by the first entry, so nobody presses anything to begin one, and closing the application mid-evening does not begin a second.
+- **`ended_at` is what makes it a finished night.** `EndNightAsync` sets it and publishes an empty night; nothing is deleted, which is why `QueueConsumptionService` can call it on its own the moment an `EndOfNightHistoryEntry` lands. `DeleteNightAsync` is the destructive one, and only a person calls it.
+- **Entries keep their polymorphic JSON as a `payload` column** rather than being flattened. `kind` is lifted back out of that payload so it cannot drift from it, and so counting what an evening was made of costs no parsing.
+- An unreadable database is **logged and left alone**, unlike the library index, which deletes and rebuilds itself. `App` asks once at startup about a night that was never ended and has been quiet for more than eight hours: a gap rather than a date, because a ball crossing midnight is normal.
 
 `DanceListStore` owns `dance_list.json` and additionally exposes an `Index`. The index is rebuilt *before* the new list is published, so a subscriber reacting to a change never reads a lookup built from the list it just replaced.
 
