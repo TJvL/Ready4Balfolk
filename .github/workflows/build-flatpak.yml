@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Flatpak publish
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-x64-flatpak-publish
           path: flatpak-publish
