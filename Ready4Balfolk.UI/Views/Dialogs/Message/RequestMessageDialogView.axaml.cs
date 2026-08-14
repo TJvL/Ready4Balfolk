@@ -2,6 +2,7 @@ using System;
 using System.Reactive.Linq;
 using ReactiveUI.Avalonia.Reactive;
 using ReactiveUI.Reactive;
+using Ready4Balfolk.UI.Platform;
 
 namespace Ready4Balfolk.UI.Views.Dialogs.Message;
 
@@ -10,6 +11,10 @@ public partial class RequestMessageDialogView : ReactiveWindow<RequestMessageDia
     public RequestMessageDialogView()
     {
         InitializeComponent();
+
+        // Before the window is shown, so the compositor already knows the app id when the
+        // surface is mapped. See WaylandAppId.
+        WaylandAppId.Apply(this);
 
         Opened += (_, _) => OkButton.Focus();
 
