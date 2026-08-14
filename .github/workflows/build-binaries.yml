@@ -104,7 +104,7 @@ jobs:
           tar -czvf ../${{ matrix.artifact }}.tar.gz *
 
       - name: Upload portable archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: |
@@ -115,7 +115,7 @@ jobs:
       # Only the Flatpak build consumes this, and that job does not run on pull requests.
       - name: Upload Flatpak publish
         if: matrix.runtime == 'linux-x64' && github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-x64-flatpak-publish
           path: publish-flatpak/

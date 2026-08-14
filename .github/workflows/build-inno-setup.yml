@@ -32,7 +32,7 @@ jobs:
           APP_VERSION: ${{ inputs.version }}
 
       - name: Upload installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Ready4Balfolk-win-x64-setup
           path: installer-output/*.exe
