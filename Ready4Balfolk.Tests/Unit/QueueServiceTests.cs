@@ -372,6 +372,64 @@ public sealed class QueueServiceTests : IDisposable
         Assert.Equal(0, _sut.Count);
     }
 
+    // --- End of the night ---
+
+    private static EndOfNightQueueItem EndOfNight() => new("/audio/last-waltz.mp3", TimeSpan.FromMinutes(4));
+
+    [Fact]
+    public void Enqueue_EndOfNight_TakesTheAutoTrackWithItAndGoesLast()
+    {
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true)));
+
+        Assert.True(_sut.Enqueue(EndOfNight()).Allowed);
+
+        Assert.Equal(2, _sut.Count);
+        Assert.DoesNotContain(_sut.Items, i => i is AutoTrackQueueItem);
+        Assert.IsType<EndOfNightQueueItem>(_sut.Items[^1]);
+    }
+
+    [Fact]
+    public void Enqueue_AfterEndOfNight_IsRefused()
+    {
+        _sut.Enqueue(EndOfNight());
+
+        var result = _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+
+        Assert.False(result.Allowed);
+        Assert.Equal(QueueDenial.EveningEnded, result.Denial);
+        Assert.Equal(1, _sut.Count);
+    }
+
+    [Fact]
+    public void RemoveAt_EndOfNight_ReopensTheEvening()
+    {
+        _sut.Enqueue(EndOfNight());
+
+        Assert.True(_sut.RemoveAt(0));
+        Assert.True(_sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false)).Allowed);
+    }
+
+    [Fact]
+    public void Move_CannotPushARequestBelowTheEndOfNight()
+    {
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _sut.Enqueue(EndOfNight());
+
+        Assert.True(_sut.Move(0, 1));
+
+        Assert.IsType<EndOfNightQueueItem>(_sut.Items[^1]);
+    }
+
+    [Fact]
+    public void Move_EndOfNightItself_IsRefused()
+    {
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _sut.Enqueue(EndOfNight());
+
+        Assert.False(_sut.Move(1, 0));
+    }
+
     public void Dispose()
     {
         _sut.Dispose();

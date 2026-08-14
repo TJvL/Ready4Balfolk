@@ -29,10 +29,10 @@ All models are **sealed records** with `[JsonPropertyName]` attributes for persi
 | Directory | Contents |
 |-----------|----------|
 | `Tracks/` | `Track` — file path, dance, artist, title, length. Carries `OriginalDance` for re-resolution. |
-| `QueueItems/` | `IQueueItem` interface + five implementations: `TrackQueueItem`, `DelayQueueItem`, `MessageQueueItem`, `StopQueueItem`, `AutoTrackQueueItem`. |
+| `QueueItems/` | `IQueueItem` interface + six implementations: `TrackQueueItem`, `DelayQueueItem`, `MessageQueueItem`, `StopQueueItem`, `AutoTrackQueueItem`, `EndOfNightQueueItem`. The last is the file named in the settings and deliberately not a `TrackQueueItem`: it is not in the library and must never enter it. |
 | `Dances/` | `DanceList` -> `Dance`, exactly as BigBalfolkList publishes it: a top-level `Tags` vocabulary and a flat list of `{slug, names, tags}`. A dance's identity is its `Slug`; its `Names` are a flat set of equals whose first entry is what gets displayed; everything else is a tag, so nothing is filed under one grouping at the expense of another. There is no hierarchy and no weight. `DanceListIndex` is the folded-name-to-slug lookup built over a list, `DanceListProblems` is what validation reports, and `DanceListStatus`/`DanceListUpdate` say where the list came from and what came of asking for a newer one. |
 | `Settings/` | `ApplicationSettings`, `ApplicationTheme` enum, `WindowState`. |
-| `History/` | `QueueHistoryEntry` (abstract, `[JsonPolymorphic]`) with `TrackHistoryEntry`, `MessageHistoryEntry`, `DelayHistoryEntry`, `StopHistoryEntry`. `QueueHistory` wraps the entry list. |
+| `History/` | `QueueHistoryEntry` (abstract, `[JsonPolymorphic]`) with `TrackHistoryEntry`, `MessageHistoryEntry`, `DelayHistoryEntry`, `StopHistoryEntry`, `EndOfNightHistoryEntry`. `QueueHistory` wraps the entry list. |
 
 **To add a new model:** create a `sealed record` in the appropriate subdirectory. Add `[JsonPropertyName]` attributes if it will be serialised. If it is polymorphic, add `[JsonPolymorphic]` + `[JsonDerivedType]` on the base type.
 
@@ -145,22 +145,24 @@ The `QueueService` does not contain any validation logic itself. Instead, it del
 **Components:**
 
 - **`IQueueRule`** — interface that each rule implements. Every method returns a nullable value: `null` means "no opinion" (defer to other rules), a non-null value means "I have a verdict". Methods:
-  - `GetPreAddRemovalPredicate(newItem, currentItems)` — returns an optional predicate identifying items that should be removed *before* the new item is evaluated. No rule currently uses it: the seam is there for a rule that has to make room rather than refuse.
+  - `GetPreAddRemovalPredicate(newItem, currentItems)` — returns an optional predicate identifying items that should be removed *before* the new item is evaluated. `EndOfNightRule` uses it to take the auto-track out from under the entry that ends the evening.
   - `EvaluateAdd(item, adjustedItems)` — returns a `QueueRuleVerdict` to allow or deny adding the item. Receives the queue *after* pre-add removals have been applied.
   - `GetEvictionIndices(currentItems)` — returns indices of items that should be evicted when settings or history change.
   - `CanRemove(item)`, `CanMove(item)`, `CanClear(currentItems)` — allow or deny the corresponding operation.
-- **`QueueRuleVerdict`** — `sealed record(bool Allowed, string? Reason)` returned by `EvaluateAdd`.
-- **`QueueAddResult`** — `sealed record(bool Allowed, string? RejectionReason, Func<IQueueItem, bool>? RemovalPredicate)` returned by `IQueueGuard.EvaluateAdd`. Combines the pre-add removal predicate with the final allow/deny decision. Created via `QueueAddResult.Allow(predicate?)` or `QueueAddResult.Deny(reason)`.
+- **`QueueRuleVerdict`** — `sealed record(bool Allowed, string? Reason, QueueDenial Denial)` returned by `EvaluateAdd`.
+- **`QueueDenial`** — why an entry was turned away: `Entry` (something about this entry), `Cutoff` (the evening's end time), `EveningEnded` (the queue is closed). The reason a person reads is the rule's own wording; this is for callers that must tell one no from another, such as the auto-queue ending the night when the cutoff refuses its next track.
+- **`QueueAddResult`** — `sealed record(bool Allowed, string? RejectionReason, Func<IQueueItem, bool>? RemovalPredicate, QueueDenial Denial)` returned by `IQueueGuard.EvaluateAdd`. Combines the pre-add removal predicate with the final allow/deny decision. Created via `QueueAddResult.Allow(predicate?)` or `QueueAddResult.Deny(reason, denial?)`.
 - **`QueueGuard`** — the `IQueueGuard` implementation. Accepts an ordered list of `IQueueRule` instances. Orchestrates evaluation in two phases:
   1. **Pre-add removal** — collects removal predicates from all rules and combines them with OR logic.
   2. **Add evaluation** — runs `EvaluateAdd` on each rule against the adjusted item list. First deny wins.
   For `CanRemove`, `CanMove`, and `CanClear`, first definitive answer wins; if no rule has an opinion, the default is `true`. For `GetEvictionIndices`, results from all rules are merged into a deduplicated set, sorted in descending order for safe back-to-front removal.
-- **`QueueGuardBuilder`** — static factory that constructs a `QueueGuard` from `ApplicationSettings`. It always includes `AutoTrackRule`, conditionally adds `DuplicateTrackRule` based on the `AllowDuplicateTracksInQueue` setting, conditionally adds `QueueCutoffRule` based on `QueueCutoffEnabled`, and always adds `MaxItemsRule` last.
+- **`QueueGuardBuilder`** — static factory that constructs a `QueueGuard` from `ApplicationSettings`. It always includes `EndOfNightRule` first and `AutoTrackRule`, conditionally adds `DuplicateTrackRule` based on the `AllowDuplicateTracksInQueue` setting, conditionally adds `QueueCutoffRule` based on `QueueCutoffEnabled`, and always adds `MaxItemsRule` last.
 
 **Existing rules:**
 
 | Rule | Purpose |
 |------|---------|
+| `EndOfNightRule` | Closes the queue once an `EndOfNightQueueItem` is queued or playing: every add is refused with `QueueDenial.EveningEnded`, including another one of itself. Removes the auto-track as the entry goes in, and refuses to move the entry, since anything after it would outlive the evening it ended. Removing it reopens the queue. |
 | `AutoTrackRule` | Denies adding a second `AutoTrackQueueItem` while one is already queued. Evicts every auto-track when the auto-queue setting is off. Prevents moving or removing an auto-track, and refuses a clear once auto-tracks are all that is left. Emits no removal predicate: the auto-track sits at the tail alongside real requests rather than being displaced by them (`QueueService` keeps it last). |
 | `DuplicateTrackRule` | Denies adding a track that already exists in the queue, is currently playing, or was already played (finished in history). Evicts duplicates when history changes or the setting is toggled. |
 | `QueueCutoffRule` | Denies adding once the projection — the current item's remainder, plus the queued durations, plus the new item — would run past the configured time of day plus its grace. The auto-track is judged like any request, since exempting the thing that refills the queue would leave the evening running past the cutoff on its own. Suspended while a halt (a stop, or a message with no duration) is queued, because past one there is no end time to judge against. |

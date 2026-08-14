@@ -118,6 +118,8 @@ public sealed class PresentationStateService : IPresentationStateService, IDispo
             PresentationItemKind.Delay, string.Empty, string.Empty, string.Empty),
         StopQueueItem => new PresentationItem(
             PresentationItemKind.Stop, string.Empty, string.Empty, string.Empty),
+        EndOfNightQueueItem => new PresentationItem(
+            PresentationItemKind.EndOfNight, string.Empty, string.Empty, string.Empty),
         _ => PresentationItem.None
     };
 

@@ -99,6 +99,27 @@
                             </Grid>
                         </Border>
                     </DataTemplate>
+                    <!-- End of the night template -->
+                    <DataTemplate DataType="queueItems:EndOfNightQueueItem">
+                        <Border Background="{DynamicResource EndOfNightMarkerBackground}" CornerRadius="2" Padding="4,2" Margin="-4,-2">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <PathIcon Grid.Column="0"
+                                          Data="{StaticResource IconMoon}"
+                                          Width="10" Height="10"
+                                          Foreground="{DynamicResource EndOfNightMarkerForeground}"
+                                          Margin="0,0,8,0" />
+                                <TextBlock Grid.Column="1" Text="{x:Static res:UiStrings.Queue_EndOfNightMarker}"
+                                           VerticalAlignment="Center"
+                                           FontStyle="Italic"
+                                           Opacity="0.8" />
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding Duration, Converter={x:Static local:DurationFormatConverter.Instance}}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"
+                                           Margin="8,0,0,0" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
                     <!-- Delay marker template -->
                     <DataTemplate DataType="queueItems:DelayQueueItem">
                         <Border Background="{DynamicResource DelayMarkerBackground}" CornerRadius="2" Padding="4,2" Margin="-4,-2">

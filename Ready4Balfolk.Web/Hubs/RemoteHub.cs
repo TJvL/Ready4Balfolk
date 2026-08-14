@@ -22,6 +22,7 @@ public sealed class RemoteHub(
     IRemoteCommandDispatcher dispatcher,
     IQueueService queueService,
     IQueueConsumptionService consumptionService,
+    IEndOfNightAudio endOfNightAudio,
     IRandomTrackService randomTrackService,
     IDancePool dancePool,
     ITrackStore trackStore,
@@ -73,6 +74,18 @@ public sealed class RemoteHub(
 
     public Task<CommandResultDto> QueueStop() => dispatcher.InvokeAsync(() =>
         Enqueue(new StopQueueItem()));
+
+    /// <summary>
+    /// Ends the night from the phone, which is where somebody stacking chairs is standing.
+    /// </summary>
+    /// <remarks>
+    /// The file lives in the settings on the computer, so there is nothing for the phone to choose:
+    /// it can only say that it is time. With none named, saying so is the whole answer.
+    /// </remarks>
+    public Task<CommandResultDto> QueueEndOfNight() => dispatcher.InvokeAsync(() =>
+        endOfNightAudio.Create() is { } item
+            ? Enqueue(item)
+            : new CommandResultDto(false, "No end-of-the-night audio has been chosen at the computer"));
 
     public Task<CommandResultDto> QueueMessage(string text) => dispatcher.InvokeAsync(() =>
         string.IsNullOrWhiteSpace(text)

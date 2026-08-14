@@ -15,6 +15,7 @@ public readonly struct HistoryItemViewModel(QueueHistoryEntry entry)
         MessageHistoryEntry => UiStrings.History_TypeMessage,
         DelayHistoryEntry => UiStrings.History_TypeDelay,
         StopHistoryEntry => UiStrings.History_TypeStop,
+        EndOfNightHistoryEntry => UiStrings.History_TypeEndOfNight,
         _ => ""
     };
 
@@ -24,6 +25,7 @@ public readonly struct HistoryItemViewModel(QueueHistoryEntry entry)
         MessageHistoryEntry m => m.Message,
         DelayHistoryEntry => "Delay",
         StopHistoryEntry => "Stop",
+        EndOfNightHistoryEntry => UiStrings.History_TypeEndOfNight,
         _ => ""
     };
 
@@ -32,6 +34,7 @@ public readonly struct HistoryItemViewModel(QueueHistoryEntry entry)
         TrackHistoryEntry t => FormatTime(t.Duration),
         MessageHistoryEntry { Duration: { } d } => FormatTime(d),
         DelayHistoryEntry d => FormatTime(d.Duration),
+        EndOfNightHistoryEntry { Duration: { } e } => FormatTime(e),
         _ => ""
     };
 

@@ -61,6 +61,37 @@
                     FontSize="11"
                     Opacity="0.6"
                     TextWrapping="Wrap" />
+                <!-- What happens after the cutoff, so it sits with it rather than in a section of
+                     its own. Enabled only when there is an end time to reach. -->
+                <CheckBox Content="{x:Static res:UiStrings.Settings_EndOfNightAtCutoff}"
+                          IsChecked="{Binding PlayEndOfNightAtCutoff, Mode=TwoWay}"
+                          IsEnabled="{Binding QueueCutoffEnabled}"
+                          Focusable="False" />
+                <TextBlock
+                    Text="{x:Static res:UiStrings.Settings_EndOfNightAtCutoffDescription}"
+                    FontSize="11"
+                    Opacity="0.6"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="{x:Static res:UiStrings.Settings_EndOfNightAudio}" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBox Grid.Column="0" Text="{Binding EndOfNightAudioPath, Mode=TwoWay}" />
+                    <Button Grid.Column="1"
+                            Content="{x:Static res:UiStrings.Settings_EndOfNightBrowse}"
+                            Click="OnBrowseEndOfNightClick"
+                            Focusable="False" />
+                </Grid>
+                <TextBlock Text="{x:Static res:UiStrings.Settings_EndOfNightMissing}"
+                           IsVisible="{Binding IsEndOfNightAudioMissing}"
+                           FontSize="11"
+                           Foreground="{DynamicResource NotificationWarningBrush}"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="{x:Static res:UiStrings.Settings_EndOfNightAudioDescription}"
+                           FontSize="11"
+                           Opacity="0.6"
+                           TextWrapping="Wrap" />
             </StackPanel>
 
             <StackPanel Spacing="8">

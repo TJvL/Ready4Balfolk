@@ -79,6 +79,9 @@
   <data name="QueueToolbar_StopLabel" xml:space="preserve">
     <value>Stop</value>
   </data>
+  <data name="QueueToolbar_EndOfNightLabel" xml:space="preserve">
+    <value>Einde</value>
+  </data>
   <data name="QueueToolbar_DelayLabel" xml:space="preserve">
     <value>Pauze</value>
   </data>
@@ -165,6 +168,30 @@
   <data name="Settings_QueueCutoffDescription" xml:space="preserve">
     <value>Weiger nieuwe items zodra de wachtrij tot na deze tijd zou doorlopen, met de speling erbovenop. Zolang er een stopverzoek in de wachtrij staat is de eindtijd onbekend en geldt de limiet niet; gebruik een pauze als je weet hoe lang het duurt.</value>
   </data>
+  <data name="Settings_EndOfNightAudio" xml:space="preserve">
+    <value>Slotmuziek van de avond</value>
+  </data>
+  <data name="Settings_EndOfNightAudioDescription" xml:space="preserve">
+    <value>De muziek die zegt dat het bal voorbij is. Eén bestand, waar jij het ook bewaart: het wordt niet geïmporteerd en komt nooit in de bibliotheek. Laat het leeg en de knop in de wachtrijbalk blijft uit.</value>
+  </data>
+  <data name="Settings_EndOfNightBrowse" xml:space="preserve">
+    <value>Bestand kiezen</value>
+  </data>
+  <data name="Settings_EndOfNightPickerTitle" xml:space="preserve">
+    <value>Kies de slotmuziek van de avond</value>
+  </data>
+  <data name="Settings_EndOfNightAudioFiles" xml:space="preserve">
+    <value>Audiobestanden</value>
+  </data>
+  <data name="Settings_EndOfNightMissing" xml:space="preserve">
+    <value>Dat bestand staat er niet, dus het einde van de avond kan niet gespeeld worden.</value>
+  </data>
+  <data name="Settings_EndOfNightAtCutoff" xml:space="preserve">
+    <value>Speel het na het laatste nummer dat de eindtijd toeliet</value>
+  </data>
+  <data name="Settings_EndOfNightAtCutoffDescription" xml:space="preserve">
+    <value>Het laatste wat de zaal hoort is het teken om naar huis te gaan, zonder dat iemand er tijdens het opruimen aan hoeft te denken. Zodra het in de wachtrij staat kan er niets meer bij; haal je het weg, dan gaat de avond weer open.</value>
+  </data>
   <data name="Queue_CutoffPaused" xml:space="preserve">
     <value>limiet gepauzeerd voor de stop</value>
   </data>
@@ -236,6 +263,12 @@
   <data name="Queue_StopMarker" xml:space="preserve">
     <value>STOP — Afspelen stopt hier</value>
   </data>
+  <data name="Queue_EndOfNightMarker" xml:space="preserve">
+    <value>EINDE VAN DE AVOND — Hierna komt niets meer</value>
+  </data>
+  <data name="Queue_EndOfNightMissing" xml:space="preserve">
+    <value>De slotmuziek staat niet waar de instellingen zeggen dat hij staat.</value>
+  </data>
   <data name="Queue_DelayMarker" xml:space="preserve">
     <value>PAUZE — Afspelen wordt tijdelijk gepauzeerd</value>
   </data>
@@ -286,6 +319,9 @@
   <data name="QueueToolbar_RequestStop" xml:space="preserve">
     <value>Stop aanvragen</value>
   </data>
+  <data name="QueueToolbar_EndOfNight" xml:space="preserve">
+    <value>De avond afsluiten: zet de slotmuziek in de wachtrij, waarna er niets meer bij kan</value>
+  </data>
   <data name="QueueToolbar_RequestDelay" xml:space="preserve">
     <value>Pauze aanvragen</value>
   </data>
@@ -333,6 +369,9 @@
   <data name="History_TypeStop" xml:space="preserve">
     <value>Stop</value>
   </data>
+  <data name="History_TypeEndOfNight" xml:space="preserve">
+    <value>Einde van de avond</value>
+  </data>
   <data name="History_StartedAt" xml:space="preserve">
     <value>Gestart om</value>
   </data>
@@ -378,6 +417,9 @@
   </data>
   <data name="Playback_Stop" xml:space="preserve">
     <value>Stop</value>
+  </data>
+  <data name="Playback_EndOfNight" xml:space="preserve">
+    <value>Einde van de avond</value>
   </data>
   <data name="Playback_RestartTitle" xml:space="preserve">
     <value>Herstarten</value>
@@ -466,6 +508,9 @@
   </data>
   <data name="Presentation_Stop" xml:space="preserve">
     <value>Stop</value>
+  </data>
+  <data name="Presentation_EndOfNight" xml:space="preserve">
+    <value>Einde van de avond</value>
   </data>
   <data name="Presentation_Message" xml:space="preserve">
     <value>Bericht</value>

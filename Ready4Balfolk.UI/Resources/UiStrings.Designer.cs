@@ -63,6 +63,9 @@ public static class UiStrings
     public static string QueueToolbar_StopLabel =>
         ResourceManager.GetString("QueueToolbar_StopLabel", Culture)!;
 
+    public static string QueueToolbar_EndOfNightLabel =>
+        ResourceManager.GetString("QueueToolbar_EndOfNightLabel", Culture)!;
+
     public static string QueueToolbar_DelayLabel =>
         ResourceManager.GetString("QueueToolbar_DelayLabel", Culture)!;
 
@@ -148,6 +151,30 @@ public static class UiStrings
     public static string Settings_QueueCutoffDescription =>
         ResourceManager.GetString("Settings_QueueCutoffDescription", Culture)!;
 
+    public static string Settings_EndOfNightAudio =>
+        ResourceManager.GetString("Settings_EndOfNightAudio", Culture)!;
+
+    public static string Settings_EndOfNightAudioDescription =>
+        ResourceManager.GetString("Settings_EndOfNightAudioDescription", Culture)!;
+
+    public static string Settings_EndOfNightBrowse =>
+        ResourceManager.GetString("Settings_EndOfNightBrowse", Culture)!;
+
+    public static string Settings_EndOfNightPickerTitle =>
+        ResourceManager.GetString("Settings_EndOfNightPickerTitle", Culture)!;
+
+    public static string Settings_EndOfNightAudioFiles =>
+        ResourceManager.GetString("Settings_EndOfNightAudioFiles", Culture)!;
+
+    public static string Settings_EndOfNightMissing =>
+        ResourceManager.GetString("Settings_EndOfNightMissing", Culture)!;
+
+    public static string Settings_EndOfNightAtCutoff =>
+        ResourceManager.GetString("Settings_EndOfNightAtCutoff", Culture)!;
+
+    public static string Settings_EndOfNightAtCutoffDescription =>
+        ResourceManager.GetString("Settings_EndOfNightAtCutoffDescription", Culture)!;
+
     public static string Queue_CutoffPaused =>
         ResourceManager.GetString("Queue_CutoffPaused", Culture)!;
 
@@ -218,6 +245,12 @@ public static class UiStrings
     public static string Queue_StopMarker =>
         ResourceManager.GetString("Queue_StopMarker", Culture)!;
 
+    public static string Queue_EndOfNightMarker =>
+        ResourceManager.GetString("Queue_EndOfNightMarker", Culture)!;
+
+    public static string Queue_EndOfNightMissing =>
+        ResourceManager.GetString("Queue_EndOfNightMissing", Culture)!;
+
     public static string Queue_DelayMarker =>
         ResourceManager.GetString("Queue_DelayMarker", Culture)!;
 
@@ -267,6 +300,9 @@ public static class UiStrings
     public static string QueueToolbar_RequestStop =>
         ResourceManager.GetString("QueueToolbar_RequestStop", Culture)!;
 
+    public static string QueueToolbar_EndOfNight =>
+        ResourceManager.GetString("QueueToolbar_EndOfNight", Culture)!;
+
     public static string QueueToolbar_RequestDelay =>
         ResourceManager.GetString("QueueToolbar_RequestDelay", Culture)!;
 
@@ -313,6 +349,9 @@ public static class UiStrings
     public static string History_TypeStop =>
         ResourceManager.GetString("History_TypeStop", Culture)!;
 
+    public static string History_TypeEndOfNight =>
+        ResourceManager.GetString("History_TypeEndOfNight", Culture)!;
+
     public static string History_StartedAt =>
         ResourceManager.GetString("History_StartedAt", Culture)!;
 
@@ -356,6 +395,9 @@ public static class UiStrings
 
     public static string Playback_Stop =>
         ResourceManager.GetString("Playback_Stop", Culture)!;
+
+    public static string Playback_EndOfNight =>
+        ResourceManager.GetString("Playback_EndOfNight", Culture)!;
 
     public static string Playback_RestartTitle =>
         ResourceManager.GetString("Playback_RestartTitle", Culture)!;
@@ -439,6 +481,9 @@ public static class UiStrings
 
     public static string Presentation_Stop =>
         ResourceManager.GetString("Presentation_Stop", Culture)!;
+
+    public static string Presentation_EndOfNight =>
+        ResourceManager.GetString("Presentation_EndOfNight", Culture)!;
 
     public static string Presentation_Message =>
         ResourceManager.GetString("Presentation_Message", Culture)!;

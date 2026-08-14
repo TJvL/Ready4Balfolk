@@ -6,8 +6,8 @@ using Ready4Balfolk.Tests.Helpers;
 namespace Ready4Balfolk.Tests.Unit;
 
 /// <summary>
-/// Covers the mapping both presentation surfaces read. The desktop window and the browser draw six
-/// different pictures from it, so a wrong kind here is wrong in two places at once.
+/// Covers the mapping both presentation surfaces read. The desktop window and the browser draw the
+/// same pictures from it, so a wrong kind here is wrong in two places at once.
 /// </summary>
 public sealed class PresentationStateServiceTests
 {
@@ -88,6 +88,16 @@ public sealed class PresentationStateServiceTests
 
         Assert.Equal(PresentationItemKind.Stop, item.Kind);
         Assert.Equal("", item.Primary);
+    }
+
+    [Fact]
+    public void Map_EndOfNight_CarriesNoText()
+    {
+        var item = PresentationStateService.Map(new EndOfNightQueueItem("/audio/last-waltz.mp3", TimeSpan.FromMinutes(4)));
+
+        Assert.Equal(PresentationItemKind.EndOfNight, item.Kind);
+        Assert.Equal("", item.Primary);
+        Assert.True(item.HasContent);
     }
 
     // --- PresentationProgress ---

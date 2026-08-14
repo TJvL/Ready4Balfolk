@@ -59,6 +59,13 @@ public static class DomainStrings
     public static string DelayQueueItem_Description =>
         ResourceManager.GetString("DelayQueueItem_Description", Culture)!;
 
+    public static string EndOfNightQueueItem_Description =>
+        ResourceManager.GetString("EndOfNightQueueItem_Description", Culture)!;
+
+    // Queue rules
+    public static string EndOfNightRule_EveningEnded =>
+        ResourceManager.GetString("EndOfNightRule_EveningEnded", Culture)!;
+
     // Dance list
     public static string DanceList_BuiltInMissing =>
         ResourceManager.GetString("DanceList_BuiltInMissing", Culture)!;

@@ -14,6 +14,7 @@ public sealed record QueueHistory(
         TrackHistoryEntry t => t.Duration,
         MessageHistoryEntry m => m.Duration ?? TimeSpan.Zero,
         DelayHistoryEntry d => d.Duration,
+        EndOfNightHistoryEntry e => e.Duration ?? TimeSpan.Zero,
         _ => TimeSpan.Zero
     });
 }

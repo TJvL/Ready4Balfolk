@@ -154,6 +154,9 @@
   <data name="QueueToolbar_StopLabel" xml:space="preserve">
     <value>Stop</value>
   </data>
+  <data name="QueueToolbar_EndOfNightLabel" xml:space="preserve">
+    <value>End</value>
+  </data>
   <data name="QueueToolbar_DelayLabel" xml:space="preserve">
     <value>Delay</value>
   </data>
@@ -240,6 +243,30 @@
   <data name="Settings_QueueCutoffDescription" xml:space="preserve">
     <value>Refuse new entries once the queue would run past this time, allowing the grace period on top. While a stop request is queued the end time is unknown, so the limit is not applied; use a delay instead if you know how long the pause will be.</value>
   </data>
+  <data name="Settings_EndOfNightAudio" xml:space="preserve">
+    <value>End-of-the-night audio</value>
+  </data>
+  <data name="Settings_EndOfNightAudioDescription" xml:space="preserve">
+    <value>The music that means the ball is over. One file, wherever you keep it: it is not imported and never enters the library. Leave it empty and the button in the queue toolbar stays switched off.</value>
+  </data>
+  <data name="Settings_EndOfNightBrowse" xml:space="preserve">
+    <value>Choose file</value>
+  </data>
+  <data name="Settings_EndOfNightPickerTitle" xml:space="preserve">
+    <value>Choose the end-of-the-night audio</value>
+  </data>
+  <data name="Settings_EndOfNightAudioFiles" xml:space="preserve">
+    <value>Audio files</value>
+  </data>
+  <data name="Settings_EndOfNightMissing" xml:space="preserve">
+    <value>That file is not there, so the end of the night cannot be played.</value>
+  </data>
+  <data name="Settings_EndOfNightAtCutoff" xml:space="preserve">
+    <value>Play it after the last track the end time allowed</value>
+  </data>
+  <data name="Settings_EndOfNightAtCutoffDescription" xml:space="preserve">
+    <value>The last thing the room hears is the thing that means go home, without anybody having to press it while packing up. Once it is queued nothing else goes in; removing it reopens the evening.</value>
+  </data>
   <data name="Queue_CutoffPaused" xml:space="preserve">
     <value>limit paused for the stop</value>
   </data>
@@ -311,6 +338,12 @@
   <data name="Queue_StopMarker" xml:space="preserve">
     <value>STOP — Playback will pause here</value>
   </data>
+  <data name="Queue_EndOfNightMarker" xml:space="preserve">
+    <value>END OF THE NIGHT — Nothing follows this</value>
+  </data>
+  <data name="Queue_EndOfNightMissing" xml:space="preserve">
+    <value>The end-of-the-night audio is not where the settings say it is.</value>
+  </data>
   <data name="Queue_DelayMarker" xml:space="preserve">
     <value>DELAY — Playback will pause temporarily</value>
   </data>
@@ -361,6 +394,9 @@
   <data name="QueueToolbar_RequestStop" xml:space="preserve">
     <value>Request stop</value>
   </data>
+  <data name="QueueToolbar_EndOfNight" xml:space="preserve">
+    <value>End the night: queue the closing music, after which nothing else goes in</value>
+  </data>
   <data name="QueueToolbar_RequestDelay" xml:space="preserve">
     <value>Request delay</value>
   </data>
@@ -408,6 +444,9 @@
   <data name="History_TypeStop" xml:space="preserve">
     <value>Stop</value>
   </data>
+  <data name="History_TypeEndOfNight" xml:space="preserve">
+    <value>End of the night</value>
+  </data>
   <data name="History_StartedAt" xml:space="preserve">
     <value>Started at</value>
   </data>
@@ -453,6 +492,9 @@
   </data>
   <data name="Playback_Stop" xml:space="preserve">
     <value>Stop</value>
+  </data>
+  <data name="Playback_EndOfNight" xml:space="preserve">
+    <value>End of the night</value>
   </data>
   <data name="Playback_RestartTitle" xml:space="preserve">
     <value>Restart</value>
@@ -541,6 +583,9 @@
   </data>
   <data name="Presentation_Stop" xml:space="preserve">
     <value>Stop</value>
+  </data>
+  <data name="Presentation_EndOfNight" xml:space="preserve">
+    <value>End of the night</value>
   </data>
   <data name="Presentation_Message" xml:space="preserve">
     <value>Message</value>

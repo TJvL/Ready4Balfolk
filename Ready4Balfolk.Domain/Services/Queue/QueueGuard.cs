@@ -37,7 +37,7 @@ public sealed class QueueGuard(IEnumerable<IQueueRule> rules) : IQueueGuard
             var verdict = rule.EvaluateAdd(item, adjustedItems);
             if (verdict is { Allowed: false })
             {
-                return QueueAddResult.Deny(verdict.Reason ?? DomainStrings.QueueGuard_DeniedByRule);
+                return QueueAddResult.Deny(verdict.Reason ?? DomainStrings.QueueGuard_DeniedByRule, verdict.Denial);
             }
         }
 

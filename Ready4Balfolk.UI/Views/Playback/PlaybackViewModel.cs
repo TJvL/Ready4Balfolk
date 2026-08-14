@@ -181,6 +181,13 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
                 ArtistName = "";
                 TrackTitle = "";
                 break;
+            case EndOfNightQueueItem:
+                IsMessageMode = false;
+                HasTrack = false;
+                DanceName = UiStrings.Playback_EndOfNight;
+                ArtistName = "";
+                TrackTitle = "";
+                break;
             default:
                 break;
         }

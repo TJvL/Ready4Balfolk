@@ -21,6 +21,7 @@ public sealed class QueueViewModelTests : IDisposable
     private readonly IDancePool _dancePool = new DancePool();
     private readonly IConfirmationService _confirmation;
     private readonly INotificationService _notification;
+    private readonly IEndOfNightAudio _endOfNightAudio;
     private readonly QueueViewModel _sut;
 
     private readonly SourceList<IQueueItem> _queueSource = new();
@@ -30,6 +31,8 @@ public sealed class QueueViewModelTests : IDisposable
     private readonly BehaviorSubject<bool> _isPlaying = new(false);
     private readonly Subject<RxUnit> _itemCompleted = new();
     private readonly BehaviorSubject<ApplicationSettings> _settingsSubject;
+
+    private static readonly EndOfNightQueueItem EndOfNight = new("/audio/last-waltz.mp3", TimeSpan.FromMinutes(4));
 
     public QueueViewModelTests()
     {
@@ -102,10 +105,13 @@ public sealed class QueueViewModelTests : IDisposable
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<string>()).Returns(true);
         _notification = Substitute.For<INotificationService>();
+        _endOfNightAudio = Substitute.For<IEndOfNightAudio>();
+        _endOfNightAudio.IsAvailable.Returns(false);
+        _endOfNightAudio.Create().Returns(EndOfNight);
 
         _sut = new QueueViewModel(
             _queueService, consumption, settingsStore,
-            _randomTrackService, _dancePool, _confirmation, _notification,
+            _randomTrackService, _dancePool, _confirmation, _notification, _endOfNightAudio,
             new TrackEditorService(
                 Substitute.For<Domain.Stores.Dances.IDanceListStore>(),
                 Substitute.For<Domain.Stores.Library.ILibraryIndex>(),
@@ -459,6 +465,124 @@ public sealed class QueueViewModelTests : IDisposable
         _queueService.Received(1).InsertAt(Arg.Any<int>(),
             Arg.Is<TrackQueueItem>(t => t!.RandomlyAdded));
     }
+
+    // --- End of the night ---
+
+    [Fact]
+    public void EndOfNight_NoFileChosen_ButtonStaysOff() =>
+        Assert.False(_sut.IsEndOfNightAvailable);
+
+    [Fact]
+    public void EndOfNight_FileChosen_ButtonComesOn()
+    {
+        _endOfNightAudio.IsAvailable.Returns(true);
+        _settingsSubject.OnNext(_settingsSubject.Value with { EndOfNightAudioPath = "/audio/last-waltz.mp3" });
+
+        Assert.True(_sut.IsEndOfNightAvailable);
+    }
+
+    [Fact]
+    public void EndOfNight_AlreadyQueued_ButtonGoesOffAgain()
+    {
+        _endOfNightAudio.IsAvailable.Returns(true);
+        _queueSource.Add(EndOfNight);
+
+        Assert.False(_sut.IsEndOfNightAvailable);
+    }
+
+    [Fact]
+    public void EnqueueEndOfNight_QueuesTheChosenFile()
+    {
+        _endOfNightAudio.IsAvailable.Returns(true);
+        _settingsSubject.OnNext(_settingsSubject.Value with { EndOfNightAudioPath = EndOfNight.FilePath });
+
+        _sut.EnqueueEndOfNightCommand.Execute().Subscribe();
+
+        _queueService.Received(1).Enqueue(EndOfNight);
+    }
+
+    [Fact]
+    public void EnqueueEndOfNight_FileGoneSinceItWasOffered_Warns()
+    {
+        _endOfNightAudio.IsAvailable.Returns(true);
+        _settingsSubject.OnNext(_settingsSubject.Value with { EndOfNightAudioPath = EndOfNight.FilePath });
+        _endOfNightAudio.Create().Returns((EndOfNightQueueItem?)null);
+
+        _sut.EnqueueEndOfNightCommand.Execute().Subscribe();
+
+        _queueService.DidNotReceive().Enqueue(Arg.Any<EndOfNightQueueItem>());
+        _notification.Received(1).Show(Arg.Any<string>(), NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public void AutoQueue_RefusedByTheCutoff_EndsTheNight()
+    {
+        DenyAutoTracksAtTheCutoff();
+        _settingsSubject.OnNext(_settingsSubject.Value with { PlayEndOfNightAtCutoff = true });
+        _endOfNightAudio.IsAvailable.Returns(true);
+        _randomTrackService.PickRandomTrack(Arg.Any<RandomSelectionScope>(), Arg.Any<bool>())
+            .Returns(TestData.CreateTrack("Auto"));
+
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Playing"), false));
+
+        _queueService.Received(1).Enqueue(EndOfNight);
+    }
+
+    [Fact]
+    public void AutoQueue_RefusedByTheCutoff_SettingOff_LeavesTheEveningAlone()
+    {
+        DenyAutoTracksAtTheCutoff();
+        _endOfNightAudio.IsAvailable.Returns(true);
+        _randomTrackService.PickRandomTrack(Arg.Any<RandomSelectionScope>(), Arg.Any<bool>())
+            .Returns(TestData.CreateTrack("Auto"));
+
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Playing"), false));
+
+        _queueService.DidNotReceive().Enqueue(Arg.Any<EndOfNightQueueItem>());
+    }
+
+    [Fact]
+    public void AutoQueue_StopsOnceTheNightHasEnded()
+    {
+        _randomTrackService.PickRandomTrack(Arg.Any<RandomSelectionScope>(), Arg.Any<bool>())
+            .Returns(TestData.CreateTrack("Auto"));
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Playing"), false));
+        _queueSource.Add(EndOfNight);
+        _queueService.ClearReceivedCalls();
+
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("Request"), false));
+
+        _queueService.DidNotReceive().Enqueue(Arg.Any<AutoTrackQueueItem>());
+    }
+
+    [Fact]
+    public void FinishTimeText_EveningEnded_ProjectsTheEndEvenWithTheAutoQueueOn()
+    {
+        _settingsSubject.OnNext(_settingsSubject.Value with
+        {
+            QueueCutoffEnabled = true,
+            QueueCutoffMinutesOfDay = 23 * 60
+        });
+
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
+        _queueSource.Add(EndOfNight);
+
+        Assert.StartsWith("Playlist finishes at:", _sut.FinishTimeText, StringComparison.Ordinal);
+    }
+
+    /// <summary>Everything is allowed except the auto-track, which the cutoff turns away.</summary>
+    private void DenyAutoTracksAtTheCutoff() =>
+        _queueService.Enqueue(Arg.Any<IQueueItem>()).Returns(ci =>
+        {
+            var item = ci.Arg<IQueueItem>()!;
+            if (item is AutoTrackQueueItem)
+            {
+                return QueueAddResult.Deny("Not past 23:00.", QueueDenial.Cutoff);
+            }
+
+            _queueSource.Add(item);
+            return QueueAddResult.Allow();
+        });
 
     public void Dispose()
     {

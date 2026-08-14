@@ -69,8 +69,10 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
             return;
         }
 
+        // Neither of the entries pinned to the bottom is the user's to drag: the queue guard would
+        // refuse the move anyway, and a drag that does nothing reads as a bug.
         var listBoxItem = FindParent<ListBoxItem>(e.Source as Control);
-        if (listBoxItem?.DataContext is AutoTrackQueueItem or null)
+        if (listBoxItem?.DataContext is AutoTrackQueueItem or EndOfNightQueueItem or null)
         {
             return;
         }

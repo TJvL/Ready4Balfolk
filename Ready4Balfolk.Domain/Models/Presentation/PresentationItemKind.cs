@@ -20,5 +20,8 @@ public enum PresentationItemKind
     Delay,
 
     /// <summary>An open-ended stop. The surface supplies its own label.</summary>
-    Stop
+    Stop,
+
+    /// <summary>The music that ends the evening. The surface supplies its own label.</summary>
+    EndOfNight
 }

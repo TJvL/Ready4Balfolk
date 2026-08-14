@@ -169,6 +169,10 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 await _audio.ClearAsync();
                 _currentItem.OnNext(item);
                 break;
+            case EndOfNightQueueItem endOfNight:
+                _currentItem.OnNext(item);
+                await StartAudioAsync(endOfNight.FilePath);
+                break;
             default:
                 break;
         }
@@ -176,9 +180,11 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         PreloadNext();
     }
 
-    private async Task StartTrackAsync(TrackQueueItem trackItem)
+    private Task StartTrackAsync(TrackQueueItem trackItem) => StartAudioAsync(trackItem.Track.FileInfo.FullName);
+
+    private async Task StartAudioAsync(string filePath)
     {
-        var uri = new Uri(trackItem.Track.FileInfo.FullName);
+        var uri = new Uri(filePath);
 
         // Subscribe BEFORE starting playback so we don't miss events
         _itemDisposables!.Add(
@@ -231,6 +237,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         {
             TrackQueueItem t => new Uri(t.Track.FileInfo.FullName),
             AutoTrackQueueItem a => new Uri(a.TrackQueueItem.Track.FileInfo.FullName),
+            EndOfNightQueueItem e => new Uri(e.FilePath),
             _ => null
         };
 
@@ -275,6 +282,10 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 status,
                 _currentItemStartedAt),
             StopQueueItem => new StopHistoryEntry(status, _currentItemStartedAt),
+            EndOfNightQueueItem endOfNight => new EndOfNightHistoryEntry(
+                endOfNight.Duration,
+                status,
+                _currentItemStartedAt),
             _ => throw new InvalidOperationException($"Unknown queue item type: {item.GetType()}")
         };
 

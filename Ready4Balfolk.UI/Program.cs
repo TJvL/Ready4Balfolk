@@ -170,6 +170,7 @@ public static class Program
                 sp.GetRequiredService<ILoggerService>());
         });
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
+        services.AddSingleton<IEndOfNightAudio, EndOfNightAudio>();
         services.AddSingleton<IApplicationSettingsDirectory, ApplicationSettingsDirectory>();
         services.AddSingleton<ILibraryIndex, SqliteLibraryIndex>();
         services.AddSingleton<IFileSystem>(new FileSystem());

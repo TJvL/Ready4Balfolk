@@ -44,7 +44,14 @@ public sealed record ApplicationSettings(
     // a local answer is a proposal at BigBalfolkList waiting to be made. On, a track you have
     // answered reaches the library whatever you called the dance — at the price that a random pick
     // draws by tag, and a dance the list has never heard of carries none.
-    bool AllowDancesOutsideTheList = false)
+    bool AllowDancesOutsideTheList = false,
+    // One file that lives wherever the user keeps it: no library, no import, no copy. Empty until
+    // somebody says what the sound of the evening ending is, and until then there is nothing to
+    // offer to play.
+    string EndOfNightAudioPath = "",
+    // Play it after the last track the cutoff allowed, so nobody has to remember to press anything
+    // while packing up.
+    bool PlayEndOfNightAtCutoff = false)
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [])

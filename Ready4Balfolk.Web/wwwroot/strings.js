@@ -15,6 +15,7 @@
       delay: "Delay",
       stop: "Stop",
       message: "Message",
+      endOfNight: "End of the night",
       reconnecting: "Reconnecting",
 
       playing: "Playing",
@@ -47,6 +48,7 @@
       delayLength: "Delay length",
       queueDelay: "Queue delay",
       queueMessage: "Queue message",
+      queueEndOfNight: "End the night",
       messagePlaceholder: "Bar closes at midnight",
       queued: "Queued",
 
@@ -57,6 +59,7 @@
       silentPause: "Silent pause",
       waitsForYou: "Waits for you",
       onScreen: "On screen",
+      nothingFollows: "Nothing follows this",
 
       pinTitle: "Remote",
       pinHint: "Enter the PIN shown in the app's settings",
@@ -74,6 +77,7 @@
       delay: "Pauze",
       stop: "Stop",
       message: "Bericht",
+      endOfNight: "Einde van de avond",
       reconnecting: "Opnieuw verbinden",
 
       playing: "Speelt nu",
@@ -106,6 +110,7 @@
       delayLength: "Pauzeduur",
       queueDelay: "Pauze toevoegen",
       queueMessage: "Bericht toevoegen",
+      queueEndOfNight: "Avond afsluiten",
       messagePlaceholder: "De bar sluit om middernacht",
       queued: "Toegevoegd",
 
@@ -116,6 +121,7 @@
       silentPause: "Stille pauze",
       waitsForYou: "Wacht op jou",
       onScreen: "Op het scherm",
+      nothingFollows: "Hierna komt niets meer",
 
       pinTitle: "Afstandsbediening",
       pinHint: "Voer de pincode in die in de instellingen staat",
@@ -142,6 +148,7 @@
     if (kind === "Delay") return R4B.t("delay");
     if (kind === "Stop") return R4B.t("stop");
     if (kind === "Message") return R4B.t("message");
+    if (kind === "EndOfNight") return R4B.t("endOfNight");
     return "";
   };
 

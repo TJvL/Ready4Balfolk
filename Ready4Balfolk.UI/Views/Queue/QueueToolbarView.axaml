@@ -55,6 +55,16 @@
                                     Text="{x:Static res:UiStrings.QueueToolbar_MessageLabel}"
                                     IconSize="16" />
         </Button>
+        <!-- An instruction to the room rather than a piece of the programme, so it sits with the
+             stop, the delay and the message. Disabled until the settings say what the sound is. -->
+        <Button Command="{Binding EnqueueEndOfNightCommand}"
+                ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_EndOfNight}"
+                Padding="8"
+                Focusable="False">
+            <controls:ButtonContent Icon="{StaticResource IconMoon}"
+                                    Text="{x:Static res:UiStrings.QueueToolbar_EndOfNightLabel}"
+                                    IconSize="16" />
+        </Button>
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
