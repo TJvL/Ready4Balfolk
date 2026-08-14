@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.IO.Abstractions;
 using System.Security.Cryptography;
 
 namespace Ready4Balfolk.Domain.Services.Tracks;
@@ -32,10 +33,10 @@ public static class AudioContentHasher
     /// leading ID3 block or a trailing tag is skipped rather than hashed.
     /// </summary>
     /// <exception cref="IOException">The file could not be read.</exception>
-    public static byte[] Compute(FileInfo fileInfo, long audioStart, long audioEnd)
+    public static byte[] Compute(IFileInfo fileInfo, long audioStart, long audioEnd)
     {
-        using var stream = new FileStream(fileInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read,
-            SampleSize, FileOptions.SequentialScan);
+        using var stream = fileInfo.FileSystem.FileStream.New(fileInfo.FullName, FileMode.Open, FileAccess.Read,
+            FileShare.Read, SampleSize, FileOptions.SequentialScan);
 
         var start = Math.Clamp(audioStart, 0, stream.Length);
         // A negative or unknown end position means TagLib could not say, so use the end of the file
@@ -64,7 +65,7 @@ public static class AudioContentHasher
         return hasher.GetHashAndReset();
     }
 
-    private static void AppendRange(FileStream stream, IncrementalHash hasher, long from, long count)
+    private static void AppendRange(Stream stream, IncrementalHash hasher, long from, long count)
     {
         stream.Seek(from, SeekOrigin.Begin);
 

@@ -1,15 +1,16 @@
+using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
 using Ready4Balfolk.Domain.Services.Tracks;
 
 namespace Ready4Balfolk.Tests.Integration;
 
-public sealed class AudioContentHasherTests : IDisposable
+public sealed class AudioContentHasherTests
 {
-    private readonly DirectoryInfo _tempDir;
+    private readonly MockFileSystem _fileSystem = new();
 
     public AudioContentHasherTests()
     {
-        _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
-        _tempDir.Create();
+        _fileSystem.Directory.CreateDirectory("/hash");
     }
 
     [Fact]
@@ -91,34 +92,26 @@ public sealed class AudioContentHasherTests : IDisposable
     }
 
     /// <summary>A file long enough that the hasher samples its ends rather than reading it whole.</summary>
-    private FileInfo WriteLong(char edge, char middle, int extraBytes = 0)
+    private IFileInfo WriteLong(char edge, char middle, int extraBytes = 0)
     {
-        var path = Path.Combine(_tempDir.FullName, $"{edge}{middle}{extraBytes}.bin");
+        var path = $"/hash/{edge}{middle}{extraBytes}.bin";
         var bytes = new byte[(1024 * 1024) + extraBytes];
         Array.Fill(bytes, (byte)middle);
         Array.Fill(bytes, (byte)edge, 0, 512 * 1024);
         Array.Fill(bytes, (byte)edge, bytes.Length - (512 * 1024), 512 * 1024);
-        File.WriteAllBytes(path, bytes);
-        return new FileInfo(path);
+        _fileSystem.File.WriteAllBytes(path, bytes);
+        return _fileSystem.FileInfo.New(path);
     }
 
-    public void Dispose()
-    {
-        if (_tempDir.Exists)
-        {
-            _tempDir.Delete(true);
-        }
-    }
-
-    private FileInfo Write(string name, ReadOnlySpan<byte> header, ReadOnlySpan<byte> audio,
+    private IFileInfo Write(string name, ReadOnlySpan<byte> header, ReadOnlySpan<byte> audio,
         ReadOnlySpan<byte> trailer = default)
     {
-        var path = Path.Combine(_tempDir.FullName, $"{name}.bin");
+        var path = $"/hash/{name}.bin";
         var bytes = new byte[header.Length + audio.Length + trailer.Length];
         header.CopyTo(bytes);
         audio.CopyTo(bytes.AsSpan(header.Length));
         trailer.CopyTo(bytes.AsSpan(header.Length + audio.Length));
-        File.WriteAllBytes(path, bytes);
-        return new FileInfo(path);
+        _fileSystem.File.WriteAllBytes(path, bytes);
+        return _fileSystem.FileInfo.New(path);
     }
 }

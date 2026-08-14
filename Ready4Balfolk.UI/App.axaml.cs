@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
@@ -48,6 +48,7 @@ public sealed class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var settingsStore = Services.GetRequiredService<ISettingsStore>();
+            var fileSystem = Services.GetRequiredService<IFileSystem>();
 
             var mainWindow = new MainWindow();
             desktop.MainWindow = mainWindow;
@@ -97,7 +98,7 @@ public sealed class App : Application
                 _compositeDisposable.Add(settingsStore.Observe()
                     .Select(s => s.MusicDirectoryPath)
                     .Where(path => !string.IsNullOrWhiteSpace(path))
-                    .Select(r => new DirectoryInfo(r))
+                    .Select(r => fileSystem.DirectoryInfo.New(r))
                     .Subscribe(directory => trackStore.MusicDirectory = directory));
 
                 var windowState = settingsStore.Current.MainWindowState;

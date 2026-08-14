@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using NSubstitute;
@@ -13,13 +13,19 @@ using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
+using Ready4Balfolk.Tests.Helpers.FileSystemHelpers;
 
 namespace Ready4Balfolk.Tests.Integration;
 
 public sealed class TrackStoreTests : IDisposable
 {
-    private readonly DirectoryInfo _tempDirA;
-    private readonly DirectoryInfo _tempDirB;
+    private readonly WatchableMockFileSystem _fileSystem;
+    // Every watcher the store asked for, latest last. The store's watcher is a substitute, so a
+    // "file appeared" is an event the test raises rather than a real FileSystemWatcher noticing a
+    // real write: nothing here touches the filesystem, and nothing waits on it either.
+    private readonly List<(string Path, IFileSystemWatcher Watcher)> _watchers = [];
+    private readonly IDirectoryInfo _dirA;
+    private readonly IDirectoryInfo _dirB;
     private readonly ILoggerService _loggerService;
     private readonly ITrackDiscoveryService _discoveryService;
     private readonly ILibraryIndex _libraryIndex;
@@ -35,15 +41,18 @@ public sealed class TrackStoreTests : IDisposable
     {
         SupportedAudioFormats.Initialize(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".mp3" });
 
-        _tempDirA = CreateTempDirectory();
-        _tempDirB = CreateTempDirectory();
+        _fileSystem = new WatchableMockFileSystem(CreateWatcher);
+        _dirA = _fileSystem.DirectoryInfo.New("/music/a");
+        _dirA.Create();
+        _dirB = _fileSystem.DirectoryInfo.New("/music/b");
+        _dirB.Create();
 
         _loggerService = Substitute.For<ILoggerService>();
 
         _discoveryService = Substitute.For<ITrackDiscoveryService>();
         var discoveryService = _discoveryService;
-        discoveryService.Gather(Arg.Any<FileInfo>(), Arg.Any<DirectoryInfo>())
-            .Returns(call => EvidenceFor(call.Arg<FileInfo>()!));
+        discoveryService.Gather(Arg.Any<IFileInfo>(), Arg.Any<IDirectoryInfo>())
+            .Returns(call => EvidenceFor(call.Arg<IFileInfo>()!));
 
         // A list with the one dance these tests use, because a track only reaches the library with a
         // dance the published list knows.
@@ -98,26 +107,54 @@ public sealed class TrackStoreTests : IDisposable
             });
         _libraryIndex.ApprovalsAsync(Arg.Any<CancellationToken>()).Returns(_ => Approved());
 
-        _sut = new TrackStore(_loggerService, discoveryService, danceListStore, _libraryIndex);
+        _sut = new TrackStore(_loggerService, discoveryService, danceListStore, _libraryIndex, _fileSystem);
+    }
+
+    private IFileSystemWatcher CreateWatcher(string path)
+    {
+        var watcher = Substitute.For<IFileSystemWatcher>();
+        watcher.Path.Returns(path);
+        lock (_watchers)
+        {
+            _watchers.Add((path, watcher));
+        }
+
+        return watcher;
+    }
+
+    private void CreateFile(IDirectoryInfo directory, string name) =>
+        _fileSystem.File.WriteAllText(_fileSystem.Path.Combine(directory.FullName, name), "audio");
+
+    /// <summary>Writes a file and raises Created on the store's current watcher for its directory.</summary>
+    private void CreateFileAndNotify(IDirectoryInfo directory, string name)
+    {
+        CreateFile(directory, name);
+
+        IFileSystemWatcher watcher;
+        lock (_watchers)
+        {
+            watcher = _watchers.Last(w => string.Equals(w.Path, directory.FullName, StringComparison.Ordinal)).Watcher;
+        }
+
+        watcher.Created += Raise.Event<FileSystemEventHandler>(
+            watcher, new FileSystemEventArgs(WatcherChangeTypes.Created, directory.FullName, name));
     }
 
     [Fact]
     public async Task MusicDirectory_ChangedTwice_ReloadsAndKeepsWatching()
     {
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirA.FullName, "a.mp3"), "", TestContext.Current.CancellationToken);
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirB.FullName, "b.mp3"), "", TestContext.Current.CancellationToken);
+        CreateFile(_dirA, "a.mp3");
+        CreateFile(_dirB, "b.mp3");
 
         var isLoading = false;
         using var loadingSubscription = _sut.IsLoading.Subscribe(value => isLoading = value);
 
-        _sut.MusicDirectory = _tempDirA;
+        _sut.MusicDirectory = _dirA;
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "a.mp3"));
 
         // Switching a second time used to throw a NullReferenceException from the
-        // watcher remove-handlers and leave the store without a FileSystemWatcher.
-        _sut.MusicDirectory = _tempDirB;
+        // watcher remove-handlers and leave the store without a watcher.
+        _sut.MusicDirectory = _dirB;
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));
         await WaitUntilAsync(() => !isLoading);
 
@@ -126,32 +163,21 @@ public sealed class TrackStoreTests : IDisposable
 
         // The watcher must be re-attached to the new directory: a file created
         // after the switch has to show up in the store.
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirB.FullName, "c.mp3"), "", TestContext.Current.CancellationToken);
-        try
+        CreateFileAndNotify(_dirB, "c.mp3");
+        await WaitUntilAsync(() =>
         {
-            await WaitUntilAsync(() =>
+            lock (_indexSnapshot)
             {
-                lock (_indexSnapshot)
-                {
-                    return _indexSnapshot.Keys.Any(path => path.EndsWith("c.mp3", StringComparison.Ordinal));
-                }
-            });
-        }
-        catch (Exception)
-        {
-            var messages = string.Join(" | ", _loggerService.ReceivedCalls()
-                .Select(call => call.GetMethodInfo().Name + ":" + string.Join(",", call.GetArguments().Take(1))));
-            throw new InvalidOperationException("no c.mp3 indexed. log: " + messages);
-        }
+                return _indexSnapshot.Keys.Any(path => path.EndsWith("c.mp3", StringComparison.Ordinal));
+            }
+        });
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "c.mp3"));
     }
 
     [Fact]
     public async Task MusicDirectory_MissingDirectory_LogsWarningAndDoesNotStickLoading()
     {
-        var missing = new DirectoryInfo(
-            Path.Combine(Path.GetTempPath(), $"r4b_missing_{Guid.NewGuid():N}"));
+        var missing = _fileSystem.DirectoryInfo.New("/music/missing");
 
         var isLoading = false;
         using var loadingSubscription = _sut.IsLoading.Subscribe(value => isLoading = value);
@@ -169,8 +195,7 @@ public sealed class TrackStoreTests : IDisposable
     {
         // The bargain of a declaration: the user vouches for the rule once, and the files it matches
         // are answered and approved without being looked at one at a time.
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirA.FullName, "Naragonia - Mazurka.mp3"), "", TestContext.Current.CancellationToken);
+        CreateFile(_dirA, "Naragonia - Mazurka.mp3");
 
         var approved = new List<TrackApproval>();
         _libraryIndex.ApproveAsync(Arg.Any<IReadOnlyCollection<TrackApproval>>(), Arg.Any<CancellationToken>())
@@ -185,7 +210,7 @@ public sealed class TrackStoreTests : IDisposable
             });
 
         _sut.DiscoverySettings = new DiscoverySettings { FileNamePatterns = ["%a - %t"] };
-        _sut.MusicDirectory = _tempDirA;
+        _sut.MusicDirectory = _dirA;
 
         await WaitUntilAsync(() =>
         {
@@ -209,10 +234,9 @@ public sealed class TrackStoreTests : IDisposable
     [Fact]
     public async Task WhatNoRuleAnswered_IsApprovedByNothing()
     {
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirA.FullName, "a.mp3"), "", TestContext.Current.CancellationToken);
+        CreateFile(_dirA, "a.mp3");
 
-        _sut.MusicDirectory = _tempDirA;
+        _sut.MusicDirectory = _dirA;
         await WaitUntilAsync(() => _sut.Current.Any(track => track.FileInfo.Name == "a.mp3"));
 
         await _libraryIndex.DidNotReceive().ApproveAsync(
@@ -223,10 +247,9 @@ public sealed class TrackStoreTests : IDisposable
     [Fact]
     public async Task ChangingTheRules_TakesBackWhatTheyApproved()
     {
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirA.FullName, "Naragonia - Mazurka.mp3"), "", TestContext.Current.CancellationToken);
+        CreateFile(_dirA, "Naragonia - Mazurka.mp3");
 
-        _sut.MusicDirectory = _tempDirA;
+        _sut.MusicDirectory = _dirA;
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
         _sut.DiscoverySettings = new DiscoverySettings { FileNamePatterns = ["%a - %t"] };
@@ -241,13 +264,12 @@ public sealed class TrackStoreTests : IDisposable
         // A merged proposal at BigBalfolkList has to visibly clear part of the backlog. The track
         // was answered long ago; only the list was missing the name.
         _danceIndex = DanceListIndex.Empty;
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirA.FullName, "a.mp3"), "", TestContext.Current.CancellationToken);
+        CreateFile(_dirA, "a.mp3");
 
         var isLoading = true;
         using var loading = _sut.IsLoading.Subscribe(value => isLoading = value);
 
-        _sut.MusicDirectory = _tempDirA;
+        _sut.MusicDirectory = _dirA;
         await WaitUntilAsync(() => _indexSnapshot.Count == 1 && !isLoading);
 
         // Approved on every field, and still not in the library: the list has never heard of the
@@ -261,40 +283,19 @@ public sealed class TrackStoreTests : IDisposable
         await WaitUntilAsync(() => _sut.Current.Count == 1);
     }
 
-    public void Dispose()
-    {
-        _sut.Dispose();
-        try
-        {
-            _tempDirA.Delete(true);
-            _tempDirB.Delete(true);
-        }
-        catch
-        {
-            // cleanup best-effort
-        }
-    }
-
-    private static DirectoryInfo CreateTempDirectory()
-    {
-        var directory = new DirectoryInfo(
-            Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
-        directory.Create();
-        return directory;
-    }
+    public void Dispose() => _sut.Dispose();
 
     [Fact]
     public async Task UnchangedFile_IsNotOpened()
     {
-        var path = Path.Combine(_tempDirA.FullName, "known.mp3");
-        await File.WriteAllTextAsync(path, "audio", TestContext.Current.CancellationToken);
-        var file = new FileInfo(path);
+        CreateFile(_dirA, "known.mp3");
+        var file = _fileSystem.FileInfo.New(_fileSystem.Path.Combine(_dirA.FullName, "known.mp3"));
         _indexSnapshot = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
         {
-            [path] = IndexedAs(file, "Mazurka")
+            [file.FullName] = IndexedAs(file, "Mazurka")
         };
 
-        _sut.MusicDirectory = _tempDirA;
+        _sut.MusicDirectory = _dirA;
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
         // The whole point of the index: a startup that finds nothing changed touches no audio.
@@ -306,17 +307,16 @@ public sealed class TrackStoreTests : IDisposable
     [Fact]
     public async Task ChangedFile_IsReadAgain()
     {
-        var path = Path.Combine(_tempDirA.FullName, "changed.mp3");
-        await File.WriteAllTextAsync(path, "audio", TestContext.Current.CancellationToken);
-        var file = new FileInfo(path);
+        CreateFile(_dirA, "changed.mp3");
+        var file = _fileSystem.FileInfo.New(_fileSystem.Path.Combine(_dirA.FullName, "changed.mp3"));
         _indexSnapshot = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
         {
             // A size the file no longer has, which is what "this changed" looks like without
             // opening it.
-            [path] = IndexedAs(file, "Mazurka") with { FileSize = file.Length + 1 }
+            [file.FullName] = IndexedAs(file, "Mazurka") with { FileSize = file.Length + 1 }
         };
 
-        _sut.MusicDirectory = _tempDirA;
+        _sut.MusicDirectory = _dirA;
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
         _discoveryService.ReceivedWithAnyArgs().Gather(default!, default!);
@@ -325,10 +325,9 @@ public sealed class TrackStoreTests : IDisposable
     [Fact]
     public async Task FileTheIndexHasNeverSeen_IsReadAndWrittenBack()
     {
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirA.FullName, "fresh.mp3"), "audio", TestContext.Current.CancellationToken);
+        CreateFile(_dirA, "fresh.mp3");
 
-        _sut.MusicDirectory = _tempDirA;
+        _sut.MusicDirectory = _dirA;
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
         await _libraryIndex.ReceivedWithAnyArgs().WriteAsync(default!, TestContext.Current.CancellationToken);
@@ -365,7 +364,7 @@ public sealed class TrackStoreTests : IDisposable
         FileWriteUtc = entry.LastWriteUtc
     };
 
-    private static LibraryEntry IndexedAs(FileInfo file, string dance) => new()
+    private static LibraryEntry IndexedAs(IFileInfo file, string dance) => new()
     {
         ContentHash = [7],
         Path = file.FullName,
@@ -379,7 +378,7 @@ public sealed class TrackStoreTests : IDisposable
         Title = file.Name
     };
 
-    private static TrackEvidence EvidenceFor(FileInfo fileInfo) => new()
+    private static TrackEvidence EvidenceFor(IFileInfo fileInfo) => new()
     {
         FileName = fileInfo.Name,
         PathSegments = ["Artist"],
@@ -393,16 +392,14 @@ public sealed class TrackStoreTests : IDisposable
     [Fact]
     public async Task MusicDirectory_SwitchedWhileLoading_SerialisesAndKeepsWatching()
     {
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirA.FullName, "a.mp3"), "", TestContext.Current.CancellationToken);
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirB.FullName, "b.mp3"), "", TestContext.Current.CancellationToken);
+        CreateFile(_dirA, "a.mp3");
+        CreateFile(_dirB, "b.mp3");
 
         // Switch without waiting, so the second load starts while the first is still running.
         // Unserialised, the two race over _watcher and _tracks: one disposes the watcher the
         // other just published, and enabling it then throws ObjectDisposedException.
-        _sut.MusicDirectory = _tempDirA;
-        _sut.MusicDirectory = _tempDirB;
+        _sut.MusicDirectory = _dirA;
+        _sut.MusicDirectory = _dirB;
 
         var isLoading = true;
         using var loadingSubscription = _sut.IsLoading.Subscribe(value => isLoading = value);
@@ -414,14 +411,13 @@ public sealed class TrackStoreTests : IDisposable
         Assert.DoesNotContain(_sut.Current, t => t.FileInfo.Name == "a.mp3");
 
         // The surviving load must still own a live watcher on its own directory.
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDirB.FullName, "c.mp3"), "", TestContext.Current.CancellationToken);
+        CreateFileAndNotify(_dirB, "c.mp3");
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "c.mp3"));
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 10_000)
     {
-        var stopwatch = Stopwatch.StartNew();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         while (!condition())
         {
             Assert.True(stopwatch.ElapsedMilliseconds < timeoutMs,

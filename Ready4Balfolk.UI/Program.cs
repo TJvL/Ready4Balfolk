@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO.Abstractions;
 using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
@@ -170,6 +171,7 @@ public static class Program
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
         services.AddSingleton<IApplicationSettingsDirectory, ApplicationSettingsDirectory>();
         services.AddSingleton<ILibraryIndex, SqliteLibraryIndex>();
+        services.AddSingleton<IFileSystem>(new FileSystem());
         services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<IPresentationStateService, PresentationStateService>();

@@ -1,6 +1,8 @@
+using System.IO.Abstractions;
+
 namespace Ready4Balfolk.Domain.Models.Tracks;
 
-public sealed record Track(string Dance, string Artist, string Title, FileInfo FileInfo, TimeSpan Length, AudioFormat Format)
+public sealed record Track(string Dance, string Artist, string Title, IFileInfo FileInfo, TimeSpan Length, AudioFormat Format)
 {
     /// <summary>What the file itself claims, before the dance list had a say.</summary>
     public string OriginalDance { get; init; } = Dance;

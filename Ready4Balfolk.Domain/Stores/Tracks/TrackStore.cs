@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.IO.Abstractions;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -36,24 +37,27 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private CancellationTokenSource? _loadCts;
     // The root the watcher's files are under, so a file it notices can still be placed relative to
     // it.
-    private DirectoryInfo? _musicRoot;
+    private IDirectoryInfo? _musicRoot;
     // Compiled once and swapped whole, so a scan running over it never sees half a rule change.
     private DeclaredDiscovery _declared = DeclaredDiscovery.Undeclared;
     private DiscoverySettings _discoverySettings = DiscoverySettings.Undeclared;
     private bool _allowDancesOutsideTheList;
-    private FileSystemWatcher? _watcher;
+    private IFileSystemWatcher? _watcher;
     private bool _disposed;
+    private readonly IFileSystem _fileSystem;
 
     public TrackStore(
         ILoggerService loggerService,
         ITrackDiscoveryService discoveryService,
         IDanceListStore danceListStore,
-        ILibraryIndex libraryIndex)
+        ILibraryIndex libraryIndex,
+        IFileSystem fileSystem)
     {
         _loggerService = loggerService;
         _discoveryService = discoveryService;
         _danceListStore = danceListStore;
         _libraryIndex = libraryIndex;
+        _fileSystem = fileSystem;
 
         // Skip(1): the store replays its current list to a new subscriber, and rebuilding an empty
         // library at construction is work with nothing to do.
@@ -79,7 +83,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
     public IReadOnlyList<Track> Current => _tracks.Items.ToList();
 
-    public DirectoryInfo? MusicDirectory
+    public IDirectoryInfo? MusicDirectory
     {
         set
         {
@@ -208,7 +212,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private static ICollection<FileInfo> DiscoverFiles(DirectoryInfo directory)
+    private static ICollection<IFileInfo> DiscoverFiles(IDirectoryInfo directory)
     {
         return
         [
@@ -217,7 +221,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         ];
     }
 
-    private async Task LoadDirectoryAsync(DirectoryInfo directory, bool reread, CancellationToken cancellationToken)
+    private async Task LoadDirectoryAsync(IDirectoryInfo directory, bool reread, CancellationToken cancellationToken)
     {
         _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
 
@@ -244,7 +248,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private async Task LoadDirectoryCoreAsync(DirectoryInfo directory, bool reread, CancellationToken cancellationToken)
+    private async Task LoadDirectoryCoreAsync(IDirectoryInfo directory, bool reread, CancellationToken cancellationToken)
     {
         _watcher?.Dispose();
         _watcher = null;
@@ -376,7 +380,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
                     review.DanceSlug is { } slug ? dances.DisplayNameFor(slug) : review.Dance.Value ?? string.Empty,
                     review.Artist.Value ?? string.Empty,
                     review.Title.Value ?? string.Empty,
-                    new FileInfo(entry.Path),
+                    _fileSystem.FileInfo.New(entry.Path),
                     entry.Duration,
                     entry.Format)
                 {
@@ -394,7 +398,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     }
 
     private IObservable<Track> LoadTrackObservable(
-        FileInfo file, DirectoryInfo root,
+        IFileInfo file, IDirectoryInfo root,
         IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<ScannedFile> scanned, bool reread)
     {
         // Defer keeps the inner observable cold so Merge(MaxAmountOfFileReaderThreads)
@@ -519,7 +523,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// row is keyed by, but it means opening the file, which is the cost this exists to avoid.
     /// </remarks>
     private Track LoadTrack(
-        FileInfo file, DirectoryInfo root,
+        IFileInfo file, IDirectoryInfo root,
         IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<ScannedFile> scanned, bool reread)
     {
         // A re-read is asked for when the rules changed, and what the index holds was derived under
@@ -551,7 +555,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         return ToTrack(file, evidence, resolution);
     }
 
-    private Track ToTrack(FileInfo file, TrackEvidence evidence, TrackResolution resolution) =>
+    private Track ToTrack(IFileInfo file, TrackEvidence evidence, TrackResolution resolution) =>
         new(
             resolution.DanceSlug is null
                 ? resolution.OriginalDance ?? string.Empty
@@ -600,12 +604,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// <see cref="Resolution"/> is settable because folder agreement revisits it once the folder is
     /// complete, which is the one thing that cannot be decided a file at a time.
     /// </remarks>
-    private sealed record ScannedFile(FileInfo File, TrackEvidence Evidence, TrackResolution Resolution)
+    private sealed record ScannedFile(IFileInfo File, TrackEvidence Evidence, TrackResolution Resolution)
     {
         public TrackResolution Resolution { get; set; } = Resolution;
     }
 
-    private void StartWatching(FileSystemInfo directory, CancellationToken cancellationToken)
+    private void StartWatching(IFileSystemInfo directory, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested || _disposed)
         {
@@ -618,11 +622,9 @@ public sealed class TrackStore : ITrackStore, IDisposable
         // Local capture: the FromEventPattern remove-handlers must close over this
         // instance, not the _watcher field, which is nulled on the next reload
         // before the old subscriptions are disposed.
-        var watcher = new FileSystemWatcher(directory.FullName)
-        {
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.FileName
-        };
+        var watcher = _fileSystem.FileSystemWatcher.New(directory.FullName);
+        watcher.IncludeSubdirectories = true;
+        watcher.NotifyFilter = NotifyFilters.FileName;
         _watcher = watcher;
 
         var createdObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
@@ -660,7 +662,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         try
         {
-            IndexAndResolve(new FileInfo(fileSystemEventArgs.FullPath));
+            IndexAndResolve(_fileSystem.FileInfo.New(fileSystemEventArgs.FullPath));
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
@@ -701,7 +703,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         {
             // The audio is unchanged, so its content hash and everything approved about it are too.
             // A rename is a path changing, not a track appearing.
-            IndexAndResolve(new FileInfo(renamedEventArgs.FullPath));
+            IndexAndResolve(_fileSystem.FileInfo.New(renamedEventArgs.FullPath));
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
@@ -716,7 +718,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// No dialog and no toast, whatever it turns out to be. The application runs in front of a room,
     /// and a tagging question during a bal is the worst possible moment to ask one.
     /// </remarks>
-    private void IndexAndResolve(FileInfo fileInfo)
+    private void IndexAndResolve(IFileInfo fileInfo)
     {
         var root = _musicRoot ?? fileInfo.Directory!;
         var evidence = _discoveryService.Gather(fileInfo, root);

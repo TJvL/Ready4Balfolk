@@ -1,3 +1,4 @@
+using System.IO.Abstractions.TestingHelpers;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Tracks;
 
@@ -5,6 +6,10 @@ namespace Ready4Balfolk.Tests.Helpers;
 
 public static class TestData
 {
+    // One shared in-memory filesystem for every fixture-built track: the tracks only ever need a
+    // path identity, never a file that exists.
+    private static readonly MockFileSystem FileSystem = new();
+
     /// <summary>
     /// A track. <paramref name="slug"/> defaults to the dance name lowercased, which matches the
     /// slugs in <see cref="CreateSimpleDanceList"/>; pass null for a track the list does not know.
@@ -13,7 +18,7 @@ public static class TestData
         string title = "Title", int lengthSeconds = 180, AudioFormat format = AudioFormat.Mp3,
         string? slug = "")
         => new(dance, artist, title,
-            new FileInfo($"/tmp/test/{dance}_{artist}_{title}.mp3".Replace(' ', '_')),
+            FileSystem.FileInfo.New($"/tmp/test/{dance}_{artist}_{title}.mp3".Replace(' ', '_')),
             TimeSpan.FromSeconds(lengthSeconds), format)
         {
             DanceSlug = slug == string.Empty ? dance.ToLowerInvariant() : slug

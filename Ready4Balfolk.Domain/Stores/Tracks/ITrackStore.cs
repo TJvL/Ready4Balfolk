@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using DynamicData;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
@@ -7,7 +8,7 @@ namespace Ready4Balfolk.Domain.Stores.Tracks;
 public interface ITrackStore : ILoadableStore
 {
     IReadOnlyList<Track> Current { get; }
-    DirectoryInfo? MusicDirectory { set; }
+    IDirectoryInfo? MusicDirectory { set; }
 
     /// <summary>
     /// What the user has declared about their library's shape. Setting something new re-reads the

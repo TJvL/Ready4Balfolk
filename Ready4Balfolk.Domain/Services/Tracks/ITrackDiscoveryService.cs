@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using Ready4Balfolk.Domain.Services.Discovery;
 
 namespace Ready4Balfolk.Domain.Services.Tracks;
@@ -12,5 +13,5 @@ public interface ITrackDiscoveryService
     /// The music directory, so the folders in between can be recorded. What those folders mean, if
     /// anything, is not decided here.
     /// </param>
-    TrackEvidence Gather(FileInfo fileInfo, DirectoryInfo musicRoot);
+    TrackEvidence Gather(IFileInfo fileInfo, IDirectoryInfo musicRoot);
 }

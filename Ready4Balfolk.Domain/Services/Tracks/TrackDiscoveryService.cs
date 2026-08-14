@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 
@@ -10,7 +11,7 @@ namespace Ready4Balfolk.Domain.Services.Tracks;
 /// </remarks>
 public sealed class TrackDiscoveryService : ITrackDiscoveryService
 {
-    public TrackEvidence Gather(FileInfo fileInfo, DirectoryInfo musicRoot)
+    public TrackEvidence Gather(IFileInfo fileInfo, IDirectoryInfo musicRoot)
     {
         var format = ParseAudioFormat(fileInfo);
 
@@ -47,7 +48,7 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
     }
 
     /// <summary>The folders between the music directory and the file, outermost first.</summary>
-    private static List<string> SegmentsBetween(FileInfo fileInfo, DirectoryInfo musicRoot)
+    private static List<string> SegmentsBetween(IFileInfo fileInfo, IDirectoryInfo musicRoot)
     {
         var segments = new List<string>();
         var directory = fileInfo.Directory;
@@ -70,7 +71,7 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
         return segments;
     }
 
-    private static AudioFormat ParseAudioFormat(FileInfo fileInfo)
+    private static AudioFormat ParseAudioFormat(IFileInfo fileInfo)
     {
         var ext = fileInfo.Extension;
         return ext.Equals(".mp3", StringComparison.OrdinalIgnoreCase)
