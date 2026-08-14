@@ -344,6 +344,12 @@
   <data name="Queue_PlaylistHaltsAt" xml:space="preserve">
     <value>Playlist halts at: {0}</value>
   </data>
+  <data name="Queue_PlaylistWindsDownAt" xml:space="preserve">
+    <value>Playlist winds down at: {0}</value>
+  </data>
+  <data name="Queue_PlaylistOpenEnded" xml:space="preserve">
+    <value>Playlist keeps going until you stop it</value>
+  </data>
 
   <!-- Queue Toolbar -->
   <data name="QueueToolbar_SwitchToHistory" xml:space="preserve">

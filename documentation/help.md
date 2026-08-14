@@ -154,7 +154,7 @@ The queue shows the upcoming items to be played, in order from top to bottom.
 The queue can contain several types of items, each with a distinct appearance:
 
 - **Track**: A music file to play. Shows the dance name, artist, title, and duration.
-- **Auto-track**: A randomly selected track, shown with a faded appearance and a recycling icon. Auto-tracks appear when the auto-queue feature is enabled and the queue is empty. They have two extra actions:
+- **Auto-track**: A randomly selected track, shown with a faded appearance and a recycling icon. It waits at the bottom of the queue, below any requests, while the auto-queue feature is enabled and something is playing. It has two extra actions:
   - **Refresh**: Pick a different random track
   - **Pin**: Convert the auto-track into a regular track, keeping it in the queue permanently
 - **Stop**: A marker where playback will pause until you manually continue. Shown with an orange highlight.
@@ -184,7 +184,7 @@ The toolbar above the queue provides these actions:
 At the bottom of the queue panel:
 
 - **Item count**: Shows the number of items in the queue, or "Queue empty"
-- **Finish time**: Estimated time when the playlist will finish, displayed as "Playlist finishes at HH:mm". If the queue contains a stop or a message without a duration, it shows "halts at" instead, since playback will pause at that point.
+- **Finish time**: What the queue is going to do. With the auto-queue off, it is the estimated time the playlist runs out, shown as "Playlist finishes at HH:mm". With the auto-queue on there is no such moment, because the queue keeps refilling itself: if you have set an end time it shows that, as "Playlist winds down at HH:mm", and if you have not it says the playlist keeps going until you stop it. A stop, or a message without a duration, overrides all of that with "halts at", since playback will pause at that point.
 
 ---
 
@@ -411,8 +411,9 @@ The default duration (in seconds) for delay markers added to the queue, between 
 
 An end time for the night. Once the queue would run past it (plus a grace period in minutes), new
 entries are refused, so the last dance ends when the hall closes rather than twenty minutes after.
-While a stop request is queued the end time is unknown and the limit is not applied; use a delay
-instead if you know how long the pause will be.
+The auto-queue is held to the same line and stops adding tracks, rather than carrying the evening on
+by itself. While a stop request is queued the end time is unknown and the limit is not applied; use a
+delay instead if you know how long the pause will be.
 
 ### Show text on buttons
 
@@ -429,7 +430,7 @@ The number of presentation windows to show, between 0 and 10. Set to 0 to disabl
 
 ### Auto-queue Random Track
 
-When enabled, a random track is automatically added to the queue when it becomes empty during playback. The auto-track appears with a faded style and can be refreshed (to pick a different track) or pinned (to keep it permanently). Auto-tracks are automatically removed when you manually add items to the queue.
+When enabled, a randomly picked track waits at the bottom of the queue whenever something is playing, so the music never simply stops. The auto-track appears with a faded style and can be refreshed (to pick a different track) or pinned (to keep it permanently). It stays below anything you add yourself, and a fresh one is picked each time the previous one starts playing. If you have set an end time for the night, the auto-queue stops adding once a track would run past it, so the evening winds down on schedule.
 
 ### Allow Duplicate Tracks
 
