@@ -34,7 +34,9 @@ jobs:
       - name: Install the Flatpak bundle
         run: |
           set -euo pipefail
-          bundle=$(find artifacts -name '*.flatpak' -print -quit)
+          # -type f: each artifact is downloaded into a directory named after it, and the bundle
+          # artifact's name ends in .flatpak too. Installing that directory is an mmap ENODEV.
+          bundle=$(find artifacts -name '*.flatpak' -type f -print -quit)
           if [ -z "$bundle" ]; then
             echo "no .flatpak bundle among the build artifacts"
             exit 1
