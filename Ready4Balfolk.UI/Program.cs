@@ -23,6 +23,7 @@ using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
+using Ready4Balfolk.UI.Platform;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.DanceList;
 using Ready4Balfolk.UI.Views.Discovery;
@@ -102,9 +103,9 @@ public static class Program
                 UseDBusMenu = false,
                 // Desktops match a window to its launcher entry by comparing WM_CLASS to the
                 // desktop file basename, and without that the taskbar shows a window with no
-                // icon next to a launcher that has one. Wayland sessions still miss out: that
-                // backend never sets the equivalent app_id at all, which is issue #46.
-                WmClass = "io.github.tjvl.Ready4Balfolk"
+                // icon next to a launcher that has one. The Wayland equivalent has no option to
+                // set it through, so each window applies it for itself: see WaylandAppId.
+                WmClass = WaylandAppId.Value
             })
             .UseReactiveUIWithMicrosoftDependencyResolver(
                 ConfigureServices,

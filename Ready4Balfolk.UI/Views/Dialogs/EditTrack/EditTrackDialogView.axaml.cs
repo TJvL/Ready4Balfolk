@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using ReactiveUI.Avalonia.Reactive;
 using ReactiveUI.Reactive;
+using Ready4Balfolk.UI.Platform;
 
 namespace Ready4Balfolk.UI.Views.Dialogs.EditTrack;
 
@@ -12,6 +13,10 @@ public partial class EditTrackDialogView : ReactiveWindow<EditTrackDialogViewMod
     public EditTrackDialogView()
     {
         InitializeComponent();
+
+        // Before the window is shown, so the compositor already knows the app id when the
+        // surface is mapped. See WaylandAppId.
+        WaylandAppId.Apply(this);
 
         Opened += (_, _) => DanceBox.Focus();
 
