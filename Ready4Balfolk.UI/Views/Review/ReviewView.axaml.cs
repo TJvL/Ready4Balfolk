@@ -39,25 +39,28 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         }
 
         // The list of names owns the arrows and Enter while it is open: walking what it found and
-        // taking one is the whole point of it being there.
-        if (selected.IsPickerOpen)
+        // taking one is the whole point of it being there. The row that owns the focused box, not
+        // the selected row: clicking into a box does not move the selection, and the picker that
+        // opened belongs to where the typing is.
+        var typing = (e.Source as Control)?.DataContext as ReviewRowViewModel ?? selected;
+        if (typing.IsPickerOpen)
         {
             if (e.Key is Key.Up or Key.Down)
             {
-                selected.MoveHighlight(e.Key is Key.Up ? -1 : 1);
+                typing.MoveHighlight(e.Key is Key.Up ? -1 : 1);
                 e.Handled = true;
                 return;
             }
 
             if (e.Key is Key.Enter)
             {
-                e.Handled = selected.TakeHighlighted();
+                e.Handled = typing.TakeHighlighted();
                 return;
             }
 
             if (e.Key is Key.Escape)
             {
-                selected.ClosePicker();
+                typing.ClosePicker();
                 e.Handled = true;
                 return;
             }
@@ -187,6 +190,18 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         if (sender is Control { Tag: ReviewRowViewModel row } && ViewModel is { } viewModel)
         {
             await viewModel.TogglePreviewAsync(row);
+        }
+    }
+
+    /// <summary>
+    /// Closes a row's picker the moment its box is left. The picker overlays the rows beneath, so
+    /// one left open under another would paint two lists into the same space.
+    /// </summary>
+    private void OnDanceLostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: ReviewRowViewModel row })
+        {
+            row.ClosePicker();
         }
     }
 

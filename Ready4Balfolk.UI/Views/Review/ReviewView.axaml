@@ -11,9 +11,13 @@
     <UserControl.Styles>
         <!-- The list must not paint its own selection: the item is a folder band plus a row, and
              highlighting the pair makes the band look like part of the track under it. -->
-        <Style Selector="ListBoxItem">
+        <Style Selector="ListBoxItem" x:DataType="local:ReviewRowViewModel">
             <Setter Property="Padding" Value="0" />
             <Setter Property="Background" Value="Transparent" />
+            <!-- The picker overlays the rows beneath, so the row it belongs to must not clip it
+                 and must paint above its later siblings while it is open. -->
+            <Setter Property="ClipToBounds" Value="False" />
+            <Setter Property="ZIndex" Value="{Binding IsPickerOpen, Converter={x:Static local:PickerZIndex.Instance}}" />
         </Style>
         <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
@@ -211,7 +215,10 @@
                                        Opacity="0.8"
                                        IsVisible="{Binding !IsApproved}" />
 
-                            <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2">
+                            <!-- ZIndex: the picker overlay must beat this row's own captions and
+                                 the columns beside it; the ListBoxItem's ZIndex beats the rows
+                                 beneath. Each ZIndex only counts among siblings, hence the chain. -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2" ZIndex="10">
                                 <!-- A text box and a list of our own rather than an AutoCompleteBox:
                                      that control's dropdown cannot be walked with the arrows, which
                                      is the whole point of showing four bourrées rather than one.
@@ -219,18 +226,35 @@
                                      off the box being typed into and the typing stops. -->
                                 <TextBox Classes="field"
                                          Text="{Binding Dance, Mode=TwoWay}"
-                                         Watermark="{x:Static res:UiStrings.Review_Dance}" />
+                                         Watermark="{x:Static res:UiStrings.Review_Dance}"
+                                         LostFocus="OnDanceLostFocus" />
 
-                                <ItemsControl ItemsSource="{Binding DanceMatches}"
-                                              IsVisible="{Binding IsPickerOpen}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="local:DanceMatch">
-                                            <Border Classes="match" Classes.highlighted="{Binding IsHighlighted}">
-                                                <TextBlock Text="{Binding Name}" FontSize="12" />
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <!-- Zero height on purpose: the matches overlay the rows beneath
+                                     rather than growing this one. Growing it resized the
+                                     virtualized list mid-keystroke and threw the viewport, which
+                                     cost the person the very row they were answering. -->
+                                <Canvas Height="0" ClipToBounds="False" ZIndex="10">
+                                    <!-- A Canvas, not a Panel: a zero-height Panel arranges its
+                                         child to zero height too, and the overlay vanishes. A
+                                         Canvas gives the child its desired size regardless. -->
+                                    <Border IsVisible="{Binding IsPickerOpen}"
+                                            MinWidth="{Binding $parent[Canvas].Bounds.Width}"
+                                            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                                            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="2">
+                                        <ItemsControl ItemsSource="{Binding DanceMatches}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="local:DanceMatch">
+                                                    <Border Classes="match" Classes.highlighted="{Binding IsHighlighted}">
+                                                        <TextBlock Text="{Binding Name}" FontSize="12" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </Canvas>
 
                                 <TextBlock Text="{Binding DanceSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
