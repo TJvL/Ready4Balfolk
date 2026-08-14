@@ -160,6 +160,7 @@ The queue can contain several types of items, each with a distinct appearance:
 - **Stop**: A marker where playback will pause until you manually continue. Shown with an orange highlight.
 - **Delay**: A timed pause. Playback resumes automatically after the configured duration. Shown with a blue highlight.
 - **Message**: A text announcement displayed on screen, optionally with a duration. Shown with a teal highlight.
+- **End of the night**: The music that ends the ball, shown with a violet highlight. It is not a track: it is the file named in the settings, it never enters your library, and nothing goes into the queue after it. Remove it and the evening is open again.
 
 ### Managing the Queue
 
@@ -176,6 +177,7 @@ The toolbar above the queue provides these actions:
 - **Enqueue Stop**: Insert a stop marker into the queue
 - **Enqueue Delay**: Insert a delay marker with the duration configured in settings
 - **Request Message**: Opens a dialog where you can type a message and optionally set a duration
+- **End the Night**: Queue the end-of-the-night audio. Switched off until a file is named in the settings, and while one is already queued or playing.
 - **Remove Selected**: Delete the currently selected queue item
 - **Clear Queue**: Remove all items from the queue (with confirmation)
 
@@ -184,7 +186,7 @@ The toolbar above the queue provides these actions:
 At the bottom of the queue panel:
 
 - **Item count**: Shows the number of items in the queue, or "Queue empty"
-- **Finish time**: What the queue is going to do. With the auto-queue off, it is the estimated time the playlist runs out, shown as "Playlist finishes at HH:mm". With the auto-queue on there is no such moment, because the queue keeps refilling itself: if you have set an end time it shows that, as "Playlist winds down at HH:mm", and if you have not it says the playlist keeps going until you stop it. A stop, or a message without a duration, overrides all of that with "halts at", since playback will pause at that point.
+- **Finish time**: What the queue is going to do. With the auto-queue off, it is the estimated time the playlist runs out, shown as "Playlist finishes at HH:mm". With the auto-queue on there is no such moment, because the queue keeps refilling itself: if you have set an end time it shows that, as "Playlist winds down at HH:mm", and if you have not it says the playlist keeps going until you stop it. A stop, or a message without a duration, overrides all of that with "halts at", since playback will pause at that point. Once the end of the night is queued the evening has a real end again, so it goes back to "finishes at".
 
 ---
 
@@ -196,7 +198,7 @@ The history view shows a log of items that have been played or skipped during th
 
 Switch to the history view using the toggle button in the queue toolbar. Each entry shows:
 
-- **Description**: The dance name (for tracks), message text, delay, or stop
+- **Description**: The dance name (for tracks), message text, delay, stop, or the end of the night
 - **Duration**: How long the item played
 - **Status**: Whether it was finished or skipped
 
@@ -415,6 +417,23 @@ The auto-queue is held to the same line and stops adding tracks, rather than car
 by itself. While a stop request is queued the end time is unknown and the limit is not applied; use a
 delay instead if you know how long the pause will be.
 
+### End-of-the-night audio
+
+The music that means the ball is over: stop dancing, find your coat, help stack the chairs. One
+file, wherever you keep it. It is not imported and never enters the library, because it has no
+dance, no artist and no title and would sit in the review queue forever asking for them. Type the
+path or use the browse button; leave it empty and the button in the queue toolbar stays switched
+off, as it does if the file later moves.
+
+Queueing it declares the evening over. Nothing goes in after it, not a track, not a request, not a
+delay or a message, and the auto-queue stops so the machine does not extend an evening you have just
+ended. Removing it reopens the evening.
+
+With **play it after the last track the end time allowed** ticked, it is queued for you the moment
+the end time refuses the next track, so the last thing the room hears is the thing that means go
+home and nobody has to remember to press anything while packing up. The end time never refuses the
+end-of-the-night audio itself: it is what happens after the line, not something sneaking past it.
+
 ### Show text on buttons
 
 Replaces the icons on buttons with a short description of what they do. Useful while learning the
@@ -476,10 +495,12 @@ Ready4Balfolk can serve two pages over your local network from a small built-in 
 
 - **The display page** shows what is playing and what comes next, for any device with a browser —
   a spare tablet by the stage works as a presentation screen without a video cable.
-- **The remote** can play, pause, skip, queue a random track, a stop, a delay or a message, and
-  search the library — the controls a DJ needs while away from the desk, and nothing more.
-  Deliberately, it cannot change the pool: what random picks draw from is decided at the computer,
-  and the remote draws from whatever the screen there says.
+- **The remote** can play, pause, skip, queue a random track, a stop, a delay or a message, end the
+  night, and search the library — the controls a DJ needs while away from the desk, and nothing
+  more. Deliberately, it cannot change the pool: what random picks draw from is decided at the
+  computer, and the remote draws from whatever the screen there says. Ending the night works the
+  same way: which file that is was decided at the computer, and with none chosen the remote says so
+  rather than offering to pick one.
 
 Both are enabled in **Settings**. The remote is off unless you turn it on, and it is guarded by a
 PIN: anyone who can reach the page and knows the PIN can change what the room is dancing to, so

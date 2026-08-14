@@ -30,6 +30,7 @@ public sealed class HostServiceForwardingTests
         host.AddSingleton(Substitute.For<IPresentationStateService>());
         host.AddSingleton(Substitute.For<IQueueService>());
         host.AddSingleton(Substitute.For<IQueueConsumptionService>());
+        host.AddSingleton(Substitute.For<IEndOfNightAudio>());
         host.AddSingleton(Substitute.For<IRandomTrackService>());
         host.AddSingleton(Substitute.For<IDancePool>());
         host.AddSingleton(Substitute.For<ITrackStore>());

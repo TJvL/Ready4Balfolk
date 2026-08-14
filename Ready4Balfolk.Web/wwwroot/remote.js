@@ -15,7 +15,8 @@
     Track: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
     Delay: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
     Stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>',
-    Message: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+    Message: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    EndOfNight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>'
   };
 
   function id(name) { return document.getElementById(name); }
@@ -59,6 +60,7 @@
     if (item.kind === "Delay") return t("silentPause");
     if (item.kind === "Stop") return t("waitsForYou");
     if (item.kind === "Message") return t("onScreen");
+    if (item.kind === "EndOfNight") return t("nothingFollows");
     return "";
   }
 
@@ -208,6 +210,8 @@
     text("delayLabel", t("queueDelay"));
     text("messageKicker", t("message"));
     text("messageLabel", t("queueMessage"));
+    text("endOfNightLabel", t("queueEndOfNight"));
+    text("endOfNightHint", t("nothingFollows"));
     id("messageText").placeholder = t("messagePlaceholder");
     id("search").placeholder = t("searchPlaceholder");
 
@@ -244,6 +248,7 @@
         case "restart": send("Restart", undefined, t("restarted")); break;
         case "random": send("QueueRandom", undefined, t("queued")); break;
         case "stop": send("QueueStop", undefined, t("queued")); break;
+        case "endofnight": send("QueueEndOfNight", undefined, t("queued")); break;
         case "delay": send("QueueDelay", delaySeconds, t("queued")); break;
         case "delay-up":
           delaySeconds = Math.min(600, delaySeconds + 15);

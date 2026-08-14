@@ -160,6 +160,7 @@ De wachtrij kan verschillende soorten items bevatten, elk met een eigen uiterlij
 - **Stop**: een markering waar het afspelen pauzeert tot jij verdergaat. Oranje gemarkeerd.
 - **Pauze**: een getimede onderbreking. Het afspelen gaat vanzelf verder na de ingestelde duur. Blauw gemarkeerd.
 - **Bericht**: een tekstmededeling op het scherm, eventueel met een duur. Teal gemarkeerd.
+- **Einde van de avond**: de muziek waarmee het bal afgelopen is, paars gemarkeerd. Het is geen nummer: het is het bestand uit de instellingen, het komt nooit in je bibliotheek, en er gaat niets meer achter in de wachtrij. Haal je het weg, dan is de avond weer open.
 
 ### De wachtrij beheren
 
@@ -177,6 +178,7 @@ De werkbalk boven de wachtrij biedt:
 - **Stop toevoegen**: zet een stopmarkering in de wachtrij
 - **Pauze toevoegen**: zet een pauze met de duur uit de instellingen in de wachtrij
 - **Bericht toevoegen**: opent een venster voor een bericht met eventueel een duur
+- **Avond afsluiten**: zet de slotmuziek in de wachtrij. Uit zolang er geen bestand in de instellingen staat, en zolang er al een in de wachtrij staat of speelt.
 - **Selectie verwijderen**: haalt het geselecteerde item weg
 - **Wachtrij wissen**: haalt alles weg (met bevestiging)
 
@@ -185,7 +187,7 @@ De werkbalk boven de wachtrij biedt:
 Onderaan het wachtrijpaneel:
 
 - **Aantal items**: het aantal in de wachtrij, of "Wachtrij leeg"
-- **Eindtijd**: wat de wachtrij gaat doen. Staat de auto-wachtrij uit, dan is het de geschatte tijd waarop de lijst klaar is, als "Afspeellijst eindigt om HH:mm". Staat hij aan, dan bestaat dat moment niet, want de wachtrij vult zichzelf steeds aan: heb je een eindtijd ingesteld, dan staat die er, als "Afspeellijst loopt af om HH:mm", en anders staat er dat de lijst doorgaat tot jij hem stopt. Een stop of een bericht zonder duur gaat daar overheen met "stopt om", want daar pauzeert het afspelen.
+- **Eindtijd**: wat de wachtrij gaat doen. Staat de auto-wachtrij uit, dan is het de geschatte tijd waarop de lijst klaar is, als "Afspeellijst eindigt om HH:mm". Staat hij aan, dan bestaat dat moment niet, want de wachtrij vult zichzelf steeds aan: heb je een eindtijd ingesteld, dan staat die er, als "Afspeellijst loopt af om HH:mm", en anders staat er dat de lijst doorgaat tot jij hem stopt. Een stop of een bericht zonder duur gaat daar overheen met "stopt om", want daar pauzeert het afspelen. Staat het einde van de avond in de wachtrij, dan heeft de avond weer een echt einde en staat er weer "eindigt om".
 
 ---
 
@@ -197,7 +199,7 @@ De geschiedenis is het logboek van wat er deze sessie gespeeld of overgeslagen i
 
 Schakel naar de geschiedenis met de knop in de wachtrijwerkbalk. Elke regel toont:
 
-- **Omschrijving**: de dansnaam (bij nummers), de berichttekst, de pauze of de stop
+- **Omschrijving**: de dansnaam (bij nummers), de berichttekst, de pauze, de stop of het einde van de avond
 - **Duur**: hoe lang het item speelde
 - **Status**: afgespeeld of overgeslagen
 
@@ -431,6 +433,23 @@ aanvullen, in plaats van de avond op eigen houtje door te laten lopen. Staat er 
 wachtrij, dan is de eindtijd onbekend en geldt de grens niet; gebruik een pauze als je weet hoe lang
 de onderbreking duurt.
 
+### Slotmuziek van de avond
+
+De muziek die zegt dat het bal voorbij is: stoppen met dansen, jas zoeken, stoelen stapelen. Eén
+bestand, waar jij het ook bewaart. Het wordt niet geïmporteerd en komt nooit in de bibliotheek,
+want het heeft geen dans, geen artiest en geen titel en zou eeuwig in de reviewwachtrij om die
+staan te vragen. Typ het pad of gebruik de bladerknop; laat het leeg en de knop in de
+wachtrijwerkbalk blijft uit, net als wanneer het bestand later verhuist.
+
+Het in de wachtrij zetten sluit de avond af. Er gaat daarna niets meer bij, geen nummer, geen
+verzoek, geen pauze en geen bericht, en de auto-wachtrij stopt zodat het programma geen avond
+verlengt die jij net beëindigd hebt. Haal je het weg, dan gaat de avond weer open.
+
+Staat **speel het na het laatste nummer dat de eindtijd toeliet** aan, dan wordt het voor je in de
+wachtrij gezet zodra de eindtijd het volgende nummer weigert: het laatste wat de zaal hoort is dan
+het teken om naar huis te gaan, zonder dat iemand er tijdens het opruimen aan hoeft te denken. De
+eindtijd weigert de slotmuziek zelf nooit: die hoort ná de grens, hij probeert er niet langs.
+
 ### Tekst op knoppen
 
 Vervangt de iconen op knoppen door een korte omschrijving van wat ze doen. Handig tijdens het leren
@@ -506,10 +525,11 @@ webserver:
 - **De weergavepagina** toont wat er speelt en wat er komt, voor elk apparaat met een browser — een
   tablet naast het podium werkt zo als presentatiescherm zonder videokabel.
 - **De afstandsbediening** kan afspelen, pauzeren, overslaan, een willekeurig nummer, een stop, een
-  pauze of een bericht toevoegen, en de bibliotheek doorzoeken — wat een DJ nodig heeft weg van de
-  computer, en niets meer. Bewust kan hij de pool niet wijzigen: waar willekeurige keuzes uit
-  trekken wordt aan de computer besloten, en de afstandsbediening trekt uit wat het scherm daar
-  zegt.
+  pauze of een bericht toevoegen, de avond afsluiten, en de bibliotheek doorzoeken — wat een DJ
+  nodig heeft weg van de computer, en niets meer. Bewust kan hij de pool niet wijzigen: waar
+  willekeurige keuzes uit trekken wordt aan de computer besloten, en de afstandsbediening trekt uit
+  wat het scherm daar zegt. De avond afsluiten werkt net zo: welk bestand dat is, is aan de computer
+  bepaald, en staat er geen, dan zegt de afstandsbediening dat in plaats van er een te kiezen.
 
 Beide worden aangezet in **Instellingen**. De afstandsbediening staat uit tot jij hem aanzet, en
 is beveiligd met een pincode: wie de pagina kan bereiken en de pincode kent, kan veranderen waar de

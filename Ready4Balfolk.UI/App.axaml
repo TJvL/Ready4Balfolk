@@ -21,6 +21,9 @@
                     <!-- Message marker: brighter teal -->
                     <SolidColorBrush x:Key="MessageMarkerForeground" Color="#4DB6AC" />
                     <SolidColorBrush x:Key="MessageMarkerBackground" Color="#3000897B" />
+                    <!-- End of the night: brighter violet -->
+                    <SolidColorBrush x:Key="EndOfNightMarkerForeground" Color="#B39DDB" />
+                    <SolidColorBrush x:Key="EndOfNightMarkerBackground" Color="#305E35B1" />
                     <!-- Auto-track -->
                     <SolidColorBrush x:Key="AutoTrackForeground" Color="#B0B0B0" />
                     <SolidColorBrush x:Key="AutoTrackBackground" Color="#18808080" />
@@ -51,6 +54,9 @@
                     <!-- Message marker: deeper teal -->
                     <SolidColorBrush x:Key="MessageMarkerForeground" Color="#00695C" />
                     <SolidColorBrush x:Key="MessageMarkerBackground" Color="#2000695C" />
+                    <!-- End of the night: deeper violet -->
+                    <SolidColorBrush x:Key="EndOfNightMarkerForeground" Color="#4527A0" />
+                    <SolidColorBrush x:Key="EndOfNightMarkerBackground" Color="#204527A0" />
                     <!-- Auto-track -->
                     <SolidColorBrush x:Key="AutoTrackForeground" Color="#757575" />
                     <SolidColorBrush x:Key="AutoTrackBackground" Color="#15757575" />

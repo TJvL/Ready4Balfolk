@@ -61,4 +61,32 @@ public sealed class QueueHistoryEntryTests
         Assert.Equal(startedAt,
             new DelayHistoryEntry(TimeSpan.FromSeconds(30), CompletionStatus.Finished, startedAt).StartedAt);
     }
+
+    [Fact]
+    public void EndOfNight_RoundTrips()
+    {
+        var startedAt = new DateTime(2026, 8, 6, 23, 58, 0, DateTimeKind.Local);
+        QueueHistoryEntry entry = new EndOfNightHistoryEntry(
+            TimeSpan.FromMinutes(4), CompletionStatus.Finished, startedAt);
+
+        var round = JsonSerializer.Deserialize<QueueHistoryEntry>(
+            JsonSerializer.Serialize(entry, JsonOptions), JsonOptions);
+
+        var endOfNight = Assert.IsType<EndOfNightHistoryEntry>(round);
+        Assert.Equal(startedAt, endOfNight.StartedAt);
+        Assert.Equal(TimeSpan.FromMinutes(4), endOfNight.Duration);
+    }
+
+    [Fact]
+    public void EndOfNight_CountsTowardsTheTotal()
+    {
+        var history = new QueueHistory(null,
+        [
+            new TrackHistoryEntry("/music/a.mp3", "Mazurka", "Artist", "Title",
+                TimeSpan.FromMinutes(3), false, CompletionStatus.Finished),
+            new EndOfNightHistoryEntry(TimeSpan.FromMinutes(4), CompletionStatus.Finished)
+        ]);
+
+        Assert.Equal(TimeSpan.FromMinutes(7), history.TotalDuration);
+    }
 }

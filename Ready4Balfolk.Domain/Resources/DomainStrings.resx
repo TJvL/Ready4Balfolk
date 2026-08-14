@@ -80,6 +80,14 @@
   <data name="DelayQueueItem_Description" xml:space="preserve">
     <value>Delay</value>
   </data>
+  <data name="EndOfNightQueueItem_Description" xml:space="preserve">
+    <value>End of the night</value>
+  </data>
+
+  <!-- Queue rules -->
+  <data name="EndOfNightRule_EveningEnded" xml:space="preserve">
+    <value>The evening has been ended. Remove the end of the night to carry on.</value>
+  </data>
 
   <!-- Dance list -->
   <data name="DanceList_BuiltInMissing" xml:space="preserve">

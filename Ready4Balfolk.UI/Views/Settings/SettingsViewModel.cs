@@ -40,6 +40,15 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool QueueCutoffEnabled { get; set; }
     [Reactive] public partial int QueueCutoffMinutesOfDay { get; set; }
     [Reactive] public partial int QueueCutoffGraceMinutes { get; set; }
+    [Reactive] public partial string EndOfNightAudioPath { get; set; }
+    [Reactive] public partial bool PlayEndOfNightAtCutoff { get; set; }
+
+    /// <summary>
+    /// True when a path has been typed or picked and there is nothing there, so the queue's button
+    /// staying switched off is explained here rather than left a mystery.
+    /// </summary>
+    [Reactive] public partial bool IsEndOfNightAudioMissing { get; set; }
+
     [Reactive] public partial bool WebServerEnabled { get; set; }
     [Reactive] public partial int WebServerPort { get; set; }
     [Reactive] public partial bool WebRemoteControlEnabled { get; set; }
@@ -97,6 +106,9 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         QueueCutoffEnabled = current.QueueCutoffEnabled;
         QueueCutoffMinutesOfDay = current.QueueCutoffMinutesOfDay;
         QueueCutoffGraceMinutes = current.QueueCutoffGraceMinutes;
+        EndOfNightAudioPath = current.EndOfNightAudioPath;
+        PlayEndOfNightAtCutoff = current.PlayEndOfNightAtCutoff;
+        IsEndOfNightAudioMissing = false;
         WebServerEnabled = current.WebServerEnabled;
         WebServerPort = current.WebServerPort;
         WebRemoteControlEnabled = current.WebRemoteControlEnabled;
@@ -151,6 +163,14 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         {
             QueueCutoffGraceMinutes = v
         });
+        ThrottledSave(x => x.EndOfNightAudioPath, v => s => s with
+        {
+            EndOfNightAudioPath = v
+        });
+        ThrottledSave(x => x.PlayEndOfNightAtCutoff, v => s => s with
+        {
+            PlayEndOfNightAtCutoff = v
+        });
         ThrottledSave(x => x.WebServerEnabled, v => s => s with
         {
             WebServerEnabled = v
@@ -172,6 +192,15 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         {
             ApplicationTheme = v
         });
+
+        // Checked here as well as at the queue's button, so a path that resolves to nothing is
+        // answered where it was typed.
+        this.WhenAnyValue(x => x.EndOfNightAudioPath)
+            .Throttle(TimeSpan.FromMilliseconds(300))
+            .Select(path => path.Length > 0 && !File.Exists(path))
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(missing => IsEndOfNightAudioMissing = missing)
+            .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.SelectedLanguage)
             .Skip(1)
@@ -239,6 +268,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         QueueCutoffEnabled = s.QueueCutoffEnabled;
         QueueCutoffMinutesOfDay = s.QueueCutoffMinutesOfDay;
         QueueCutoffGraceMinutes = s.QueueCutoffGraceMinutes;
+        EndOfNightAudioPath = s.EndOfNightAudioPath;
+        PlayEndOfNightAtCutoff = s.PlayEndOfNightAtCutoff;
         WebServerEnabled = s.WebServerEnabled;
         WebServerPort = s.WebServerPort;
         WebRemoteControlEnabled = s.WebRemoteControlEnabled;

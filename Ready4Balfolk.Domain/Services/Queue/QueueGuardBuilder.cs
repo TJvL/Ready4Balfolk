@@ -14,6 +14,9 @@ public static class QueueGuardBuilder
     {
         var rules = new List<IQueueRule>
         {
+            // First: once the evening has been declared over, no other rule has an opinion worth
+            // hearing, and its refusal is the one that explains what happened.
+            new EndOfNightRule(currentItemProvider),
             new AutoTrackRule(settings.AutoQueueRandomTrack)
         };
         if (!settings.AllowDuplicateTracksInQueue)

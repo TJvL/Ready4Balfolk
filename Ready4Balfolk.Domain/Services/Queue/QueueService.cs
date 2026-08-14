@@ -77,15 +77,21 @@ public sealed class QueueService : IQueueService, IDisposable
         => ClampInsertIndex(list, item, list.Count);
 
     private static int ClampInsertIndex(IList<IQueueItem> list, IQueueItem item, int desired)
-        => item is AutoTrackQueueItem
+        => IsPinnedToTail(item)
             ? list.Count
-            : Math.Clamp(desired, 0, FirstAutoTrackIndex(list) ?? list.Count);
+            : Math.Clamp(desired, 0, FirstPinnedIndex(list) ?? list.Count);
 
-    private static int? FirstAutoTrackIndex(IList<IQueueItem> list)
+    /// <summary>
+    /// Entries that belong at the bottom of the queue: the auto-track, which is a preview of what
+    /// plays next, and the end of the night, which is the last thing the room hears.
+    /// </summary>
+    private static bool IsPinnedToTail(IQueueItem item) => item is AutoTrackQueueItem or EndOfNightQueueItem;
+
+    private static int? FirstPinnedIndex(IList<IQueueItem> list)
     {
         for (var i = 0; i < list.Count; i++)
         {
-            if (list[i] is AutoTrackQueueItem)
+            if (IsPinnedToTail(list[i]))
             {
                 return i;
             }
@@ -148,10 +154,10 @@ public sealed class QueueService : IQueueService, IDisposable
             return false;
         }
 
-        if (item is not AutoTrackQueueItem && FirstAutoTrackIndex([.. _sourceList.Items]) is { } autoIndex)
+        if (!IsPinnedToTail(item) && FirstPinnedIndex([.. _sourceList.Items]) is { } pinnedIndex)
         {
             // Removing the item first shifts everything after it down by one.
-            newIndex = Math.Min(newIndex, oldIndex < autoIndex ? autoIndex - 1 : autoIndex);
+            newIndex = Math.Min(newIndex, oldIndex < pinnedIndex ? pinnedIndex - 1 : pinnedIndex);
         }
 
         _sourceList.Move(oldIndex, newIndex);

@@ -37,6 +37,13 @@ public sealed class QueueCutoffRule(
             return null;
         }
 
+        // The end of the night is what happens after the cutoff, not something trying to sneak past
+        // it, so it is no more refused than a stop or a message is.
+        if (item is EndOfNightQueueItem)
+        {
+            return null;
+        }
+
         if (adjustedItems.Any(IsHalt))
         {
             return null;
@@ -60,7 +67,9 @@ public sealed class QueueCutoffRule(
 
         return projectedEnd > limit
             ? new QueueRuleVerdict(false, string.Format(CultureInfo.CurrentCulture,
-                DomainStrings.QueueCutoffRule_PastCutoff, (now.Date + cutoff).ToString("HH:mm", CultureInfo.CurrentCulture)))
+                    DomainStrings.QueueCutoffRule_PastCutoff,
+                    (now.Date + cutoff).ToString("HH:mm", CultureInfo.CurrentCulture)),
+                QueueDenial.Cutoff)
             : null;
     }
 

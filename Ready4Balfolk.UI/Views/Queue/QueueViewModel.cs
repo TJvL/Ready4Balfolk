@@ -23,6 +23,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 {
     private readonly TrackEditorService _trackEditor;
     private readonly IQueueService _queueService;
+    private readonly IEndOfNightAudio _endOfNightAudio;
     private readonly IQueueConsumptionService _consumptionService;
     private readonly ISettingsStore _settingsStore;
     private readonly IRandomTrackService _randomTrackService;
@@ -70,6 +71,17 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     // ReSharper disable once MemberCanBePrivate.Global
     [Reactive] public partial bool HasItems { get; set; }
 
+    /// <summary>
+    /// Whether there is an end-of-the-night file to offer, and an evening left to end with it.
+    /// </summary>
+    /// <remarks>
+    /// An application that has never been told what the sound is has no business offering to play
+    /// it, and neither has one whose file has since moved: the button goes quiet rather than failing
+    /// at the moment somebody presses it in front of a room.
+    /// </remarks>
+    // ReSharper disable once MemberCanBePrivate.Global
+    [Reactive] public partial bool IsEndOfNightAvailable { get; set; }
+
     // ReSharper disable once MemberCanBePrivate.Global
     [Reactive] public partial bool IsSelectedMovableUp { get; set; }
     // ReSharper disable once MemberCanBePrivate.Global
@@ -78,6 +90,8 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     private IObservable<bool> CanRemoveSelected =>
         this.WhenAnyValue(x => x.SelectedItem)
             .Select(item => item is not null and not AutoTrackQueueItem);
+
+    private IObservable<bool> CanEnqueueEndOfNight => this.WhenAnyValue(x => x.IsEndOfNightAvailable);
 
     private IObservable<bool> CanMoveSelectedUp => this.WhenAnyValue(x => x.IsSelectedMovableUp);
     private IObservable<bool> CanMoveSelectedDown => this.WhenAnyValue(x => x.IsSelectedMovableDown);
@@ -120,6 +134,26 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     private void EnqueueDelay()
     {
         var result = _queueService.Enqueue(new DelayQueueItem(TimeSpan.FromSeconds(_settingsStore.Current.DelaySeconds)));
+        if (!result.Allowed)
+        {
+            _notificationService.Show(result.RejectionReason!, NotificationSeverity.Warning);
+        }
+    }
+
+    /// <summary>Declares the evening over, which is the last thing that goes into the queue.</summary>
+    [ReactiveCommand(CanExecute = nameof(CanEnqueueEndOfNight))]
+    private void EnqueueEndOfNight()
+    {
+        // The file was there when the button was last offered; if it has gone since, say so rather
+        // than quietly doing nothing.
+        if (_endOfNightAudio.Create() is not { } item)
+        {
+            _notificationService.Show(UiStrings.Queue_EndOfNightMissing, NotificationSeverity.Warning);
+            UpdateEndOfNightAvailability();
+            return;
+        }
+
+        var result = _queueService.Enqueue(item);
         if (!result.Allowed)
         {
             _notificationService.Show(result.RejectionReason!, NotificationSeverity.Warning);
@@ -192,10 +226,12 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         IDancePool dancePool,
         IConfirmationService confirmationService,
         INotificationService notificationService,
+        IEndOfNightAudio endOfNightAudio,
         TrackEditorService trackEditor)
     {
         _trackEditor = trackEditor;
         _queueService = queueService;
+        _endOfNightAudio = endOfNightAudio;
         _consumptionService = consumptionService;
         _settingsStore = settingsStore;
         _randomTrackService = randomTrackService;
@@ -268,11 +304,28 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateFinishTimeText())
             .DisposeWith(_disposables);
+
+        // The file can move between settings changes, so the timer rechecks it rather than trusting
+        // an answer from earlier in the evening.
+        var settingsChanged = settingsStore.Observe().Select(_ => Unit.Default);
+        UpdateEndOfNightAvailability();
+        Observable.Merge(queueChanged, currentItemChanged, settingsChanged, minuteTimer)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(_ => UpdateEndOfNightAvailability())
+            .DisposeWith(_disposables);
     }
+
+    private void UpdateEndOfNightAvailability() =>
+        IsEndOfNightAvailable = _endOfNightAudio.IsAvailable && !HasEveningEnded;
+
+    /// <summary>Whether the evening has been called, whether it is queued or already playing.</summary>
+    private bool HasEveningEnded =>
+        _queuedItems.Any(i => i is EndOfNightQueueItem)
+        || _consumptionService.CurrentItem is EndOfNightQueueItem;
 
     private void UpdateMoveStates()
     {
-        if (SelectedItem is null or AutoTrackQueueItem)
+        if (SelectedItem is null || IsPinnedToTail(SelectedItem))
         {
             IsSelectedMovableUp = false;
             IsSelectedMovableDown = false;
@@ -285,12 +338,13 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         IsSelectedMovableDown = index >= 0 && index < lastMovable;
     }
 
-    // The auto-track is pinned to the bottom, so a request cannot be moved below it.
+    // The auto-track and the end of the night are pinned to the bottom, so a request cannot be
+    // moved below either of them.
     private int LastRequestIndex()
     {
         for (var i = _queuedItems.Count - 1; i >= 0; i--)
         {
-            if (_queuedItems[i] is not AutoTrackQueueItem)
+            if (!IsPinnedToTail(_queuedItems[i]))
             {
                 return i;
             }
@@ -298,6 +352,8 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 
         return -1;
     }
+
+    private static bool IsPinnedToTail(IQueueItem item) => item is AutoTrackQueueItem or EndOfNightQueueItem;
 
     // Queue items are records with value equality and duplicates are allowed
     // (e.g. two StopQueueItems), so the selected item must be located by
@@ -407,6 +463,12 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             return;
         }
 
+        // The evening has been ended, so the machine does not extend it.
+        if (HasEveningEnded)
+        {
+            return;
+        }
+
         var scope = GetPoolScope();
         var track = _randomTrackService.PickRandomTrack(scope, _settingsStore.Current.AllowDuplicateTracksInQueue);
         if (track is null)
@@ -414,7 +476,30 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        _queueService.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(track, RandomlyAdded: true)));
+        var result = _queueService.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(track, RandomlyAdded: true)));
+        if (result.Denial is QueueDenial.Cutoff)
+        {
+            EndTheNightAtCutoff();
+        }
+    }
+
+    /// <summary>
+    /// The cutoff has just refused the track that would have followed, so this is the last track it
+    /// allowed and the evening ends behind it.
+    /// </summary>
+    private void EndTheNightAtCutoff()
+    {
+        if (!_settingsStore.Current.PlayEndOfNightAtCutoff)
+        {
+            return;
+        }
+
+        if (_endOfNightAudio.Create() is not { } item)
+        {
+            return;
+        }
+
+        _queueService.Enqueue(item);
     }
 
     public void RefreshAutoTrack()
@@ -501,7 +586,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
                 text += $" \u2014 {UiStrings.Queue_CutoffPaused}";
             }
         }
-        else if (!settings.AutoQueueRandomTrack)
+        // The evening being over is knowable in exactly the way an open-ended one is not: nothing
+        // more goes in, so what is queued is the whole of what is left.
+        else if (!settings.AutoQueueRandomTrack || HasEveningEnded)
         {
             text = string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistFinishesAt,
                 finishTime.ToString("HH:mm", CultureInfo.CurrentCulture));

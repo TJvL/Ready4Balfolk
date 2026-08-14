@@ -13,8 +13,8 @@ namespace Ready4Balfolk.UI.Views.Presentation;
 /// <summary>Binds the shared presentation state to the desktop display window.</summary>
 /// <remarks>
 /// The mapping from queue items to what a screen shows lives in
-/// <see cref="IPresentationStateService"/>, so this and the browser draw the same six pictures from
-/// the same source. All that is left here is localizing the kinds that carry no text of their own,
+/// <see cref="IPresentationStateService"/>, so this and the browser draw the same pictures from the
+/// same source. All that is left here is localizing the kinds that carry no text of their own,
 /// and shaping the rest for XAML bindings.
 /// </remarks>
 public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisposable
@@ -98,13 +98,15 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
     }
 
     /// <summary>
-    /// The large line. A track and a message carry their own text; a delay and a stop deliberately
-    /// do not, so that the window and the browser can each say it in their own words.
+    /// The large line. A track and a message carry their own text; a delay, a stop and the end of
+    /// the night deliberately do not, so that the window and the browser can each say it in their
+    /// own words.
     /// </summary>
     private static string Label(PresentationItem item) => item.Kind switch
     {
         PresentationItemKind.Delay => UiStrings.Presentation_Delay,
         PresentationItemKind.Stop => UiStrings.Presentation_Stop,
+        PresentationItemKind.EndOfNight => UiStrings.Presentation_EndOfNight,
         _ => item.Primary
     };
 

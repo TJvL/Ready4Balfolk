@@ -36,6 +36,7 @@ public static class HostServiceForwarding
         services.AddSingleton(hostServices.GetRequiredService<IPresentationStateService>());
         services.AddSingleton(hostServices.GetRequiredService<IQueueService>());
         services.AddSingleton(hostServices.GetRequiredService<IQueueConsumptionService>());
+        services.AddSingleton(hostServices.GetRequiredService<IEndOfNightAudio>());
         services.AddSingleton(hostServices.GetRequiredService<IRandomTrackService>());
         services.AddSingleton(hostServices.GetRequiredService<IDancePool>());
         services.AddSingleton(hostServices.GetRequiredService<ITrackStore>());

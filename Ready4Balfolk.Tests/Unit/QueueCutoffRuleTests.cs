@@ -32,6 +32,7 @@ public sealed class QueueCutoffRuleTests
 
         Assert.NotNull(verdict);
         Assert.False(verdict.Allowed);
+        Assert.Equal(QueueDenial.Cutoff, verdict.Denial);
         Assert.Contains("23:00", verdict.Reason!, StringComparison.Ordinal);
     }
 
@@ -86,6 +87,16 @@ public sealed class QueueCutoffRuleTests
 
         Assert.Null(sut.EvaluateAdd(new StopQueueItem(), queued));
         Assert.Null(sut.EvaluateAdd(new MessageQueueItem("Speech", null), queued));
+    }
+
+    [Fact]
+    public void EvaluateAdd_EndOfNightIsNeverRefused()
+    {
+        // It is what happens after the cutoff, not something trying to sneak past it.
+        var sut = CreateSut();
+        IReadOnlyList<IQueueItem> queued = [Track(60)];
+
+        Assert.Null(sut.EvaluateAdd(new EndOfNightQueueItem("/audio/last-waltz.mp3", TimeSpan.FromMinutes(4)), queued));
     }
 
     [Fact]
