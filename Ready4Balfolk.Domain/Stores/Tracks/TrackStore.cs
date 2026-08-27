@@ -173,7 +173,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
             }
 
             _allowDancesOutsideTheList = value;
-            RefreshLibraryAsync().SafeFireAndForget(exception =>
+
+            // Under the token of whatever load is current, so a directory change arriving behind
+            // this drops the rebuild instead of running it against a library that is about to be
+            // replaced wholesale. The load that supersedes it reads the flag from the same field.
+            var token = Volatile.Read(ref _loadCts)?.Token ?? CancellationToken.None;
+            RefreshLibraryAsync(token).SafeFireAndForget(exception =>
                 _loggerService.ErrorAsync("Failed to rebuild the library after the dance rule changed", exception));
         }
     }
@@ -357,8 +362,37 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// place tracks are published. It opens no audio files: everything it needs is in the index,
     /// which is what lets an approval show up in the library the moment it is given.
     /// </remarks>
-    public async Task RefreshLibraryAsync(CancellationToken cancellationToken = default) =>
-        await RebuildFromIndexAsync(cancellationToken);
+    public async Task RefreshLibraryAsync(CancellationToken cancellationToken = default)
+    {
+        // The same gate a load takes, and for the same reason. A rebuild clears the published list
+        // and refills it from the index; so does a scan, in streaming batches. Ungated, an approval
+        // given from the review screen while a scan was running interleaved with it, and the library
+        // was left holding whichever of the two finished writing last.
+        //
+        // Waited on with None rather than the caller's token, so a superseded rebuild leaves the
+        // gate the way it found it instead of throwing out of the wait. Callers that already hold
+        // the gate call RebuildFromIndexAsync directly, so this never reenters.
+        await _loadGate.WaitAsync(CancellationToken.None);
+        try
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                // Superseded while queued behind a load. That load rebuilds from the same index as
+                // its last step, so there is nothing here left to do.
+                return;
+            }
+
+            await RebuildFromIndexAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            _ = _loggerService.DebugAsync("Library rebuild was superseded");
+        }
+        finally
+        {
+            _loadGate.Release();
+        }
+    }
 
     private async Task RebuildFromIndexAsync(CancellationToken cancellationToken)
     {

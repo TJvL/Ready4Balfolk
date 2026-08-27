@@ -460,6 +460,77 @@ public sealed class TrackStoreTests : IDisposable
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "c.mp3"));
     }
 
+    /// <summary>
+    /// A rebuild asked for while a load is running has to wait for it, not run through it.
+    /// </summary>
+    /// <remarks>
+    /// Both clear the published list and refill it, so overlapping them leaves the library holding
+    /// whichever finished writing last. This is the review screen approving a track during a scan.
+    /// </remarks>
+    [Fact]
+    public async Task RefreshLibrary_DuringALoad_WaitsForItRatherThanInterleaving()
+    {
+        CreateFile(_dirA, "a.mp3");
+
+        // Held open inside the load, which by then is inside the gate. Whether the rebuild is
+        // serialised is exactly the question of whether it can get past this while the load holds it.
+        var loadIsInside = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseTheLoad = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var rebuildRan = false;
+
+        _libraryIndex.DeleteMissingAsync(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
+            .Returns(async _ =>
+            {
+                loadIsInside.TrySetResult();
+                await releaseTheLoad.Task;
+            });
+
+        _sut.MusicDirectory = _dirA;
+        await loadIsInside.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        var rebuild = Task.Run(async () =>
+        {
+            await _sut.RefreshLibraryAsync(TestContext.Current.CancellationToken);
+            rebuildRan = true;
+        }, TestContext.Current.CancellationToken);
+
+        // Long enough that an ungated rebuild would have finished: it opens no files and reads one
+        // in-memory snapshot. Before the gate, this assertion failed.
+        await Task.Delay(250, TestContext.Current.CancellationToken);
+        Assert.False(rebuildRan, "the rebuild ran while the load still held the gate");
+
+        releaseTheLoad.TrySetResult();
+        await rebuild.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.True(rebuildRan);
+        await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
+    }
+
+    /// <summary>
+    /// A directory change arriving behind a rule toggle still wins, and logs nothing.
+    /// </summary>
+    /// <remarks>
+    /// A guard rather than a regression test: the toggle's rebuild now runs under the current load
+    /// token, and this is what must stay true whether it is dropped or merely serialised behind the
+    /// load. Whether it was in fact dropped is not observable from out here.
+    /// </remarks>
+    [Fact]
+    public async Task AllowDancesOutsideTheList_FollowedByADirectoryChange_TheDirectoryChangeWins()
+    {
+        CreateFile(_dirA, "a.mp3");
+        CreateFile(_dirB, "b.mp3");
+
+        _sut.MusicDirectory = _dirA;
+        await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "a.mp3"));
+
+        _sut.AllowDancesOutsideTheList = true;
+        _sut.MusicDirectory = _dirB;
+
+        await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));
+        await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
+        Assert.DoesNotContain(_sut.Current, t => t.FileInfo.Name == "a.mp3");
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 10_000)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
