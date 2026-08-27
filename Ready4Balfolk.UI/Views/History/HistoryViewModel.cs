@@ -1,7 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
@@ -66,7 +65,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
         await _historyStore.DeleteNightAsync();
     }
 
-    public async Task ExportAsync(FileInfo file) => await _historyStore.ExportAsync(file);
+    public async Task ExportAsync(string path) => await _historyStore.ExportAsync(path);
 
     public HistoryViewModel(IQueueHistoryStore historyStore, IConfirmationService confirmationService)
     {

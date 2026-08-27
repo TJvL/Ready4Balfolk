@@ -22,5 +22,5 @@ public interface IQueueHistoryStore : ILoadableStore, IDisposable
     /// <remarks>Explicit and confirmed, and no longer the thing anybody reaches for at the end of an evening.</remarks>
     Task DeleteNightAsync();
 
-    Task ExportAsync(FileInfo destinationFileInfo);
+    Task ExportAsync(string destinationPath);
 }

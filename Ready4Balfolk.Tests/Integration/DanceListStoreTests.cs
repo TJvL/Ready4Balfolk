@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using System.Text.Json;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
@@ -13,18 +14,20 @@ public sealed class DanceListStoreTests : IDisposable
 {
     private const string CacheFileName = "dance_list.json";
 
-    private readonly DirectoryInfo _tempDir;
+    private readonly IDirectoryInfo _tempDir;
+    private readonly FileSystem _fileSystem;
     private readonly IDanceListFeed _feed = Substitute.For<IDanceListFeed>();
     private readonly DanceListStore _sut;
 
     public DanceListStoreTests()
     {
-        _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
+        _fileSystem = new FileSystem();
+        _tempDir = _fileSystem.DirectoryInfo.New(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
         var settingsDirectory = Substitute.For<IApplicationSettingsDirectory>();
         settingsDirectory.DirectoryInfoRoot.Returns(_ => _tempDir);
         _feed.HomePage.Returns(new Uri("https://example.invalid/list"));
-        _sut = new DanceListStore(settingsDirectory, _feed, new NoOpLoggerService());
+        _sut = new DanceListStore(settingsDirectory, _fileSystem, _feed, new NoOpLoggerService());
     }
 
     [Fact]
@@ -155,7 +158,7 @@ public sealed class DanceListStoreTests : IDisposable
         var file = new FileInfo(Path.Combine(_tempDir.FullName, "carried_in.json"));
         await File.WriteAllTextAsync(file.FullName, Serialise(TestData.CreateSimpleDanceList()), TestContext.Current.CancellationToken);
 
-        var update = await _sut.UpdateFromFileAsync(file, TestContext.Current.CancellationToken);
+        var update = await _sut.UpdateFromFileAsync(_fileSystem.FileInfo.New(file.FullName), TestContext.Current.CancellationToken);
 
         Assert.Equal(DanceListUpdateOutcome.Updated, update.Outcome);
         Assert.Equal(3, _sut.Current.Dances.Count);
@@ -175,7 +178,7 @@ public sealed class DanceListStoreTests : IDisposable
             ]
         }), TestContext.Current.CancellationToken);
 
-        var update = await _sut.UpdateFromFileAsync(file, TestContext.Current.CancellationToken);
+        var update = await _sut.UpdateFromFileAsync(_fileSystem.FileInfo.New(file.FullName), TestContext.Current.CancellationToken);
 
         // An ambiguous name is exactly what would make discovery answer with a set of dances.
         Assert.Equal(DanceListUpdateOutcome.Failed, update.Outcome);

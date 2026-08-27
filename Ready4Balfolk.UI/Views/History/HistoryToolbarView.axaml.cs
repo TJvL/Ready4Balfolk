@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -43,7 +42,7 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
         {
             try
             {
-                await ViewModel!.ExportAsync(new FileInfo(path));
+                await ViewModel!.ExportAsync(path);
             }
             catch (Exception ex)
             {

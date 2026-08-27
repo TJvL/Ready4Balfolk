@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using Microsoft.Data.Sqlite;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
@@ -9,19 +10,21 @@ namespace Ready4Balfolk.Tests.Integration;
 
 public sealed class QueueHistoryStoreTests : IDisposable
 {
-    private readonly DirectoryInfo _tempDir;
+    private readonly IDirectoryInfo _tempDir;
+    private readonly FileSystem _fileSystem;
     private readonly IApplicationSettingsDirectory _directory;
     private readonly QueueHistoryStore _sut;
     private readonly List<QueueHistoryStore> _reopened = [];
 
     public QueueHistoryStoreTests()
     {
-        _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
+        _fileSystem = new FileSystem();
+        _tempDir = _fileSystem.DirectoryInfo.New(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
 
         _directory = Substitute.For<IApplicationSettingsDirectory>();
         _directory.DirectoryInfoRoot.Returns(_ => _tempDir);
-        _sut = new QueueHistoryStore(_directory, new NoOpLoggerService());
+        _sut = new QueueHistoryStore(_directory, _fileSystem, new NoOpLoggerService());
     }
 
     [Fact]
@@ -135,7 +138,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
         await _sut.AddAsync(Track());
 
         var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "history.json"));
-        await _sut.ExportAsync(exportFile);
+        await _sut.ExportAsync(exportFile.FullName);
 
         Assert.True(exportFile.Exists);
         var content = await File.ReadAllTextAsync(exportFile.FullName, TestContext.Current.CancellationToken);
@@ -170,7 +173,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
     /// <summary>A second store over the same directory, which is what a restart amounts to.</summary>
     private async Task<QueueHistoryStore> ReopenAsync()
     {
-        var reopened = new QueueHistoryStore(_directory, new NoOpLoggerService());
+        var reopened = new QueueHistoryStore(_directory, _fileSystem, new NoOpLoggerService());
         _reopened.Add(reopened);
         await reopened.LoadAsync(TestContext.Current.CancellationToken);
         return reopened;

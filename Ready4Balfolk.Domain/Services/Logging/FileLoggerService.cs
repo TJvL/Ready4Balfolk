@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
@@ -8,7 +9,7 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
     private const string LogFileName = "app.log";
     private const long MaxFileSizeBytes = 512 * 1024;
 
-    private readonly FileInfo _logFile;
+    private readonly IFileInfo _logFile;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly ReplaySubject<LogEntry> _errorSubject = new(bufferSize: 10);
 
@@ -16,10 +17,10 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
 
     public IObservable<LogEntry> WhenErrorLogged => _errorSubject.AsObservable();
 
-    public FileLoggerService(DirectoryInfo logDirectory)
+    public FileLoggerService(IDirectoryInfo logDirectory)
     {
         logDirectory.Create();
-        _logFile = new FileInfo(Path.Combine(logDirectory.FullName, LogFileName));
+        _logFile = logDirectory.FileSystem.FileInfo.New(Path.Combine(logDirectory.FullName, LogFileName));
     }
 
     public Task LogAsync(LogLevel logLevel, string message)
@@ -57,7 +58,7 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
         return LogAsync(LogLevel.Critical, $"{message}{Environment.NewLine}{exception}");
     }
 
-    public Task ExportAsync(FileInfo fileInfo)
+    public Task ExportAsync(string path)
     {
         return Task.Run(async () =>
         {
@@ -67,7 +68,7 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
                 _logFile.Refresh();
                 if (_logFile.Exists)
                 {
-                    _logFile.CopyTo(fileInfo.FullName, overwrite: true);
+                    _logFile.CopyTo(path, overwrite: true);
                 }
             }
             finally

@@ -1,3 +1,4 @@
+using System.IO.Abstractions.TestingHelpers;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Microsoft.Extensions.Time.Testing;
@@ -26,6 +27,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
     private readonly IDanceListFeed _feed = Substitute.For<IDanceListFeed>();
     private readonly NavigationService _navigation = new();
     private readonly IPreviewPlaybackService _preview = Substitute.For<IPreviewPlaybackService>();
+    private readonly MockFileSystem _fileSystem = new();
     private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
     private readonly FakeTimeProvider _now = new();
     private readonly SetupWizardViewModel _sut;
@@ -80,7 +82,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
         return new SetupWizardViewModel(
             new WelcomeStepViewModel(),
             new DanceListStepViewModel(_danceListStore, _feed, _now),
-            new MusicDirectoryStepViewModel(_settingsStore),
+            new MusicDirectoryStepViewModel(_settingsStore, _fileSystem),
             new DiscoveryStepViewModel(discovery),
             new ReviewStepViewModel(review),
             _settingsStore,
@@ -169,7 +171,10 @@ public sealed class SetupWizardViewModelTests : IDisposable
     {
         var step = GoTo<MusicDirectoryStepViewModel>();
 
-        step.MusicDirectoryPath = Path.GetTempPath();
+        // Named on the mock rather than relying on the real temp directory, which is not what the
+        // step reads any more.
+        _fileSystem.Directory.CreateDirectory("/music");
+        step.MusicDirectoryPath = "/music";
 
         Assert.True(CanContinueNow());
     }
@@ -179,7 +184,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
     {
         var step = GoTo<MusicDirectoryStepViewModel>();
 
-        step.MusicDirectoryPath = Path.Combine(Path.GetTempPath(), $"r4b_missing_{Guid.NewGuid():N}");
+        step.MusicDirectoryPath = "/music/that/was/never/created";
 
         Assert.False(CanContinueNow());
     }

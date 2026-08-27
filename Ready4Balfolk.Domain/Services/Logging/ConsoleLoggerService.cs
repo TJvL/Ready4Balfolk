@@ -44,7 +44,7 @@ public sealed class ConsoleLoggerService : ILoggerService, IDisposable
         return Task.CompletedTask;
     }
 
-    public Task ExportAsync(FileInfo fileInfo) => Task.CompletedTask;
+    public Task ExportAsync(string path) => Task.CompletedTask;
 
     public void Dispose() => _errorSubject.Dispose();
 }

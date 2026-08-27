@@ -20,5 +20,5 @@ public sealed class NoOpLoggerService : ILoggerService
 
     public Task CriticalAsync(string message, Exception exception) => Task.CompletedTask;
 
-    public Task ExportAsync(FileInfo fileInfo) => Task.CompletedTask;
+    public Task ExportAsync(string path) => Task.CompletedTask;
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.IO.Abstractions;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -87,7 +88,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     }
 
     public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
-        IConfirmationService confirmationService, PresentationWebServer webServer)
+        IConfirmationService confirmationService, PresentationWebServer webServer,
+        IFileSystem fileSystem)
     {
         _settingsStore = settingsStore;
         _loggerService = loggerService;
@@ -197,7 +199,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         // answered where it was typed.
         this.WhenAnyValue(x => x.EndOfNightAudioPath)
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .Select(path => path.Length > 0 && !File.Exists(path))
+            .Select(path => path.Length > 0 && !fileSystem.File.Exists(path))
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(missing => IsEndOfNightAudioMissing = missing)
             .DisposeWith(_disposables);
@@ -308,7 +310,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public async Task ExportLogAsync(FileInfo file) => await _loggerService.ExportAsync(file);
+    public async Task ExportLogAsync(string path) => await _loggerService.ExportAsync(path);
 
     private async void OnLanguageChanged(ApplicationLanguage newLanguage)
     {

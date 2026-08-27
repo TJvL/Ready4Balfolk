@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
@@ -23,7 +24,10 @@ namespace Ready4Balfolk.Domain.Stores.History;
 /// payload so a night can be counted without reading it.
 /// </para>
 /// </remarks>
-public sealed class QueueHistoryStore(IApplicationSettingsDirectory dataDirectory, ILoggerService loggerService)
+public sealed class QueueHistoryStore(
+    IApplicationSettingsDirectory dataDirectory,
+    IFileSystem fileSystem,
+    ILoggerService loggerService)
     : IQueueHistoryStore
 {
     private const string DatabaseFileName = "history.sqlite";
@@ -149,15 +153,16 @@ public sealed class QueueHistoryStore(IApplicationSettingsDirectory dataDirector
         }
     }
 
-    public async Task ExportAsync(FileInfo destinationFileInfo)
+    public async Task ExportAsync(string destinationPath)
     {
         await _gate.WaitAsync();
         try
         {
-            destinationFileInfo.Directory?.Create();
-            await using var stream = File.Create(destinationFileInfo.FullName);
+            var destination = fileSystem.FileInfo.New(destinationPath);
+            destination.Directory?.Create();
+            await using var stream = fileSystem.File.Create(destination.FullName);
             await JsonSerializer.SerializeAsync(stream, Current, JsonOptions);
-            _ = loggerService.InfoAsync($"Exported the night to {destinationFileInfo.FullName}");
+            _ = loggerService.InfoAsync($"Exported the night to {destination.FullName}");
         }
         finally
         {
