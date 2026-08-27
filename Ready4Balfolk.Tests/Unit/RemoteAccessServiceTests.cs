@@ -127,6 +127,83 @@ public sealed class RemoteAccessServiceTests
     }
 
     [Fact]
+    public void IsTokenValid_AfterTheTokenLifetime_IsRefused()
+    {
+        // The value stored against a token used to be its issue time and nothing read it, so a
+        // token stayed usable until somebody happened to change the PIN.
+        var time = new FakeTimeProvider();
+        var sut = Enabled(time);
+        var token = sut.TryLogin(Pin, Client).Token;
+
+        time.Advance(TimeSpan.FromHours(13));
+
+        Assert.False(sut.IsTokenValid(token));
+    }
+
+    [Fact]
+    public void IsTokenValid_UsedThroughTheEvening_SlidesRatherThanExpiring()
+    {
+        // A phone reconnects every time it sleeps. Being asked for the PIN again in front of a room
+        // is the thing the token exists to avoid, so use has to push the expiry out.
+        var time = new FakeTimeProvider();
+        var sut = Enabled(time);
+        var token = sut.TryLogin(Pin, Client).Token;
+
+        for (var hour = 0; hour < 10; hour++)
+        {
+            time.Advance(TimeSpan.FromHours(8));
+            Assert.True(sut.IsTokenValid(token));
+        }
+    }
+
+    [Fact]
+    public void TryLogin_OverManyLogins_DoesNotKeepEveryTokenForever()
+    {
+        // One entry per login, never removed, on a process that runs all evening.
+        var time = new FakeTimeProvider();
+        var sut = Enabled(time);
+
+        var first = sut.TryLogin(Pin, Client).Token;
+        for (var login = 0; login < 50; login++)
+        {
+            sut.TryLogin(Pin, Client);
+        }
+
+        time.Advance(TimeSpan.FromHours(13));
+        var latest = sut.TryLogin(Pin, Client).Token;
+
+        Assert.False(sut.IsTokenValid(first));
+        Assert.True(sut.IsTokenValid(latest));
+    }
+
+    /// <remarks>
+    /// A guard, not a regression test. Pruning an address that is holding neither failures nor a
+    /// live lockout is not observable from out here, so what this pins down is the behaviour that
+    /// has to survive it: the pruned address is back to a full five attempts, not locked and not
+    /// one guess from it.
+    /// </remarks>
+    [Fact]
+    public void TryLogin_AfterALockoutHasPassed_TheAddressGetsItsAttemptsBack()
+    {
+        var time = new FakeTimeProvider();
+        var sut = Enabled(time);
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            sut.TryLogin("000000", Client);
+        }
+
+        time.Advance(TimeSpan.FromMinutes(2));
+        // A successful login from any address is what triggers a prune.
+        sut.TryLogin(Pin, "192.168.1.99");
+
+        for (var attempt = 0; attempt < 4; attempt++)
+        {
+            Assert.Equal("rejected", sut.TryLogin("000000", Client).Status);
+        }
+    }
+
+    [Fact]
     public void Configure_ChangingThePin_DropsEveryIssuedToken()
     {
         var sut = Enabled();
