@@ -1,6 +1,4 @@
-using System.IO.Abstractions;
 using DynamicData;
-using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Stores.Tracks;
@@ -19,13 +17,14 @@ public interface ITrackStore : ILoadableStore
     /// </remarks>
     IObservable<int> InReviewCount { get; }
 
-    IDirectoryInfo? MusicDirectory { set; }
+    /// <summary>Brings the library into line with what the settings now say.</summary>
+    /// <remarks>
+    /// One call rather than three setters, so the music directory, the declared rules and the dance
+    /// rule cannot be applied in an order that makes the store scan the library twice. What changed
+    /// decides how much work happens.
+    /// </remarks>
+    Task ApplyAsync(TrackLibraryConfiguration configuration);
 
-    /// <summary>
-    /// What the user has declared about their library's shape. Setting something new re-reads the
-    /// library, because a declaration is meant to answer files that are already sitting there.
-    /// </summary>
-    DiscoverySettings DiscoverySettings { set; }
     /// <summary>
     /// Rebuilds the library from the index, through the review gate. Opens no audio files.
     /// </summary>
@@ -34,15 +33,6 @@ public interface ITrackStore : ILoadableStore
     /// is already indexed. This is how an approval becomes a track without a rescan.
     /// </remarks>
     Task RefreshLibraryAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Whether a dance the published list does not carry may still reach the library.
-    /// </summary>
-    /// <remarks>
-    /// Off is the position the shared list is built on. On is an escape hatch for somebody who
-    /// cannot wait for a proposal to be merged, and it costs the track its place in a random pick.
-    /// </remarks>
-    bool AllowDancesOutsideTheList { set; }
 
     IObservable<IChangeSet<Track>> Connect();
     IObservable<IChangeSet<Track>> Connect(IObservable<string> searchText);

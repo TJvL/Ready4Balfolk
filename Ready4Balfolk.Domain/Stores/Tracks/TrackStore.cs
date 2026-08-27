@@ -6,7 +6,6 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
 using DynamicData;
-using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
@@ -40,7 +39,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private IDirectoryInfo? _musicRoot;
     // Compiled once and swapped whole, so a scan running over it never sees half a rule change.
     private DeclaredDiscovery _declared = DeclaredDiscovery.Undeclared;
-    private DiscoverySettings _discoverySettings = DiscoverySettings.Undeclared;
+    private TrackLibraryConfiguration _configuration = TrackLibraryConfiguration.Undeclared;
     private bool _allowDancesOutsideTheList;
     private IFileSystemWatcher? _watcher;
     private bool _disposed;
@@ -85,101 +84,71 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
     public IObservable<int> InReviewCount => _inReviewCount.AsObservable();
 
-    public IDirectoryInfo? MusicDirectory
-    {
-        set
-        {
-            if (value is null)
-            {
-                _ = _loggerService.DebugAsync("Set null value");
-                return;
-            }
-
-            if (string.Equals(field?.FullName, value.FullName, StringComparison.Ordinal))
-            {
-                _ = _loggerService.DebugAsync("Same field name, don't do rediscover");
-                return;
-            }
-
-            field = value;
-
-            // Cancel whatever is in flight so it stops before it can touch shared state again.
-            // Superseded sources are deliberately not disposed here: the load that owns one may
-            // still be observing its token, and a CancellationTokenSource without registered
-            // timers holds nothing worth reclaiming.
-            var cancellation = new CancellationTokenSource();
-            Interlocked.Exchange(ref _loadCts, cancellation)?.Cancel();
-
-            Task.Run(() => LoadDirectoryAsync(value, reread: false, cancellation.Token)).SafeFireAndForget(exception => _loggerService.ErrorAsync("Loading directory failed", exception));
-        }
-    }
-
-    /// <summary>
-    /// What the user has declared about their library, which re-reads it when it changes.
-    /// </summary>
+    /// <summary>Brings the library into line with what the settings now say.</summary>
     /// <remarks>
-    /// A re-read rather than a re-resolve, and it is the point of the whole feature: a rule is
-    /// declared so that the files already sitting in the library are answered by it. The index
-    /// cannot answer instead, because what it holds was derived under the rules that just changed.
+    /// <para>
+    /// One entry point rather than three setters, so the three cannot be applied in an order that
+    /// makes the store do the work twice. Which of them changed decides how much work happens: a new
+    /// directory is a full scan, new rules are a re-read of the same directory, and the dance rule
+    /// alone is a rebuild from the index that opens no files.
+    /// </para>
+    /// <para>
+    /// Cancels whatever is in flight before starting. Superseded sources are deliberately not
+    /// disposed: the run that owns one may still be observing its token, and a
+    /// CancellationTokenSource with no registered timers holds nothing worth reclaiming.
+    /// </para>
     /// </remarks>
-    public DiscoverySettings DiscoverySettings
+    public async Task ApplyAsync(TrackLibraryConfiguration configuration)
     {
-        set
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var directoryChanged = !string.Equals(
+            _configuration.MusicDirectoryPath, configuration.MusicDirectoryPath, StringComparison.Ordinal);
+        var rulesChanged = _configuration.Discovery != configuration.Discovery;
+        var danceRuleChanged =
+            _configuration.AllowDancesOutsideTheList != configuration.AllowDancesOutsideTheList;
+
+        if (!directoryChanged && !rulesChanged && !danceRuleChanged)
         {
-            if (_discoverySettings == value)
-            {
-                return;
-            }
-
-            _discoverySettings = value;
-            _declared = DeclaredDiscovery.Compile(value);
-
-            if (_musicRoot is not { } root)
-            {
-                return;
-            }
-
-            var cancellation = new CancellationTokenSource();
-            Interlocked.Exchange(ref _loadCts, cancellation)?.Cancel();
-
-            Task.Run(async () =>
-            {
-                // Every approval a rule gave goes with the rules. The user vouched for the rule and
-                // not for the two thousand files it touched, so fixing one greenlit by mistake has
-                // to undo its work. What they answered one at a time is untouched.
-                await _libraryIndex.OpenAsync(cancellation.Token);
-                await _libraryIndex.RevokeRuleApprovalsAsync(cancellation.Token);
-                await LoadDirectoryAsync(root, reread: true, cancellation.Token);
-            }).SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Reloading after a discovery settings change failed", exception));
+            return;
         }
-    }
 
-    /// <summary>
-    /// Whether a dance the published list does not carry may still reach the library.
-    /// </summary>
-    /// <remarks>
-    /// Rebuilds when it changes rather than rescanning: nothing about the files is different, only
-    /// what the gate is willing to let through.
-    /// </remarks>
-    public bool AllowDancesOutsideTheList
-    {
-        set
+        _configuration = configuration;
+        _declared = DeclaredDiscovery.Compile(configuration.Discovery);
+        _allowDancesOutsideTheList = configuration.AllowDancesOutsideTheList;
+
+        var cancellation = new CancellationTokenSource();
+        Interlocked.Exchange(ref _loadCts, cancellation)?.Cancel();
+        var token = cancellation.Token;
+
+        if (configuration.MusicDirectoryPath is not { Length: > 0 } path)
         {
-            if (_allowDancesOutsideTheList == value)
-            {
-                return;
-            }
-
-            _allowDancesOutsideTheList = value;
-
-            // Under the token of whatever load is current, so a directory change arriving behind
-            // this drops the rebuild instead of running it against a library that is about to be
-            // replaced wholesale. The load that supersedes it reads the flag from the same field.
-            var token = Volatile.Read(ref _loadCts)?.Token ?? CancellationToken.None;
-            RefreshLibraryAsync(token).SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to rebuild the library after the dance rule changed", exception));
+            _ = _loggerService.DebugAsync("No music directory set; nothing to load");
+            return;
         }
+
+        var directory = _fileSystem.DirectoryInfo.New(path);
+
+        if (rulesChanged && !directoryChanged)
+        {
+            // Every approval a rule gave goes with the rules. The user vouched for the rule and not
+            // for the two thousand files it touched, so fixing one greenlit by mistake has to undo
+            // its work. What they answered one at a time is untouched.
+            await _libraryIndex.OpenAsync(token);
+            await _libraryIndex.RevokeRuleApprovalsAsync(token);
+            await LoadDirectoryAsync(directory, reread: true, token);
+            return;
+        }
+
+        if (directoryChanged)
+        {
+            await LoadDirectoryAsync(directory, reread: rulesChanged, token);
+            return;
+        }
+
+        // Only the dance rule moved. Nothing about the files is different, only what the gate is
+        // willing to let through.
+        await RefreshLibraryAsync(token);
     }
 
     public IObservable<IChangeSet<Track>> Connect() => _tracks.Connect();
