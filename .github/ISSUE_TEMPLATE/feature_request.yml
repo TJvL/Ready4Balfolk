@@ -1,0 +1,26 @@
+name: Feature request
+description: Something the application should do and does not
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: >-
+        The situation, not the solution. "I cannot see how long is left before the cutoff" is more
+        useful than "add a countdown", because there may be a better answer than the one you had
+        in mind.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you had in mind
+      description: Optional.
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do instead today
+      description: Optional, but it says a lot about how much the gap costs.

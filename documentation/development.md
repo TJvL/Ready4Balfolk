@@ -4,12 +4,14 @@ This document explains the layered architecture, naming conventions, and pattern
 
 ## Overview
 
-Ready4Balfolk is a two-project Avalonia desktop application for managing and playing back folk dance music queues.
+Ready4Balfolk is a four-project Avalonia desktop application for managing and playing back folk dance music queues.
 
 | Project | Purpose | Key dependencies |
 |---------|---------|-----------------|
-| `Ready4Balfolk.Domain` | Models, stores, services — no UI dependencies | System.Reactive, DynamicData, ManagedBass, System.Text.Json, Microsoft.Data.Sqlite |
-| `Ready4Balfolk.UI` | Views, ViewModels, converters, UI services | Avalonia 11, ReactiveUI, ReactiveUI.SourceGenerators |
+| `Ready4Balfolk.Domain` | Models, stores, services. No UI dependencies | System.Reactive, DynamicData, ManagedBass, System.Text.Json, Microsoft.Data.Sqlite |
+| `Ready4Balfolk.UI` | Views, ViewModels, converters, UI services. Hosts the other two | Avalonia 12, ReactiveUI, ReactiveUI.SourceGenerators |
+| `Ready4Balfolk.Web` | The presentation display and the phone remote, served from inside the app | ASP.NET Core (via `FrameworkReference`), SignalR |
+| `Ready4Balfolk.Tests` | Unit, integration and ViewModel tests | xunit.v3 on Microsoft.Testing.Platform, NSubstitute, System.IO.Abstractions.TestingHelpers |
 
 **Key principles:**
 
@@ -42,15 +44,15 @@ Stores manage **persisted state** with thread-safe, reactive updates. Every stor
 
 ```
 Interface:  IXxxStore  →  Current, Observe(), LoadAsync(), UpdateAsync(Func<T,T>)
-Impl:       XxxStore   →  BehaviorSubject<T> + SemaphoreSlim + JSON file I/O
+Impl:       XxxStore   →  BehaviorSubject<T> + SemaphoreSlim + persistence
 ```
 
 **Pattern elements:**
 
 - **`BehaviorSubject<T>`** — holds the current value, replays last value to new subscribers, broadcasts changes.
-- **`SemaphoreSlim(1, 1)`** — binary semaphore serialising file access so concurrent calls don't corrupt the JSON file.
+- **`SemaphoreSlim(1, 1)`** — binary semaphore serialising access so concurrent calls cannot interleave a read with a write.
 - **`UpdateAsync(Func<T, T>)`** — caller passes a pure transformation function; the store atomically applies it, updates the subject, and persists to disk.
-- **JSON I/O** — `JsonSerializer.SerializeAsync` with `WriteIndented = true` for human-editable files. Stores accept a `DirectoryInfo` at construction (the app-data directory).
+- **Persistence** — the settings store is JSON (`JsonSerializer.SerializeAsync` with `WriteIndented = true`, so the file stays human-editable). The library index and the night history are SQLite; see those sections below. Stores accept a `DirectoryInfo` at construction (the app-data directory).
 
 The `TrackStore` is different: it uses a DynamicData `SourceList<Track>` instead of `BehaviorSubject`, exposes `Connect()` for reactive collection binding, integrates a `FileSystemWatcher` for live directory monitoring, and uses `Task.WhenEach()` for streaming track discovery.
 
@@ -325,6 +327,49 @@ Existing converters: `DurationFormatConverter`, `MarkedBrushConverter`, `WeightC
 
 ---
 
+## Web Layer (`Ready4Balfolk.Web/`)
+
+A **class library, not a web application**. The Avalonia app is the host and starts it on demand;
+`FrameworkReference Microsoft.AspNetCore.App` is how a non-web project gets ASP.NET Core. Nothing in
+the desktop app depends on the server running, and switching it off costs the app nothing.
+
+It serves two pages, both from `wwwroot/` and both embedded rather than copied next to the
+executable (`GenerateEmbeddedFilesManifest`, because flatpak-builder stages a single published
+directory and a self-contained publish should not depend on loose files surviving it):
+
+| Page | Who opens it | Hub |
+|------|--------------|-----|
+| `display.html` | a browser on the projector machine, as an alternative to a presentation window | `DisplayHub`, read-only |
+| `remote.html` | the DJ's phone | `RemoteHub`, can change things |
+
+### It does not build its own services
+
+`WebApplication.CreateSlimBuilder` builds its own `IServiceProvider`, so
+`HostServiceForwarding.AddForwardedHostServices` registers the running app's singletons **as
+instances**. Never replace one of those with `AddSingleton<TService, TImplementation>`: that
+constructs a second queue and a second audio engine inside the web host, and the browser then
+faithfully renders a queue that nothing is playing. It fails silently, which is why the forwarding
+has its own test.
+
+Everything `RemoteHub` can reach touches the queue or the audio engine, both driven from the UI
+thread, so every hub method goes through `IRemoteCommandDispatcher` rather than running on the
+threadpool thread SignalR handed it.
+
+### The remote is guarded, the display is not
+
+`RemoteAccessService` exchanges a PIN for a token once, and `RemoteHub.OnConnectedAsync` checks the
+token. Checking only on the page that serves the form would leave the hub open, since anyone on the
+network can open a socket directly without ever loading the page.
+
+- PINs are six digits from `RandomNumberGenerator`, compared with `CryptographicOperations.FixedTimeEquals`.
+- Five wrong attempts lock an address out for a minute; the lockout is per address.
+- Tokens expire, slid forward on use, and changing the PIN or switching the remote off drops every issued token.
+
+`PresentationWebServer.ApplyAsync` brings the listener into line with the settings, so switching the
+server on, moving its port or opening it to the network never needs a restart.
+
+---
+
 ## Cross-Cutting Concerns
 
 ### Logging
@@ -353,6 +398,14 @@ UI-level errors (e.g. a failed refresh, missing tracks) are shown to the user vi
 ### Continuous Integration
 
 `verify.yml` builds and runs the tests on Ubuntu and Windows on every push and pull request. `release.yml` is triggered by hand with a version and chains everything else: verify → build binaries → package (Flatpak, Inno Setup) → smoke test the packages → publish the release. macOS is not a build target.
+
+`verify.yml` also runs three checks that are not the tests, all on Linux only since none of them can answer differently per platform:
+
+- `dotnet format --verify-no-changes`.
+- `scripts/check-translations.py`, which compares the `.resx` key sets in both directions. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed.
+- Coverage, collected as cobertura and uploaded as an artifact. It is deliberately **not** gated on a threshold; the artifact is there to be read.
+
+Two build-level gates are worth knowing about. `TreatWarningsAsErrors` does not reach the Avalonia XAML compiler, so `AVLN5001` (the obsolete-member warning) is listed in `WarningsAsErrors` separately. And every workflow declares a `concurrency` group so a superseded push is cancelled, except on `main`, where a commit left with no verdict is worse than a slow one.
 
 **The smoke test.** CI packages every artifact but cannot tell a healthy one from a broken one by looking. `Directory.Build.targets` picks the BASS, BASSFLAC and BASS_FX natives from the *host* OS rather than from the `RuntimeIdentifier`, so a publish that lands the wrong ones, or none, still succeeds — and the failure only shows up when a user double-clicks it.
 

@@ -28,7 +28,9 @@ Every release artifact is launched by CI before it is published, so a build that
 ## Documentation
 
 - [User Help](documentation/help.md) — how to use the application
-- [Development Guide](documentation/development.md) — contributor guidance on the codebase structure and conventions
+- [Development Guide](documentation/development.md) — how the codebase is laid out, and why
+- [Contributing](CONTRIBUTING.md) — what CI checks, and the conventions to follow
+- [Security](SECURITY.md) — how to report a vulnerability, and what the threat model is
 
 ## Issues
 

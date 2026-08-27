@@ -1,0 +1,57 @@
+name: Bug report
+description: Something the application does that it should not
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: >-
+        Settings has an "Export log" button. Paste the relevant part, or attach the file. The
+        lines marked [ERROR] and [CRITICAL] are the interesting ones.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown in Help. If you built it yourself, the commit.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How it was installed
+      options:
+        - Windows installer
+        - Windows portable archive
+        - Linux Flatpak
+        - Linux portable archive
+        - Built from source
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Windows 11, Fedora 42, Arch
+    validations:
+      required: true
+
+  - type: textarea
+    id: library
+    attributes:
+      label: Anything about the files
+      description: >-
+        Only if it seems related. How the music directory is arranged, the format, whether the
+        tracks are tagged. Do not attach audio.

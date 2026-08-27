@@ -261,11 +261,6 @@ public sealed class App : Application
         mainWindow.Close();
     }
 
-    /// <summary>Opens the setup wizard on a profile that has never been through it.</summary>
-    /// <remarks>
-    /// Not for the smoke test: it drives the application with nobody there to answer a wizard, and a
-    /// modal window would simply hold it until CI gave up.
-    /// </remarks>
     /// <summary>Sends a profile that has never been through setup to it.</summary>
     /// <remarks>
     /// Not for the smoke test: it drives the application with nobody there to answer a wizard, and
