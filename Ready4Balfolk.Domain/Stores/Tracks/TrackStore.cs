@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.IO.Abstractions;
 using System.Reactive.Concurrency;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
@@ -27,7 +26,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly BehaviorSubject<int> _inReviewCount = new(0);
     private readonly IDisposable _danceListSubscription;
-    private readonly CompositeDisposable _fileWatcherSubscriptions = [];
+    private readonly LibraryWatcher _watcher;
+    private readonly IDisposable _watcherSubscription;
     // Loads are started fire-and-forget from the setter, so without a gate two of them interleave:
     // each opens by disposing the watcher and clearing the track list, so one load ends up
     // disposing the watcher the other just published, and appending its tracks after the other
@@ -41,7 +41,6 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private DeclaredDiscovery _declared = DeclaredDiscovery.Undeclared;
     private TrackLibraryConfiguration _configuration = TrackLibraryConfiguration.Undeclared;
     private bool _allowDancesOutsideTheList;
-    private IFileSystemWatcher? _watcher;
     private bool _disposed;
     private readonly IFileSystem _fileSystem;
 
@@ -57,6 +56,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _danceListStore = danceListStore;
         _libraryIndex = libraryIndex;
         _fileSystem = fileSystem;
+        _watcher = new LibraryWatcher(fileSystem);
+        _watcherSubscription = _watcher.Changes.Subscribe(OnFileChanged);
 
         // Skip(1): the store replays its current list to a new subscriber, and rebuilding an empty
         // library at construction is work with nothing to do.
@@ -180,8 +181,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
             cancellation?.Dispose();
 
             _danceListSubscription.Dispose();
-            _fileWatcherSubscriptions.Dispose();
-            _watcher?.Dispose();
+            _watcherSubscription.Dispose();
+            _watcher.Dispose();
             _tracks.Dispose();
             _isLoading.Dispose();
             _inReviewCount.Dispose();
@@ -227,8 +228,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
     private async Task LoadDirectoryCoreAsync(IDirectoryInfo directory, bool reread, CancellationToken cancellationToken)
     {
-        _watcher?.Dispose();
-        _watcher = null;
+        _watcher.Stop();
         _tracks.Clear();
         _musicRoot = directory;
 
@@ -309,7 +309,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
             // Watching starts before the library is published, so a file dropped in during the last
             // moments of a scan is noticed rather than waiting for the next start.
-            StartWatching(directory, cancellationToken);
+            if (!cancellationToken.IsCancellationRequested && !_disposed)
+            {
+                // Not on a store that is going away, and not for a load that has been superseded.
+                _watcher.Watch(directory);
+            }
 
             await RebuildFromIndexAsync(cancellationToken);
 
@@ -477,60 +481,39 @@ public sealed class TrackStore : ITrackStore, IDisposable
             DanceSlug = resolution.DanceSlug
         };
 
-    private void StartWatching(IFileSystemInfo directory, CancellationToken cancellationToken)
+    /// <summary>Decides what a change the watcher noticed is worth.</summary>
+    /// <remarks>
+    /// The watcher reports everything under the music directory; which of it matters is this
+    /// store's business, not the watcher's.
+    /// </remarks>
+    private void OnFileChanged(LibraryFileChange change)
     {
-        if (cancellationToken.IsCancellationRequested || _disposed)
+        switch (change.Kind)
         {
-            // Do not publish a watcher nobody will dispose, and do not enable one on a store that
-            // is going away: enabling a disposed watcher is what threw ObjectDisposedException.
-            return;
+            case LibraryFileChangeKind.Appeared:
+                OnFileCreated(change.Path);
+                break;
+            case LibraryFileChangeKind.Vanished:
+                OnFileDeleted(change.Path);
+                break;
+            case LibraryFileChangeKind.Renamed:
+                OnFileRenamed(change.Path, change.PreviousPath!);
+                break;
+            default:
+                break;
         }
-
-        _fileWatcherSubscriptions.Clear();
-        // Local capture: the FromEventPattern remove-handlers must close over this
-        // instance, not the _watcher field, which is nulled on the next reload
-        // before the old subscriptions are disposed.
-        var watcher = _fileSystem.FileSystemWatcher.New(directory.FullName);
-        watcher.IncludeSubdirectories = true;
-        watcher.NotifyFilter = NotifyFilters.FileName;
-        _watcher = watcher;
-
-        var createdObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
-                h => watcher.Created += h,
-                h => watcher.Created -= h
-            )
-                // Indexed, not published: what a watcher noticed goes through the same gate as
-                // everything else, and the rebuild that follows is what puts it in the library.
-                .Subscribe(fromEvent => OnFileCreated(fromEvent.EventArgs));
-        _fileWatcherSubscriptions.Add(createdObs);
-
-        var deletedObs = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
-                h => watcher.Deleted += h,
-                h => watcher.Deleted -= h
-            )
-            .Subscribe(fromEvent => OnFileDeleted(fromEvent.EventArgs));
-        _fileWatcherSubscriptions.Add(deletedObs);
-
-        var renamedObs = Observable.FromEventPattern<RenamedEventHandler, RenamedEventArgs>(
-                    h => watcher.Renamed += h,
-                    h => watcher.Renamed -= h
-                )
-                .Subscribe(evt => OnFileRenamed(evt.EventArgs));
-        _fileWatcherSubscriptions.Add(renamedObs);
-
-        watcher.EnableRaisingEvents = true;
     }
 
-    private void OnFileCreated(FileSystemEventArgs fileSystemEventArgs)
+    private void OnFileCreated(string path)
     {
-        if (!SupportedAudioFormats.IsSupported(fileSystemEventArgs.FullPath))
+        if (!SupportedAudioFormats.IsSupported(path))
         {
             return;
         }
 
         try
         {
-            IndexAndResolve(_fileSystem.FileInfo.New(fileSystemEventArgs.FullPath));
+            IndexAndResolve(_fileSystem.FileInfo.New(path));
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
@@ -538,15 +521,15 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private void OnFileDeleted(FileSystemEventArgs fileSystemEventArgs)
+    private void OnFileDeleted(string path)
     {
-        if (!SupportedAudioFormats.IsSupported(fileSystemEventArgs.FullPath))
+        if (!SupportedAudioFormats.IsSupported(path))
         {
             return;
         }
 
         var track = _tracks.Items.FirstOrDefault(t =>
-            string.Equals(t.FileInfo.FullName, fileSystemEventArgs.FullPath, StringComparison.Ordinal));
+            string.Equals(t.FileInfo.FullName, path, StringComparison.Ordinal));
         if (track != null)
         {
             _tracks.Remove(track);
@@ -554,7 +537,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         // The index as well as the list, or the next rebuild resurrects the deleted file. Even when
         // nothing published matched: a file still sitting in review has an index row too.
-        ForgetPath(fileSystemEventArgs.FullPath);
+        ForgetPath(path);
     }
 
     private void ForgetPath(string path) =>
@@ -565,19 +548,19 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }).SafeFireAndForget(exception =>
             _loggerService.ErrorAsync("Failed to forget a file the watcher saw go", exception));
 
-    private void OnFileRenamed(RenamedEventArgs renamedEventArgs)
+    private void OnFileRenamed(string path, string previousPath)
     {
         var oldTrack = _tracks.Items.FirstOrDefault(t =>
-            string.Equals(t.FileInfo.FullName, renamedEventArgs.OldFullPath, StringComparison.Ordinal));
+            string.Equals(t.FileInfo.FullName, previousPath, StringComparison.Ordinal));
         if (oldTrack != null)
         {
             _tracks.Remove(oldTrack);
         }
 
-        if (!SupportedAudioFormats.IsSupported(renamedEventArgs.FullPath))
+        if (!SupportedAudioFormats.IsSupported(path))
         {
             // Renamed out of the formats this reads: to the index that is the file going away.
-            ForgetPath(renamedEventArgs.OldFullPath);
+            ForgetPath(previousPath);
             return;
         }
 
@@ -585,7 +568,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         {
             // The audio is unchanged, so its content hash and everything approved about it are too.
             // A rename is a path changing, not a track appearing.
-            IndexAndResolve(_fileSystem.FileInfo.New(renamedEventArgs.FullPath), renamedEventArgs.OldFullPath);
+            IndexAndResolve(_fileSystem.FileInfo.New(path), previousPath);
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
