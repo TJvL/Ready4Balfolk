@@ -9,6 +9,7 @@ using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using AsyncAwaitBestPractices;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Settings;
@@ -208,7 +209,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .Skip(1)
             .DistinctUntilChanged()
             .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(OnLanguageChanged)
+            .Subscribe(language => OnLanguageChangedAsync(language).SafeFireAndForget(exception =>
+                _loggerService.ErrorAsync("Failed to change language", exception)))
             .DisposeWith(_disposables);
 
         settingsStore.Observe()
@@ -230,7 +232,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     {
         var pin = RemoteAccessService.GeneratePin();
         WebRemoteControlPin = pin;
-        CommitDirect(s => s with { WebRemoteControlPin = pin });
+        CommitDirectAsync(s => s with { WebRemoteControlPin = pin }).SafeFireAndForget(exception =>
+            _loggerService.ErrorAsync("Failed to save the remote control pin", exception));
     }
 
     private void UpdateWebServerStatus()
@@ -289,11 +292,18 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .Skip(1)
             .Throttle(TimeSpan.FromMilliseconds(300))
             .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(value => CommitDirect(transform(value)))
+            .Subscribe(value => CommitDirectAsync(transform(value)).SafeFireAndForget(exception =>
+                _loggerService.ErrorAsync("Failed to save settings", exception)))
             .DisposeWith(_disposables);
     }
 
-    private async void CommitDirect(Func<ApplicationSettings, ApplicationSettings> transform)
+    /// <summary>Writes one settings change out.</summary>
+    /// <remarks>
+    /// A Task rather than async void, so a failure has somewhere to go. As async void it was thrown
+    /// at the process-level handler, which is the last place a settings write should surface.
+    /// Callers are Rx subscriptions, so they hand it to SafeFireAndForget.
+    /// </remarks>
+    private async Task CommitDirectAsync(Func<ApplicationSettings, ApplicationSettings> transform)
     {
         if (_syncing)
         {
@@ -312,7 +322,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
 
     public async Task ExportLogAsync(string path) => await _loggerService.ExportAsync(path);
 
-    private async void OnLanguageChanged(ApplicationLanguage newLanguage)
+    private async Task OnLanguageChangedAsync(ApplicationLanguage newLanguage)
     {
         if (_syncing)
         {

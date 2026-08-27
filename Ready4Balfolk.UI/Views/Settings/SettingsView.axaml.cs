@@ -3,6 +3,7 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.Domain;
 using Ready4Balfolk.UI.Resources;
@@ -30,7 +31,7 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
         InitializeComponent();
     }
 
-    private void OnRunSetupClick(object? sender, RoutedEventArgs e) => App.ShowSetup();
+    private void OnRunSetupClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<ApplicationStartup>().ShowSetup();
 
     /// <summary>
     /// Points the setting at a file the user already has. Nothing is imported or copied: the path

@@ -109,7 +109,7 @@ public static class Program
             })
             .UseReactiveUIWithMicrosoftDependencyResolver(
                 ConfigureServices,
-                withResolver: sp => App.Services = sp!,
+                withResolver: sp => App.UseServices(sp!),
                 // Replaces the RxApp.DefaultExceptionHandler assignment removed in ReactiveUI 23.
                 // Resolved lazily: the logger service does not exist yet when the builder runs.
                 withReactiveUIBuilder: builder => builder.WithExceptionHandler(Observer.Create<Exception>(ex =>
@@ -249,5 +249,8 @@ public static class Program
 
         // MainWindowViewModel
         services.AddSingleton<MainWindowViewModel>();
+
+        // Startup orchestration, which used to be the body of App.OnFrameworkInitializationCompleted.
+        services.AddSingleton<ApplicationStartup>();
     }
 }
