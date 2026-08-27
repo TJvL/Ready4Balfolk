@@ -89,7 +89,7 @@ public static class ReviewGate
     /// <param name="allowDancesOutsideTheList">
     /// Whether a dance the list does not carry may still reach the library. Off by default, because
     /// the shared list is what makes a name mean the same thing to everybody and a local answer is a
-    /// proposal waiting to be made. On, the answer stands as the user gave it — and a random pick
+    /// proposal waiting to be made. On, the answer stands as the user gave it, and a random pick
     /// still cannot reach the track, since it draws by tag and a dance nobody has published has no
     /// tags to draw on.
     /// </param>

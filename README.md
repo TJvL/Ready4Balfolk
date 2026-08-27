@@ -4,7 +4,7 @@ A desktop application for managing a balfolk dance night with recorded music. Bu
 
 The dances themselves come from [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/), used exactly as published: every dance and every name it goes by, with tags for where it comes from, which family it belongs to and whether it is danced in a suite. Ready4Balfolk fetches it for you and never edits it, so there is no list to build before you start.
 
-Tracks are discovered from a music directory without requiring any naming convention: Ready4Balfolk looks for those dance names anywhere in a filename or its tags, reads the artist and title from the tags, and asks you about whatever it cannot answer rather than guessing. Nothing enters your library without an artist, a title, a dance from the published list and your agreement — you can state rules about how your library is arranged, and a rule answers whole swathes of it at once. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
+Tracks are discovered from a music directory without requiring any naming convention: Ready4Balfolk looks for those dance names anywhere in a filename or its tags, reads the artist and title from the tags, and asks you about whatever it cannot answer rather than guessing. Nothing enters your library without an artist, a title, a dance from the published list and your agreement. You can state rules about how your library is arranged, and a rule answers whole swathes of it at once. Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
 
 ## Audio Backend
 
@@ -19,18 +19,18 @@ Download the latest version from the [Releases](../../releases) page.
 | **Windows** | Installer (`.exe`) or portable archive (`.zip`) |
 | **Linux** | Flatpak (`.flatpak`) or portable archive (`.tar.gz`) |
 
-The portable builds require no installation — just extract and run. The installers add Start Menu/desktop shortcuts (Windows) or desktop integration (Linux Flatpak).
+The portable builds require no installation: just extract and run. The installers add Start Menu/desktop shortcuts (Windows) or desktop integration (Linux Flatpak).
 
 Every release artifact is launched by CI before it is published, so a build that cannot start never reaches this page.
 
-> **macOS is not supported.** Releases up to and including v1.1.0 shipped an unsigned `.dmg`; there are no newer ones. Nothing in the code is deliberately Windows- and Linux-only, so a `dotnet publish -r osx-arm64` may well still work — under the GPL you are free to build it yourself, but it is neither tested nor released.
+> **macOS is not supported.** Releases up to and including v1.1.0 shipped an unsigned `.dmg`; there are no newer ones. Nothing in the code is deliberately Windows- and Linux-only, so a `dotnet publish -r osx-arm64` may well still work. Under the GPL you are free to build it yourself, but it is neither tested nor released.
 
 ## Documentation
 
-- [User Help](documentation/help.md) — how to use the application
-- [Development Guide](documentation/development.md) — how the codebase is laid out, and why
-- [Contributing](CONTRIBUTING.md) — what CI checks, and the conventions to follow
-- [Security](SECURITY.md) — how to report a vulnerability, and what the threat model is
+- [User Help](documentation/help.md): how to use the application
+- [Development Guide](documentation/development.md): how the codebase is laid out, and why
+- [Contributing](CONTRIBUTING.md): what CI checks, and the conventions to follow
+- [Security](SECURITY.md): how to report a vulnerability, and what the threat model is
 
 ## Issues
 

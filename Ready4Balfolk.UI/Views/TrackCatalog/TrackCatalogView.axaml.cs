@@ -34,7 +34,7 @@ public partial class TrackCatalogView : ReactiveUserControl<TrackCatalogViewMode
 
         _clickCount++;
 
-        // Third click — clear sorting
+        // Third click: clear sorting
         if (_clickCount >= 3)
         {
             e.Handled = true;
@@ -42,7 +42,7 @@ public partial class TrackCatalogView : ReactiveUserControl<TrackCatalogViewMode
             _lastSortColumn = null;
             dataGrid.CollectionView?.SortDescriptions.Clear();
         }
-        // Second click — let default sorting happen (descending)
+        // Second click: let default sorting happen (descending)
     }
 
     private void DataGridDoubleTapped(object? sender, TappedEventArgs e)

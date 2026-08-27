@@ -36,7 +36,7 @@ namespace Ready4Balfolk.UI.Views.Review;
 /// <para>
 /// The queue is over tracks and ordered least confident first, so stopping halfway through still
 /// leaves the library better: whoever answers forty rows has answered the forty nothing could speak
-/// for. It is keyboard driven for the same reason — 2668 mouse trips is the difference between an
+/// for. It is keyboard driven for the same reason: 2668 mouse trips is the difference between an
 /// evening and never.
 /// </para>
 /// </remarks>

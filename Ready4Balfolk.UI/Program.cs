@@ -234,7 +234,7 @@ public static class Program
         services.AddTransient<IViewFor<ReviewStepViewModel>, ReviewStepView>();
         services.AddTransient<IViewFor<MusicDirectoryStepViewModel>, MusicDirectoryStepView>();
 
-        // Lazy wrappers — defers ViewModel creation until first navigation/toggle
+        // Lazy wrappers: defers ViewModel creation until first navigation/toggle
         services.AddSingleton<Lazy<HistoryViewModel>>(sp => new(sp.GetRequiredService<HistoryViewModel>));
         services.AddSingleton<Lazy<SettingsViewModel>>(sp => new(sp.GetRequiredService<SettingsViewModel>));
         services.AddSingleton<Lazy<HelpViewModel>>(sp => new(sp.GetRequiredService<HelpViewModel>));

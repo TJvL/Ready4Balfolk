@@ -255,7 +255,7 @@ public sealed class App : Application
 
         _presentationWindows.Clear();
 
-        // Now close for real — second Closing invocation will pass through
+        // Now close for real; the second Closing invocation passes through
 
         _closing = true;
         mainWindow.Close();

@@ -31,7 +31,7 @@ public sealed class QueueGuard(IEnumerable<IQueueRule> rules) : IQueueGuard
             adjustedItems = currentItems;
         }
 
-        // Phase 2: evaluate add rules — first deny wins
+        // Phase 2: evaluate add rules, first deny wins
         foreach (var rule in rules)
         {
             var verdict = rule.EvaluateAdd(item, adjustedItems);

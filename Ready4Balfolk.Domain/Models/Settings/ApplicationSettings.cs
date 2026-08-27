@@ -42,7 +42,7 @@ public sealed record ApplicationSettings(
     DiscoverySettings? DiscoveryOrNull = null,
     // Off, because the shared list is what makes a dance name mean the same thing to everybody, and
     // a local answer is a proposal at BigBalfolkList waiting to be made. On, a track you have
-    // answered reaches the library whatever you called the dance — at the price that a random pick
+    // answered reaches the library whatever you called the dance, at the price that a random pick
     // draws by tag, and a dance the list has never heard of carries none.
     bool AllowDancesOutsideTheList = false,
     // One file that lives wherever the user keeps it: no library, no import, no copy. Empty until

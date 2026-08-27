@@ -362,7 +362,7 @@ public sealed class QueueServiceTests : IDisposable
         _sut.Enqueue(new TrackQueueItem(track, false));
         Assert.Equal(1, _sut.Count);
 
-        // Simulate track finishing — appears in history
+        // Simulate track finishing: appears in history
         _historySubject.OnNext(new QueueHistory(null,
         [
             new TrackHistoryEntry(track.FileInfo.FullName, "Mazurka", "Artist", "Title",

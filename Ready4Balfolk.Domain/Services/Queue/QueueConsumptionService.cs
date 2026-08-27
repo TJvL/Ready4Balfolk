@@ -52,7 +52,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _history = history;
         _loggerService = loggerService;
 
-        // The consumption service manages all advancement — disable auto-advance on audio
+        // The consumption service manages all advancement, so auto-advance is disabled on audio
         _audio.AutoAdvance = false;
 
         // Global audio play state subscriptions
@@ -202,7 +202,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     {
         _itemFinishedNaturally = true;
         _isPlaying.OnNext(false);
-        // Fire-and-forget advance — gate ensures serialization
+        // Fire-and-forget advance: the gate ensures serialization
         _ = AdvanceAsync();
     }
 

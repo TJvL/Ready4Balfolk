@@ -357,7 +357,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 
     // Queue items are records with value equality and duplicates are allowed
     // (e.g. two StopQueueItems), so the selected item must be located by
-    // reference identity — IndexOf would return the first equal instance.
+    // reference identity: IndexOf would return the first equal instance.
     private int IndexOfSelected()
     {
         var selected = SelectedItem;

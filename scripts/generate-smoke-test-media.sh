@@ -4,7 +4,7 @@
 # can actually play each supported format.
 #
 # The output is committed, like the icons are: CI decodes these files on every pull request, and
-# generating them there would put ffmpeg on the critical path of every run — windows-latest does
+# generating them there would put ffmpeg on the critical path of every run, and windows-latest does
 # not ship it. Run this only when the fixtures need to change, and commit the result.
 #
 #   scripts/generate-smoke-test-media.sh

@@ -169,7 +169,7 @@ internal static class SmokeTest
         // Shutdown runs the app's own teardown, which is worth exercising but is also the part
         // most able to hang on a background task. Swap the startup watchdog for one that carries
         // the verdict out regardless, so a stuck teardown cannot turn a decided run into a job
-        // timeout — or, worse, report a hang for a run that has already passed.
+        // timeout, or worse, report a hang for a run that has already passed.
         _watchdog?.Dispose();
         _watchdog = new Timer(
             _ =>
@@ -218,8 +218,8 @@ internal static class SmokeTest
 
     /// <summary>
     /// Opens every fixture in <paramref name="mediaDirectory"/> and checks it decodes to the length
-    /// it should be. Registering a plugin is not the same as being able to read a file with it —
-    /// the Windows builds shipped for a release with BASSFLAC present and unloadable — and a
+    /// it should be. Registering a plugin is not the same as being able to read a file with it:
+    /// the Windows builds shipped for a release with BASSFLAC present and unloadable, and a
     /// duration that comes back right is the cheapest proof that real samples were read.
     /// </summary>
     /// <returns>How many files decoded.</returns>
