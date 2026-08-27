@@ -1,5 +1,5 @@
 using System;
-using System.IO;
+using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using ReactiveUI.Reactive;
@@ -14,7 +14,9 @@ namespace Ready4Balfolk.UI.Views.Wizard;
 /// Required. Everything after this reads the library, and there is nothing to set up without one:
 /// letting a user past here only produces an application that appears to work and finds nothing.
 /// </remarks>
-public sealed partial class MusicDirectoryStepViewModel(ISettingsStore settingsStore) : WizardStepViewModel
+public sealed partial class MusicDirectoryStepViewModel(
+    ISettingsStore settingsStore,
+    IFileSystem fileSystem) : WizardStepViewModel
 {
     /// <summary>Nullable because nothing has been picked yet on a fresh profile.</summary>
     [Reactive] public partial string? MusicDirectoryPath { get; set; }
@@ -25,7 +27,7 @@ public sealed partial class MusicDirectoryStepViewModel(ISettingsStore settingsS
 
     public override IObservable<bool> CanContinue =>
         this.WhenAnyValue(x => x.MusicDirectoryPath)
-            .Select(path => !string.IsNullOrWhiteSpace(path) && Directory.Exists(path));
+            .Select(path => !string.IsNullOrWhiteSpace(path) && fileSystem.Directory.Exists(path));
 
     public override string BlockedReason => UiStrings.Wizard_Music_Required;
 

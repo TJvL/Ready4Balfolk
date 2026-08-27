@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Ready4Balfolk.Domain.Models.Dances;
@@ -14,6 +15,7 @@ namespace Ready4Balfolk.Domain.Stores.Dances;
 /// </remarks>
 public sealed class DanceListStore(
     IApplicationSettingsDirectory dataDirectory,
+    IFileSystem fileSystem,
     IDanceListFeed feed,
     ILoggerService loggerService)
     : IDanceListStore
@@ -51,12 +53,12 @@ public sealed class DanceListStore(
         _isLoading.OnNext(true);
         try
         {
-            var cachedFileInfo = new FileInfo(DanceListFilePath);
+            var cachedFileInfo = fileSystem.FileInfo.New(DanceListFilePath);
             if (cachedFileInfo.Exists)
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(cachedFileInfo.FullName, token);
+                    var json = await fileSystem.File.ReadAllTextAsync(cachedFileInfo.FullName, token);
                     var cached = DanceListReader.Read(json);
                     _currentJson = json;
                     Publish(cached, DanceListOrigin.Cached, cachedFileInfo.LastWriteTimeUtc);
@@ -99,11 +101,11 @@ public sealed class DanceListStore(
     }
 
     public async Task<DanceListUpdate> UpdateFromFileAsync(
-        FileInfo sourceFileInfo, CancellationToken token = default)
+        IFileInfo sourceFileInfo, CancellationToken token = default)
     {
         try
         {
-            var json = await File.ReadAllTextAsync(sourceFileInfo.FullName, token);
+            var json = await fileSystem.File.ReadAllTextAsync(sourceFileInfo.FullName, token);
             return await AdoptAsync(json, DanceListOrigin.File);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -170,7 +172,7 @@ public sealed class DanceListStore(
         try
         {
             dataDirectory.DirectoryInfoRoot.Create();
-            await File.WriteAllTextAsync(DanceListFilePath, json);
+            await fileSystem.File.WriteAllTextAsync(DanceListFilePath, json);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -184,7 +186,7 @@ public sealed class DanceListStore(
     /// copy of a published file, and the next fetch replaces it. Keeping it would leave a hidden
     /// file nobody ever opens.
     /// </summary>
-    private void Discard(FileInfo cachedFileInfo, Exception reason)
+    private void Discard(IFileInfo cachedFileInfo, Exception reason)
     {
         try
         {

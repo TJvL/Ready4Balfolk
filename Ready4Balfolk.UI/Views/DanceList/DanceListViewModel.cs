@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
@@ -49,6 +49,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
     private readonly INotificationService _notifications;
     private readonly IDanceListFeed _feed;
     private readonly ILoggerService _loggerService;
+    private readonly IFileSystem _fileSystem;
     private readonly CompositeDisposable _disposables = [];
 
     [Reactive] public partial string SearchText { get; set; }
@@ -82,6 +83,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         IQueueService queueService,
         INotificationService notifications,
         IDanceListFeed feed,
+        IFileSystem fileSystem,
         ILoggerService loggerService)
     {
         _store = store;
@@ -92,6 +94,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         _notifications = notifications;
         _feed = feed;
         _loggerService = loggerService;
+        _fileSystem = fileSystem;
 
         SearchText = string.Empty;
         Tags = [];
@@ -176,12 +179,16 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
     }
 
     /// <summary>Takes a list from a file, for a machine that never reaches the internet.</summary>
-    public async Task UpdateFromFileAsync(FileInfo sourceFileInfo)
+    /// <remarks>
+    /// Takes the path the file picker handed back rather than a file object, so the code-behind
+    /// does not have to reach for a filesystem of its own to build one.
+    /// </remarks>
+    public async Task UpdateFromFileAsync(string sourcePath)
     {
         IsUpdating = true;
         try
         {
-            Report(await _store.UpdateFromFileAsync(sourceFileInfo));
+            Report(await _store.UpdateFromFileAsync(_fileSystem.FileInfo.New(sourcePath)));
         }
         catch (Exception exception)
         {

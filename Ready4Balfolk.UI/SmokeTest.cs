@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -70,7 +71,7 @@ internal static class SmokeTest
         var mediaDirectory = ReadOption(args, "--smoke-test-media");
 
         var logFile = new FileInfo(Path.Combine(
-            new ApplicationSettingsDirectory().DirectoryInfoRoot.FullName, "app.log"));
+            new ApplicationSettingsDirectory(new FileSystem()).DirectoryInfoRoot.FullName, "app.log"));
 
         // Judge only what this run wrote. A developer's existing log is left alone, which also
         // means a second run in the same workspace does not inherit the first one's verdict.

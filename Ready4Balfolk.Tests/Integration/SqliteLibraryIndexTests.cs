@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -8,12 +9,12 @@ namespace Ready4Balfolk.Tests.Integration;
 
 public sealed class SqliteLibraryIndexTests : IAsyncLifetime
 {
-    private readonly DirectoryInfo _tempDir;
+    private readonly IDirectoryInfo _tempDir;
     private readonly SqliteLibraryIndex _sut;
 
     public SqliteLibraryIndexTests()
     {
-        _tempDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
+        _tempDir = new FileSystem().DirectoryInfo.New(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
         _sut = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
     }

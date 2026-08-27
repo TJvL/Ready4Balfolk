@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using Ready4Balfolk.Domain.Models.Dances;
 
 namespace Ready4Balfolk.Domain.Stores.Dances;
@@ -27,5 +28,5 @@ public interface IDanceListStore : ILoadableStore, IDisposable
     Task<DanceListUpdate> RefreshAsync(CancellationToken token = default);
 
     /// <summary>Takes a list from a file, for a machine that never reaches the internet.</summary>
-    Task<DanceListUpdate> UpdateFromFileAsync(FileInfo sourceFileInfo, CancellationToken token = default);
+    Task<DanceListUpdate> UpdateFromFileAsync(IFileInfo sourceFileInfo, CancellationToken token = default);
 }

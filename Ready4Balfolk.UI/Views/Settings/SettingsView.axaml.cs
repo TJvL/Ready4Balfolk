@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -76,7 +75,7 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
 
         if (file?.TryGetLocalPath() is { } path)
         {
-            await ViewModel!.ExportLogAsync(new FileInfo(path));
+            await ViewModel!.ExportLogAsync(path);
         }
     }
 }

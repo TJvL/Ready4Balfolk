@@ -1,4 +1,3 @@
-using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -43,7 +42,7 @@ public partial class DanceListView : ReactiveUserControl<DanceListViewModel>
         {
             // Every failure is reported by the view model as a notification, because a refused file
             // is an ordinary answer here rather than an exception the user can act on.
-            await ViewModel!.UpdateFromFileAsync(new FileInfo(path));
+            await ViewModel!.UpdateFromFileAsync(path);
         }
     }
 }
