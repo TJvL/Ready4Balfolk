@@ -4,6 +4,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # Stated rather than inferred. Left unset, Dependabot copies the style it finds in each
+    # ecosystem's own history, so nuget kept producing bare "Bump ..." subjects while
+    # github-actions produced conventional ones, and neither would have corrected itself.
+    commit-message:
+      prefix: "chore"
+      include: "scope"
     groups:
       # Minor and patch bumps arrive as one PR; a major arrives alone, so a
       # breaking framework upgrade is never hidden inside a routine batch.
@@ -14,3 +20,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"

@@ -41,8 +41,13 @@ jobs:
         if: runner.os == 'Linux'
         run: dotnet format Ready4Balfolk.sln --verify-no-changes --verbosity normal --no-restore
 
+      # --project, not a directory: global.json opts into Microsoft.Testing.Platform, whose
+      # dotnet test takes a project or a solution and rejects a bare path.
       - name: Run tests
-        run: dotnet test Ready4Balfolk.Tests/ -c Release --no-build --verbosity normal
+        run: >-
+          dotnet test
+          --project Ready4Balfolk.Tests/Ready4Balfolk.Tests.csproj
+          -c Release --no-build --verbosity normal
 
   # A stable name for the branch ruleset to require. A matrix reports one status check per leg,
   # named after its matrix values, so requiring those directly means editing the ruleset every time

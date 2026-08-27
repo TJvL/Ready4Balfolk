@@ -1,0 +1,36 @@
+# Shapes what generate_release_notes produces in release.yml. Without this the notes are a flat
+# "What's Changed" list in merge order, where a routine dependency bump reads exactly as loud as a
+# feature.
+#
+# Categories match on labels, not on the commit subject, so the conventional-commit prefix does not
+# place a pull request here: its labels do. Dependabot applies "dependencies" itself; the rest are
+# applied by hand when the pull request is opened. The first category a label matches wins, so the
+# order below is the priority order, and the catch-all has to come last.
+changelog:
+  categories:
+    - title: New features
+      labels:
+        - enhancement
+
+    - title: Fixes
+      labels:
+        - bug
+
+    - title: Documentation
+      labels:
+        - documentation
+
+    - title: Build and CI
+      labels:
+        - ci
+        - technical
+
+    - title: Dependencies
+      labels:
+        - dependencies
+
+    # Anything that reached main without a label. Left out, those pull requests would be missing
+    # from the notes entirely rather than merely uncategorised.
+    - title: Other changes
+      labels:
+        - "*"
