@@ -18,7 +18,17 @@ namespace Ready4Balfolk.Tests.Unit;
 public sealed class SettingsStoreTests
 {
     private const string Root = "/data";
-    private static readonly string SettingsPath = Path.Combine(Root, "settings.json");
+
+    /// <summary>
+    /// Where the store will actually write, asked of the filesystem rather than assumed.
+    /// </summary>
+    /// <remarks>
+    /// MockFileSystem normalises a rooted path per platform, so "/data" is `C:\data` on Windows.
+    /// A hard coded constant matches on Linux and fails on Windows, which is what the two platform
+    /// matrix is for.
+    /// </remarks>
+    private static string SettingsPathIn(MockFileSystem fileSystem) =>
+        Path.Combine(fileSystem.DirectoryInfo.New(Root).FullName, "settings.json");
 
     private static (SettingsStore Store, MockFileSystem FileSystem) Create(MockFileSystem? fileSystem = null)
     {
@@ -47,8 +57,8 @@ public sealed class SettingsStoreTests
         await store.UpdateAsync(s => s with { MaxQueueItems = 42 });
 
         Assert.Equal(42, store.Current.MaxQueueItems);
-        Assert.True(fileSystem.File.Exists(SettingsPath));
-        Assert.Contains("42", await fileSystem.File.ReadAllTextAsync(SettingsPath, TestContext.Current.CancellationToken), StringComparison.Ordinal);
+        Assert.True(fileSystem.File.Exists(SettingsPathIn(fileSystem)));
+        Assert.Contains("42", await fileSystem.File.ReadAllTextAsync(SettingsPathIn(fileSystem), TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -83,7 +93,7 @@ public sealed class SettingsStoreTests
 
         await store.UpdateAsync(s => s with { MaxQueueItems = 5 });
 
-        Assert.False(fileSystem.File.Exists(SettingsPath + ".tmp"));
+        Assert.False(fileSystem.File.Exists(SettingsPathIn(fileSystem) + ".tmp"));
     }
 
     /// <summary>The real settings file is never opened for writing.</summary>
@@ -131,9 +141,10 @@ public sealed class SettingsStoreTests
         using var store = new SettingsStore(directory, fileSystem, new NoOpLoggerService());
         await store.UpdateAsync(s => s with { MaxQueueItems = 9 });
 
-        Assert.DoesNotContain(SettingsPath, created);
-        Assert.Contains(SettingsPath + ".tmp", created);
-        Assert.Contains(SettingsPath, moved);
+        var expected = SettingsPathIn(mock);
+        Assert.DoesNotContain(expected, created);
+        Assert.Contains(expected + ".tmp", created);
+        Assert.Contains(expected, moved);
     }
 
     [Fact]
@@ -141,7 +152,7 @@ public sealed class SettingsStoreTests
     {
         var fileSystem = new MockFileSystem();
         fileSystem.Directory.CreateDirectory(Root);
-        fileSystem.File.WriteAllText(SettingsPath, "{ this is not json");
+        fileSystem.File.WriteAllText(SettingsPathIn(fileSystem), "{ this is not json");
 
         var (store, _) = Create(fileSystem);
 
@@ -157,9 +168,9 @@ public sealed class SettingsStoreTests
         await Task.WhenAll(Enumerable.Range(0, 20).Select(i =>
             store.UpdateAsync(s => s with { MaxQueueItems = i })));
 
-        var text = await fileSystem.File.ReadAllTextAsync(SettingsPath, TestContext.Current.CancellationToken);
+        var text = await fileSystem.File.ReadAllTextAsync(SettingsPathIn(fileSystem), TestContext.Current.CancellationToken);
         Assert.Contains("\"maxQueueItems\"", text, StringComparison.OrdinalIgnoreCase);
-        Assert.False(fileSystem.File.Exists(SettingsPath + ".tmp"));
+        Assert.False(fileSystem.File.Exists(SettingsPathIn(fileSystem) + ".tmp"));
     }
 
     [Fact]
