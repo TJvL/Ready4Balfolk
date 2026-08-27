@@ -6,7 +6,6 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
 using DynamicData;
-using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
@@ -187,7 +186,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
     public IObservable<IChangeSet<Track>> Connect(IObservable<string> searchText) =>
         _tracks.Connect()
-            .Filter(searchText.Select(CreateSearchFilter));
+            .Filter(searchText.Select(TrackSearchFilter.For));
 
     public void Dispose()
     {
@@ -309,10 +308,10 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
                 if (pending.Count > 0)
                 {
-                    _libraryIndex.WriteAsync([.. pending.Select(ToEntry)], cancellationToken).SafeFireAndForget(exception =>
+                    _libraryIndex.WriteAsync([.. pending.Select(ScannedFileMapping.ToEntry)], cancellationToken).SafeFireAndForget(exception =>
                         _loggerService.ErrorAsync("Failed to write a batch to the library index", exception));
 
-                    _libraryIndex.ApproveAsync([.. pending.SelectMany(ByRuleApprovals)], cancellationToken)
+                    _libraryIndex.ApproveAsync([.. pending.SelectMany(ScannedFileMapping.ByRuleApprovals)], cancellationToken)
                         .SafeFireAndForget(exception =>
                             _loggerService.ErrorAsync("Failed to record what the rules approved", exception));
                 }
@@ -328,15 +327,15 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 written.Add(remaining);
             }
 
-            var rescued = ApplyFolderAgreement(written, known, directory.FullName);
+            var rescued = FolderAgreement.Apply(written, known, directory.FullName, _danceListStore.Index, _declared);
             if (rescued > 0)
             {
                 await _loggerService.DebugAsync($"Folder agreement resolved {rescued:N0} more tracks");
             }
 
             // Written again, because folder agreement changed some of them after the fact.
-            await _libraryIndex.WriteAsync([.. written.Select(ToEntry)], cancellationToken);
-            await _libraryIndex.ApproveAsync([.. written.SelectMany(ByRuleApprovals)], cancellationToken);
+            await _libraryIndex.WriteAsync([.. written.Select(ScannedFileMapping.ToEntry)], cancellationToken);
+            await _libraryIndex.ApproveAsync([.. written.SelectMany(ScannedFileMapping.ByRuleApprovals)], cancellationToken);
             await _libraryIndex.DeleteMissingAsync([.. audioFiles.Select(file => file.FullName)], cancellationToken);
 
             // Watching starts before the library is published, so a file dropped in during the last
@@ -455,138 +454,6 @@ public sealed class TrackStore : ITrackStore, IDisposable
     }
 
     /// <summary>
-    /// Re-resolves the tracks a folder can now speak for, and reports how many were rescued.
-    /// </summary>
-    /// <remarks>
-    /// The folder is everything in it, not only what this scan happened to read: unchanged
-    /// siblings are answered from the index and never re-scanned, and without their votes a new
-    /// file dropped into an established folder of mazurkas saw a folder of one.
-    /// </remarks>
-    private int ApplyFolderAgreement(
-        IReadOnlyCollection<ScannedFile> scanned, IReadOnlyDictionary<string, LibraryEntry> known, string rootPath)
-    {
-        var scannedPaths = scanned.Select(file => file.File.FullName).ToHashSet(StringComparer.Ordinal);
-        var knownSlugsByFolder = known.Values
-            .Where(entry => entry.DanceSlug is not null && !scannedPaths.Contains(entry.Path))
-            .GroupBy(entry => FolderKeyFor(entry.Path, rootPath), StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.Select(entry => entry.DanceSlug!).ToList(), StringComparer.Ordinal);
-
-        var rescued = 0;
-        foreach (var folder in scanned.GroupBy(file => file.Evidence.FolderKey ?? string.Empty, StringComparer.Ordinal))
-        {
-            var siblings = folder.ToList();
-            var voices = siblings
-                .Where(sibling => sibling.Resolution.DanceSlug is not null)
-                .Select(sibling => sibling.Resolution.DanceSlug!)
-                .Concat(knownSlugsByFolder.GetValueOrDefault(folder.Key, []))
-                .ToList();
-
-            var agreed = AgreedFolderDance(voices);
-            if (agreed is null)
-            {
-                continue;
-            }
-
-            foreach (var sibling in siblings.Where(s => s.Resolution.DanceSlug is null))
-            {
-                var resolution = TrackInformationResolver.Resolve(
-                    sibling.Evidence, _danceListStore.Index, _declared, agreed);
-                if (resolution.DanceSlug is null)
-                {
-                    continue;
-                }
-
-                sibling.Resolution = resolution;
-                rescued++;
-            }
-        }
-
-        return rescued;
-    }
-
-    /// <summary>The folder grouping key an entry's path implies, matching the evidence's key.</summary>
-    private static string FolderKeyFor(string path, string rootPath)
-    {
-        if (Path.GetDirectoryName(path) is not { } parent)
-        {
-            return string.Empty;
-        }
-
-        var relative = Path.GetRelativePath(rootPath, parent);
-        return relative is "." || relative.StartsWith("..", StringComparison.Ordinal)
-            ? string.Empty
-            : relative.Replace(Path.DirectorySeparatorChar, '/');
-    }
-
-    /// <summary>
-    /// What the user's own rules answered on this file, which they approved by declaring them.
-    /// </summary>
-    /// <remarks>
-    /// A field whose answer came from a declared claim is approved by that rule, and the rule is
-    /// recorded so review can say which one. The dance keeps the text rather than a slug when the
-    /// list does not know it: the rule did answer, the track parks on the value, and an import that
-    /// carries the name releases it without anybody being asked.
-    /// </remarks>
-    private static IEnumerable<TrackApproval> ByRuleApprovals(ScannedFile scanned)
-    {
-        foreach (var field in AllFields)
-        {
-            var decision = scanned.Resolution.For(field);
-            var chosen = decision.Chosen.FirstOrDefault(claim => claim.Trust is ClaimTrust.Declared);
-
-            var (value, rule) = chosen is not null
-                ? (decision.Value, chosen.Source.Detail)
-                : decision.Reason is DecisionReason.Unusable
-                    && scanned.Resolution.ClaimsFor(field).FirstOrDefault(claim => claim.Trust is ClaimTrust.Declared)
-                        is { } parked
-                    ? (parked.Value, parked.Source.Detail)
-                    : (null, null);
-
-            if (value is not null && rule is not null)
-            {
-                yield return new TrackApproval
-                {
-                    ContentHash = scanned.Evidence.ContentHash,
-                    Field = field,
-                    Value = value,
-                    Kind = ApprovalKind.ByRule,
-                    Rule = rule,
-                    FileWriteUtc = scanned.File.LastWriteTimeUtc
-                };
-            }
-        }
-    }
-
-    private static readonly TrackField[] AllFields = [TrackField.Dance, TrackField.Artist, TrackField.Title];
-
-    private static LibraryEntry ToEntry(ScannedFile scanned) => new()
-    {
-        ContentHash = scanned.Evidence.ContentHash,
-        Path = scanned.File.FullName,
-        FileSize = scanned.File.Length,
-        LastWriteUtc = scanned.File.LastWriteTimeUtc,
-        Duration = scanned.Evidence.Duration,
-        Format = scanned.Evidence.Format,
-        CustomTagNames = [.. scanned.Evidence.CustomTags.Keys],
-        DanceSlug = scanned.Resolution.DanceSlug,
-        OriginalDance = scanned.Resolution.OriginalDance,
-        Artist = scanned.Resolution.Artist,
-        Title = scanned.Resolution.Title,
-        Dance = SourceOf(scanned.Resolution, TrackField.Dance),
-        ArtistFrom = SourceOf(scanned.Resolution, TrackField.Artist),
-        TitleFrom = SourceOf(scanned.Resolution, TrackField.Title)
-    };
-
-    /// <summary>What answered a field, kept so review can show it next to the value.</summary>
-    private static DerivedFrom SourceOf(TrackResolution resolution, TrackField field)
-    {
-        var decision = resolution.For(field);
-        var claim = decision.Chosen.Count > 0 ? decision.Chosen[0] : null;
-
-        return new DerivedFrom(claim?.Source.Kind, claim?.Source.Detail, decision.Reason);
-    }
-
-    /// <summary>
     /// Builds a track from the index when the file has not changed, and reads it when it has.
     /// </summary>
     /// <remarks>
@@ -640,37 +507,6 @@ public sealed class TrackStore : ITrackStore, IDisposable
             OriginalDance = resolution.OriginalDance ?? string.Empty,
             DanceSlug = resolution.DanceSlug
         };
-
-    /// <summary>
-    /// Gives a track the dance the rest of its folder turned out to be.
-    /// </summary>
-    /// <remarks>
-    /// Only ever fills a gap. A folder in which every resolved track reads as one dance is real
-    /// evidence about the ones that did not, whatever that folder happens to be, and it is the
-    /// cheapest way to rescue a run of files that name the dance once and then stop.
-    /// </remarks>
-    private static string? AgreedFolderDance(List<string> resolvedSlugs)
-    {
-        if (resolvedSlugs.Count == 0)
-        {
-            return null;
-        }
-
-        // One dance, agreed by the folder. A folder holding several dances says nothing about the
-        // track that named none of them.
-        var distinct = resolvedSlugs.Distinct(StringComparer.Ordinal).ToList();
-        return distinct.Count == 1 ? distinct[0] : null;
-    }
-
-    /// <summary>A file that was actually opened, and what was made of it.</summary>
-    /// <remarks>
-    /// <see cref="Resolution"/> is settable because folder agreement revisits it once the folder is
-    /// complete, which is the one thing that cannot be decided a file at a time.
-    /// </remarks>
-    private sealed record ScannedFile(IFileInfo File, TrackEvidence Evidence, TrackResolution Resolution)
-    {
-        public TrackResolution Resolution { get; set; } = Resolution;
-    }
 
     private void StartWatching(IFileSystemInfo directory, CancellationToken cancellationToken)
     {
@@ -811,19 +647,14 @@ public sealed class TrackStore : ITrackStore, IDisposable
             // different answer depending on who noticed it.
             var known = await _libraryIndex.SnapshotByPathAsync();
             var folderKey = evidence.FolderKey ?? string.Empty;
-            var agreed = AgreedFolderDance([
-                .. known.Values
-                    .Where(entry => entry.DanceSlug is not null
-                        && !string.Equals(entry.Path, fileInfo.FullName, StringComparison.Ordinal)
-                        && string.Equals(FolderKeyFor(entry.Path, root.FullName), folderKey, StringComparison.Ordinal))
-                    .Select(entry => entry.DanceSlug!)
-            ]);
+            var agreed = FolderAgreement.AgreedDanceAround(
+                fileInfo.FullName, folderKey, known, root.FullName);
 
             var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index, _declared, agreed);
             var scanned = new ScannedFile(fileInfo, evidence, resolution);
 
-            await _libraryIndex.WriteAsync([ToEntry(scanned)]);
-            await _libraryIndex.ApproveAsync([.. ByRuleApprovals(scanned)]);
+            await _libraryIndex.WriteAsync([ScannedFileMapping.ToEntry(scanned)]);
+            await _libraryIndex.ApproveAsync([.. ScannedFileMapping.ByRuleApprovals(scanned)]);
             if (replacesPath is not null)
             {
                 await _libraryIndex.DeletePathAsync(replacesPath);
@@ -834,15 +665,4 @@ public sealed class TrackStore : ITrackStore, IDisposable
             _loggerService.ErrorAsync("Failed to index a file the watcher noticed", exception));
     }
 
-    private static Func<Track, bool> CreateSearchFilter(string search)
-    {
-        var normalized = StringNormalizer.Normalize(search);
-        return string.IsNullOrEmpty(normalized)
-            ? _ => true
-            : track =>
-                StringNormalizer.Normalize(track.Dance).Contains(normalized, StringComparison.Ordinal) ||
-                StringNormalizer.Normalize(track.OriginalDance).Contains(normalized, StringComparison.Ordinal) ||
-                StringNormalizer.Normalize(track.Artist).Contains(normalized, StringComparison.Ordinal) ||
-                StringNormalizer.Normalize(track.Title).Contains(normalized, StringComparison.Ordinal);
-    }
 }
