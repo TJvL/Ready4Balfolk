@@ -22,7 +22,7 @@
             </Grid>
             <TextBox Text="{CompiledBinding Message}"
                      MaxLength="60"
-                     Watermark="{x:Static res:UiStrings.Dialog_MessageWatermark}" />
+                     PlaceholderText="{x:Static res:UiStrings.Dialog_MessageWatermark}" />
         </StackPanel>
 
         <!-- Use delay checkbox -->

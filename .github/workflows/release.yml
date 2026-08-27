@@ -1,5 +1,11 @@
 name: Release
 
+# Never two releases at once, and never cancel one part-way: a half-published release leaves
+# artifacts on a tag that no longer matches what the workflow was building.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:

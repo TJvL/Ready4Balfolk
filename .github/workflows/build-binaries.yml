@@ -1,5 +1,15 @@
 name: Build Binaries
 
+# One run per branch. This publishes self-contained binaries for two platforms and launches each
+# of them, so a second push while the first is going is minutes of runner time spent on a commit
+# nobody will look at. Never cancelled on main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
 on:
   # Publishing on every pull request is not free, but it is the only way the smoke test below can
   # run before a change is merged, and a startup regression found at release time is found late.

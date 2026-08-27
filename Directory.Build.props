@@ -11,4 +11,11 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!--TreatWarningsAsErrors does not reach the Avalonia XAML compiler, so a deprecated control
+        property warned on every Release build and blocked nothing. AVLN5001 is the obsolete-member
+        warning, which is the one that turns into a broken build at the next major Avalonia.-->
+    <WarningsAsErrors>$(WarningsAsErrors);AVLN5001</WarningsAsErrors>
+  </PropertyGroup>
+
 </Project>
