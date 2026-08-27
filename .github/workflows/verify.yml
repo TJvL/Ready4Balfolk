@@ -84,13 +84,16 @@ jobs:
 
       # Collected, not gated. A threshold is a policy decision and belongs in a conversation, not
       # in the first commit that measures anything; this makes the number reviewable meanwhile.
+      #
+      # A glob because the runner and a local run do not put the file in the same place, and
+      # if-no-files-found: error because the first version of this step warned and went green while
+      # uploading nothing, which is worse than not collecting coverage at all.
       - name: Upload coverage
-        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ matrix.os }}
-          path: Ready4Balfolk.Tests/bin/Release/net10.0/TestResults/coverage.cobertura.xml
-          if-no-files-found: warn
+          path: '**/TestResults/coverage.cobertura.xml'
+          if-no-files-found: error
 
   # A stable name for the branch ruleset to require. A matrix reports one status check per leg,
   # named after its matrix values, so requiring those directly means editing the ruleset every time
