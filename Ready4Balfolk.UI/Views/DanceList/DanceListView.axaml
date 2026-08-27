@@ -38,7 +38,7 @@
               ColumnDefinitions="*,Auto" Margin="0,0,0,8">
             <TextBox Grid.Column="0"
                      Text="{CompiledBinding SearchText, Mode=TwoWay}"
-                     Watermark="{x:Static res:UiStrings.DanceList_SearchWatermark}" />
+                     PlaceholderText="{x:Static res:UiStrings.DanceList_SearchWatermark}" />
             <TextBlock Grid.Column="1"
                        Text="{CompiledBinding SummaryText}"
                        VerticalAlignment="Center"

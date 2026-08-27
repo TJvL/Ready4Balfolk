@@ -33,7 +33,7 @@
         </Button>
 
         <TextBox Text="{Binding SearchText}"
-                 Watermark="{x:Static res:UiStrings.TrackCatalog_SearchWatermark}"
+                 PlaceholderText="{x:Static res:UiStrings.TrackCatalog_SearchWatermark}"
                  VerticalAlignment="Center" />
     </DockPanel>
 </UserControl>

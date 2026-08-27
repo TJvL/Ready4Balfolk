@@ -181,7 +181,7 @@
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBox Grid.Column="0"
                              Text="{Binding DraftPattern, Mode=TwoWay}"
-                             Watermark="{x:Static res:UiStrings.Discovery_DraftWatermark}"
+                             PlaceholderText="{x:Static res:UiStrings.Discovery_DraftWatermark}"
                              FontFamily="monospace" />
                     <Button Grid.Column="1"
                             Content="{x:Static res:UiStrings.Discovery_Declare}"

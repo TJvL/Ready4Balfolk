@@ -226,7 +226,7 @@
                                      off the box being typed into and the typing stops. -->
                                 <TextBox Classes="field"
                                          Text="{Binding Dance, Mode=TwoWay}"
-                                         Watermark="{x:Static res:UiStrings.Review_Dance}"
+                                         PlaceholderText="{x:Static res:UiStrings.Review_Dance}"
                                          LostFocus="OnDanceLostFocus" />
 
                                 <!-- Zero height on purpose: the matches overlay the rows beneath
@@ -262,14 +262,14 @@
                             <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
                                 <TextBox Classes="field"
                                          Text="{Binding Artist, Mode=TwoWay}"
-                                         Watermark="{x:Static res:UiStrings.Review_Artist}" />
+                                         PlaceholderText="{x:Static res:UiStrings.Review_Artist}" />
                                 <TextBlock Text="{Binding ArtistSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
 
                             <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2">
                                 <TextBox Classes="field"
                                          Text="{Binding Title, Mode=TwoWay}"
-                                         Watermark="{x:Static res:UiStrings.Review_TitleField}" />
+                                         PlaceholderText="{x:Static res:UiStrings.Review_TitleField}" />
                                 <TextBlock Text="{Binding TitleSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
 

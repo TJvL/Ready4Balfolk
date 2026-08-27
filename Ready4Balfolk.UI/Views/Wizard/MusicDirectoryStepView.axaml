@@ -12,7 +12,7 @@
         <Grid ColumnDefinitions="*, Auto">
             <TextBox Grid.Column="0"
                      Text="{CompiledBinding MusicDirectoryPath, Mode=TwoWay}"
-                     Watermark="{x:Static res:UiStrings.Settings_MusicDirectoryWatermark}"
+                     PlaceholderText="{x:Static res:UiStrings.Settings_MusicDirectoryWatermark}"
                      IsReadOnly="True" />
             <Button Grid.Column="1"
                     Content="{x:Static res:UiStrings.Settings_Browse}"

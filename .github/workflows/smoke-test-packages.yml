@@ -6,6 +6,9 @@ name: Smoke Test Packages
 # but never copied into the bundle, an installer that writes the executable somewhere the shortcut
 # does not point, a Flatpak manifest missing a permission the app needs to start.
 
+permissions:
+  contents: read
+
 on:
   workflow_call:
 
