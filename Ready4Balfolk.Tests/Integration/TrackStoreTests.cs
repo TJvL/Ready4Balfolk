@@ -36,6 +36,7 @@ public sealed class TrackStoreTests : IDisposable
     private readonly BehaviorSubject<DanceList> _danceLists;
     private DanceListIndex _danceIndex = DanceListIndex.Empty;
     private readonly TrackStore _sut;
+    private TrackLibraryConfiguration _configuration = TrackLibraryConfiguration.Undeclared;
 
     public TrackStoreTests()
     {
@@ -159,12 +160,12 @@ public sealed class TrackStoreTests : IDisposable
         var isLoading = false;
         using var loadingSubscription = _sut.IsLoading.Subscribe(value => isLoading = value);
 
-        _sut.MusicDirectory = _dirA;
+        await ApplyAsync(directory: _dirA);
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "a.mp3"));
 
         // Switching a second time used to throw a NullReferenceException from the
         // watcher remove-handlers and leave the store without a watcher.
-        _sut.MusicDirectory = _dirB;
+        await ApplyAsync(directory: _dirB);
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));
         await WaitUntilAsync(() => !isLoading);
 
@@ -190,7 +191,7 @@ public sealed class TrackStoreTests : IDisposable
         // Without the index delete the next rebuild resurrects the file: any refresh republishes
         // whatever rows the index still holds.
         CreateFile(_dirA, "a.mp3");
-        _sut.MusicDirectory = _dirA;
+        await ApplyAsync(directory: _dirA);
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
         _fileSystem.File.Delete(_fileSystem.Path.Combine(_dirA.FullName, "a.mp3"));
@@ -221,7 +222,7 @@ public sealed class TrackStoreTests : IDisposable
         var isLoading = false;
         using var loadingSubscription = _sut.IsLoading.Subscribe(value => isLoading = value);
 
-        _sut.MusicDirectory = missing;
+        await ApplyAsync(directory: missing);
 
         await WaitUntilAsync(() => _loggerService.ReceivedCalls()
             .Any(c => c.GetMethodInfo().Name == nameof(ILoggerService.WarningAsync)));
@@ -248,8 +249,8 @@ public sealed class TrackStoreTests : IDisposable
                 return Task.CompletedTask;
             });
 
-        _sut.DiscoverySettings = new DiscoverySettings { FileNamePatterns = ["%a - %t"] };
-        _sut.MusicDirectory = _dirA;
+        await ApplyAsync(discovery: new DiscoverySettings { FileNamePatterns = ["%a - %t"] });
+        await ApplyAsync(directory: _dirA);
 
         await WaitUntilAsync(() =>
         {
@@ -275,7 +276,7 @@ public sealed class TrackStoreTests : IDisposable
     {
         CreateFile(_dirA, "a.mp3");
 
-        _sut.MusicDirectory = _dirA;
+        await ApplyAsync(directory: _dirA);
         await WaitUntilAsync(() => _sut.Current.Any(track => track.FileInfo.Name == "a.mp3"));
 
         await _libraryIndex.DidNotReceive().ApproveAsync(
@@ -288,10 +289,10 @@ public sealed class TrackStoreTests : IDisposable
     {
         CreateFile(_dirA, "Naragonia - Mazurka.mp3");
 
-        _sut.MusicDirectory = _dirA;
+        await ApplyAsync(directory: _dirA);
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
-        _sut.DiscoverySettings = new DiscoverySettings { FileNamePatterns = ["%a - %t"] };
+        await ApplyAsync(discovery: new DiscoverySettings { FileNamePatterns = ["%a - %t"] });
 
         await WaitUntilAsync(() => _libraryIndex.ReceivedCalls()
             .Any(call => call.GetMethodInfo().Name == nameof(ILibraryIndex.RevokeRuleApprovalsAsync)));
@@ -311,7 +312,7 @@ public sealed class TrackStoreTests : IDisposable
         var inReview = 0;
         using var counting = _sut.InReviewCount.Subscribe(count => inReview = count);
 
-        _sut.MusicDirectory = _dirA;
+        await ApplyAsync(directory: _dirA);
         await WaitUntilAsync(() => _indexSnapshot.Count == 1 && !isLoading);
 
         // Approved on every field, and still not in the library: the list has never heard of the
@@ -340,7 +341,7 @@ public sealed class TrackStoreTests : IDisposable
             [file.FullName] = IndexedAs(file, "Mazurka")
         };
 
-        _sut.MusicDirectory = _dirA;
+        await ApplyAsync(directory: _dirA);
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
         // The whole point of the index: a startup that finds nothing changed touches no audio.
@@ -361,7 +362,7 @@ public sealed class TrackStoreTests : IDisposable
             [file.FullName] = IndexedAs(file, "Mazurka") with { FileSize = file.Length + 1 }
         };
 
-        _sut.MusicDirectory = _dirA;
+        await ApplyAsync(directory: _dirA);
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
         _discoveryService.ReceivedWithAnyArgs().Gather(default!, default!);
@@ -372,7 +373,7 @@ public sealed class TrackStoreTests : IDisposable
     {
         CreateFile(_dirA, "fresh.mp3");
 
-        _sut.MusicDirectory = _dirA;
+        await ApplyAsync(directory: _dirA);
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
         await _libraryIndex.ReceivedWithAnyArgs().WriteAsync(default!, TestContext.Current.CancellationToken);
@@ -443,8 +444,8 @@ public sealed class TrackStoreTests : IDisposable
         // Switch without waiting, so the second load starts while the first is still running.
         // Unserialised, the two race over _watcher and _tracks: one disposes the watcher the
         // other just published, and enabling it then throws ObjectDisposedException.
-        _sut.MusicDirectory = _dirA;
-        _sut.MusicDirectory = _dirB;
+        await ApplyAsync(directory: _dirA);
+        await ApplyAsync(directory: _dirB);
 
         var isLoading = true;
         using var loadingSubscription = _sut.IsLoading.Subscribe(value => isLoading = value);
@@ -485,7 +486,8 @@ public sealed class TrackStoreTests : IDisposable
                 await releaseTheLoad.Task;
             });
 
-        _sut.MusicDirectory = _dirA;
+        // Not awaited: the point is to ask for a rebuild while this load is still inside the gate.
+        var load = ApplyAsync(directory: _dirA);
         await loadIsInside.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         var rebuild = Task.Run(async () =>
@@ -500,6 +502,7 @@ public sealed class TrackStoreTests : IDisposable
         Assert.False(rebuildRan, "the rebuild ran while the load still held the gate");
 
         releaseTheLoad.TrySetResult();
+        await load.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         await rebuild.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.True(rebuildRan);
@@ -520,15 +523,37 @@ public sealed class TrackStoreTests : IDisposable
         CreateFile(_dirA, "a.mp3");
         CreateFile(_dirB, "b.mp3");
 
-        _sut.MusicDirectory = _dirA;
-        await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "a.mp3"));
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name is "a.mp3" or "b.mp3"));
 
-        _sut.AllowDancesOutsideTheList = true;
-        _sut.MusicDirectory = _dirB;
+        // Started together and deliberately not awaited in order: the directory change has to be
+        // able to supersede the rebuild the rule toggle asked for.
+        var toggled = ApplyAsync(allowOutside: true);
+        var moved = ApplyAsync(directory: _dirB);
+        await Task.WhenAll(toggled, moved);
 
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));
         await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
         Assert.DoesNotContain(_sut.Current, t => t.FileInfo.Name == "a.mp3");
+    }
+
+    /// <summary>Applies a change to one part of the configuration, keeping the rest.</summary>
+    /// <remarks>
+    /// The store takes all three together now, so a test that wants to move one has to say what the
+    /// other two still are. Returns the task rather than awaiting, because a couple of these tests
+    /// are about what happens while a load is still running.
+    /// </remarks>
+    private Task ApplyAsync(
+        IDirectoryInfo? directory = null, DiscoverySettings? discovery = null, bool? allowOutside = null)
+    {
+        _configuration = _configuration with
+        {
+            MusicDirectoryPath = directory?.FullName ?? _configuration.MusicDirectoryPath,
+            Discovery = discovery ?? _configuration.Discovery,
+            AllowDancesOutsideTheList = allowOutside ?? _configuration.AllowDancesOutsideTheList
+        };
+
+        return _sut.ApplyAsync(_configuration);
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 10_000)

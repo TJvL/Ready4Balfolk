@@ -83,24 +83,18 @@ public sealed class App : Application
 
                 var trackStore = Services.GetRequiredService<ITrackStore>();
 
-                // Before the music directory, deliberately. The declarations are what a scan reads
-                // with, and setting them second would scan the whole library once under the old
-                // rules and then immediately again under the new ones.
+                // One subscription, one value. These used to be three separate subscriptions into
+                // three setters, and the order they were declared in mattered: setting the music
+                // directory before the declared rules scanned the whole library once under the old
+                // rules and immediately again under the new ones. Handing all three over together
+                // means that cannot be got wrong.
                 _compositeDisposable.Add(settingsStore.Observe()
-                    .Select(s => s.Discovery)
+                    .Select(s => new TrackLibraryConfiguration(
+                        s.MusicDirectoryPath, s.Discovery, s.AllowDancesOutsideTheList))
                     .DistinctUntilChanged()
-                    .Subscribe(discovery => trackStore.DiscoverySettings = discovery));
-
-                _compositeDisposable.Add(settingsStore.Observe()
-                    .Select(s => s.AllowDancesOutsideTheList)
-                    .DistinctUntilChanged()
-                    .Subscribe(allow => trackStore.AllowDancesOutsideTheList = allow));
-
-                _compositeDisposable.Add(settingsStore.Observe()
-                    .Select(s => s.MusicDirectoryPath)
-                    .Where(path => !string.IsNullOrWhiteSpace(path))
-                    .Select(r => fileSystem.DirectoryInfo.New(r))
-                    .Subscribe(directory => trackStore.MusicDirectory = directory));
+                    .Subscribe(configuration => trackStore.ApplyAsync(configuration)
+                        .SafeFireAndForget(exception => Services.GetRequiredService<ILoggerService>()
+                            .ErrorAsync("Failed to apply the library settings", exception))));
 
                 var windowState = settingsStore.Current.MainWindowState;
                 if (windowState is { X: not null, Y: not null })
