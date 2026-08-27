@@ -19,7 +19,18 @@ public sealed class RemoteAccessService(TimeProvider? timeProvider = null)
 
     private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(1);
 
+    /// <summary>How long a token stays usable without being seen again.</summary>
+    /// <remarks>
+    /// Slid forward on every use rather than fixed from issue, and long enough to cover a whole
+    /// evening including the reconnects a phone makes whenever it sleeps: being asked for the PIN
+    /// again mid-bal is the interruption this is meant to avoid. What it does end is the token from
+    /// some other night still opening the queue because nobody thought to change the PIN.
+    /// </remarks>
+    private static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(12);
+
     private readonly ConcurrentDictionary<string, Attempts> _attempts = new(StringComparer.Ordinal);
+    // The value is when the token stops being usable, not when it was issued. It used to be the
+    // issue time, which nothing ever read, so a token lived until the PIN changed.
     private readonly ConcurrentDictionary<string, DateTimeOffset> _tokens = new(StringComparer.Ordinal);
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
@@ -90,13 +101,61 @@ public sealed class RemoteAccessService(TimeProvider? timeProvider = null)
             .Replace("/", "_", StringComparison.Ordinal)
             .TrimEnd('=');
 
-        _tokens[token] = now;
+        _tokens[token] = now + TokenLifetime;
+        Prune(now);
         return RemoteLoginResult.Granted(token);
     }
 
     /// <summary>Whether a hub connection may proceed.</summary>
-    public bool IsTokenValid(string? token) =>
-        IsEnabled && token is not null && _tokens.ContainsKey(token);
+    public bool IsTokenValid(string? token)
+    {
+        if (!IsEnabled || token is null)
+        {
+            return false;
+        }
+
+        var now = _timeProvider.GetUtcNow();
+
+        if (!_tokens.TryGetValue(token, out var expiresAt) || expiresAt <= now)
+        {
+            _tokens.TryRemove(token, out _);
+            return false;
+        }
+
+        _tokens[token] = now + TokenLifetime;
+        return true;
+    }
+
+    /// <summary>
+    /// Drops what has aged out of both dictionaries.
+    /// </summary>
+    /// <remarks>
+    /// Called from the login path only, which is the rare one, and safe against a login racing it:
+    /// an attempts entry is only ever removed while it holds no failures and no live lockout, so
+    /// there is nothing a race could reset. Without this, both grew for the life of the process,
+    /// one entry per login and one per address that ever guessed wrong.
+    /// </remarks>
+    private void Prune(DateTimeOffset now)
+    {
+        foreach (var (token, expiresAt) in _tokens)
+        {
+            if (expiresAt <= now)
+            {
+                _tokens.TryRemove(token, out _);
+            }
+        }
+
+        foreach (var (client, attempts) in _attempts)
+        {
+            lock (attempts)
+            {
+                if (attempts.Failed == 0 && attempts.LockedUntil <= now)
+                {
+                    _attempts.TryRemove(client, out _);
+                }
+            }
+        }
+    }
 
     private sealed class Attempts
     {
