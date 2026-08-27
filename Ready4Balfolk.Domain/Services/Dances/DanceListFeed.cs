@@ -13,14 +13,25 @@ public sealed class DanceListFeed : IDanceListFeed, IDisposable
     private static readonly Uri ListUri =
         new("https://raw.githubusercontent.com/TJvL/BigBalfolkList/main/dances.json");
 
-    private readonly HttpClient _client = new()
-    {
-        // Long enough for a slow hall connection, short enough that startup is never held up by it.
-        Timeout = TimeSpan.FromSeconds(15)
-    };
+    private readonly HttpClient _client;
 
-    public DanceListFeed()
+    public DanceListFeed() : this(new HttpClientHandler())
     {
+    }
+
+    /// <summary>Takes the handler to send through.</summary>
+    /// <remarks>
+    /// The only reason this exists is that a feed which builds its own handler cannot be tested
+    /// without reaching the network, and what is worth testing here is the behaviour around the
+    /// request rather than GitHub being up.
+    /// </remarks>
+    public DanceListFeed(HttpMessageHandler handler)
+    {
+        _client = new HttpClient(handler)
+        {
+            // Long enough for a slow hall connection, short enough that startup is never held up.
+            Timeout = TimeSpan.FromSeconds(15)
+        };
         _client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Ready4Balfolk", "1.0"));
         _client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
     }
