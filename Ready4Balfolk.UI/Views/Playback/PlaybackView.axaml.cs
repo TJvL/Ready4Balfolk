@@ -57,7 +57,7 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
             return;
         }
 
-        // Overflows — scroll back and forth
+        // Overflows: scroll back and forth
         var overflow = panelWidth - canvasWidth;
         const double scrollSpeed = 50.0; // px/sec
         const double pauseSec = 2.0;

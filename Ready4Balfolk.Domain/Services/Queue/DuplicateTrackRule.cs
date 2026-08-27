@@ -63,7 +63,7 @@ public sealed class DuplicateTrackRule(
             }
         }
 
-        // Iterate queue items — first occurrence kept, duplicates evicted
+        // Iterate queue items: first occurrence kept, duplicates evicted
         var indices = new List<int>();
         for (var i = 0; i < currentItems.Count; i++)
         {

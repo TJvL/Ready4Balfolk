@@ -16,7 +16,7 @@ namespace Ready4Balfolk.Domain.Services.Tracks;
 /// It samples rather than reading everything. A library is tens of gigabytes and the first index has
 /// to read every file once: on a fast desktop that was three minutes, but on a laptop with the music
 /// on an external drive it is half an hour of watching a progress bar. Sampling turns that into
-/// seconds, and the identity is just as good — two different recordings would have to share their
+/// seconds, and the identity is just as good: two different recordings would have to share their
 /// first slice, their last slice and their exact byte length to collide.
 /// </para>
 /// </remarks>

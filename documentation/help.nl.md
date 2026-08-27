@@ -33,11 +33,11 @@ Als je bibliotheek *wél* een vaste vorm heeft, kun je dat zeggen. Open **Review
 - **Bestandsnaampatronen.** `%d` dans, `%a` artiest, `%t` titel, `%n` volgnummer, `%i` negeren, `%ex` extensie; al het andere moet er letterlijk staan. `%d - %a - %t` leest `Mazurka - Naragonia - Idiosyncrasie.mp3`. Een patroon moet een hele naam dekken, en het eerste patroon in de lijst dat past is het patroon dat antwoordt, dus zet het meest specifieke bovenaan.
 - **Mapniveaus.** Geteld van buiten naar binnen. Niveau 1 als artiest bestempelen leest die map als artiest voor elk bestand dat diep genoeg zit, en zegt niets over de bestanden die dat niet zijn.
 - **Tags.** Welke tagvelden welke waarde bevatten. Standaard gelden artiest en albumartiest als artiest, het titelveld als titel, en geldt geen enkele tag als dans. Een dansnaam uit je lijst wordt hoe dan ook in elke tag herkend, wat je hier ook instelt.
-- **Een eigen danstag.** Sommige bibliotheken dragen de dans in een vrije tag van zichzelf — een ID3v2 `TXXX`-frame of een Xiph-veld dat `DANCE`, `STYLE` of hoe je tagger het ook noemde heet. Geef die tagnaam hier op en de waarde wordt als dans gelezen, in zijn geheel: een waarde die de lijst niet kent parkeert het nummer, precies als elk ander verklaard antwoord. Het paneel laat zien op hoeveel van je bestanden zo'n tag staat voordat je je eraan verbindt.
+- **Een eigen danstag.** Sommige bibliotheken dragen de dans in een vrije tag van zichzelf: een ID3v2 `TXXX`-frame of een Xiph-veld dat `DANCE`, `STYLE` of hoe je tagger het ook noemde heet. Geef die tagnaam hier op en de waarde wordt als dans gelezen, in zijn geheel: een waarde die de lijst niet kent parkeert het nummer, precies als elk ander verklaard antwoord. Het paneel laat zien op hoeveel van je bestanden zo'n tag staat voordat je je eraan verbindt.
 
 **Een regel is een bulkgoedkeuring**, en dat is precies de bedoeling: in plaats van tweeduizend bestanden één voor één te beantwoorden, ga je één keer akkoord met de regel die ze beantwoordt. Daarom zie je vooraf wat hij doet, in de getallen die ertoe doen: hoeveel bestanden hij pakt, wat hij ervan maakt, en hoeveel er overblijven. Een regel toevoegen, verwijderen of herordenen leest je bibliotheek opnieuw, want een regel is er om de bestanden te beantwoorden die er al liggen.
 
-**Het vertelt je ook hoe je bibliotheek eruitziet.** Bovenin het paneel staan de vormen die uit je eigen bestandsnamen en mappen gemeten zijn — "296 van 2685 bestanden hebben de vorm `%d - %i - %t`", "niveau 1 lijkt de artiest, 96 van 121 zijn het eens" — elk met de tellingen erachter en de bestanden waaruit het gelezen is. Het zijn voorstellen: er gebeurt niets tot je op **Verklaar het** klikt. Waar de metingen het niet eens zijn wordt de vorm getoond en niets benoemd, want een zelfverzekerde gok over je hele bibliotheek is erger dan geen gok.
+**Het vertelt je ook hoe je bibliotheek eruitziet.** Bovenin het paneel staan de vormen die uit je eigen bestandsnamen en mappen gemeten zijn: "296 van 2685 bestanden hebben de vorm `%d - %i - %t`", "niveau 1 lijkt de artiest, 96 van 121 zijn het eens", elk met de tellingen erachter en de bestanden waaruit het gelezen is. Het zijn voorstellen: er gebeurt niets tot je op **Verklaar het** klikt. Waar de metingen het niet eens zijn wordt de vorm getoond en niets benoemd, want een zelfverzekerde gok over je hele bibliotheek is erger dan geen gok.
 
 **Een dans die in de gepubliceerde lijst ontbreekt is geen regelprobleem.** Het paneel linkt bovenaan naar [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/), want daar wordt een ontbrekende dans voorgesteld. Onder de regels staat een schakelaar om een dans die de lijst niet kent tóch je bibliotheek in te laten. Hij staat uit om mee te beginnen: de gedeelde lijst is wat een dansnaam voor iedereen hetzelfde laat betekenen, en een nummer dat zo binnenkomt kan nooit in een willekeurige keuze opduiken, want die trekt per tag en een dans die niemand publiceerde heeft er geen.
 
@@ -82,7 +82,7 @@ Het afspeelpaneel toont wat er speelt en biedt de bedieningsknoppen.
 ### Nu spelen-weergave
 
 - **Dansnaam**: prominent bovenaan
-- **Artiest en titel**: daaronder als "Artiest — Titel"
+- **Artiest en titel**: daaronder als "Artiest: Titel"
 - **Voortgangsbalk**: de positie in het nummer, met verstreken tijd links en totale duur rechts
 
 Speelt er een bericht, dan schakelt de weergave naar berichtmodus met automatisch scrollende tekst.
@@ -105,7 +105,7 @@ hem vroeg op de avond af op de zaal en blijf er daarna vanaf.
 
 Hij is standaard ingeklapt. De kop toont **aan** of **uit**, zodat een equalizer die van een vorige
 avond nog aanstaat zichtbaar is zonder het paneel te openen. Wijzigingen werken meteen, ook terwijl
-een nummer speelt — de enige praktische manier om een zaal te beoordelen.
+een nummer speelt, de enige praktische manier om een zaal te beoordelen.
 
 ### Banden
 
@@ -132,7 +132,7 @@ onderste octaaf toch niet zinvol weergeven. Begin rond 40 tot 60 Hz.
 
 ### Voorversterking
 
-Banden versterken maakt het signaal luider en kan de uitgang laten clippen — dat klinkt als
+Banden versterken maakt het signaal luider en kan de uitgang laten clippen, dat klinkt als
 vervorming die erger wordt op de luidste stukken. Heb je iets versterkt, trek de voorversterking
 dan ongeveer je grootste versterking omlaag.
 
@@ -167,7 +167,7 @@ De wachtrij kan verschillende soorten items bevatten, elk met een eigen uiterlij
 - **Herordenen**: sleep items naar een andere plek
 - **Verwijderen**: selecteer een item en druk op Delete, of gebruik de knop in de werkbalk
 - **Dubbelklik een nummer** in de catalogus om het achteraan toe te voegen
-- **Rechtsklik een nummer** en kies **Nummer bewerken** om zijn dans, artiest of titel meteen te corrigeren — zie [de catalogus](#nummercatalogus)
+- **Rechtsklik een nummer** en kies **Nummer bewerken** om zijn dans, artiest of titel meteen te corrigeren: zie [de catalogus](#nummercatalogus)
 
 ### Wachtrijwerkbalk
 
@@ -227,7 +227,7 @@ Onderaan het geschiedenispaneel:
 
 ## Nummercatalogus
 
-De catalogus toont je bibliotheek — de nummers die je in Review beantwoord hebt — in een
+De catalogus toont je bibliotheek, de nummers die je in Review beantwoord hebt, in een
 doorzoekbare, sorteerbare tabel. Wat nog wacht staat hier niet; dat staat in [Review](#review-1).
 
 ### Nummers bladeren
@@ -252,7 +252,7 @@ Dubbelklik een nummer om het achteraan de wachtrij te zetten. Staat dubbelpreven
 
 ### Een typefout herstellen waar je hem ziet
 
-Rechtsklik een nummer — hier, of op een nummer dat in de wachtrij staat — en kies **Nummer
+Rechtsklik een nummer, hier, of op een nummer dat in de wachtrij staat, en kies **Nummer
 bewerken** om dans, artiest of titel ter plekke te corrigeren. Het nummer verlaat je bibliotheek
 daarbij niet: wat je wijzigt wordt als jouw eigen antwoord opgeslagen, en alleen de velden die je
 daadwerkelijk veranderde worden geraakt. De dans moet nog steeds een zijn die de gepubliceerde
@@ -295,7 +295,7 @@ wordt gekeken of er een nieuwere is.
 De tags in de linkerbalk zijn de **pool**. Een klik laat een tag door drie standen lopen: eruit,
 **wordt uit getrokken** (gevuld), en **nooit trekken** (rode rand, doorgestreept); een derde klik
 zet hem er weer uit. Een willekeurige keuze, en de auto-wachtrij, trekken uit de dansen die een
-gekozen tag dragen en geen enkele uitgesloten tag — een uitsluiting wint altijd, dus *bretagne*
+gekozen tag dragen en geen enkele uitgesloten tag, een uitsluiting wint altijd, dus *bretagne*
 maar nooit *chain* betekent precies dat. Zonder keuze is de pool elke dans.
 
 De werkbalk zegt altijd waaruit getrokken wordt, want een tag is snel aangeklikt en daarna moeilijk
@@ -329,8 +329,7 @@ onleesbaar, dan blijft de lijst die je al had in gebruik.
 
 Stel het voor bij [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/). De site laat je een
 spelling toevoegen, er een verbeteren, een dans taggen of een ontbrekende dans toevoegen, en maakt
-daar een voorstel van dat iemand bekijkt. Iedereen die de lijst gebruikt krijgt jouw verbetering —
-dat is het punt van één lijst.
+daar een voorstel van dat iemand bekijkt. Iedereen die de lijst gebruikt krijgt jouw verbetering: dat is het punt van één lijst.
 
 ---
 
@@ -357,8 +356,8 @@ erger dan een dat eerlijk nog wacht.
 - **Gegroepeerd per map**, met de mapnaam in een band boven zijn nummers. Nummers die los in je
   muziekmap liggen staan apart: ze zijn nergens opgeborgen, dus er is niets om samen te
   beantwoorden.
-- **Elk veld zegt waar het vandaan komt** — een tag, de bestandsnaam, een map, een van je regels,
-  of jij — want een fout antwoord valt pas op als je ziet wat het opleverde.
+- **Elk veld zegt waar het vandaan komt**: een tag, de bestandsnaam, een map, een van je regels,
+  of jij, want een fout antwoord valt pas op als je ziet wat het opleverde.
 
 ### Het toetsenbord
 
@@ -434,7 +433,7 @@ in de wachtrijwerkbalk gebruikt.
 ### Geen verzoeken meer na een eindtijd
 
 Een eindtijd voor de avond. Zodra de wachtrij voorbij die tijd zou lopen (plus een respijt in
-minuten), worden nieuwe items geweigerd — zo eindigt de laatste dans wanneer de zaal sluit in
+minuten), worden nieuwe items geweigerd, zo eindigt de laatste dans wanneer de zaal sluit in
 plaats van twintig minuten erna. De auto-wachtrij houdt zich aan dezelfde grens en stopt met
 aanvullen, in plaats van de avond op eigen houtje door te laten lopen. Staat er een stop in de
 wachtrij, dan is de eindtijd onbekend en geldt de grens niet; gebruik een pauze als je weet hoe lang
@@ -529,10 +528,10 @@ ander scherm en onthoudt zijn plek tussen sessies.
 Ready4Balfolk kan twee pagina's over je lokale netwerk aanbieden vanuit een kleine ingebouwde
 webserver:
 
-- **De weergavepagina** toont wat er speelt en wat er komt, voor elk apparaat met een browser — een
+- **De weergavepagina** toont wat er speelt en wat er komt, voor elk apparaat met een browser: een
   tablet naast het podium werkt zo als presentatiescherm zonder videokabel.
 - **De afstandsbediening** kan afspelen, pauzeren, overslaan, een willekeurig nummer, een stop, een
-  pauze of een bericht toevoegen, de avond afsluiten, en de bibliotheek doorzoeken — wat een DJ
+  pauze of een bericht toevoegen, de avond afsluiten, en de bibliotheek doorzoeken, wat een DJ
   nodig heeft weg van de computer, en niets meer. Bewust kan hij de pool niet wijzigen: waar
   willekeurige keuzes uit trekken wordt aan de computer besloten, en de afstandsbediening trekt uit
   wat het scherm daar zegt. De avond afsluiten werkt net zo: welk bestand dat is, is aan de computer

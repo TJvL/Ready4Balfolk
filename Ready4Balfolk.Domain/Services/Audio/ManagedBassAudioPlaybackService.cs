@@ -44,8 +44,8 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     /// Initialises BASS against its "no sound" device instead of the default output. The library,
     /// its plugins and the whole effect chain come up exactly as they would against real hardware;
     /// only the audio goes nowhere. For the CI smoke test, where the runner has no sound card at
-    /// all, this keeps the check measuring what it is there to measure — that the native libraries
-    /// shipped and load — rather than whether the machine can make a noise.
+    /// all, this keeps the check measuring what it is there to measure, that the native libraries
+    /// shipped and load, rather than whether the machine can make a noise.
     /// </param>
     public ManagedBassAudioPlaybackService(
         ILoggerService loggerService,
@@ -411,7 +411,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     /// system's library path and knows nothing about where .NET put the file. Under
     /// PublishSingleFile the natives are extracted to a temp directory that is on neither path,
     /// and the Windows builds shipped without FLAC support because of it. Managed P/Invokes such
-    /// as bass and bass_fx are unaffected, because those go through .NET's own resolver — which
+    /// as bass and bass_fx are unaffected, because those go through .NET's own resolver, which
     /// is also where the extraction directory can be read back from.
     /// </remarks>
     private static string ResolveNativeLibrary(string fileName)

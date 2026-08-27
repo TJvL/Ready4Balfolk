@@ -33,11 +33,11 @@ If your library *does* follow a shape, you can say so. Open **Review** and press
 - **File name patterns.** `%d` dance, `%a` artist, `%t` title, `%n` track number, `%i` ignore, `%ex` extension; anything else has to be there exactly. `%d - %a - %t` reads `Mazurka - Naragonia - Idiosyncrasie.mp3`. A pattern has to match a whole name, and the first pattern in the list that does is the one that answers, so put the most specific first.
 - **Folder levels.** Counted from the outside in. Saying level 1 is the artist reads that folder as the artist for every file deep enough to have one, and says nothing about the files that are not.
 - **Tags.** Which tag fields hold which value. Left alone, artist and album artist are read as the artist, the title tag as the title, and no tag is read as the dance. A dance name from your list is still recognised inside any tag whatever you set here.
-- **A custom dance tag.** Some libraries carry the dance in a free-form tag of their own — an ID3v2 `TXXX` frame or a Xiph field named `DANCE`, `STYLE`, or whatever your tagger called it. Name that tag here and its value is read as the dance, whole: a value the list does not know parks the track exactly as any other declared answer would. The panel shows how many of your files carry a tag of that name before you commit to it.
+- **A custom dance tag.** Some libraries carry the dance in a free-form tag of their own: an ID3v2 `TXXX` frame or a Xiph field named `DANCE`, `STYLE`, or whatever your tagger called it. Name that tag here and its value is read as the dance, whole: a value the list does not know parks the track exactly as any other declared answer would. The panel shows how many of your files carry a tag of that name before you commit to it.
 
-**A rule is a bulk approval**, which is the point of it: rather than answering two thousand files one at a time, you agree once to the rule that answers them. So you are shown what it does before you add it, in the numbers that matter — how many files it takes, what it makes of them, and how many would be left. Adding, removing or reordering a rule re-reads your library, because a rule is meant to answer the files already sitting in it.
+**A rule is a bulk approval**, which is the point of it: rather than answering two thousand files one at a time, you agree once to the rule that answers them. So you are shown what it does before you add it, in the numbers that matter, how many files it takes, what it makes of them, and how many would be left. Adding, removing or reordering a rule re-reads your library, because a rule is meant to answer the files already sitting in it.
 
-**It also tells you what your library looks like.** At the top of the panel are the shapes measured from your own file names and folders — "296 of 2685 files are shaped like `%d - %i - %t`", "level 1 looks like the artist, 96 of 121 agree" — each with the counts behind it and the files it was read from. They are proposals: nothing is applied until you press **Declare it**. Where the measurements do not agree, the shape is shown and nothing is named, because a confident guess about your whole library is worse than no guess.
+**It also tells you what your library looks like.** At the top of the panel are the shapes measured from your own file names and folders: "296 of 2685 files are shaped like `%d - %i - %t`", "level 1 looks like the artist, 96 of 121 agree", each with the counts behind it and the files it was read from. They are proposals: nothing is applied until you press **Declare it**. Where the measurements do not agree, the shape is shown and nothing is named, because a confident guess about your whole library is worse than no guess.
 
 **A dance missing from the published list is not a rule problem.** The panel links to [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/) at the top, because that is where a missing dance is proposed. Beneath the rules is a switch for letting a dance the list does not carry into your library anyway. It is off to begin with: the shared list is what makes a dance name mean the same thing to everybody, and a track let in this way can never come up in a random pick, because those draw by tag and a dance nobody has published has none.
 
@@ -82,7 +82,7 @@ The playback panel shows what is currently playing and provides transport contro
 ### Now Playing Display
 
 - **Dance name**: Shown prominently at the top
-- **Artist and title**: Displayed below the dance name as "Artist — Title"
+- **Artist and title**: Displayed below the dance name as "Artist: Title"
 - **Progress bar**: Shows the current position in the track, with elapsed time on the left and total duration on the right
 
 When a message item is playing, the display switches to message mode with auto-scrolling text.
@@ -226,7 +226,7 @@ At the bottom of the history panel:
 
 ## Track Catalog
 
-The track catalog shows your library — the tracks you have answered in Review — in a searchable,
+The track catalog shows your library, the tracks you have answered in Review, in a searchable,
 sortable table. Anything still waiting is not here; it is in [Review](#review-1).
 
 ### Browsing Tracks
@@ -250,7 +250,7 @@ Double-click a track to add it to the end of the queue. If duplicate prevention 
 
 ### Fixing a typo where you see it
 
-Right-click a track — here, or on a track sitting in the queue — and choose **Edit track** to
+Right-click a track, here, or on a track sitting in the queue, and choose **Edit track** to
 correct its dance, artist or title on the spot. The track never leaves your library while you do:
 what you change is saved as your own answer, and only the fields you actually changed are touched.
 The dance still has to be one the published list knows; a missing dance is a proposal at
@@ -289,7 +289,7 @@ checks for a newer one each time it starts.
 The tags in the left-hand rail are the **pool**. A click walks a tag through three states: out,
 **drawn from** (filled), and **never drawn** (red border, struck through); a third click puts it
 back out. A random pick, and the auto-queue, draw from the dances carrying any included tag and
-none of the excluded ones — an exclusion always wins, so *bretagne* but never *chain* means exactly
+none of the excluded ones, an exclusion always wins, so *bretagne* but never *chain* means exactly
 that. With nothing chosen the pool is every dance.
 
 The toolbar always says what is being drawn from, because a tag is easy to click on the way past and
@@ -346,8 +346,8 @@ one that is honestly still waiting.
   different. Whoever answers forty rows has answered the forty nothing could speak for.
 - **Grouped by folder**, with the folder's name in a band above its tracks. Tracks lying loose in
   your music folder are shown apart: they were filed nowhere, so there is nothing to answer together.
-- **Each field says where it came from** — a tag, the file name, a folder, one of your rules, or you
-  — because a wrong answer is only obvious when you can see what produced it.
+- **Each field says where it came from**: a tag, the file name, a folder, one of your rules, or you.
+  A wrong answer is only obvious when you can see what produced it.
 
 ### The keyboard
 
@@ -500,10 +500,10 @@ Set the number of presentation windows in **Settings > Presentation Displays**. 
 
 Ready4Balfolk can serve two pages over your local network from a small built-in web server:
 
-- **The display page** shows what is playing and what comes next, for any device with a browser —
-  a spare tablet by the stage works as a presentation screen without a video cable.
+- **The display page** shows what is playing and what comes next, for any device with a browser.
+  A spare tablet by the stage works as a presentation screen without a video cable.
 - **The remote** can play, pause, skip, queue a random track, a stop, a delay or a message, end the
-  night, and search the library — the controls a DJ needs while away from the desk, and nothing
+  night, and search the library, the controls a DJ needs while away from the desk, and nothing
   more. Deliberately, it cannot change the pool: what random picks draw from is decided at the
   computer, and the remote draws from whatever the screen there says. Ending the night works the
   same way: which file that is was decided at the computer, and with none chosen the remote says so

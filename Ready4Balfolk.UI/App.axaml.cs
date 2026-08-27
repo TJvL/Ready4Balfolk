@@ -255,17 +255,12 @@ public sealed class App : Application
 
         _presentationWindows.Clear();
 
-        // Now close for real — second Closing invocation will pass through
+        // Now close for real; the second Closing invocation passes through
 
         _closing = true;
         mainWindow.Close();
     }
 
-    /// <summary>Opens the setup wizard on a profile that has never been through it.</summary>
-    /// <remarks>
-    /// Not for the smoke test: it drives the application with nobody there to answer a wizard, and a
-    /// modal window would simply hold it until CI gave up.
-    /// </remarks>
     /// <summary>Sends a profile that has never been through setup to it.</summary>
     /// <remarks>
     /// Not for the smoke test: it drives the application with nobody there to answer a wizard, and
