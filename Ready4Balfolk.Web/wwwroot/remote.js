@@ -55,7 +55,7 @@
 
   function subtitleOf(item) {
     if (item.kind === "Track") {
-      return item.artist + (item.title ? " — " + item.title : "");
+      return item.artist + (item.title ? " - " + item.title : "");
     }
     if (item.kind === "Delay") return t("silentPause");
     if (item.kind === "Stop") return t("waitsForYou");
@@ -114,7 +114,7 @@
         "<span><span class=\"qtitle\">" + escapeHtml(primaryOf(entry)) + "</span>" +
         '<span class="qsub">' + escapeHtml(entry.isAuto ? t("autoAdded") : subtitleOf(entry)) + "</span></span>" +
         '<span class="qdur">' +
-        (entry.durationSeconds ? window.R4B.mmss(entry.durationSeconds) : "—") + "</span>";
+        (entry.durationSeconds ? window.R4B.mmss(entry.durationSeconds) : "-") + "</span>";
 
       main.addEventListener("click", function () {
         openRow = openRow === index ? -1 : index;
@@ -167,7 +167,7 @@
       button.className = "hit";
       button.innerHTML =
         '<span><span class="badge">' + escapeHtml(hit.dance) + "</span><br>" +
-        '<span class="h-sub">' + escapeHtml(hit.artist + (hit.title ? " — " + hit.title : "")) + "</span></span>" +
+        '<span class="h-sub">' + escapeHtml(hit.artist + (hit.title ? " - " + hit.title : "")) + "</span></span>" +
         '<span class="plus">+</span>';
 
       button.addEventListener("click", function () {
