@@ -29,6 +29,10 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     private readonly IConfirmationService _confirmationService;
     private readonly PresentationWebServer _webServer;
     private readonly CompositeDisposable _disposables = [];
+
+    /// <summary>What ending a language change does. Replaced only by tests.</summary>
+    private readonly Action _restart = RestartApplication;
+
     private bool _syncing;
 
     [Reactive] public partial string MusicDirectoryPath { get; set; }
@@ -86,6 +90,19 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             ?.InformationalVersion;
 
         return info is null || info.Contains("-dev") ? "dev" : info;
+    }
+
+    /// <summary>The same panel with the restart replaced, for tests.</summary>
+    /// <remarks>
+    /// The real one ends in <see cref="Environment.Exit(int)"/>, which would take the test host
+    /// with it, so the accepted half of a language change is otherwise unreachable.
+    /// </remarks>
+    public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
+        IConfirmationService confirmationService, PresentationWebServer webServer,
+        IFileSystem fileSystem, Action restart)
+        : this(settingsStore, loggerService, confirmationService, webServer, fileSystem)
+    {
+        _restart = restart;
     }
 
     public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
@@ -290,6 +307,10 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     {
         this.WhenAnyValue(property)
             .Skip(1)
+            // Asked here rather than at the write, which happens 300ms later, by which time
+            // SyncFromStore has long since put the flag back down and a change that arrived from
+            // the store is written straight back out.
+            .Where(_ => !_syncing)
             .Throttle(TimeSpan.FromMilliseconds(300))
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(value => CommitDirectAsync(transform(value)).SafeFireAndForget(exception =>
@@ -355,7 +376,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             {
                 ApplicationLanguage = newLanguage
             });
-            RestartApplication();
+            _restart();
         }
         catch (Exception ex)
         {
