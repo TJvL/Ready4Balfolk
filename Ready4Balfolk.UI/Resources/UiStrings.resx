@@ -339,19 +339,19 @@
 
   <!-- Queue -->
   <data name="Queue_StopMarker" xml:space="preserve">
-    <value>STOP — Playback will pause here</value>
+    <value>STOP - Playback will pause here</value>
   </data>
   <data name="Queue_EndOfNightMarker" xml:space="preserve">
-    <value>END OF THE NIGHT — Nothing follows this</value>
+    <value>END OF THE NIGHT - Nothing follows this</value>
   </data>
   <data name="Queue_EndOfNightMissing" xml:space="preserve">
     <value>The end-of-the-night audio is not where the settings say it is.</value>
   </data>
   <data name="Queue_DelayMarker" xml:space="preserve">
-    <value>DELAY — Playback will pause temporarily</value>
+    <value>DELAY - Playback will pause temporarily</value>
   </data>
   <data name="Queue_MessageMarker" xml:space="preserve">
-    <value>MESSAGE —</value>
+    <value>MESSAGE -</value>
   </data>
   <data name="Queue_RefreshAutoTrack" xml:space="preserve">
     <value>Pick different random track</value>
@@ -1212,7 +1212,7 @@
     <value>Level {0} looks like the {1}. {2} of {3} agree.</value>
   </data>
   <data name="Discovery_ProposalPosition" xml:space="preserve">
-    <value>position {0}: {1} — {2} of {5} are dance names, {3} different values, {4} agree with a tag</value>
+    <value>position {0}: {1} - {2} of {5} are dance names, {3} different values, {4} agree with a tag</value>
   </data>
   <data name="Discovery_ProposalNothing" xml:space="preserve">
     <value>nothing can say</value>
@@ -1236,7 +1236,7 @@
     <value>Let dances outside the published list into my library</value>
   </data>
   <data name="Review_AllowOutsideTheListHint" xml:space="preserve">
-    <value>Off, a dance the list does not carry keeps its track here until a proposal at BigBalfolkList is merged. On, your answer is enough — but a random pick draws by tag, and a dance nobody has published has none, so those tracks never come up on their own.</value>
+    <value>Off, a dance the list does not carry keeps its track here until a proposal at BigBalfolkList is merged. On, your answer is enough - but a random pick draws by tag, and a dance nobody has published has none, so those tracks never come up on their own.</value>
   </data>
   <data name="Review_ApproveFolderCount" xml:space="preserve">
     <value>Answer all {0} here (Shift+Enter)</value>

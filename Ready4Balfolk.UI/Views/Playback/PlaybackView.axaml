@@ -71,7 +71,7 @@
                             <TextBlock Text="{Binding ArtistName}"
                                        FontSize="16"
                                        VerticalAlignment="Center" />
-                            <TextBlock Text=" — "
+                            <TextBlock Text=" - "
                                        FontSize="16"
                                        Opacity="0.6"
                                        VerticalAlignment="Center" />

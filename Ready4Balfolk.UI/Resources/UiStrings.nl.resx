@@ -205,7 +205,7 @@
     <value>Pauzeduur (seconden)</value>
   </data>
   <data name="Settings_DelayDescription" xml:space="preserve">
-    <value>Gebruikt voor 'Pauze aanvragen' — pauzeert het afspelen voor deze duur</value>
+    <value>Gebruikt voor 'Pauze aanvragen' - pauzeert het afspelen voor deze duur</value>
   </data>
   <data name="Settings_PresentationDisplays" xml:space="preserve">
     <value>Presentatieschermen</value>
@@ -264,19 +264,19 @@
 
   <!-- Queue -->
   <data name="Queue_StopMarker" xml:space="preserve">
-    <value>STOP — Afspelen stopt hier</value>
+    <value>STOP - Afspelen stopt hier</value>
   </data>
   <data name="Queue_EndOfNightMarker" xml:space="preserve">
-    <value>EINDE VAN DE AVOND — Hierna komt niets meer</value>
+    <value>EINDE VAN DE AVOND - Hierna komt niets meer</value>
   </data>
   <data name="Queue_EndOfNightMissing" xml:space="preserve">
     <value>De slotmuziek staat niet waar de instellingen zeggen dat hij staat.</value>
   </data>
   <data name="Queue_DelayMarker" xml:space="preserve">
-    <value>PAUZE — Afspelen wordt tijdelijk gepauzeerd</value>
+    <value>PAUZE - Afspelen wordt tijdelijk gepauzeerd</value>
   </data>
   <data name="Queue_MessageMarker" xml:space="preserve">
-    <value>BERICHT —</value>
+    <value>BERICHT -</value>
   </data>
   <data name="Queue_RefreshAutoTrack" xml:space="preserve">
     <value>Ander willekeurig nummer kiezen</value>
@@ -1137,7 +1137,7 @@
     <value>Niveau {0} lijkt de {1} te zijn. {2} van {3} zijn het eens.</value>
   </data>
   <data name="Discovery_ProposalPosition" xml:space="preserve">
-    <value>positie {0}: {1} — {2} van {5} zijn dansnamen, {3} verschillende waarden, {4} komen overeen met een tag</value>
+    <value>positie {0}: {1} - {2} van {5} zijn dansnamen, {3} verschillende waarden, {4} komen overeen met een tag</value>
   </data>
   <data name="Discovery_ProposalNothing" xml:space="preserve">
     <value>hier valt niets over te zeggen</value>
@@ -1161,7 +1161,7 @@
     <value>Laat dansen buiten de gepubliceerde lijst toe in mijn bibliotheek</value>
   </data>
   <data name="Review_AllowOutsideTheListHint" xml:space="preserve">
-    <value>Staat dit uit, dan blijft een nummer hier staan tot een voorstel bij BigBalfolkList is samengevoegd. Staat het aan, dan is jouw antwoord genoeg — maar een willekeurige keuze trekt op tags, en een dans die niemand gepubliceerd heeft heeft die niet, dus die nummers komen nooit vanzelf voorbij.</value>
+    <value>Staat dit uit, dan blijft een nummer hier staan tot een voorstel bij BigBalfolkList is samengevoegd. Staat het aan, dan is jouw antwoord genoeg - maar een willekeurige keuze trekt op tags, en een dans die niemand gepubliceerd heeft heeft die niet, dus die nummers komen nooit vanzelf voorbij.</value>
   </data>
   <data name="Review_ApproveFolderCount" xml:space="preserve">
     <value>Beantwoord alle {0} hier (Shift+Enter)</value>
