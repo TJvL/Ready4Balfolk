@@ -1,3 +1,4 @@
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Microsoft.AspNetCore.SignalR;
@@ -29,7 +30,25 @@ public sealed class PresentationBroadcaster(
 
     private readonly CompositeDisposable _disposables = [];
 
+    private readonly IScheduler _sampleScheduler = Scheduler.Default;
+
     private volatile PresentationProgress _lastProgress = PresentationProgress.Zero;
+
+    /// <summary>The same broadcaster with the sampling put on a scheduler the caller drives.</summary>
+    /// <remarks>
+    /// Only tests pass one. Half a second of real time is not something to wait through once per
+    /// assertion, and waiting for it is how a test that means "sampled" comes to mean "eventually".
+    /// </remarks>
+    public PresentationBroadcaster(
+        IPresentationStateService presentationState,
+        IQueueService queueService,
+        IHubContext<DisplayHub> displayHub,
+        IHubContext<RemoteHub> remoteHub,
+        IScheduler sampleScheduler)
+        : this(presentationState, queueService, displayHub, remoteHub)
+    {
+        _sampleScheduler = sampleScheduler;
+    }
 
     /// <summary>The current picture, for a page that has just connected.</summary>
     public PresentationSnapshotDto Latest =>
@@ -45,7 +64,7 @@ public sealed class PresentationBroadcaster(
             .Subscribe(_ => BroadcastSnapshot()));
 
         _disposables.Add(presentationState.WhenProgressChanged
-            .Sample(ProgressInterval)
+            .Sample(ProgressInterval, _sampleScheduler)
             .Subscribe(progress =>
             {
                 _lastProgress = progress;
@@ -53,7 +72,7 @@ public sealed class PresentationBroadcaster(
             }));
 
         _disposables.Add(queueService.Connect()
-            .Sample(ProgressInterval)
+            .Sample(ProgressInterval, _sampleScheduler)
             .Subscribe(_ => BroadcastQueue()));
 
         return Task.CompletedTask;
