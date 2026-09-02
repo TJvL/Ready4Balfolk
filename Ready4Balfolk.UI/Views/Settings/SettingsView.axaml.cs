@@ -1,31 +1,14 @@
 using System;
-using System.Linq;
-using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
-using Ready4Balfolk.Domain;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Settings;
 
 public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
 {
-    private static readonly FilePickerFileType LogFileType = new("Text files")
-    {
-        Patterns = ["*.txt"],
-        MimeTypes = ["text/plain"]
-    };
-
-    /// <summary>Exactly what the player can open, which is decided by BASS and its plugins.</summary>
-    private static FilePickerFileType AudioFileType => new(UiStrings.Settings_EndOfNightAudioFiles)
-    {
-        Patterns = SupportedAudioFormats.Extensions.Count > 0
-            ? [.. SupportedAudioFormats.Extensions.Select(extension => $"*{extension}")]
-            : ["*"]
-    };
-
     public SettingsView()
     {
         InitializeComponent();
@@ -39,20 +22,10 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
     /// </summary>
     private async void OnBrowseEndOfNightClick(object? sender, RoutedEventArgs e)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-        {
-            return;
-        }
+        var path = await App.Services.GetRequiredService<IFilePickerService>()
+            .PickFileToOpenAsync(UiStrings.Settings_EndOfNightPickerTitle, FileKind.Audio);
 
-        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = UiStrings.Settings_EndOfNightPickerTitle,
-            AllowMultiple = false,
-            FileTypeFilter = [AudioFileType]
-        });
-
-        if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
+        if (path is not null)
         {
             ViewModel!.EndOfNightAudioPath = path;
         }
@@ -61,20 +34,13 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
 
     private async void OnExportLogClick(object? sender, RoutedEventArgs e)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-        {
-            return;
-        }
+        var path = await App.Services.GetRequiredService<IFilePickerService>()
+            .PickWhereToSaveAsync(
+                UiStrings.Settings_ExportLogTitle,
+                $"ready4balfolk-log-{DateTime.Now:yyyy-MM-dd-HHmmss}",
+                FileKind.Text);
 
-        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = UiStrings.Settings_ExportLogTitle,
-            SuggestedFileName = $"ready4balfolk-log-{DateTime.Now:yyyy-MM-dd-HHmmss}",
-            FileTypeChoices = [LogFileType]
-        });
-
-        if (file?.TryGetLocalPath() is { } path)
+        if (path is not null)
         {
             await ViewModel!.ExportLogAsync(path);
         }

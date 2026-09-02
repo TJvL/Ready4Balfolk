@@ -1,8 +1,8 @@
-using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Wizard;
 
@@ -15,19 +15,10 @@ public partial class MusicDirectoryStepView : ReactiveUserControl<MusicDirectory
 
     private async void OnBrowseClick(object? sender, RoutedEventArgs e)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-        {
-            return;
-        }
+        var path = await App.Services.GetRequiredService<IFilePickerService>()
+            .PickFolderAsync(UiStrings.Settings_SelectMusicDirectory);
 
-        var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = UiStrings.Settings_SelectMusicDirectory,
-            AllowMultiple = false
-        });
-
-        if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } path)
+        if (path is not null)
         {
             ViewModel!.MusicDirectoryPath = path;
         }

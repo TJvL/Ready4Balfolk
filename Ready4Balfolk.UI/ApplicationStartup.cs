@@ -48,6 +48,7 @@ internal sealed class ApplicationStartup(
     PresentationWebServer webServer,
     NavigationService navigation,
     ConfirmationService confirmationOwner,
+    FilePickerService pickers,
     TrackEditorService trackEditor) : IDisposable
 {
     /// <summary>How long a silence has to be before it stops being the same evening.</summary>
@@ -79,6 +80,7 @@ internal sealed class ApplicationStartup(
         desktop.MainWindow = mainWindow;
 
         confirmationOwner.SetOwner(mainWindow);
+        pickers.SetOwner(mainWindow);
         trackEditor.SetOwner(mainWindow);
 
         mainWindow.Opened += (_, _) => OnMainWindowOpened(mainWindow, appearance);

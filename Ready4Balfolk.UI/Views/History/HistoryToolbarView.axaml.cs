@@ -1,7 +1,5 @@
 using System;
-using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -12,12 +10,6 @@ namespace Ready4Balfolk.UI.Views.History;
 
 public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
 {
-    private static readonly FilePickerFileType JsonFileType = new("JSON files")
-    {
-        Patterns = ["*.json"],
-        MimeTypes = ["application/json"]
-    };
-
     public HistoryToolbarView()
     {
         InitializeComponent();
@@ -25,20 +17,10 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
 
     private async void OnExportClick(object? sender, RoutedEventArgs e)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-        {
-            return;
-        }
+        var path = await App.Services.GetRequiredService<IFilePickerService>()
+            .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportTitle, "queue_history", FileKind.Json);
 
-        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = UiStrings.HistoryToolbar_ExportTitle,
-            SuggestedFileName = "queue_history",
-            FileTypeChoices = [JsonFileType]
-        });
-
-        if (file?.TryGetLocalPath() is { } path)
+        if (path is not null)
         {
             try
             {

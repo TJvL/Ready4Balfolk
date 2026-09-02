@@ -185,4 +185,73 @@ public sealed class StartingOnWhatIsThere(HeadlessSession session)
                 "the published list to arrive and be shown");
         });
     }
+
+    /// <summary>The DJ imports a dance list from a file, for a machine that is never online.</summary>
+    /// <remarks>
+    /// World: a machine with no dance list, no internet, and a dances.json somebody carried in.
+    /// Steps: open the dance list panel and import that file.
+    /// Sees: the dances arriving, on a machine that will never reach BigBalfolkList.
+    /// </remarks>
+    [Fact]
+    public async Task DjImportsADanceListFromAFile()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WhereThereIsNoDanceList()
+            .Save();
+
+        var carriedIn = world.ThePublishedDanceListAsAFile();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.IsShowing("catalog.tracks"),
+                "the main screen");
+
+            RunningApplication.TheDjWillPick(carriedIn);
+            application.Click("catalog.show-dances");
+            application.Click("dancelist.import");
+
+            await application.WaitUntil(
+                () => application.SeesAnywhere("Mazurka"),
+                "the list from the file to be shown");
+        });
+    }
+
+    /// <summary>The file the DJ picked is not a dance list, and the machine says so.</summary>
+    /// <remarks>
+    /// World: a machine with no dance list, and a file that is named like one and is not.
+    /// Steps: open the dance list panel and import it.
+    /// Sees: the import refused with a reason, and still no vocabulary, rather than a list that
+    /// quietly became empty.
+    /// </remarks>
+    [Fact]
+    public async Task DjImportsADanceListThatWillNotParse()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WhereThereIsNoDanceList()
+            .Save();
+
+        var nonsense = world.ADanceListFileHolding("{ half a file");
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.IsShowing("catalog.tracks"),
+                "the main screen");
+
+            RunningApplication.TheDjWillPick(nonsense);
+            application.Click("catalog.show-dances");
+            application.Click("dancelist.import");
+
+            await application.WaitUntil(
+                () => application.IsShowing("notification.message"),
+                "the application to say why the file was refused");
+
+            Assert.False(application.SeesAnywhere("Mazurka"), "A dance list arrived from a file that is not one.");
+        });
+    }
 }

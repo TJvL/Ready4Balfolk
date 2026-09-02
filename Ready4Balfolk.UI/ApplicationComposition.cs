@@ -173,6 +173,8 @@ public static class ApplicationComposition
         // to) that would then be written on one instance and read from the other.
         services.AddSingleton<NotificationService>();
         services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
+        services.AddSingleton<FilePickerService>();
+        services.AddSingleton<IFilePickerService>(sp => sp.GetRequiredService<FilePickerService>());
         services.AddSingleton<ConfirmationService>();
         services.AddSingleton<IConfirmationService>(sp => sp.GetRequiredService<ConfirmationService>());
 
@@ -229,5 +231,7 @@ public static class ApplicationComposition
 
         // Startup orchestration, which used to be the body of App.OnFrameworkInitializationCompleted.
         services.AddSingleton<ApplicationStartup>();
+
+        options.AlsoRegister?.Invoke(services);
     }
 }
