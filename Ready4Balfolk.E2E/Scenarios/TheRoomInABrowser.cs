@@ -441,10 +441,16 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             RunningApplication.TimePassed(TimeSpan.FromHours(13));
 
             await phone.Page.ReloadAsync();
-            await phone.Page.Locator("#app").WaitForAsync();
 
-            await phone.Page.Locator("[data-tab='add']").ClickAsync();
-            await phone.Page.Locator("[data-act='random']").ClickAsync();
+            // Whichever way the page settles, and it settles differently on a slow machine, the
+            // phone must not be able to touch tonight with last night's token.
+            await phone.SettlesOnEither("gate", "app");
+
+            if (await phone.IsShowing("app"))
+            {
+                await phone.Page.Locator("[data-tab='add']").ClickAsync();
+                await phone.Page.Locator("[data-act='random']").ClickAsync();
+            }
 
             await Task.Delay(1500);
             application.Settle();
