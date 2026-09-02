@@ -82,6 +82,17 @@ jobs:
           --coverage --coverage-output-format cobertura
           --coverage-output coverage.cobertura.xml
 
+      # Its own step, and one platform. These start a real application, index a real library and
+      # decode real audio, so they are slow enough that a failure here must never be mistaken for a
+      # failure of the fast suite, and slow enough that running them twice buys nothing: nothing a
+      # scenario asserts is platform specific.
+      - name: Run scenarios
+        if: runner.os == 'Linux'
+        run: >-
+          dotnet test
+          --project Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj
+          -c Release --no-build --verbosity normal
+
       # Collected, not gated. A threshold is a policy decision and belongs in a conversation, not
       # in the first commit that measures anything; this makes the number reviewable meanwhile.
       #

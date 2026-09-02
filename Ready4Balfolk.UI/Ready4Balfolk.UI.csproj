@@ -31,6 +31,13 @@
     </ItemGroup>
 
     <ItemGroup>
+      <!--The scenario runs build the real object graph and the real startup, both of which are
+          internal to this assembly on purpose: they are the application composing itself, not a
+          surface anything else is meant to call.-->
+      <InternalsVisibleTo Include="Ready4Balfolk.E2E" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\Ready4Balfolk.Domain\Ready4Balfolk.Domain.csproj" />
       <ProjectReference Include="..\Ready4Balfolk.Web\Ready4Balfolk.Web.csproj" />
     </ItemGroup>

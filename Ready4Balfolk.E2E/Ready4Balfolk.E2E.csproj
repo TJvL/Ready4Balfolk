@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <!--xunit.v3 runs under Microsoft.Testing.Platform, whose entry point is the test
+            assembly itself. Without this the build fails with "xUnit.net v3 test projects
+            must be executable".-->
+        <OutputType>Exe</OutputType>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <NoWarn>$(NoWarn);CA1707</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!--No Avalonia.Headless.XUnit: it is built against xunit.v3.extensibility.core 3.2.2, and
+            against the 4.0.0 this repository pins every [AvaloniaFact] fails at discovery with a
+            MissingMethodException on TestIntrospectionHelper.GetTestCaseDetails. The session it
+            wraps is driven directly instead, from an ordinary [Fact]. See HeadlessSession.-->
+        <PackageReference Include="Avalonia.Headless" Version="12.1.1" />
+        <PackageReference Include="xunit.v3" Version="4.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Ready4Balfolk.UI\Ready4Balfolk.UI.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--Copied rather than embedded: a scenario hands real paths to a library that opens them
+            itself, so the audio has to exist as files. The same 1.5 s scale the smoke test decodes,
+            which is what keeps "play it through" to a second and a half of wall clock.-->
+        <None Include="..\scripts\smoke-test-media\scale.mp3" Link="Media\scale.mp3" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\scripts\smoke-test-media\scale.ogg" Link="Media\scale.ogg" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\scripts\smoke-test-media\scale.flac" Link="Media\scale.flac" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+</Project>
