@@ -248,9 +248,18 @@ public sealed class RunningApplication : IAsyncDisposable
             : "  (nothing logged)";
     }
 
-    /// <summary>The window and whatever dialog is over it, which is where a control may be.</summary>
+    /// <summary>How many screens the application has up for the room.</summary>
+    public int ScreensShowing() => _startup.PresentationWindows.Count;
+
+    /// <summary>Every window the application has open, which is where a control may be.</summary>
+    /// <remarks>
+    /// Not just the main one: a confirmation is a dialog over it, and the screen the dancers read is
+    /// a window of its own on another monitor.
+    /// </remarks>
     private IEnumerable<Visual> Everywhere() =>
-        new Visual[] { Window }.Concat(Window.OwnedWindows);
+        new Visual[] { Window }
+            .Concat(Window.OwnedWindows)
+            .Concat(_startup.PresentationWindows);
 
     /// <summary>Teardown, while what it should let go of is being worked out.</summary>
     /// <summary>Unhooks what startup wired up, and leaves everything else to the scenario's own application.</summary>

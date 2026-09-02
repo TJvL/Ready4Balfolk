@@ -109,7 +109,8 @@
 
             <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:UiStrings.Settings_PresentationDisplays}" />
-                <NumericUpDown Value="{Binding PresentationDisplayCount, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
+                <NumericUpDown AutomationProperties.AutomationId="settings.screens"
+                               Value="{Binding PresentationDisplayCount, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
                                Minimum="0"
                                Maximum="10"
                                Increment="1"

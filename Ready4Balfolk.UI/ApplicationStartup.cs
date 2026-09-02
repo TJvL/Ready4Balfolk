@@ -61,6 +61,14 @@ internal sealed class ApplicationStartup(
     private readonly CompositeDisposable _disposables = [];
     private bool _closing;
 
+    /// <summary>The screens currently up for the room.</summary>
+    /// <remarks>
+    /// Internal, for the scenario runs: a presentation window is not owned by the main window and
+    /// the headless platform keeps no list of its own, so there is otherwise no way to ask what the
+    /// dancers are being shown.
+    /// </remarks>
+    internal IReadOnlyList<PresentationWindow> PresentationWindows => _presentationWindows;
+
     /// <summary>Builds the main window and wires everything that follows from it.</summary>
     public void Run(IClassicDesktopStyleApplicationLifetime desktop, IApplicationAppearance appearance)
     {

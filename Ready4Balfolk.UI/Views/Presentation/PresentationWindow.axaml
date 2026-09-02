@@ -23,7 +23,8 @@
                             HorizontalAlignment="Center">
                     <!-- Track display (non-message) -->
                     <StackPanel IsVisible="{Binding !IsMessageMode}">
-                        <TextBlock Text="{Binding CurrentDance}"
+                        <TextBlock AutomationProperties.AutomationId="display.dance"
+                                   Text="{Binding CurrentDance}"
                                    Foreground="White"
                                    FontSize="140"
                                    FontWeight="Bold"
@@ -33,14 +34,16 @@
                                    Margin="0,0,0,24" />
                         <StackPanel Orientation="Horizontal"
                                     HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding CurrentArtist}"
+                            <TextBlock AutomationProperties.AutomationId="display.artist"
+                                       Text="{Binding CurrentArtist}"
                                        Foreground="#dddddd"
                                        FontSize="72" />
-                            <TextBlock Text=" &#x2014; "
+                            <TextBlock Text=" - "
                                        Foreground="#cccccc"
                                        FontSize="72"
                                        IsVisible="{Binding CurrentTitle, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
-                            <TextBlock Text="{Binding CurrentTitle}"
+                            <TextBlock AutomationProperties.AutomationId="display.title"
+                                       Text="{Binding CurrentTitle}"
                                        Foreground="#bbbbbb"
                                        FontSize="72" />
                         </StackPanel>
@@ -57,7 +60,8 @@
                 </StackPanel>
 
                 <!-- No current item -->
-                <TextBlock IsVisible="{Binding !HasCurrentItem}"
+                <TextBlock AutomationProperties.AutomationId="display.idle"
+                           IsVisible="{Binding !HasCurrentItem}"
                            Text="{x:Static res:UiStrings.Presentation_NoTrackPlaying}"
                            Foreground="#666666"
                            FontSize="96"
@@ -97,7 +101,8 @@
                                FontSize="56"
                                HorizontalAlignment="Center"
                                Margin="0,0,0,16" />
-                    <TextBlock Text="{Binding NextDance}"
+                    <TextBlock AutomationProperties.AutomationId="display.next-dance"
+                                   Text="{Binding NextDance}"
                                Foreground="#dddddd"
                                FontSize="96"
                                FontWeight="Bold"
@@ -110,18 +115,20 @@
                         <TextBlock Text="{Binding NextArtist}"
                                    Foreground="#bbbbbb"
                                    FontSize="56" />
-                        <TextBlock Text=" &#x2014; "
+                        <TextBlock Text=" - "
                                    Foreground="#aaaaaa"
                                    FontSize="56"
                                    IsVisible="{Binding NextTitle, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
-                        <TextBlock Text="{Binding NextTitle}"
+                        <TextBlock AutomationProperties.AutomationId="display.next-title"
+                                   Text="{Binding NextTitle}"
                                    Foreground="#999999"
                                    FontSize="56" />
                     </StackPanel>
                 </StackPanel>
 
                 <!-- No next item -->
-                <TextBlock IsVisible="{Binding !HasNextItem}"
+                <TextBlock AutomationProperties.AutomationId="display.no-next"
+                           IsVisible="{Binding !HasNextItem}"
                            Text="{x:Static res:UiStrings.Presentation_NoNextTrack}"
                            Foreground="#444444"
                            FontSize="64"
