@@ -21,7 +21,7 @@ public readonly struct HistoryItemViewModel(QueueHistoryEntry entry)
 
     public string Description => entry switch
     {
-        TrackHistoryEntry t => $"{t.Dance} \u2014 {t.Artist} \u2014 {t.Title}",
+        TrackHistoryEntry t => $"{t.Dance} - {t.Artist} - {t.Title}",
         MessageHistoryEntry m => m.Message,
         DelayHistoryEntry => "Delay",
         StopHistoryEntry => "Stop",
