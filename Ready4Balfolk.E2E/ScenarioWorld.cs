@@ -1,4 +1,6 @@
 using System.IO.Abstractions;
+using System.Net;
+using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ready4Balfolk.Domain.Models.Settings;
@@ -108,6 +110,32 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
 
         File.Delete(file);
     }
+
+    /// <summary>Serves the display, and the remote when a PIN is given, on a port nobody is using.</summary>
+    /// <remarks>
+    /// The port is taken from the operating system rather than picked, because scenarios run beside
+    /// each other and two servers on one port is one scenario failing for the other's reasons.
+    /// </remarks>
+    public ScenarioWorld WithTheServerOn(string remotePin = "")
+    {
+        using var probe = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        probe.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        WebServerPort = ((IPEndPoint)probe.LocalEndPoint!).Port;
+
+        return WithSettings(settings => settings with
+        {
+            WebServerEnabled = true,
+            WebServerPort = WebServerPort,
+            WebRemoteControlEnabled = remotePin.Length > 0,
+            WebRemoteControlPin = remotePin
+        });
+    }
+
+    /// <summary>Where a browser reaches this world's application.</summary>
+    public string ServerAddress => $"http://127.0.0.1:{WebServerPort}";
+
+    /// <summary>The port the server was given, or zero when there is no server.</summary>
+    public int WebServerPort { get; private set; }
 
     /// <summary>The file this DJ has nominated as the sound of the evening ending.</summary>
     /// <remarks>

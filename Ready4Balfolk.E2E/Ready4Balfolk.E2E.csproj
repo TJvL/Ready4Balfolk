@@ -18,6 +18,10 @@
             MissingMethodException on TestIntrospectionHelper.GetTestCaseDetails. The session it
             wraps is driven directly instead, from an ordinary [Fact]. See HeadlessSession.-->
         <PackageReference Include="Avalonia.Headless" Version="12.1.1" />
+        <!--Drives the display and the remote in a real browser, because the pages are what a laptop
+            at the projector and a phone in a pocket actually run: calling their hubs would prove the
+            hubs work and nothing about what anybody sees.-->
+        <PackageReference Include="Microsoft.Playwright" Version="1.62.0" />
         <PackageReference Include="xunit.v3" Version="4.0.0" />
     </ItemGroup>
 
