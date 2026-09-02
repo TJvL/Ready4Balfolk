@@ -194,6 +194,19 @@ public sealed class RunningApplication : IAsyncDisposable
         Click(control);
     }
 
+    /// <summary>Clicks a box, clears what is in it, and types this instead.</summary>
+    public void TypeInto(string automationId, string text)
+    {
+        var box = Find(automationId);
+        Click(box);
+
+        var window = box.FindAncestorOfType<Window>() ?? Window;
+        window.KeyPressQwerty(PhysicalKey.A, RawInputModifiers.Control);
+        window.KeyReleaseQwerty(PhysicalKey.A, RawInputModifiers.Control);
+
+        Type(text);
+    }
+
     /// <summary>Types into whatever has the keyboard, character by character.</summary>
     public void Type(string text)
     {

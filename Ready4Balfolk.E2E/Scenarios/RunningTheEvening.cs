@@ -481,4 +481,106 @@ public sealed class RunningTheEvening(HeadlessSession session)
                 "the application to carry on with something of its own");
         });
     }
+
+    /// <summary>The DJ puts a word to the room on the screen for a moment.</summary>
+    /// <remarks>
+    /// World: a library of one dance and auto queue off.
+    /// Steps: queue a dance, write a message with a couple of seconds on it, and start the evening.
+    /// Sees: the message on the playback panel, and the dance behind it taking over when the
+    /// message has had its time.
+    /// </remarks>
+    [Fact]
+    public async Task DjPutsAMessageOnTheScreen()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.Click("queue.message");
+
+            await application.WaitUntil(
+                () => application.IsShowing("message.text"),
+                "the message to be asked for");
+
+            application.TypeInto("message.text", "Bar closes at eleven");
+            application.Click("message.timed");
+            application.TypeInto("message.seconds", "2");
+            application.Click("message.ok");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.dance").Contains("Bar closes at eleven", StringComparison.Ordinal),
+                "the message to go up on the screen");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                "the message to have its time and the dance behind it to start");
+        });
+    }
+
+    /// <summary>The DJ leaves a message up until they are ready to take it down.</summary>
+    /// <remarks>
+    /// World: a library of one dance and auto queue off.
+    /// Steps: write a message with no time on it, queue a dance behind it, and start the evening.
+    /// Sees: the message staying up on its own, and the dance starting only when the DJ moves on.
+    /// </remarks>
+    [Fact]
+    public async Task DjLeavesAMessageUpUntilTheyTakeItDown()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.Click("queue.message");
+
+            await application.WaitUntil(
+                () => application.IsShowing("message.text"),
+                "the message to be asked for");
+
+            application.TypeInto("message.text", "Lost a green scarf");
+            application.Click("message.ok");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.dance").Contains("Lost a green scarf", StringComparison.Ordinal),
+                "the message to go up on the screen");
+
+            await Task.Delay(600);
+            application.Settle();
+
+            Assert.Contains("Lost a green scarf", application.TextOf("playback.dance"), StringComparison.Ordinal);
+
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.IsShowing("dialog.confirm"),
+                "the application to ask whether to move on");
+
+            application.Click("dialog.confirm");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                "the dance to start when the DJ takes the message down");
+        });
+    }
 }

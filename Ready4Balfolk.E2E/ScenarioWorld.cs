@@ -90,6 +90,26 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         return this;
     }
 
+    /// <summary>The file this DJ has nominated as the sound of the evening ending.</summary>
+    /// <remarks>
+    /// Outside the music directory on purpose: it is one file the user points at, not part of the
+    /// library, and it is never queued as a dance.
+    /// </remarks>
+    public ScenarioWorld WithEndOfNightAudio()
+    {
+        var path = Path.Combine(_root, "the end of the night.mp3");
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Media", "scale.ogg"), path, overwrite: true);
+
+        return WithSettings(settings => settings with { EndOfNightAudioPath = path });
+    }
+
+    /// <summary>The file was nominated, and is not there any more.</summary>
+    public ScenarioWorld WhereTheEndOfNightFileHasBeenMovedAway() =>
+        WithSettings(settings => settings with
+        {
+            EndOfNightAudioPath = Path.Combine(_root, "the end of the night.mp3")
+        });
+
     /// <summary>The DJ has declared which tag field holds what, so their library needs no review.</summary>
     public ScenarioWorld WhereTheTagsAreTrusted() =>
         WithSettings(settings => settings with
