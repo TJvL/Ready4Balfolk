@@ -68,6 +68,24 @@ public sealed class RunningApplication : IAsyncDisposable
         Window.UpdateLayout();
     }
 
+    /// <summary>Waits, without letting go of the step, for something a moment away.</summary>
+    private void WaitFor(Func<bool> what, string complaint)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (DateTime.UtcNow < deadline)
+        {
+            Settle();
+            if (what())
+            {
+                return;
+            }
+
+            Thread.Sleep(20);
+        }
+
+        Assert.Fail($"{complaint}{Environment.NewLine}What was on screen:{Environment.NewLine}{WhatIsOnScreen()}");
+    }
+
     /// <summary>Waits for something the application does on its own, like a track ending.</summary>
     public async Task WaitUntil(Func<bool> what, string describedAs)
     {
@@ -200,7 +218,11 @@ public sealed class RunningApplication : IAsyncDisposable
             $"The control clicked on is not on screen.{Environment.NewLine}"
             + $"window visible: {Window.IsVisible}, bounds: {Window.Bounds}, control bounds: {control.Bounds}{Environment.NewLine}"
             + $"What was on screen:{Environment.NewLine}{WhatIsOnScreen()}");
-        Assert.True(control.IsEffectivelyEnabled, "The control clicked on is disabled.");
+
+        // A control that is briefly disabled is one the application is still busy with: a command
+        // disables itself while it runs, so on a slow machine the button a person is about to press
+        // is unavailable for a moment. Waiting is what the person does.
+        WaitFor(() => control.IsEffectivelyEnabled, "The control clicked on stayed disabled.");
 
         // The control's own window, which is not always the main one: a confirmation is a dialog
         // over it, and a click aimed at the window underneath lands on whatever is at those
@@ -354,33 +376,18 @@ public sealed class RunningApplication : IAsyncDisposable
     }
 
     /// <summary>Teardown, while what it should let go of is being worked out.</summary>
-    /// <summary>Lets go of the world's files, which is all teardown is for.</summary>
+    /// <summary>Lets the scenario finish, and leaves what it was using alone.</summary>
     /// <remarks>
-    /// <para>
-    /// The window is left open. Closing it is a scenario step, with a confirmation dialog behind it
-    /// and nobody here to answer, and the process ends a moment later anyway.
-    /// </para>
-    /// <para>
-    /// The container is disposed, and that is what stops the temporary directories piling up: the
-    /// two SQLite files are held open until it goes, so the world could not delete itself and said
-    /// nothing about it. Safe here because a process runs one scenario and then ends; disposing it
-    /// with another application to come took ReactiveUI's registrations down with it.
-    /// </para>
+    /// The process ends a moment after this, which closes every file and frees every device, so
+    /// there is nothing here worth racing for. Disposing the container instead put a stopwatch on
+    /// everything still in flight: a task completing a moment later wrote to a logger that had been
+    /// disposed, and the run died on that rather than on anything a scenario asserted.
     /// </remarks>
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _startup.Dispose();
+        Settle();
 
-        switch (App.Services)
-        {
-            case IAsyncDisposable asynchronous:
-                await asynchronous.DisposeAsync();
-                break;
-            case IDisposable synchronous:
-                synchronous.Dispose();
-                break;
-            default:
-                break;
-        }
+        return ValueTask.CompletedTask;
     }
 }

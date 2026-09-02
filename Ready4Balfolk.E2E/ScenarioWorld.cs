@@ -59,8 +59,39 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
     public IDirectoryInfo MusicDirectory { get; }
 
     /// <summary>An empty machine: a music directory, a data directory, and nothing in either.</summary>
-    public static ScenarioWorld Create() =>
-        new(Path.Combine(Path.GetTempPath(), $"r4b_e2e_{Guid.NewGuid():N}"));
+    public static ScenarioWorld Create()
+    {
+        SweepUpAfterRunsThatDidNotFinish();
+
+        return new ScenarioWorld(Path.Combine(Path.GetTempPath(), $"r4b_e2e_{Guid.NewGuid():N}"));
+    }
+
+    /// <summary>Throws away the worlds of runs that were killed before they could tidy up.</summary>
+    /// <remarks>
+    /// A scenario deletes its own world, but a run that is interrupted, or one whose application
+    /// still had a file open, leaves one behind. An hour is long enough that nothing belonging to a
+    /// run in progress is ever touched.
+    /// </remarks>
+    private static void SweepUpAfterRunsThatDidNotFinish()
+    {
+        var abandoned = Directory
+            .EnumerateDirectories(Path.GetTempPath(), "r4b_e2e_*")
+            .Where(directory => Directory.GetLastWriteTimeUtc(directory) < DateTime.UtcNow.AddHours(-1));
+
+        foreach (var directory in abandoned)
+        {
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+    }
 
     /// <summary>A track in the music directory, tagged the way this world's DJ tags theirs.</summary>
     /// <remarks>

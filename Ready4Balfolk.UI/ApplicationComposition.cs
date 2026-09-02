@@ -62,8 +62,8 @@ public static class ApplicationComposition
                 withResolver: sp => App.UseServices(sp!),
                 // Replaces the RxApp.DefaultExceptionHandler assignment removed in ReactiveUI 23.
                 // Resolved lazily: the logger service does not exist yet when the builder runs.
-                withReactiveUIBuilder: reactiveUi => reactiveUi.WithExceptionHandler(Observer.Create<Exception>(ex =>
-                    _ = App.Services?.GetService<ILoggerService>()?.ErrorAsync("Unhandled RxApp exception", ex))))
+                withReactiveUIBuilder: reactiveUi => reactiveUi.WithExceptionHandler(
+                    Observer.Create<Exception>(ReportUnhandled)))
             .WithInterFont()
             .AfterSetup(_ =>
             {
@@ -95,6 +95,23 @@ public static class ApplicationComposition
 
                 loggerService.InfoAsync("Application starting");
             });
+    }
+
+    /// <summary>Writes down what fell out of a subscription, and never throws doing it.</summary>
+    /// <remarks>
+    /// The container it asks for the logger can be gone: on the way down, anything still in flight
+    /// arrives after everything it needs has been disposed. An exception handler that throws while
+    /// reporting an exception replaces a line in the log with a crash.
+    /// </remarks>
+    private static void ReportUnhandled(Exception exception)
+    {
+        try
+        {
+            _ = App.Services?.GetService<ILoggerService>()?.ErrorAsync("Unhandled RxApp exception", exception);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
     }
 
     private static void ConfigureServices(IServiceCollection services, ApplicationOptions options)

@@ -32,11 +32,19 @@ public sealed class TheBrowser : IAsyncDisposable
     /// </remarks>
     private static readonly Lazy<int> Fetched = new(() => Program.Main(["install", "chromium"]));
 
+    /// <summary>Makes sure the browser is on this machine, from a process that can still reach out.</summary>
+    /// <remarks>
+    /// Called by the parent before it starts a scenario, and never by the scenario itself. A
+    /// scenario's world has no internet, so a download attempted inside one goes to a proxy that is
+    /// not listening: on a machine that already had the browser this looked fine for days, and the
+    /// first cold build agent failed every web scenario on "Download failure".
+    /// </remarks>
+    public static void FetchIfThisMachineHasNotGotIt() =>
+        Assert.Equal(0, Fetched.Value);
+
     /// <summary>Opens a browser at this address and waits for the page to settle.</summary>
     public static async Task<TheBrowser> OpenAt(string address)
     {
-        Assert.Equal(0, Fetched.Value);
-
         var playwright = await Playwright.CreateAsync();
         var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
         var page = await browser.NewPageAsync();
