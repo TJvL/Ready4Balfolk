@@ -152,6 +152,17 @@ public sealed class RunningApplication : IAsyncDisposable
         return list is DataGrid ? Screen.GridRows(list) : Screen.Rows(list);
     }
 
+    /// <summary>What a control says, for the assertions that read one directly.</summary>
+    public static string Says(Control control) => Screen.Says(control);
+
+    /// <summary>Every row a list is showing, for the assertions that are about all of them.</summary>
+    public IReadOnlyList<Control> Rows(string automationId) =>
+        Find(automationId).GetVisualDescendants()
+            .OfType<Control>()
+            .Where(control => control is ListBoxItem or DataGridRow)
+            .Where(control => control.IsEffectivelyVisible)
+            .ToList();
+
     /// <summary>The row of a list or grid whose text contains this, or a failure saying what is there.</summary>
     public Control Row(string automationId, string containing)
     {
