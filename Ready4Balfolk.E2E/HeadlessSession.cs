@@ -87,6 +87,9 @@ public sealed class HeadlessSession : IAsyncDisposable
         var scenario = TestContext.Current.Test?.TestDisplayName
                        ?? throw new InvalidOperationException("No scenario is running.");
 
+        // Here, where there is still a network: the scenario's own process has none.
+        TheBrowser.FetchIfThisMachineHasNotGotIt();
+
         var start = new ProcessStartInfo(Environment.ProcessPath!)
         {
             RedirectStandardOutput = true,
