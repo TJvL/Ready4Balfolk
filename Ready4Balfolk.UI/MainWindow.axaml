@@ -79,7 +79,8 @@
         <DockPanel IsVisible="{Binding Navigation.IsSettingsScreen}"
                    Margin="16">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-                <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
+                <Button AutomationProperties.AutomationId="screen.back"
+                        Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
                     <controls:ButtonContent Icon="{StaticResource IconArrowLeft}" Text="{x:Static res:UiStrings.MainWindow_BackLabel}" IconSize="16" />
                 </Button>
                 <TextBlock Text="{x:Static res:UiStrings.MainWindow_Settings}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
@@ -91,7 +92,8 @@
         <DockPanel IsVisible="{Binding Navigation.IsHelpScreen}"
                    Margin="16">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-                <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
+                <Button AutomationProperties.AutomationId="screen.back"
+                        Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
                     <controls:ButtonContent Icon="{StaticResource IconArrowLeft}" Text="{x:Static res:UiStrings.MainWindow_BackLabel}" IconSize="16" />
                 </Button>
                 <TextBlock Text="{x:Static res:UiStrings.MainWindow_Help}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
@@ -103,7 +105,8 @@
         <DockPanel IsVisible="{Binding Navigation.IsReviewScreen}"
                    Margin="16">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-                <Button Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
+                <Button AutomationProperties.AutomationId="screen.back"
+                        Click="OnBackClick" ToolTip.Tip="{x:Static res:UiStrings.MainWindow_Back}" Padding="8" Focusable="False">
                     <controls:ButtonContent Icon="{StaticResource IconArrowLeft}" Text="{x:Static res:UiStrings.MainWindow_BackLabel}" IconSize="16" />
                 </Button>
                 <TextBlock Text="{x:Static res:UiStrings.Review_Title}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />

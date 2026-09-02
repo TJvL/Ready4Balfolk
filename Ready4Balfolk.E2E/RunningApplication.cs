@@ -105,6 +105,34 @@ public sealed class RunningApplication : IAsyncDisposable
         return found!;
     }
 
+    /// <summary>The control with this automation id inside one row, rather than anywhere.</summary>
+    /// <remarks>
+    /// A row of the review list carries the same ids as every other row, because they are one
+    /// template: which dance box a scenario means is decided by which row it is looking at.
+    /// </remarks>
+    public static Control Within(Control row, string automationId)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        var found = Screen.AllWith(row, automationId).FirstOrDefault(control => control.IsEffectivelyVisible);
+
+        Assert.True(found is not null, $"This row has nothing with the automation id {automationId}.");
+        return found!;
+    }
+
+    /// <summary>Clears a box inside one row and types this into it.</summary>
+    public void TypeIntoWithin(Control row, string automationId, string text)
+    {
+        var box = Within(row, automationId);
+        Click(box);
+
+        var window = box.FindAncestorOfType<Window>() ?? Window;
+        window.KeyPressQwerty(PhysicalKey.A, RawInputModifiers.Control);
+        window.KeyReleaseQwerty(PhysicalKey.A, RawInputModifiers.Control);
+
+        Type(text);
+    }
+
     /// <summary>Whether the thing with this automation id is on screen and visible.</summary>
     public bool IsShowing(string automationId) =>
         Everywhere()
