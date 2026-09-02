@@ -42,6 +42,12 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         DirectoryInfoRoot.Create();
         MusicDirectory.Create();
 
+        // A machine that has been used before has a dance list on it, because the application
+        // ships none: it arrived by being fetched or imported, and it is a file like any other.
+        File.Copy(
+            Path.Combine(AppContext.BaseDirectory, "Fixtures", "dances.json"),
+            Path.Combine(DirectoryInfoRoot.FullName, "dance_list.json"));
+
         // A window with a size, because that is what a machine that has been used before holds, and
         // because a list only builds the rows that fit in it: a window of nothing shows nothing.
         _settings = _settings with
@@ -120,6 +126,13 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         file.Tag.Comment = dance;
         file.Save();
 
+        return this;
+    }
+
+    /// <summary>A machine nobody has fetched or imported a dance list on.</summary>
+    public ScenarioWorld WhereThereIsNoDanceList()
+    {
+        File.Delete(Path.Combine(DirectoryInfoRoot.FullName, "dance_list.json"));
         return this;
     }
 

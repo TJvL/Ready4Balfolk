@@ -9,9 +9,10 @@ namespace Ready4Balfolk.Domain.Stores.Dances;
 
 /// <summary>Owns the copy of BigBalfolkList the application is working from.</summary>
 /// <remarks>
-/// Three sources, in one order: the cached download on disk, and the copy shipped with the build
-/// when there is none or it cannot be read. An update replaces the file whole, because the list is
-/// somebody else's and there is nothing of the user's in it to merge around.
+/// One source on startup: the copy on disk, put there by fetching it or by importing a file.
+/// Nothing is shipped to fall back on, so a machine nobody has done either on has no vocabulary at
+/// all, and says so. An update replaces the file whole, because the list is somebody else's and
+/// there is nothing of the user's in it to merge around.
 /// </remarks>
 public sealed class DanceListStore(
     IApplicationSettingsDirectory dataDirectory,
@@ -70,11 +71,9 @@ public sealed class DanceListStore(
                 }
             }
 
-            Publish(DanceListReader.ReadBuiltIn(), DanceListOrigin.BuiltIn, obtainedAt: null);
-        }
-        catch (InvalidDataException exception)
-        {
-            _ = loggerService.ErrorAsync("The dance list shipped with the application is unreadable", exception);
+            // Nothing on disk and nothing shipped: the application has no dance vocabulary until
+            // somebody fetches one or imports one, and everything that needs dances says so.
+            Publish(DanceList.Empty, DanceListOrigin.None, obtainedAt: null);
         }
         finally
         {

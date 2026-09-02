@@ -102,18 +102,42 @@ public sealed class SetupWizardViewModelTests : IDisposable
     public void TheFirstStepAsksNothing() => Assert.True(CanContinueNow());
 
     [Fact]
-    public void TheDanceListStepAsksNothingEither()
+    public void TheDanceListStepWillNotBePassedWithoutAList()
     {
         GoTo<DanceListStepViewModel>();
 
-        // The list is taken as published, so there is nothing on this step to get wrong.
+        // Nothing ships with the application, so a machine arrives here with no vocabulary at all,
+        // and everything after this step needs one.
+        Assert.False(CanContinueNow());
+        Assert.True(_sut.IsBlocked);
+        Assert.NotEqual(string.Empty, _sut.BlockedReason);
+    }
+
+    [Fact]
+    public void TheDanceListStepIsPassedOnceAListHasArrived()
+    {
+        _statusSubject.OnNext(new DanceListStatus(113, 40, DanceListOrigin.Downloaded, _now.GetUtcNow()));
+
+        GoTo<DanceListStepViewModel>();
+
         Assert.True(CanContinueNow());
     }
 
     [Fact]
-    public void TheDanceListStepFetchesTheList()
+    public void TheDanceListStepFetchesNothingOnItsOwn()
     {
         GoTo<DanceListStepViewModel>();
+
+        // Reaching out is an act the user takes, not something a step does on the way past.
+        _danceListStore.DidNotReceive().RefreshAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void TheDanceListStepFetchesWhenItIsAskedTo()
+    {
+        var step = GoTo<DanceListStepViewModel>();
+
+        step.FetchCommand.Execute().Subscribe();
 
         _danceListStore.Received().RefreshAsync(Arg.Any<CancellationToken>());
     }
@@ -121,11 +145,13 @@ public sealed class SetupWizardViewModelTests : IDisposable
     [Fact]
     public void TheDanceListStepDoesNotFetchWhatWasJustFetched()
     {
-        // The application refreshes at startup and this step is reached seconds later, so asking
-        // BigBalfolkList for the same file again would be two downloads for one answer.
+        // Stepping back and forward over this page, or pressing the button twice, is not a reason
+        // to ask BigBalfolkList for the same file again.
         _statusSubject.OnNext(new DanceListStatus(113, 40, DanceListOrigin.Downloaded, _now.GetUtcNow()));
 
-        GoTo<DanceListStepViewModel>();
+        var step = GoTo<DanceListStepViewModel>();
+
+        step.FetchCommand.Execute().Subscribe();
 
         _danceListStore.DidNotReceive().RefreshAsync(Arg.Any<CancellationToken>());
     }
@@ -136,7 +162,9 @@ public sealed class SetupWizardViewModelTests : IDisposable
         _statusSubject.OnNext(new DanceListStatus(
             113, 40, DanceListOrigin.Downloaded, _now.GetUtcNow() - TimeSpan.FromHours(2)));
 
-        GoTo<DanceListStepViewModel>();
+        var step = GoTo<DanceListStepViewModel>();
+
+        step.FetchCommand.Execute().Subscribe();
 
         _danceListStore.Received().RefreshAsync(Arg.Any<CancellationToken>());
     }
@@ -149,10 +177,12 @@ public sealed class SetupWizardViewModelTests : IDisposable
 
         var step = GoTo<DanceListStepViewModel>();
 
-        // The copy shipped with the application is a perfectly good list, so a hall with no wifi
-        // is not a dead end.
-        Assert.True(CanContinueNow());
+        step.FetchCommand.Execute().Subscribe();
+
+        // A hall with no wifi is not a dead end: the step is still there to try again, or to take
+        // a file instead. It is still blocked, because there is still no list.
         Assert.False(step.IsFetching);
+        Assert.False(CanContinueNow());
     }
 
     [Fact]

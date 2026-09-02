@@ -81,7 +81,8 @@
                                TextWrapping="Wrap"
                                FontSize="11"
                                Opacity="0.6" />
-                    <Button Command="{CompiledBinding UpdateCommand}"
+                    <Button AutomationProperties.AutomationId="dancelist.update"
+                            Command="{CompiledBinding UpdateCommand}"
                             IsEnabled="{CompiledBinding !IsUpdating}"
                             ToolTip.Tip="{x:Static res:UiStrings.DanceList_UpdateTip}"
                             HorizontalAlignment="Stretch"

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Reflection;
 using System.Text.Json;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Resources;
@@ -8,29 +7,16 @@ namespace Ready4Balfolk.Domain.Services.Dances;
 
 /// <summary>Reads a published <c>dances.json</c>, from wherever it arrived.</summary>
 /// <remarks>
-/// One reader for all four sources: the copy shipped with the application, the cached copy on disk,
-/// a download, and a file the user picked to update from offline. They are the same bytes in the
-/// same format, so a file that would be refused from one is refused from all of them.
+/// One reader for all three sources: the cached copy on disk, a download, and a file the user
+/// picked to update from offline. They are the same bytes in the same format, so a file that would
+/// be refused from one is refused from all of them.
 /// </remarks>
 public static class DanceListReader
 {
-    private const string BuiltInResourceName = "Ready4Balfolk.Domain.Assets.dances.json";
-
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
-
-    /// <summary>The copy shipped with the application. Always present, never written to.</summary>
-    /// <exception cref="InvalidDataException">The build shipped something unreadable.</exception>
-    public static DanceList ReadBuiltIn()
-    {
-        using var stream = typeof(DanceListReader).GetTypeInfo().Assembly
-                               .GetManifestResourceStream(BuiltInResourceName)
-                           ?? throw new InvalidDataException(DomainStrings.DanceList_BuiltInMissing);
-        using var reader = new StreamReader(stream);
-        return Read(reader.ReadToEnd());
-    }
 
     /// <summary>
     /// Parses and checks a list. Refusing is the point: read as an empty list, a truncated download

@@ -1,33 +1,13 @@
-using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Services.Dances;
 
 namespace Ready4Balfolk.Tests.Unit;
 
 /// <summary>
-/// The reader is the only door the list comes through, from all four sources, so what it refuses is
-/// what the application is protected from.
+/// The reader is the only door the list comes through, from all three sources, so what it refuses
+/// is what the application is protected from.
 /// </summary>
 public sealed class DanceListReaderTests
 {
-    [Fact]
-    public void ReadBuiltIn_IsAWholeUsableList()
-    {
-        var list = DanceListReader.ReadBuiltIn();
-
-        // Shipped so that a first run with no network still has a vocabulary.
-        Assert.False(list.IsEmpty);
-        Assert.NotEmpty(list.Tags);
-        Assert.Equal(DanceList.CurrentFormatVersion, list.FormatVersion);
-    }
-
-    [Fact]
-    public void ReadBuiltIn_HasNoDuplicateNames()
-    {
-        var problems = DanceListValidation.Validate(DanceListReader.ReadBuiltIn());
-
-        Assert.False(problems.Any);
-    }
-
     [Fact]
     public void Read_TheShapeBigBalfolkListPublishes_IsUnderstood()
     {

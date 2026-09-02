@@ -272,8 +272,11 @@ De danslijst is elke balfolkdans en elke naam die elke dans draagt. Hij komt van
 zoals gepubliceerd: er is niets op te bouwen, niets in te vullen, en niets in het programma
 bewerkt hem.
 
-Er wordt een kopie meegeleverd, dus hij werkt de eerste keer ook zonder internet. Bij elke start
-wordt gekeken of er een nieuwere is.
+Er wordt geen kopie meegeleverd. De eerste keer dat je het programma opent vraagt de installatie je
+om de lijst bij BigBalfolkList op te halen, of om een `dances.json` te importeren die iemand op een
+stick heeft meegenomen als deze machine nooit online komt. Zolang dat niet gebeurd is valt er niets
+over je muziek te beantwoorden, en het programma haalt nooit uit zichzelf iets op: de knop
+Bijwerken in het danslijstpaneel is hoe je om een nieuwere vraagt.
 
 ### Wat erin staat
 

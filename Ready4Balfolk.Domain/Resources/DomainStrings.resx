@@ -90,9 +90,6 @@
   </data>
 
   <!-- Dance list -->
-  <data name="DanceList_BuiltInMissing" xml:space="preserve">
-    <value>The dance list shipped with this build is missing.</value>
-  </data>
   <data name="DanceList_InvalidJson" xml:space="preserve">
     <value>That is not a dance list: the file is not readable JSON.</value>
   </data>

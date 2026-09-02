@@ -684,6 +684,15 @@ public static class UiStrings
     public static string Wizard_DanceList_Summary =>
         ResourceManager.GetString("Wizard_DanceList_Summary", Culture)!;
 
+    public static string Wizard_DanceList_Blocked =>
+        ResourceManager.GetString("Wizard_DanceList_Blocked", Culture)!;
+
+    public static string Wizard_DanceList_Fetch =>
+        ResourceManager.GetString("Wizard_DanceList_Fetch", Culture)!;
+
+    public static string Wizard_DanceList_Import =>
+        ResourceManager.GetString("Wizard_DanceList_Import", Culture)!;
+
     public static string Wizard_DanceList_Detail =>
         ResourceManager.GetString("Wizard_DanceList_Detail", Culture)!;
 
@@ -717,8 +726,8 @@ public static class UiStrings
     public static string DanceList_Obtained =>
         ResourceManager.GetString("DanceList_Obtained", Culture)!;
 
-    public static string DanceList_ObtainedBuiltIn =>
-        ResourceManager.GetString("DanceList_ObtainedBuiltIn", Culture)!;
+    public static string DanceList_NoListYet =>
+        ResourceManager.GetString("DanceList_NoListYet", Culture)!;
 
     public static string DanceList_Update =>
         ResourceManager.GetString("DanceList_Update", Culture)!;
