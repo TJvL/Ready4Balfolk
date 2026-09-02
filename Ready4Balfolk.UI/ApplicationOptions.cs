@@ -1,3 +1,5 @@
+using System;
+using Microsoft.Extensions.DependencyInjection;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores;
 
@@ -17,6 +19,13 @@ public sealed record ApplicationOptions
 
     /// <summary>The level below which the file logger writes nothing.</summary>
     public LogLevel MinimumLogLevel { get; init; } = LogLevel.Info;
+
+    /// <summary>Anything else a run needs in the container, registered last so it wins.</summary>
+    /// <remarks>
+    /// For a run that has no desktop to answer a file picker, which is a scenario run and nothing
+    /// else. Registering last is what lets it stand in for something already registered.
+    /// </remarks>
+    public Action<IServiceCollection>? AlsoRegister { get; init; }
 
     /// <summary>Where the application keeps what it writes, or null for the user's profile.</summary>
     /// <remarks>

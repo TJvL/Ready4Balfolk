@@ -129,6 +129,24 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         return this;
     }
 
+    /// <summary>A dances.json on this machine, the way one arrives on a stick.</summary>
+    public string ADanceListFileHolding(string contents)
+    {
+        var path = Path.Combine(_root, $"dances-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, contents);
+
+        return path;
+    }
+
+    /// <summary>The published list, as a file rather than as this machine's own copy.</summary>
+    public string ThePublishedDanceListAsAFile()
+    {
+        var path = Path.Combine(_root, "dances-from-a-stick.json");
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "dances.json"), path, overwrite: true);
+
+        return path;
+    }
+
     /// <summary>A machine nobody has fetched or imported a dance list on.</summary>
     public ScenarioWorld WhereThereIsNoDanceList()
     {

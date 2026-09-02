@@ -274,6 +274,9 @@ public sealed class RunningApplication : IAsyncDisposable
         return match!;
     }
 
+    /// <summary>Says which file the DJ picks the next time something asks them for one.</summary>
+    public static void TheDjWillPick(string path) => ScenarioApplication.Pickers.TheyWillPick(path);
+
     /// <summary>Clicks whatever carries this automation id.</summary>
     public void Click(string automationId) => Click(Find(automationId));
 

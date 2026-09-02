@@ -1,9 +1,10 @@
 using System.IO.Abstractions;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Wizard;
 
@@ -20,20 +21,10 @@ public partial class DanceListStepView : ReactiveUserControl<DanceListStepViewMo
     /// </summary>
     private async void OnImportClick(object? sender, RoutedEventArgs e)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-        {
-            return;
-        }
+        var path = await App.Services.GetRequiredService<IFilePickerService>()
+            .PickFileToOpenAsync(UiStrings.Wizard_DanceList_Import, FileKind.Json);
 
-        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = UiStrings.Wizard_DanceList_Import,
-            AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("dances.json") { Patterns = ["*.json"] }]
-        });
-
-        if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
+        if (path is not null)
         {
             await ViewModel!.ImportAsync(new FileSystem().FileInfo.New(path));
         }

@@ -1,8 +1,10 @@
 using System.IO.Abstractions;
 using Avalonia;
 using Avalonia.Headless;
+using Microsoft.Extensions.DependencyInjection;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.UI;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.E2E;
 
@@ -33,7 +35,10 @@ public static class ScenarioApplication
                 // No hardware to speak to on a build agent, and none needed: BASS decodes and keeps
                 // time on its no sound device, so playback in a scenario is real but silent.
                 UseNoSoundDevice = true,
-                SettingsDirectory = new CurrentWorld()
+                SettingsDirectory = new CurrentWorld(),
+                // The desktop's pickers, answered by the scenario: there is no desktop here, and
+                // what a person decides in a picker is which file comes back.
+                AlsoRegister = services => services.AddSingleton<IFilePickerService>(Pickers)
             });
 
     /// <summary>Points at whichever world is running, rather than at the one that was.</summary>
@@ -44,6 +49,9 @@ public static class ScenarioApplication
     /// profile directory, silently: the settings file the scenario had just written was not the one
     /// the application read.
     /// </remarks>
+    /// <summary>What the person will pick, for the scenario that is about picking something.</summary>
+    internal static ScenarioPickers Pickers { get; } = new();
+
     private sealed class CurrentWorld : IApplicationSettingsDirectory
     {
         public IDirectoryInfo DirectoryInfoRoot =>
