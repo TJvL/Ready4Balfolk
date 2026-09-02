@@ -90,6 +90,9 @@
   </data>
 
   <!-- Dance list -->
+  <data name="Queue_CannotPlay" xml:space="preserve">
+    <value>Could not play {0}: the file is missing or cannot be read. Moving on.</value>
+  </data>
   <data name="DanceList_InvalidJson" xml:space="preserve">
     <value>That is not a dance list: the file is not readable JSON.</value>
   </data>

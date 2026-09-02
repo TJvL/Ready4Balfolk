@@ -17,6 +17,14 @@ public interface ITrackStore : ILoadableStore
     /// </remarks>
     IObservable<int> InReviewCount { get; }
 
+    /// <summary>The path of a track whose file has just gone from the music directory.</summary>
+    /// <remarks>
+    /// Published as the watcher notices it, rather than being read off the library: a rebuild
+    /// clears the list and fills it again, so what leaves the library is not the same question as
+    /// what left the disk, and only the second one means an entry in the queue can never play.
+    /// </remarks>
+    IObservable<string> WhenTrackFileVanished { get; }
+
     /// <summary>Brings the library into line with what the settings now say.</summary>
     /// <remarks>
     /// One call rather than three setters, so the music directory, the declared rules and the dance

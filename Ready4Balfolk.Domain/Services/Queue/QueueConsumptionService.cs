@@ -1,9 +1,11 @@
+using System.Globalization;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
@@ -129,7 +131,35 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         }
     }
 
+    /// <summary>Starts an item, and moves past anything that turns out not to be playable.</summary>
+    /// <remarks>
+    /// A file can go between being queued and being reached: moved in another window, on a drive
+    /// that was unplugged, or renamed while the application was closed. The room is waiting either
+    /// way, so the evening steps over it and says which track it was, rather than stopping on an
+    /// item that can never start.
+    /// </remarks>
     private async Task StartItemAsync(IQueueItem item)
+    {
+        var next = item;
+
+        while (next is not null)
+        {
+            if (await TryStartItemAsync(next))
+            {
+                PreloadNext();
+                return;
+            }
+
+            await RecordCurrentItemAsync(CompletionStatus.Skipped);
+            CleanupCurrentItem();
+            next = _queue.Dequeue();
+        }
+
+        _currentItem.OnNext(null);
+    }
+
+    /// <summary>Starts one item. False when it is audio that would not open.</summary>
+    private async Task<bool> TryStartItemAsync(IQueueItem item)
     {
         _itemFinishedNaturally = false;
         _currentItemStartedAt = DateTime.Now;
@@ -141,17 +171,15 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         {
             case AutoTrackQueueItem auto:
                 _currentItem.OnNext(item);
-                await StartTrackAsync(auto.TrackQueueItem);
-                break;
+                return await TryStartAudioAsync(auto.TrackQueueItem.Track.FileInfo.FullName, item.Description);
             case TrackQueueItem track:
                 _currentItem.OnNext(item);
-                await StartTrackAsync(track);
-                break;
+                return await TryStartAudioAsync(track.Track.FileInfo.FullName, item.Description);
             case DelayQueueItem delay:
                 await _audio.ClearAsync();
                 _currentItem.OnNext(item);
                 StartCountdown(delay.DelayDuration);
-                break;
+                return true;
             case MessageQueueItem message:
                 await _audio.ClearAsync();
                 _currentItem.OnNext(item);
@@ -164,25 +192,26 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                     _totalDuration.OnNext(TimeSpan.Zero);
                 }
 
-                break;
+                return true;
             case StopQueueItem:
                 await _audio.ClearAsync();
                 _currentItem.OnNext(item);
-                break;
+                return true;
             case EndOfNightQueueItem endOfNight:
                 _currentItem.OnNext(item);
-                await StartAudioAsync(endOfNight.FilePath);
-                break;
+                return await TryStartAudioAsync(endOfNight.FilePath, item.Description);
             default:
-                break;
+                return true;
         }
-
-        PreloadNext();
     }
 
-    private Task StartTrackAsync(TrackQueueItem trackItem) => StartAudioAsync(trackItem.Track.FileInfo.FullName);
-
-    private async Task StartAudioAsync(string filePath)
+    /// <summary>Opens a file and starts it, or says which one would not open.</summary>
+    /// <remarks>
+    /// The failure is reported rather than thrown. Thrown, it reached the application's unhandled
+    /// handler, and what a hall's DJ saw was the words "Unhandled RxApp exception" while the music
+    /// stopped.
+    /// </remarks>
+    private async Task<bool> TryStartAudioAsync(string filePath, string description)
     {
         var uri = new Uri(filePath);
 
@@ -194,8 +223,20 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _itemDisposables.Add(
             _audio.WhenPlaybackEnded.Take(1).Subscribe(_ => OnTrackEnded()));
 
-        await _audio.SelectAsync(uri);
-        await _audio.PlayAsync();
+        try
+        {
+            await _audio.SelectAsync(uri);
+            await _audio.PlayAsync();
+            return true;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException)
+        {
+            _ = _loggerService.ErrorAsync(
+                string.Format(CultureInfo.CurrentCulture, DomainStrings.Queue_CannotPlay, description),
+                exception);
+
+            return false;
+        }
     }
 
     private void OnTrackEnded()

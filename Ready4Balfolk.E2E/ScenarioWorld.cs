@@ -238,6 +238,10 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         return WithSettings(settings => settings with { EndOfNightAudioPath = path });
     }
 
+    /// <summary>Takes the closing track away, which nothing is watching for.</summary>
+    public void RemoveTheEndOfNightFile() =>
+        File.Delete(Path.Combine(_root, "the end of the night.mp3"));
+
     /// <summary>The file was nominated, and is not there any more.</summary>
     public ScenarioWorld WhereTheEndOfNightFileHasBeenMovedAway() =>
         WithSettings(settings => settings with

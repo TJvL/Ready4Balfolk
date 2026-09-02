@@ -9,6 +9,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Unit;
@@ -18,6 +19,7 @@ public sealed class QueueServiceTests : IDisposable
     private readonly QueueService _sut;
     private readonly BehaviorSubject<ApplicationSettings> _settingsSubject;
     private readonly BehaviorSubject<QueueHistory> _historySubject;
+    private readonly Subject<string> _vanished;
 
     public QueueServiceTests()
     {
@@ -36,7 +38,29 @@ public sealed class QueueServiceTests : IDisposable
         historyStore.Current.Returns(_ => _historySubject.Value);
         historyStore.Observe().Returns(_historySubject);
 
-        _sut = new QueueService(settingsStore, historyStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService());
+        _vanished = new Subject<string>();
+        var trackStore = Substitute.For<ITrackStore>();
+        trackStore.WhenTrackFileVanished.Returns(_vanished);
+
+        _sut = new QueueService(
+            settingsStore, historyStore, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService());
+    }
+
+    // --- What has gone from the disk ---
+
+    [Fact]
+    public void ATrackWhoseFileHasGone_LeavesTheQueue()
+    {
+        var track = TestData.CreateTrack();
+        _sut.Enqueue(new TrackQueueItem(track, false));
+        _sut.Enqueue(new StopQueueItem());
+
+        _vanished.OnNext(track.FileInfo.FullName);
+
+        // A queued dance whose file has gone can never play, and finding that out when the room is
+        // waiting for it is the worst moment to find it out.
+        Assert.Equal(1, _sut.Count);
+        Assert.IsType<StopQueueItem>(_sut.Items[0]);
     }
 
     // --- Basic ops ---
