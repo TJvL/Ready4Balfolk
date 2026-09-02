@@ -114,7 +114,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
         else
         {
-            _notificationService.Show("No tracks available for random selection", NotificationSeverity.Warning);
+            _notificationService.Show(UiStrings.Queue_NoRandomTrack, NotificationSeverity.Warning);
         }
     }
 

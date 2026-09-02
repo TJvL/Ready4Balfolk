@@ -270,6 +270,9 @@
   <data name="Settings_EndOfNightAtCutoffDescription" xml:space="preserve">
     <value>The last thing the room hears is the thing that means go home, without anybody having to press it while packing up. Once it is queued nothing else goes in; removing it reopens the evening.</value>
   </data>
+  <data name="Queue_NoRandomTrack" xml:space="preserve">
+    <value>No tracks to pick from</value>
+  </data>
   <data name="Queue_CutoffPaused" xml:space="preserve">
     <value>limit paused for the stop</value>
   </data>
