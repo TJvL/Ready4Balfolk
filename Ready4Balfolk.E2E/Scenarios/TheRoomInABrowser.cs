@@ -145,4 +145,123 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
                 "the desktop to move on to what the helper skipped to");
         });
     }
+
+    /// <summary>A phone guessing the PIN is turned away, and then stopped from guessing.</summary>
+    /// <remarks>
+    /// World: a library of one dance, the server on, and the remote on with a PIN.
+    /// Steps: type the wrong PIN five times.
+    /// Sees: each try refused, and the fifth one closing the door for a while rather than letting
+    /// the guessing go on: a six digit PIN is only worth anything if nobody may keep trying.
+    /// </remarks>
+    [Fact]
+    public async Task WrongPinIsRefusedAndTheFifthTryLocksOut()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "864209")
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            for (var guess = 0; guess < 4; guess++)
+            {
+                await phone.TypeInto("pin", "000000");
+                await phone.Tap("gateButton");
+                await phone.WaitUntilItReads("gateError", "PIN");
+            }
+
+            await phone.TypeInto("pin", "000000");
+            await phone.Tap("gateButton");
+
+            await phone.WaitUntilItReads("gateError", "Too many tries");
+
+            Assert.True(await phone.IsShowing("gate"), "The remote let a guesser in.");
+        });
+    }
+
+    /// <summary>The helper asks for something at random from their phone.</summary>
+    /// <remarks>
+    /// World: a library of two dances, the server and the remote on, and auto queue off so nothing
+    /// reaches the queue that nobody asked for.
+    /// Steps: unlock the remote and tap the random button on the phone.
+    /// Sees: a dance in the desktop's queue that the DJ did not put there.
+    /// </remarks>
+    [Fact]
+    public async Task HelperQueuesARandomTrackFromTheRemote()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "112358")
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "112358");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            Assert.Empty(application.RowsOf("queue.items"));
+
+            // The remote has tabs, and asking for something is on the one that adds: a helper taps
+            // there first, and so does this.
+            await phone.Page.Locator("[data-tab='add']").ClickAsync();
+            await phone.Page.Locator("[data-act='random']").ClickAsync();
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 1,
+                "the dance the helper asked for to reach the queue");
+        });
+    }
+
+    /// <summary>The DJ queues a dance and the screen in the hall keeps up.</summary>
+    /// <remarks>
+    /// World: a library of two dances, the server on, and auto queue off.
+    /// Steps: open the display page, then queue a second dance behind the one that is playing.
+    /// Sees: the hall's screen naming what is coming, from a click on the desktop.
+    /// </remarks>
+    [Fact]
+    public async Task DjQueuesADanceAndTheRoomScreenUpdates()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            await using var projector = await TheBrowser.OpenAt(world.ServerAddress);
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await projector.WaitUntilItReads("title", "Salamandre");
+
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+
+            await projector.WaitUntilItReads("nextTitle", "La Belle");
+        });
+    }
 }
