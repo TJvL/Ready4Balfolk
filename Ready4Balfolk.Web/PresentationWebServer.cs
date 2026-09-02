@@ -24,10 +24,11 @@ namespace Ready4Balfolk.Web;
 /// This is an extra the user switches on, not a backend the app talks to. Nothing in the desktop app
 /// depends on it running, and it owns no state of its own beyond the listener.
 /// </remarks>
-public sealed class PresentationWebServer(IServiceProvider hostServices, ILoggerService logger)
+public sealed class PresentationWebServer(
+    IServiceProvider hostServices, ILoggerService logger, TimeProvider time)
     : IAsyncDisposable
 {
-    private readonly RemoteAccessService _access = new();
+    private readonly RemoteAccessService _access = new(time);
     private readonly SemaphoreSlim _mutex = new(1, 1);
     private readonly Subject<Unit> _changed = new();
 

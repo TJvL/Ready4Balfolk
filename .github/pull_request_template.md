@@ -23,7 +23,3 @@ fails without the change, and say so plainly if it does not.
 - [ ] `dotnet format Ready4Balfolk.sln --verify-no-changes`
 - [ ] `dotnet test --project Ready4Balfolk.Tests/Ready4Balfolk.Tests.csproj -c Release`
 - [ ] New or changed user-facing strings exist in both `.resx` files
-
-## Worth a second look
-
-<!-- Anything you are unsure about, or a judgement call somebody might reasonably disagree with. -->

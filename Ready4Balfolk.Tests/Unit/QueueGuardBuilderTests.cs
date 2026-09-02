@@ -31,7 +31,7 @@ public sealed class QueueGuardBuilderTests
     private static ApplicationSettings Defaults => new();
 
     private IQueueGuard Build(ApplicationSettings settings) =>
-        QueueGuardBuilder.FromSettings(settings, () => _playing, _history, () => TimeSpan.Zero);
+        QueueGuardBuilder.FromSettings(settings, () => _playing, _history, () => TimeSpan.Zero, TimeProvider.System);
 
     private static TrackQueueItem Queued(string title = "Title") =>
         new(TestData.CreateTrack(title: title), RandomlyAdded: false);

@@ -117,6 +117,10 @@ public static class ApplicationComposition
     private static void ConfigureServices(IServiceCollection services, ApplicationOptions options)
     {
         // Services
+        // The clock, everywhere it decides something: the cutoff and its grace, when an item
+        // started, how long a delay has run, when a night began and ended, whether an evening was
+        // left unfinished, and how long a remote's token is good for.
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ILoggerService>(sp =>
             new FileLoggerService(sp.GetRequiredService<IApplicationSettingsDirectory>().DirectoryInfoRoot)
             {
@@ -136,7 +140,8 @@ public static class ApplicationComposition
                 sp.GetRequiredService<ITrackStore>(),
                 () => consumption.Value.CurrentItem,
                 () => consumption.Value.CurrentItemRemaining,
-                sp.GetRequiredService<ILoggerService>());
+                sp.GetRequiredService<ILoggerService>(),
+                sp.GetRequiredService<TimeProvider>());
         });
         services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
         services.AddSingleton<IEndOfNightAudio, EndOfNightAudio>();
@@ -182,7 +187,8 @@ public static class ApplicationComposition
         // The embedded server. It builds its own container and is handed these same instances by
         // AddForwardedHostServices, so nothing here is ever constructed twice.
         services.AddSingleton<IRemoteCommandDispatcher, AvaloniaRemoteCommandDispatcher>();
-        services.AddSingleton(sp => new PresentationWebServer(sp, sp.GetRequiredService<ILoggerService>()));
+        services.AddSingleton(sp => new PresentationWebServer(
+            sp, sp.GetRequiredService<ILoggerService>(), sp.GetRequiredService<TimeProvider>()));
 
         // ViewModels
         services.AddSingleton<ToolbarViewModel>();

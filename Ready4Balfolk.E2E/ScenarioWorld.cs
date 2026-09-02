@@ -3,8 +3,11 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores;
+using Ready4Balfolk.Domain.Stores.History;
 
 namespace Ready4Balfolk.E2E;
 
@@ -147,6 +150,36 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         return path;
     }
 
+    /// <summary>An evening that ran and was never closed, this long ago.</summary>
+    /// <remarks>
+    /// Written by the real history store into this world's own file, the way the settings are
+    /// written by hand: the machine simply has a night on it that nobody ended, which is what a
+    /// flat battery or a laptop lid leaves behind.
+    /// </remarks>
+    public ScenarioWorld WithAnEveningNobodyEnded(TimeSpan howLongAgo)
+    {
+        using var history = new QueueHistoryStore(
+            this, _fileSystem, new NoOpLoggerService(), new AnHourInThePast(howLongAgo));
+
+        history.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
+        history.AddAsync(new TrackHistoryEntry(
+            Path.Combine(MusicDirectory.FullName, "the last dance.mp3"),
+            "Mazurka",
+            "Naragonia",
+            "Salamandre",
+            TimeSpan.FromMinutes(3),
+            RandomlyAdded: false,
+            CompletionStatus.Finished)).GetAwaiter().GetResult();
+
+        return this;
+    }
+
+    /// <summary>A clock that says the evening happened a while ago.</summary>
+    private sealed class AnHourInThePast(TimeSpan howLongAgo) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => System.GetUtcNow() - howLongAgo;
+    }
+
     /// <summary>A machine nobody has fetched or imported a dance list on.</summary>
     public ScenarioWorld WhereThereIsNoDanceList()
     {
@@ -274,12 +307,12 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
     }
 
     /// <summary>The queue stops accepting entries as of now, so the next dance is already too late.</summary>
-    public ScenarioWorld WhereTheCutoffHasArrived() =>
+    public ScenarioWorld WhereTheCutoffHasArrived(int graceMinutes = 0) =>
         WithSettings(settings => settings with
         {
             QueueCutoffEnabled = true,
             QueueCutoffMinutesOfDay = (int)DateTime.Now.TimeOfDay.TotalMinutes,
-            QueueCutoffGraceMinutes = 0
+            QueueCutoffGraceMinutes = graceMinutes
         });
 
     /// <summary>A settings file that is not settings, which is what an interrupted write leaves.</summary>

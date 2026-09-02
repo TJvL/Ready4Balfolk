@@ -18,7 +18,8 @@ public sealed class DanceListStore(
     IApplicationSettingsDirectory dataDirectory,
     IFileSystem fileSystem,
     IDanceListFeed feed,
-    ILoggerService loggerService)
+    ILoggerService loggerService,
+    TimeProvider time)
     : IDanceListStore
 {
     private const string DanceListFileName = "dance_list.json";
@@ -145,7 +146,7 @@ public sealed class DanceListStore(
 
             _currentJson = json;
             await SaveAsync(json);
-            Publish(list, origin, DateTimeOffset.UtcNow);
+            Publish(list, origin, time.GetUtcNow());
 
             return identical ? DanceListUpdate.Unchanged : DanceListUpdate.Updated(added);
         }

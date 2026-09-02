@@ -24,7 +24,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
 
         _directory = Substitute.For<IApplicationSettingsDirectory>();
         _directory.DirectoryInfoRoot.Returns(_ => _tempDir);
-        _sut = new QueueHistoryStore(_directory, _fileSystem, new NoOpLoggerService());
+        _sut = new QueueHistoryStore(_directory, _fileSystem, new NoOpLoggerService(), TimeProvider.System);
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
     /// <summary>A second store over the same directory, which is what a restart amounts to.</summary>
     private async Task<QueueHistoryStore> ReopenAsync()
     {
-        var reopened = new QueueHistoryStore(_directory, _fileSystem, new NoOpLoggerService());
+        var reopened = new QueueHistoryStore(_directory, _fileSystem, new NoOpLoggerService(), TimeProvider.System);
         _reopened.Add(reopened);
         await reopened.LoadAsync(TestContext.Current.CancellationToken);
         return reopened;

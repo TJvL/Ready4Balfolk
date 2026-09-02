@@ -22,6 +22,7 @@ namespace Ready4Balfolk.UI.Views.Queue;
 public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 {
     private readonly TrackEditorService _trackEditor;
+    private readonly TimeProvider _time;
     private readonly IQueueService _queueService;
     private readonly IEndOfNightAudio _endOfNightAudio;
     private readonly IQueueConsumptionService _consumptionService;
@@ -227,8 +228,10 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         IConfirmationService confirmationService,
         INotificationService notificationService,
         IEndOfNightAudio endOfNightAudio,
-        TrackEditorService trackEditor)
+        TrackEditorService trackEditor,
+        TimeProvider time)
     {
+        _time = time;
         _trackEditor = trackEditor;
         _queueService = queueService;
         _endOfNightAudio = endOfNightAudio;
@@ -572,7 +575,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         var settings = _settingsStore.Current;
-        var finishTime = DateTime.Now + currentRemaining + queueDuration;
+        var finishTime = _time.GetLocalNow().DateTime + currentRemaining + queueDuration;
         string text;
         if (halts)
         {

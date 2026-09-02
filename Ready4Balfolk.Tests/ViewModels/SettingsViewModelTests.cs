@@ -50,7 +50,7 @@ public sealed class SettingsViewModelTests : IDisposable
         // Never started, so it reports Stopped. Sealed, so there is nothing to substitute, and
         // starting one would mean binding a socket.
         _webServer = new PresentationWebServer(
-            Substitute.For<IServiceProvider>(), new NoOpLoggerService());
+            Substitute.For<IServiceProvider>(), new NoOpLoggerService(), TimeProvider.System);
 
         _sut = new SettingsViewModel(_settingsStore, new NoOpLoggerService(), _confirmations,
             _webServer, _fileSystem, () => _restarts++);

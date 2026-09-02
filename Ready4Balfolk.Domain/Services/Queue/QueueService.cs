@@ -23,14 +23,17 @@ public sealed class QueueService : IQueueService, IDisposable
         ITrackStore trackStore,
         Func<IQueueItem?> currentItemProvider,
         Func<TimeSpan> currentItemRemainingProvider,
-        ILoggerService loggerService)
+        ILoggerService loggerService,
+        TimeProvider time)
     {
         _loggerService = loggerService;
-        _guard = QueueGuardBuilder.FromSettings(settingsStore.Current, currentItemProvider, historyStore, currentItemRemainingProvider);
+        _guard = QueueGuardBuilder.FromSettings(
+            settingsStore.Current, currentItemProvider, historyStore, currentItemRemainingProvider, time);
         _settingsSubscription = settingsStore.Observe()
             .Subscribe(settings =>
             {
-                _guard = QueueGuardBuilder.FromSettings(settings, currentItemProvider, historyStore, currentItemRemainingProvider);
+                _guard = QueueGuardBuilder.FromSettings(
+                    settings, currentItemProvider, historyStore, currentItemRemainingProvider, time);
                 Evict();
             });
         _historySubscription = historyStore.Observe()
