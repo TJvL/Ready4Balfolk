@@ -90,6 +90,25 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         return this;
     }
 
+    /// <summary>A file in the music directory that is not audio, whatever its name says.</summary>
+    public ScenarioWorld WithUnreadableTrack(string fileName)
+    {
+        File.WriteAllBytes(
+            Path.Combine(MusicDirectory.FullName, fileName),
+            [.. Enumerable.Range(0, 4096).Select(index => (byte)(index % 251))]);
+
+        return this;
+    }
+
+    /// <summary>Takes a track away behind the application's back, the way a tidy-up does.</summary>
+    public void RemoveTrackFile(string titleInFileName)
+    {
+        var file = Directory.EnumerateFiles(MusicDirectory.FullName)
+            .First(path => path.Contains(titleInFileName, StringComparison.OrdinalIgnoreCase));
+
+        File.Delete(file);
+    }
+
     /// <summary>The file this DJ has nominated as the sound of the evening ending.</summary>
     /// <remarks>
     /// Outside the music directory on purpose: it is one file the user points at, not part of the
