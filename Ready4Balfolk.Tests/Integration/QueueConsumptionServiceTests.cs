@@ -1,3 +1,4 @@
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
@@ -8,6 +9,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
 using RxUnit = System.Reactive.Unit;
 
@@ -50,7 +52,11 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         settingsStore.Current.Returns(settings);
         settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
 
-        _queue = new QueueService(settingsStore, _history, () => null, () => TimeSpan.Zero, new NoOpLoggerService());
+        var trackStore = Substitute.For<ITrackStore>();
+        trackStore.WhenTrackFileVanished.Returns(Observable.Never<string>());
+
+        _queue = new QueueService(
+            settingsStore, _history, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService());
 
         _sut = new QueueConsumptionService(_audio, _queue, _history, new NoOpLoggerService());
     }

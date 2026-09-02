@@ -133,6 +133,7 @@ public static class ApplicationComposition
             return new QueueService(
                 sp.GetRequiredService<ISettingsStore>(),
                 sp.GetRequiredService<IQueueHistoryStore>(),
+                sp.GetRequiredService<ITrackStore>(),
                 () => consumption.Value.CurrentItem,
                 () => consumption.Value.CurrentItemRemaining,
                 sp.GetRequiredService<ILoggerService>());

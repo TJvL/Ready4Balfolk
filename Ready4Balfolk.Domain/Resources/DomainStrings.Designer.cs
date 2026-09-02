@@ -70,6 +70,9 @@ public static class DomainStrings
     public static string DanceList_FileNotFound =>
         ResourceManager.GetString("DanceList_FileNotFound", Culture)!;
 
+    public static string Queue_CannotPlay =>
+        ResourceManager.GetString("Queue_CannotPlay", Culture)!;
+
     public static string DanceList_InvalidJson =>
         ResourceManager.GetString("DanceList_InvalidJson", Culture)!;
 

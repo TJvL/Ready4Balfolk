@@ -4,6 +4,7 @@ using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.Domain.Stores.Tracks;
 
 namespace Ready4Balfolk.Domain.Services.Queue;
 
@@ -12,12 +13,14 @@ public sealed class QueueService : IQueueService, IDisposable
     private readonly SourceList<IQueueItem> _sourceList = new();
     private readonly IDisposable _settingsSubscription;
     private readonly IDisposable _historySubscription;
+    private readonly IDisposable _librarySubscription;
     private readonly ILoggerService _loggerService;
     private IQueueGuard _guard;
 
     public QueueService(
         ISettingsStore settingsStore,
         IQueueHistoryStore historyStore,
+        ITrackStore trackStore,
         Func<IQueueItem?> currentItemProvider,
         Func<TimeSpan> currentItemRemainingProvider,
         ILoggerService loggerService)
@@ -33,7 +36,31 @@ public sealed class QueueService : IQueueService, IDisposable
         _historySubscription = historyStore.Observe()
             .Skip(1)
             .Subscribe(_ => Evict());
+
+        // A queued dance whose file has gone can never play, and leaving it there means the DJ
+        // finds out when the room is waiting for it. It goes the moment the file does, the same as
+        // it goes from the catalogue.
+        _librarySubscription = trackStore.WhenTrackFileVanished.Subscribe(ForgetTracksAt);
     }
+
+    /// <summary>Takes every queued entry that points at this file out of the queue.</summary>
+    private void ForgetTracksAt(string path)
+    {
+        var removed = RemoveWhere(item => PathOf(item) is { } queued
+                                          && string.Equals(queued, path, StringComparison.Ordinal));
+
+        if (removed)
+        {
+            _ = _loggerService.InfoAsync($"Dropped a queued track whose file has gone: {path}");
+        }
+    }
+
+    private static string? PathOf(IQueueItem item) => item switch
+    {
+        TrackQueueItem track => track.Track.FileInfo.FullName,
+        AutoTrackQueueItem auto => auto.TrackQueueItem.Track.FileInfo.FullName,
+        _ => null
+    };
 
     public IObservable<IChangeSet<IQueueItem>> Connect() => _sourceList.Connect();
 
@@ -242,6 +269,7 @@ public sealed class QueueService : IQueueService, IDisposable
     {
         _settingsSubscription.Dispose();
         _historySubscription.Dispose();
+        _librarySubscription.Dispose();
         _sourceList.Dispose();
     }
 }

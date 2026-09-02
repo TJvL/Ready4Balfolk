@@ -25,6 +25,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly SourceList<Track> _tracks = new();
     private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly BehaviorSubject<int> _inReviewCount = new(0);
+    private readonly Subject<string> _fileVanished = new();
     private readonly IDisposable _danceListSubscription;
     private readonly LibraryWatcher _watcher;
     private readonly IDisposable _watcherSubscription;
@@ -84,6 +85,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
     public IReadOnlyList<Track> Current => _tracks.Items.ToList();
 
     public IObservable<int> InReviewCount => _inReviewCount.AsObservable();
+
+    public IObservable<string> WhenTrackFileVanished => _fileVanished.AsObservable();
 
     /// <summary>Brings the library into line with what the settings now say.</summary>
     /// <remarks>
@@ -527,6 +530,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
         {
             return;
         }
+
+        _fileVanished.OnNext(path);
 
         var track = _tracks.Items.FirstOrDefault(t =>
             string.Equals(t.FileInfo.FullName, path, StringComparison.Ordinal));
