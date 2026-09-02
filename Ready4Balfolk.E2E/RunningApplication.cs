@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Headless;
@@ -6,6 +7,8 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
+using ReactiveUI.Primitives.Reactive.Concurrency;
+using ReactiveUI.Reactive;
 using Ready4Balfolk.UI;
 
 namespace Ready4Balfolk.E2E;
@@ -36,6 +39,13 @@ public sealed class RunningApplication : IAsyncDisposable
 
     internal static RunningApplication Start()
     {
+        // A fresh scheduler for a fresh dispatcher. The session gives every scenario its own
+        // Application and its own dispatcher, but ReactiveUI's main thread scheduler is a static
+        // that keeps pointing at the first one: from the second scenario on, everything the UI
+        // observes on it is posted to a dispatcher that is never pumped again. The window comes up
+        // and stays empty, the library never arrives, and the audio reads as unavailable.
+        RxSchedulers.MainThreadScheduler = new AvaloniaScheduler(Dispatcher.UIThread, DispatcherPriority.Normal);
+
         var application = (App)Application.Current!;
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
@@ -83,19 +93,64 @@ public sealed class RunningApplication : IAsyncDisposable
             await Task.Delay(20);
         }
 
-        Assert.Fail($"Waited {PatienceLimit.TotalSeconds:0} seconds for {describedAs}, and it never happened.");
+        Assert.Fail(
+            $"Waited {PatienceLimit.TotalSeconds:0} seconds for {describedAs}, and it never happened.{Environment.NewLine}"
+            + $"What was on screen:{Environment.NewLine}{WhatIsOnScreen()}{Environment.NewLine}"
+            + $"What it logged:{Environment.NewLine}{WhatWasLogged()}");
     }
 
-    /// <summary>The one control with this name, or a failure naming what was looked for.</summary>
-    public T Find<T>(string name)
-        where T : Control
+    /// <summary>The control with this automation id, on the window or on a dialog over it.</summary>
+    public Control Find(string automationId)
     {
-        var found = Window.GetVisualDescendants()
-            .OfType<T>()
-            .FirstOrDefault(control => string.Equals(control.Name, name, StringComparison.Ordinal));
+        // A visible one first: a panel that is hidden rather than removed is still in the tree, so
+        // the artist of the track that is not playing is findable and says the last thing it said.
+        var found = Everywhere()
+            .SelectMany(root => Screen.AllWith(root, automationId))
+            .OrderByDescending(control => control.IsEffectivelyVisible)
+            .FirstOrDefault();
 
-        Assert.True(found is not null, $"No {typeof(T).Name} named {name} is on screen.");
+        Assert.True(found is not null, $"Nothing with the automation id {automationId} is on screen.");
         return found!;
+    }
+
+    /// <summary>Whether the thing with this automation id is on screen and visible.</summary>
+    public bool IsShowing(string automationId) =>
+        Everywhere()
+            .SelectMany(root => Screen.AllWith(root, automationId))
+            .Any(control => control.IsEffectivelyVisible);
+
+    /// <summary>What the thing with this automation id says.</summary>
+    public string TextOf(string automationId) => Screen.Says(Find(automationId));
+
+    /// <summary>How far along the bar with this automation id has run.</summary>
+    public double ProgressOf(string automationId) => ((ProgressBar)Find(automationId)).Value;
+
+    /// <summary>The rows of the list with this automation id, in the order they are shown.</summary>
+    public IReadOnlyList<string> RowsOf(string automationId)
+    {
+        var list = Find(automationId);
+        return list is DataGrid ? Screen.GridRows(list) : Screen.Rows(list);
+    }
+
+    /// <summary>The row of a list or grid whose text contains this, or a failure saying what is there.</summary>
+    public Control Row(string automationId, string containing)
+    {
+        var list = Find(automationId);
+        // Visible ones only, or a click can land on the spare row a grid keeps to recycle: it
+        // carries a copy of a real row's text and is nowhere on screen.
+        var rows = list.GetVisualDescendants()
+            .OfType<Control>()
+            .Where(control => control is ListBoxItem or DataGridRow)
+            .Where(control => control.IsEffectivelyVisible)
+            .ToList();
+
+        var match = rows.FirstOrDefault(row => Screen.Says(row).Contains(containing, StringComparison.OrdinalIgnoreCase));
+
+        Assert.True(
+            match is not null,
+            $"No row of {automationId} mentions {containing}. It is showing: {string.Join(" / ", rows.Select(Screen.Says))}");
+
+        return match!;
     }
 
     /// <summary>Clicks a control the way a mouse does, in the middle of it.</summary>
@@ -106,14 +161,75 @@ public sealed class RunningApplication : IAsyncDisposable
         Assert.True(control.IsEffectivelyVisible, "The control clicked on is not on screen.");
         Assert.True(control.IsEffectivelyEnabled, "The control clicked on is disabled.");
 
+        // The control's own window, which is not always the main one: a confirmation is a dialog
+        // over it, and a click aimed at the window underneath lands on whatever is at those
+        // coordinates there.
+        var window = control.FindAncestorOfType<Window>() ?? Window;
         var middle = new Point(control.Bounds.Width / 2, control.Bounds.Height / 2);
-        var inWindow = control.TranslatePoint(middle, Window)
-                       ?? throw new InvalidOperationException("The control clicked on is not in the window.");
+        var inWindow = control.TranslatePoint(middle, window)
+                       ?? throw new InvalidOperationException("The control clicked on is not in its window.");
 
-        Window.MouseDown(inWindow, MouseButton.Left);
-        Window.MouseUp(inWindow, MouseButton.Left);
+        window.MouseDown(inWindow, MouseButton.Left);
+        window.MouseUp(inWindow, MouseButton.Left);
         Settle();
     }
+
+    /// <summary>Clicks whatever carries this automation id.</summary>
+    public void Click(string automationId) => Click(Find(automationId));
+
+    /// <summary>Double taps a control, which is how a track is put in the queue.</summary>
+    public void DoubleClick(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+
+        Click(control);
+        Click(control);
+    }
+
+    /// <summary>Types into whatever has the keyboard, character by character.</summary>
+    public void Type(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        foreach (var character in text)
+        {
+            Window.KeyTextInput(character.ToString());
+        }
+
+        Settle();
+    }
+
+    /// <summary>Everything the window is showing, for a scenario that has to say why it gave up.</summary>
+    public string WhatIsOnScreen() =>
+        string.Join(
+            Environment.NewLine,
+            Everywhere()
+                .SelectMany(root => root.GetVisualDescendants().OfType<Control>())
+                .Where(control => control.IsEffectivelyVisible)
+                .Select(control => (Id: AutomationProperties.GetAutomationId(control), Text: Screen.Says(control)))
+                .Where(seen => !string.IsNullOrEmpty(seen.Id) || !string.IsNullOrWhiteSpace(seen.Text))
+                .Select(seen => $"  {(string.IsNullOrEmpty(seen.Id) ? "-" : seen.Id)}: {seen.Text}")
+                .Distinct()
+                .Take(40));
+
+    /// <summary>The end of the application's own log, which says what it thinks went wrong.</summary>
+    public static string WhatWasLogged()
+    {
+        var world = ScenarioApplication.World;
+        if (world is null)
+        {
+            return "  (no world)";
+        }
+
+        var log = Path.Combine(world.DirectoryInfoRoot.FullName, "app.log");
+        return File.Exists(log)
+            ? string.Join(Environment.NewLine, File.ReadAllLines(log).TakeLast(15).Select(line => "  " + line))
+            : "  (nothing logged)";
+    }
+
+    /// <summary>The window and whatever dialog is over it, which is where a control may be.</summary>
+    private IEnumerable<Visual> Everywhere() =>
+        new Visual[] { Window }.Concat(Window.OwnedWindows);
 
     /// <summary>Lets go of the world's directory, which is all teardown is for.</summary>
     /// <remarks>

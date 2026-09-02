@@ -9,7 +9,8 @@
              x:Class="Ready4Balfolk.UI.Views.Queue.QueueToolbarView"
              x:DataType="local:QueueViewModel">
     <StackPanel Orientation="Horizontal" Spacing="4">
-        <Button Click="OnToggleClick"
+        <Button AutomationProperties.AutomationId="queue.show-history"
+                Click="OnToggleClick"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_SwitchToHistory}"
                 Padding="8"
                 Focusable="False">
@@ -20,7 +21,8 @@
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
-        <Button Command="{Binding QueueRandomTrackCommand}"
+        <Button AutomationProperties.AutomationId="queue.random"
+                Command="{Binding QueueRandomTrackCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_QueueRandomTrack}"
                 Padding="8"
                 Focusable="False">
@@ -31,7 +33,8 @@
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
-        <Button Command="{Binding EnqueueStopCommand}"
+        <Button AutomationProperties.AutomationId="queue.stop"
+                Command="{Binding EnqueueStopCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RequestStop}"
                 Padding="8"
                 Focusable="False">
@@ -39,7 +42,8 @@
                                     Text="{x:Static res:UiStrings.QueueToolbar_StopLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Command="{Binding EnqueueDelayCommand}"
+        <Button AutomationProperties.AutomationId="queue.delay"
+                Command="{Binding EnqueueDelayCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RequestDelay}"
                 Padding="8"
                 Focusable="False">
@@ -47,7 +51,8 @@
                                     Text="{x:Static res:UiStrings.QueueToolbar_DelayLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Click="OnMessageClick"
+        <Button AutomationProperties.AutomationId="queue.message"
+                Click="OnMessageClick"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RequestMessage}"
                 Padding="8"
                 Focusable="False">
@@ -57,7 +62,8 @@
         </Button>
         <!-- An instruction to the room rather than a piece of the programme, so it sits with the
              stop, the delay and the message. Disabled until the settings say what the sound is. -->
-        <Button Command="{Binding EnqueueEndOfNightCommand}"
+        <Button AutomationProperties.AutomationId="queue.end-of-night"
+                Command="{Binding EnqueueEndOfNightCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_EndOfNight}"
                 Padding="8"
                 Focusable="False">
@@ -68,7 +74,8 @@
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
-        <Button Command="{Binding RemoveSelectedCommand}"
+        <Button AutomationProperties.AutomationId="queue.remove"
+                Command="{Binding RemoveSelectedCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RemoveSelected}"
                 Padding="8"
                 Focusable="False">
@@ -76,7 +83,8 @@
                                     Text="{x:Static res:UiStrings.QueueToolbar_RemoveLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Command="{Binding ClearQueueCommand}"
+        <Button AutomationProperties.AutomationId="queue.clear"
+                Command="{Binding ClearQueueCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_ClearQueue}"
                 Padding="8"
                 Focusable="False">
@@ -87,7 +95,8 @@
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
-        <Button Command="{Binding MoveSelectedUpCommand}"
+        <Button AutomationProperties.AutomationId="queue.move-up"
+                Command="{Binding MoveSelectedUpCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.Queue_MoveUp}"
                 Padding="8"
                 Focusable="False">
@@ -95,7 +104,8 @@
                                     Text="{x:Static res:UiStrings.Queue_MoveUpLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Command="{Binding MoveSelectedDownCommand}"
+        <Button AutomationProperties.AutomationId="queue.move-down"
+                Command="{Binding MoveSelectedDownCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.Queue_MoveDown}"
                 Padding="8"
                 Focusable="False">

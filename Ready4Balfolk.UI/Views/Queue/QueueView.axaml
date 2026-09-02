@@ -44,6 +44,7 @@
             <!-- Queue ListBox -->
             <ListBox Grid.Row="0"
                      x:Name="QueueListBox"
+                     AutomationProperties.AutomationId="queue.items"
                      ItemsSource="{Binding QueuedItems}"
                      SelectedItem="{Binding SelectedItem}"
                      SelectionMode="Single"

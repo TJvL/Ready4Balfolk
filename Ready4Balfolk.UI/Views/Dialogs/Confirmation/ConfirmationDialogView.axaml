@@ -24,13 +24,15 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="8">
-            <Button Content="{CompiledBinding CancelText}"
+            <Button AutomationProperties.AutomationId="dialog.cancel"
+                    Content="{CompiledBinding CancelText}"
                     Command="{CompiledBinding CancelCommand}"
                     MinWidth="80"
                     IsCancel="True" />
             <!-- The accent class is provided by FluentAvalonia at runtime, so these are false positives. -->
             <!-- ReSharper disable once Xaml.StyleClassNotFound -->
             <Button x:Name="ConfirmButton"
+                    AutomationProperties.AutomationId="dialog.confirm"
                     Content="{CompiledBinding ConfirmText}"
                     Command="{CompiledBinding ConfirmCommand}"
                     MinWidth="80"

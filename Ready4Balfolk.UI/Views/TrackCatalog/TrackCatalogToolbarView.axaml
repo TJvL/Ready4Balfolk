@@ -32,7 +32,8 @@
                                     IconSize="14" />
         </Button>
 
-        <TextBox Text="{Binding SearchText}"
+        <TextBox AutomationProperties.AutomationId="catalog.search"
+                 Text="{Binding SearchText}"
                  PlaceholderText="{x:Static res:UiStrings.TrackCatalog_SearchWatermark}"
                  VerticalAlignment="Center" />
     </DockPanel>

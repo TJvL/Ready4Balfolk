@@ -40,7 +40,14 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         DirectoryInfoRoot.Create();
         MusicDirectory.Create();
 
-        _settings = _settings with { MusicDirectoryPath = MusicDirectory.FullName, SetupCompleted = true };
+        // A window with a size, because that is what a machine that has been used before holds, and
+        // because a list only builds the rows that fit in it: a window of nothing shows nothing.
+        _settings = _settings with
+        {
+            MusicDirectoryPath = MusicDirectory.FullName,
+            SetupCompleted = true,
+            MainWindowState = new WindowState(0, 0, 1600, 1000)
+        };
     }
 
     /// <summary>Where the application keeps what it writes.</summary>

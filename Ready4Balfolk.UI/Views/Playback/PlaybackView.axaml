@@ -33,6 +33,7 @@
             <Grid RowDefinitions="Auto,Auto,Auto,Auto">
                 <!-- Dance Name (normal mode - not message) -->
                 <TextBlock Grid.Row="0"
+                           AutomationProperties.AutomationId="playback.dance"
                            Text="{Binding DanceName}"
                            FontSize="18"
                            FontWeight="Bold"
@@ -68,14 +69,16 @@
                         <StackPanel x:Name="TrackInfoPanel"
                                     Orientation="Horizontal"
                                     Canvas.Left="0">
-                            <TextBlock Text="{Binding ArtistName}"
+                            <TextBlock AutomationProperties.AutomationId="playback.artist"
+                                       Text="{Binding ArtistName}"
                                        FontSize="16"
                                        VerticalAlignment="Center" />
                             <TextBlock Text=" - "
                                        FontSize="16"
                                        Opacity="0.6"
                                        VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding TrackTitle}"
+                            <TextBlock AutomationProperties.AutomationId="playback.title"
+                                       Text="{Binding TrackTitle}"
                                        FontSize="16"
                                        VerticalAlignment="Center" />
                         </StackPanel>
@@ -99,6 +102,7 @@
                                TextAlignment="Right"
                                Margin="0,0,8,0" />
                     <ProgressBar x:Name="PlaybackProgressBar"
+                                 AutomationProperties.AutomationId="playback.progress"
                                  Grid.Column="1"
                                  Minimum="0"
                                  Maximum="{Binding Duration}"
@@ -116,7 +120,8 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Center"
                             Spacing="16">
-                    <Button Command="{Binding PlayPauseCommand}"
+                    <Button AutomationProperties.AutomationId="playback.play-pause"
+                            Command="{Binding PlayPauseCommand}"
                             MinWidth="60"
                             Height="40"
                             HorizontalContentAlignment="Center"
@@ -131,7 +136,8 @@
                                     IsVisible="{Binding IsPlaying}" />
                         </Panel>
                     </Button>
-                    <Button Command="{Binding RestartCommand}"
+                    <Button AutomationProperties.AutomationId="playback.restart"
+                            Command="{Binding RestartCommand}"
                             MinWidth="60"
                             Height="40"
                             HorizontalContentAlignment="Center"
@@ -141,7 +147,8 @@
                         <controls:ButtonContent Icon="{StaticResource IconRestart}"
                                     Text="{x:Static res:UiStrings.Playback_RestartLabel}" />
                     </Button>
-                    <Button Command="{Binding NextOrClearCommand}"
+                    <Button AutomationProperties.AutomationId="playback.skip"
+                            Command="{Binding NextOrClearCommand}"
                             MinWidth="60"
                             Height="40"
                             HorizontalContentAlignment="Center"
