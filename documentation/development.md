@@ -140,7 +140,7 @@ Services hold **ephemeral runtime state** and operational logic, queue managemen
 | `DancePool` | The tags a pick draws from, held in memory and read by the dance panel, the auto-queue and the phone remote alike. Not persisted: it is a decision about tonight. |
 | `TrackDiscoveryService` | Opens a file once and reports what it says about itself (`TrackEvidence`): filename, path segments, tags, duration, format, content hash. It decides nothing. |
 | `AudioContentHasher` | SHA-256 over the audio between the tags, so the application's own tag edits do not move a row in the library index. |
-| `DanceListReader` | The one door the list comes through, from all four sources: the copy shipped in `Domain/Assets/dances.json`, the cached download, a fetch, and a file the user picked. Refuses anything that is not format version 4, is empty, or breaks validation. Static, because it is a pure function of the bytes. |
+| `DanceListReader` | The one door the list comes through, from all three sources: the cached copy on disk, a fetch, and a file the user picked. Nothing is shipped with the build, so a machine nobody has fetched or imported on has no vocabulary and says so. Refuses anything that is not format version 4, is empty, or breaks validation. Static, because it is a pure function of the bytes. |
 | `DanceListFeed` | Downloads the raw `dances.json` from the BigBalfolkList repository. Caching off: the reason to press update is that something was merged a minute ago. |
 | `DanceListValidation` | Checks the invariants everything else rests on: a name belongs to exactly one dance, slugs are unique, and every tag a dance carries is declared at the top of the file. |
 

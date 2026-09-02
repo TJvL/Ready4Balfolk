@@ -792,6 +792,15 @@
   <data name="Wizard_DanceList_Summary" xml:space="preserve">
     <value>{0} dances, {1} tags</value>
   </data>
+  <data name="Wizard_DanceList_Blocked" xml:space="preserve">
+    <value>Fetch the list or import one before going on: without it nothing can be answered.</value>
+  </data>
+  <data name="Wizard_DanceList_Fetch" xml:space="preserve">
+    <value>Fetch from BigBalfolkList</value>
+  </data>
+  <data name="Wizard_DanceList_Import" xml:space="preserve">
+    <value>Import a dances.json</value>
+  </data>
   <data name="Wizard_DanceList_Detail" xml:space="preserve">
     <value>A copy is shipped with the application, so this works with no internet. It is refreshed when Ready4Balfolk starts, and you can ask for a newer one at any time from the dance panel.</value>
   </data>
@@ -825,8 +834,8 @@
   <data name="DanceList_Obtained" xml:space="preserve">
     <value>fetched {0:d MMMM yyyy}</value>
   </data>
-  <data name="DanceList_ObtainedBuiltIn" xml:space="preserve">
-    <value>shipped with this version</value>
+  <data name="DanceList_NoListYet" xml:space="preserve">
+    <value>no dance list yet</value>
   </data>
   <data name="DanceList_Update" xml:space="preserve">
     <value>Update</value>

@@ -717,6 +717,15 @@
   <data name="Wizard_DanceList_Summary" xml:space="preserve">
     <value>{0} dansen, {1} labels</value>
   </data>
+  <data name="Wizard_DanceList_Blocked" xml:space="preserve">
+    <value>Haal de lijst op of importeer er een voordat je verdergaat: zonder lijst valt er niets te beantwoorden.</value>
+  </data>
+  <data name="Wizard_DanceList_Fetch" xml:space="preserve">
+    <value>Ophalen bij BigBalfolkList</value>
+  </data>
+  <data name="Wizard_DanceList_Import" xml:space="preserve">
+    <value>Een dances.json importeren</value>
+  </data>
   <data name="Wizard_DanceList_Detail" xml:space="preserve">
     <value>Er wordt een kopie met de applicatie meegeleverd, dus dit werkt ook zonder internet. Bij het starten wordt hij ververst, en je kunt in het dansenpaneel altijd om een nieuwere vragen.</value>
   </data>
@@ -750,8 +759,8 @@
   <data name="DanceList_Obtained" xml:space="preserve">
     <value>opgehaald {0:d MMMM yyyy}</value>
   </data>
-  <data name="DanceList_ObtainedBuiltIn" xml:space="preserve">
-    <value>meegeleverd met deze versie</value>
+  <data name="DanceList_NoListYet" xml:space="preserve">
+    <value>nog geen danslijst</value>
   </data>
   <data name="DanceList_Update" xml:space="preserve">
     <value>Bijwerken</value>

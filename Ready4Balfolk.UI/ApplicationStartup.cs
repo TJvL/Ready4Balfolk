@@ -104,7 +104,6 @@ internal sealed class ApplicationStartup(
                 ShowSetupIfNeeded();
                 AskAboutUnfinishedNightAsync().SafeFireAndForget(exception =>
                     logger.ErrorAsync("Failed to ask about an unfinished night", exception));
-                RefreshDanceListInTheBackground();
             }));
 
         mainWindow.Closing += (_, e) =>
@@ -321,14 +320,6 @@ internal sealed class ApplicationStartup(
     private void ApplyWebServer(ApplicationSettings settings) =>
         webServer.ApplyAsync(ToWebServerOptions(settings)).SafeFireAndForget(exception =>
             logger.ErrorAsync("Failed to start the presentation server", exception));
-
-    /// <summary>
-    /// Asks BigBalfolkList for a newer list, without anybody waiting for the answer. The window is
-    /// already open on the list it has, and a hall with no wifi must cost nothing but a log line.
-    /// </summary>
-    private void RefreshDanceListInTheBackground() =>
-        danceListStore.RefreshAsync().SafeFireAndForget(exception =>
-            logger.ErrorAsync("Failed to refresh the dance list", exception));
 
     private IObservable<Unit> RunLoad(Func<CancellationToken, Task> loader, string errorMessage) =>
         Observable.Defer(() => Observable.FromAsync(loader)

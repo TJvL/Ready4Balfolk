@@ -67,9 +67,6 @@ public static class DomainStrings
         ResourceManager.GetString("EndOfNightRule_EveningEnded", Culture)!;
 
     // Dance list
-    public static string DanceList_BuiltInMissing =>
-        ResourceManager.GetString("DanceList_BuiltInMissing", Culture)!;
-
     public static string DanceList_FileNotFound =>
         ResourceManager.GetString("DanceList_FileNotFound", Culture)!;
 

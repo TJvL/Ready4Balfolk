@@ -20,7 +20,6 @@
     <ItemGroup>
       <!-- The published dance list, shipped so a first run with no network still has one. It is
            replaced wholesale by a fetch; nothing merges into it. -->
-      <EmbeddedResource Include="Assets\dances.json" LogicalName="Ready4Balfolk.Domain.Assets.dances.json" />
     </ItemGroup>
 
     <ItemGroup>

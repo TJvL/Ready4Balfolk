@@ -90,9 +90,6 @@
   </data>
 
   <!-- Dance list -->
-  <data name="DanceList_BuiltInMissing" xml:space="preserve">
-    <value>De dansenlijst die met deze versie is meegeleverd ontbreekt.</value>
-  </data>
   <data name="DanceList_InvalidJson" xml:space="preserve">
     <value>Dat is geen dansenlijst: het bestand is geen leesbare JSON.</value>
   </data>

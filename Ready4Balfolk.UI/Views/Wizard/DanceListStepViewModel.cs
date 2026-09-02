@@ -1,6 +1,8 @@
 using System;
 using System.Globalization;
+using System.IO.Abstractions;
 using System.Threading.Tasks;
+using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Services.Dances;
@@ -9,12 +11,13 @@ using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.Wizard;
 
-/// <summary>The wizard's dance list step: fetch the published list, and show what arrived.</summary>
+/// <summary>The wizard's dance list step: get a list, one way or the other.</summary>
 /// <remarks>
-/// Nothing to answer. The list is BigBalfolkList's shared vocabulary rather than the user's own
-/// list, so there is no subset to choose and no spelling to settle here: a dance nobody owns a
-/// track for can never come up anyway. Never blocks either, because the copy shipped with the
-/// application is a perfectly good list and a hall with no wifi is an ordinary place to start in.
+/// Nothing to answer. The list is BigBalfolkList's shared vocabulary rather than the user's own, so
+/// there is no subset to choose and no spelling to settle here. What there is, is a decision to
+/// make: the application ships no list, so this step is where one arrives, by fetching it or by
+/// importing a file somebody carried in. It blocks until one has, because a library cannot be
+/// answered without a vocabulary and finding that out later is worse than being asked now.
 /// </remarks>
 public sealed partial class DanceListStepViewModel(
     IDanceListStore store, IDanceListFeed feed, TimeProvider? timeProvider = null)
@@ -31,6 +34,9 @@ public sealed partial class DanceListStepViewModel(
 
     [Reactive] public partial string SummaryText { get; private set; }
 
+    /// <summary>Whether the machine has a dance list at all yet.</summary>
+    [Reactive] public partial bool HasAList { get; private set; }
+
     [Reactive] public partial string OriginText { get; private set; }
 
     [Reactive] public partial bool IsFetching { get; private set; }
@@ -42,9 +48,22 @@ public sealed partial class DanceListStepViewModel(
 
     public override string Explanation => UiStrings.Wizard_DanceList_Explanation;
 
-    public override async Task EnterAsync()
+    public override IObservable<bool> CanContinue => this.WhenAnyValue(step => step.HasAList);
+
+    public override string BlockedReason => UiStrings.Wizard_DanceList_Blocked;
+
+    /// <summary>Shows what the machine already has, and asks for nothing on its own.</summary>
+    public override Task EnterAsync()
     {
-        // Stepping back and forward over this page is not a reason to fetch again either.
+        Describe(store.Status);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Fetches the published list, because the user pressed the button that says so.</summary>
+    [ReactiveCommand]
+    private async Task FetchAsync()
+    {
+        // Stepping back and forward over this page is not a reason to ask GitHub again.
         if (WasFetchedRecently(store.Status))
         {
             Describe(store.Status);
@@ -54,9 +73,22 @@ public sealed partial class DanceListStepViewModel(
         IsFetching = true;
         try
         {
-            // Whatever comes back, there is a list: the fetch either replaces the built-in copy or
-            // leaves it standing.
             await store.RefreshAsync();
+        }
+        finally
+        {
+            IsFetching = false;
+            Describe(store.Status);
+        }
+    }
+
+    /// <summary>Takes the list from a file, for the machine that will never reach BigBalfolkList.</summary>
+    public async Task ImportAsync(IFileInfo file)
+    {
+        IsFetching = true;
+        try
+        {
+            await store.UpdateFromFileAsync(file);
         }
         finally
         {
@@ -72,6 +104,8 @@ public sealed partial class DanceListStepViewModel(
 
     private void Describe(DanceListStatus status)
     {
+        HasAList = status.Origin is not DanceListOrigin.None && status.DanceCount > 0;
+
         SummaryText = string.Format(
             CultureInfo.CurrentCulture,
             UiStrings.Wizard_DanceList_Summary,
@@ -81,6 +115,6 @@ public sealed partial class DanceListStepViewModel(
         OriginText = status.ObtainedAt is { } obtainedAt
             ? string.Format(
                 CultureInfo.CurrentCulture, UiStrings.DanceList_Obtained, obtainedAt.ToLocalTime().DateTime)
-            : UiStrings.DanceList_ObtainedBuiltIn;
+            : UiStrings.DanceList_NoListYet;
     }
 }

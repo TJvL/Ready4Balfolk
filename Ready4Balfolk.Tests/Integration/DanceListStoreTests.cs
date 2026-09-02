@@ -31,13 +31,14 @@ public sealed class DanceListStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadAsync_NoCachedFile_UsesTheCopyShippedWithTheApplication()
+    public async Task LoadAsync_NoCachedFile_HasNoListAtAll()
     {
         await _sut.LoadAsync(CancellationToken.None);
 
-        // A first run with no network still has a list, which is the whole point of shipping one.
-        Assert.False(_sut.Current.IsEmpty);
-        Assert.Equal(DanceListOrigin.BuiltIn, _sut.Status.Origin);
+        // Nothing is shipped to fall back on: a machine nobody has fetched or imported on has no
+        // vocabulary, and everything that needs one says so rather than guessing.
+        Assert.True(_sut.Current.IsEmpty);
+        Assert.Equal(DanceListOrigin.None, _sut.Status.Origin);
         Assert.Null(_sut.Status.ObtainedAt);
     }
 
@@ -64,13 +65,13 @@ public sealed class DanceListStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadAsync_UnreadableCache_IsThrownAwayAndTheBuiltInCopyStands()
+    public async Task LoadAsync_UnreadableCache_IsThrownAwayAndNothingStandsInItsPlace()
     {
         await File.WriteAllTextAsync(CachePath, "{ not json", TestContext.Current.CancellationToken);
 
         await _sut.LoadAsync(CancellationToken.None);
 
-        Assert.Equal(DanceListOrigin.BuiltIn, _sut.Status.Origin);
+        Assert.Equal(DanceListOrigin.None, _sut.Status.Origin);
         // Nothing of the user's is in a cached copy of a published file, and nothing is left
         // behind for them to find later and wonder about.
         Assert.False(File.Exists(CachePath));
@@ -81,12 +82,12 @@ public sealed class DanceListStoreTests : IDisposable
     public async Task LoadAsync_CacheInADeadFormat_IsThrownAway()
     {
         // Version 2 was the shape before the list became tags-only. There is no migration: the
-        // file goes and the published list takes over.
+        // file goes, and the machine is left with no list until one is fetched or imported.
         await File.WriteAllTextAsync(CachePath, """{"formatVersion":2,"categories":[]}""", TestContext.Current.CancellationToken);
 
         await _sut.LoadAsync(CancellationToken.None);
 
-        Assert.Equal(DanceListOrigin.BuiltIn, _sut.Status.Origin);
+        Assert.Equal(DanceListOrigin.None, _sut.Status.Origin);
         Assert.False(File.Exists(CachePath));
     }
 

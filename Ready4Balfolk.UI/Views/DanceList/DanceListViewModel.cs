@@ -296,5 +296,5 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         OriginText = status.ObtainedAt is { } obtainedAt
             ? string.Format(
                 CultureInfo.CurrentCulture, UiStrings.DanceList_Obtained, obtainedAt.ToLocalTime().DateTime)
-            : UiStrings.DanceList_ObtainedBuiltIn;
+            : UiStrings.DanceList_NoListYet;
 }

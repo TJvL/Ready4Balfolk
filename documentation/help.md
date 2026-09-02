@@ -268,8 +268,11 @@ The dance list is every balfolk dance and every name each one goes by. It comes 
 [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/) and Ready4Balfolk uses it exactly as
 published: there is nothing to build, nothing to fill in, and nothing in the application edits it.
 
-A copy is shipped with Ready4Balfolk, so it works the first time you open it with no internet. It
-checks for a newer one each time it starts.
+No copy is shipped with Ready4Balfolk. The first time you open it, setup asks you to fetch the list
+from BigBalfolkList, or to import a `dances.json` somebody carried in on a stick if this machine
+never goes online. Nothing can be answered about your music until one of those has happened, and
+the application never fetches anything on its own: the Update button in the dance list panel is
+how you ask for a newer one.
 
 ### What is in it
 
