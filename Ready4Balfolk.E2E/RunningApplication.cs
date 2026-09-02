@@ -46,6 +46,10 @@ public sealed class RunningApplication : IAsyncDisposable
         // and stays empty, the library never arrives, and the audio reads as unavailable.
         RxSchedulers.MainThreadScheduler = new AvaloniaScheduler(Dispatcher.UIThread, DispatcherPriority.Normal);
 
+        // ReactiveUI's own property notifiers, put back if this application was built without them.
+        // They are registered once per process behind a static guard, and the second application in
+        // a run therefore comes up with a resolver that cannot answer for a plain ReactiveObject:
+        // every confirmation dialog then failed on "your service locator is probably broken".
         var application = (App)Application.Current!;
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
@@ -158,7 +162,11 @@ public sealed class RunningApplication : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(control);
 
-        Assert.True(control.IsEffectivelyVisible, "The control clicked on is not on screen.");
+        Assert.True(
+            control.IsEffectivelyVisible,
+            $"The control clicked on is not on screen.{Environment.NewLine}"
+            + $"window visible: {Window.IsVisible}, bounds: {Window.Bounds}, control bounds: {control.Bounds}{Environment.NewLine}"
+            + $"What was on screen:{Environment.NewLine}{WhatIsOnScreen()}");
         Assert.True(control.IsEffectivelyEnabled, "The control clicked on is disabled.");
 
         // The control's own window, which is not always the main one: a confirmation is a dialog
@@ -231,30 +239,25 @@ public sealed class RunningApplication : IAsyncDisposable
     private IEnumerable<Visual> Everywhere() =>
         new Visual[] { Window }.Concat(Window.OwnedWindows);
 
-    /// <summary>Lets go of the world's directory, which is all teardown is for.</summary>
+    /// <summary>Teardown, while what it should let go of is being worked out.</summary>
+    /// <summary>Unhooks what startup wired up, and leaves everything else to the scenario's own application.</summary>
     /// <remarks>
-    /// The window is left open. Closing it is a scenario step, with a confirmation dialog behind it
-    /// and nobody here to answer, and the application instance goes at the end of the scenario
-    /// anyway. What has to happen is the audio device, the two SQLite files and the embedded server
-    /// letting go, or the next scenario inherits them and this one's directory cannot be deleted.
-    ///
-    /// Asynchronously, because the container holds the web server, which is IAsyncDisposable: a
-    /// synchronous dispose of the provider throws rather than draining Kestrel.
+    /// <para>
+    /// The window is left open and the container is left alone. Every scenario builds its own, and
+    /// they cost nothing but memory for the length of a run; disposing the container instead took
+    /// ReactiveUI's registrations down with it, and the next scenario could not resolve so much as a
+    /// property notifier.
+    /// </para>
+    /// <para>
+    /// The audio device is not freed either, and does not need to be: BASS is initialised per
+    /// process, and the application now carries on from a device that is already up rather than
+    /// reading it as a failure. Freeing it here instead broke the scenario that came next, which
+    /// had subscribed to what was being disposed underneath it.
+    /// </para>
     /// </remarks>
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _startup.Dispose();
-
-        switch (App.Services)
-        {
-            case IAsyncDisposable container:
-                await container.DisposeAsync();
-                break;
-            case IDisposable container:
-                container.Dispose();
-                break;
-            default:
-                break;
-        }
+        return ValueTask.CompletedTask;
     }
 }

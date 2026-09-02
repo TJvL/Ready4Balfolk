@@ -20,7 +20,8 @@
                 <TextBlock Grid.Column="0" Text="{x:Static res:UiStrings.Dialog_MessageLabel}" />
                 <TextBlock Grid.Column="1" Text="{CompiledBinding CharacterCount}" Opacity="0.6" />
             </Grid>
-            <TextBox Text="{CompiledBinding Message}"
+            <TextBox AutomationProperties.AutomationId="message.text"
+                     Text="{CompiledBinding Message}"
                      MaxLength="60"
                      PlaceholderText="{x:Static res:UiStrings.Dialog_MessageWatermark}" />
         </StackPanel>
@@ -28,6 +29,7 @@
         <!-- Use delay checkbox -->
         <CheckBox Grid.Row="1"
                   IsChecked="{CompiledBinding UseDelay}"
+                  AutomationProperties.AutomationId="message.timed"
                   Content="{x:Static res:UiStrings.Dialog_UseTimedDelay}"
                   Margin="0,16,0,0" />
 
@@ -37,7 +39,8 @@
                     Margin="0,12,0,0"
                     IsVisible="{CompiledBinding UseDelay}">
             <TextBlock Text="{x:Static res:UiStrings.Dialog_DelayDuration}" />
-            <NumericUpDown Value="{CompiledBinding DelaySeconds}"
+            <NumericUpDown AutomationProperties.AutomationId="message.seconds"
+                           Value="{CompiledBinding DelaySeconds}"
                            Minimum="1"
                            Maximum="300"
                            Increment="5"
@@ -50,13 +53,15 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="8">
-            <Button Content="{x:Static res:UiStrings.Dialog_Cancel}"
+            <Button AutomationProperties.AutomationId="message.cancel"
+                    Content="{x:Static res:UiStrings.Dialog_Cancel}"
                     Command="{CompiledBinding CancelCommand}"
                     MinWidth="80"
                     IsCancel="True" />
             <!-- The accent class is provided by FluentAvalonia at runtime, so these are false positives. -->
             <!-- ReSharper disable once Xaml.StyleClassNotFound -->
             <Button x:Name="OkButton"
+                    AutomationProperties.AutomationId="message.ok"
                     Content="{x:Static res:UiStrings.Dialog_OK}"
                     Command="{CompiledBinding OkCommand}"
                     MinWidth="80"

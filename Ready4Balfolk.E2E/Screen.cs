@@ -48,10 +48,18 @@ internal static class Screen
         }
     }
 
-    /// <summary>The lines a list is showing, one string per row, in the order they appear.</summary>
+    /// <summary>The lines a list is showing, one string per row, top to bottom.</summary>
+    /// <remarks>
+    /// Ordered by where each row is drawn, not by where it sits in the tree. A list reuses its row
+    /// containers, so after an entry is moved up the queue the tree order is the order the
+    /// containers were created in and the screen says something else entirely.
+    /// </remarks>
     public static IReadOnlyList<string> Rows(Control list) =>
         list.GetVisualDescendants()
             .OfType<ListBoxItem>()
+            .Where(row => row.IsEffectivelyVisible)
+            .OrderBy(row => row.Bounds.Y)
+            .ThenBy(row => row.Bounds.X)
             .Select(Says)
             .Where(row => !string.IsNullOrWhiteSpace(row))
             .ToList();

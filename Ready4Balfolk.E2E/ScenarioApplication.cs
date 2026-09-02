@@ -1,6 +1,8 @@
 using System.IO.Abstractions;
 using Avalonia;
 using Avalonia.Headless;
+using Microsoft.Extensions.DependencyInjection;
+using ReactiveUI;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.UI;
 
@@ -33,7 +35,16 @@ public static class ScenarioApplication
                 // No hardware to speak to on a build agent, and none needed: BASS decodes and keeps
                 // time on its no sound device, so playback in a scenario is real but silent.
                 UseNoSoundDevice = true,
-                SettingsDirectory = new CurrentWorld()
+                SettingsDirectory = new CurrentWorld(),
+                // ReactiveUI registers these once per process, so every application after the first
+                // comes up with only Avalonia's notifier and cannot observe a plain ReactiveObject:
+                // the confirmation dialogs died on "your service locator is probably broken".
+                AlsoRegister = services =>
+                {
+                    services.AddSingleton<ICreatesObservableForProperty, INPCObservableForProperty>();
+                    services.AddSingleton<ICreatesObservableForProperty, ReactiveUI.Reactive.IROObservableForProperty>();
+                    services.AddSingleton<ICreatesObservableForProperty, ReactiveUI.Reactive.POCOObservableForProperty>();
+                }
             });
 
     /// <summary>Points at whichever world is running, rather than at the one that was.</summary>

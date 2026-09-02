@@ -237,4 +237,248 @@ public sealed class RunningTheEvening(HeadlessSession session)
                 row => row.Contains("Salamandre", StringComparison.Ordinal));
         });
     }
+
+    /// <summary>The DJ gives the room a moment to make lines before the next dance.</summary>
+    /// <remarks>
+    /// World: a library of two tracks, auto queue off, and a delay of a second, which is the length
+    /// this DJ has set for the pauses they announce.
+    /// Steps: queue a dance, queue a delay, queue the dance that follows it, and start the evening.
+    /// Sees: the delay counted down in its turn, and the dance behind it taking over on its own.
+    /// </remarks>
+    [Fact]
+    public async Task DjQueuesADelaySoTheRoomCanFormLines()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false, DelaySeconds = 1 })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("queue.delay");
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+
+            Assert.Equal(3, application.RowsOf("queue.items").Count);
+
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                "the first dance to start");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                "the delay to run down and the dance behind it to take over");
+        });
+    }
+
+    /// <summary>The DJ stops the music for an announcement of unknown length.</summary>
+    /// <remarks>
+    /// World: a library of two tracks and auto queue off.
+    /// Steps: queue a dance, a stop, and another dance, then start the evening and let the first
+    /// dance finish.
+    /// Sees: the evening waiting on the stop rather than running on into the next dance, and the
+    /// next dance starting only when the DJ says so.
+    /// </remarks>
+    [Fact]
+    public async Task DjQueuesAStopAndStartsAgainByHand()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("queue.stop");
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 1,
+                "the stop to come up and the evening to wait on it");
+
+            // Nothing moves on its own from here: the room has the floor for as long as it takes.
+            await Task.Delay(500);
+            application.Settle();
+
+            Assert.False(
+                application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                "The dance behind the stop started without anybody asking for it.");
+
+            // A stop is an item like any other, so moving off it is a skip, and a skip with
+            // something queued behind it is confirmed.
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.IsShowing("dialog.confirm"),
+                "the application to ask whether to move on from the stop");
+
+            application.Click("dialog.confirm");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                "the evening to pick up again when the DJ says so");
+        });
+    }
+
+    /// <summary>The DJ is stopped from playing the same track twice in one evening.</summary>
+    /// <remarks>
+    /// World: a library of one track, auto queue off, and duplicates refused, which is the default
+    /// and the reason a DJ can queue quickly without keeping a list in their head.
+    /// Steps: queue the dance, then try to queue it again.
+    /// Sees: one entry in the queue, and a message saying why the second one was refused.
+    /// </remarks>
+    [Fact]
+    public async Task DjIsRefusedARepeatOfATrackAlreadyPlayed()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                AllowDuplicateTracksInQueue = false
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+
+            await application.WaitUntil(
+                () => application.IsShowing("notification.message"),
+                "the application to say why the second one was refused");
+
+            Assert.Single(application.RowsOf("queue.items"));
+        });
+    }
+
+    /// <summary>The DJ fills the queue to the length they set and is stopped there.</summary>
+    /// <remarks>
+    /// World: a library of three tracks, auto queue off, and a queue of at most two, which is how a
+    /// DJ keeps the evening open to what the room asks for next.
+    /// Steps: queue three dances.
+    /// Sees: two in the queue, and a message about the third rather than a queue that quietly grew.
+    /// </remarks>
+    [Fact]
+    public async Task QueueRefusesTheItemPastTheMaximum()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WithTrack(dance: "Chapelloise", artist: "Duo Absynthe", title: "Le Tourbillon")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false, MaxQueueItems = 2 })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 3,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+            application.DoubleClick(application.Row("catalog.tracks", "Le Tourbillon"));
+
+            await application.WaitUntil(
+                () => application.IsShowing("notification.message"),
+                "the application to say why the third one was refused");
+
+            Assert.Equal(2, application.RowsOf("queue.items").Count);
+        });
+    }
+
+    /// <summary>The DJ moves a dance up the queue because the room is ready for it now.</summary>
+    /// <remarks>
+    /// World: a library of two tracks and auto queue off.
+    /// Steps: queue both in one order, pick the second, and move it up.
+    /// Sees: the queue in the other order.
+    /// </remarks>
+    [Fact]
+    public async Task DjReordersTheQueueBeforeItGetsThere()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+
+            Assert.Contains("Salamandre", application.RowsOf("queue.items")[0], StringComparison.Ordinal);
+
+            application.Click(application.Row("queue.items", "La Belle"));
+            application.Click("queue.move-up");
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items")[0].Contains("La Belle", StringComparison.Ordinal),
+                "the dance that was moved up to be first");
+        });
+    }
+
+    /// <summary>The DJ lets the evening carry itself while they talk to somebody.</summary>
+    /// <remarks>
+    /// World: a library of two tracks, with the auto queue on, which is what a DJ leaves on so the
+    /// music never stops dead while they are not looking at the screen.
+    /// Steps: queue one dance, start it, and let it finish with nothing behind it.
+    /// Sees: the application choosing something itself, and the room still dancing.
+    /// </remarks>
+    [Fact]
+    public async Task TheQueueRefillsItselfWhenItRunsDry()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = true })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                "the dance the DJ chose to start");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                "the application to carry on with something of its own");
+        });
+    }
 }

@@ -22,7 +22,8 @@
         </Style>
     </UserControl.Styles>
 
-    <ItemsControl ItemsSource="{Binding Notifications}"
+    <ItemsControl AutomationProperties.AutomationId="notifications"
+                  ItemsSource="{Binding Notifications}"
                   VerticalAlignment="Bottom"
                   HorizontalAlignment="Stretch">
         <ItemsControl.ItemTemplate>
@@ -36,7 +37,8 @@
                     <Border.RenderTransform>
                         <TranslateTransform />
                     </Border.RenderTransform>
-                    <TextBlock Text="{Binding Message}"
+                    <TextBlock AutomationProperties.AutomationId="notification.message"
+                               Text="{Binding Message}"
                                Foreground="{DynamicResource NotificationTextBrush}"
                                FontSize="14" />
                 </Border>

@@ -212,5 +212,7 @@ public static class ApplicationComposition
 
         // Startup orchestration, which used to be the body of App.OnFrameworkInitializationCompleted.
         services.AddSingleton<ApplicationStartup>();
+
+        options.AlsoRegister?.Invoke(services);
     }
 }

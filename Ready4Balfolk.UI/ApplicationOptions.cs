@@ -1,3 +1,5 @@
+using System;
+using Microsoft.Extensions.DependencyInjection;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores;
 
@@ -17,6 +19,15 @@ public sealed record ApplicationOptions
 
     /// <summary>The level below which the file logger writes nothing.</summary>
     public LogLevel MinimumLogLevel { get; init; } = LogLevel.Info;
+
+    /// <summary>Anything else a run needs in the container, registered last.</summary>
+    /// <remarks>
+    /// For a run that builds the application more than once in a process, which nothing but a
+    /// scenario run does. Some of what ReactiveUI registers, its property notifiers among them, is
+    /// put in place once per process behind a static guard, so the second application comes up
+    /// without it and cannot observe a plain ReactiveObject.
+    /// </remarks>
+    public Action<IServiceCollection>? AlsoRegister { get; init; }
 
     /// <summary>Where the application keeps what it writes, or null for the user's profile.</summary>
     /// <remarks>
