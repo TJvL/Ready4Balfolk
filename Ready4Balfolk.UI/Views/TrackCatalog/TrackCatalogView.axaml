@@ -11,6 +11,7 @@
     <controls:LoadingContainer IsLoading="{Binding IsLoading}">
     <DataGrid
         x:Name="TracksDataGrid"
+        AutomationProperties.AutomationId="catalog.tracks"
         ItemsSource="{Binding Tracks}"
         SelectedItem="{Binding SelectedTrack, Mode=TwoWay}"
         AutoGenerateColumns="False"

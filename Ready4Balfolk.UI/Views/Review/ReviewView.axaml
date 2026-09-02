@@ -106,6 +106,7 @@
         </StackPanel>
 
         <ListBox x:Name="Queue"
+                 AutomationProperties.AutomationId="review.rows"
                  ItemsSource="{Binding Rows}"
                  SelectedItem="{Binding Selected, Mode=TwoWay}"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -123,7 +124,8 @@
                                            VerticalAlignment="Center" />
                                 <!-- The folder answer sits with the folder it answers, once, rather
                                      than on every row it would take. -->
-                                <Button Content="{Binding AnswerFolderText}"
+                                <Button AutomationProperties.AutomationId="review.answer-folder"
+                                        Content="{Binding AnswerFolderText}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveFolderCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding CanAnswerFolder}"
@@ -225,6 +227,7 @@
                                      Inline rather than in a popup, because a popup takes the focus
                                      off the box being typed into and the typing stops. -->
                                 <TextBox Classes="field"
+                                         AutomationProperties.AutomationId="review.dance"
                                          Text="{Binding Dance, Mode=TwoWay}"
                                          PlaceholderText="{x:Static res:UiStrings.Review_Dance}"
                                          LostFocus="OnDanceLostFocus" />
@@ -261,6 +264,7 @@
 
                             <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
                                 <TextBox Classes="field"
+                                         AutomationProperties.AutomationId="review.artist"
                                          Text="{Binding Artist, Mode=TwoWay}"
                                          PlaceholderText="{x:Static res:UiStrings.Review_Artist}" />
                                 <TextBlock Text="{Binding ArtistSource}" FontSize="10" Opacity="0.6" />
@@ -268,13 +272,15 @@
 
                             <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2">
                                 <TextBox Classes="field"
+                                         AutomationProperties.AutomationId="review.title"
                                          Text="{Binding Title, Mode=TwoWay}"
                                          PlaceholderText="{x:Static res:UiStrings.Review_TitleField}" />
                                 <TextBlock Text="{Binding TitleSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
 
                             <StackPanel Grid.Row="1" Grid.Column="3" Spacing="4" VerticalAlignment="Top">
-                                <Button Content="{x:Static res:UiStrings.Review_Approve}"
+                                <Button AutomationProperties.AutomationId="review.approve"
+                                        Content="{x:Static res:UiStrings.Review_Approve}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveCommand}"
                                         CommandParameter="{Binding}"
                                         Focusable="False" />
@@ -286,7 +292,8 @@
                                         Orientation="Horizontal"
                                         Spacing="8"
                                         IsVisible="{Binding HasUnknownValue}">
-                                <Button Content="{Binding SharedText}"
+                                <Button AutomationProperties.AutomationId="review.use-for-all"
+                                        Content="{Binding SharedText}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).UseDanceForAllCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding IsShared}"
@@ -312,7 +319,8 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <Button Content="{Binding NotADanceText}"
+                                <Button AutomationProperties.AutomationId="review.not-a-dance"
+                                        Content="{Binding NotADanceText}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).NotADanceCommand}"
                                         CommandParameter="{Binding}"
                                         ToolTip.Tip="{x:Static res:UiStrings.Review_NotADanceHint}"

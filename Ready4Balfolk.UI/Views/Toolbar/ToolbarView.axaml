@@ -9,7 +9,8 @@
              x:Class="Ready4Balfolk.UI.Views.Toolbar.ToolbarView"
              x:DataType="local:ToolbarViewModel">
     <StackPanel Orientation="Horizontal" Spacing="4">
-        <Button Click="OnExitClick"
+        <Button AutomationProperties.AutomationId="toolbar.exit"
+                Click="OnExitClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Exit}"
                 Padding="8"
                 Focusable="False">
@@ -20,7 +21,8 @@
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
-        <Button Click="OnHelpClick"
+        <Button AutomationProperties.AutomationId="toolbar.help"
+                Click="OnHelpClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Help}"
                 Padding="8"
                 Focusable="False">
@@ -28,7 +30,8 @@
                                     Text="{x:Static res:UiStrings.Toolbar_HelpLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Click="OnSettingsClick"
+        <Button AutomationProperties.AutomationId="toolbar.settings"
+                Click="OnSettingsClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Settings}"
                 Padding="8"
                 Focusable="False">
@@ -36,7 +39,8 @@
                                     Text="{x:Static res:UiStrings.Toolbar_SettingsLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Click="OnReviewClick"
+        <Button AutomationProperties.AutomationId="toolbar.review"
+                Click="OnReviewClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Review}"
                 Padding="8"
                 Focusable="False">

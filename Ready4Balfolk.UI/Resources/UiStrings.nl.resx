@@ -195,6 +195,9 @@
   <data name="Settings_EndOfNightAtCutoffDescription" xml:space="preserve">
     <value>Het laatste wat de zaal hoort is het teken om naar huis te gaan, zonder dat iemand er tijdens het opruimen aan hoeft te denken. Zodra het in de wachtrij staat kan er niets meer bij; haal je het weg, dan gaat de avond weer open.</value>
   </data>
+  <data name="Queue_NoRandomTrack" xml:space="preserve">
+    <value>Geen nummers om uit te kiezen</value>
+  </data>
   <data name="Queue_CutoffPaused" xml:space="preserve">
     <value>limiet gepauzeerd voor de stop</value>
   </data>

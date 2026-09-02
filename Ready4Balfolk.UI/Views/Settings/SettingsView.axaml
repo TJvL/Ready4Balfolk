@@ -109,7 +109,8 @@
 
             <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:UiStrings.Settings_PresentationDisplays}" />
-                <NumericUpDown Value="{Binding PresentationDisplayCount, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
+                <NumericUpDown AutomationProperties.AutomationId="settings.screens"
+                               Value="{Binding PresentationDisplayCount, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
                                Minimum="0"
                                Maximum="10"
                                Increment="1"
@@ -178,7 +179,8 @@
 
             <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:UiStrings.Settings_Language}" />
-                <ComboBox ItemsSource="{Binding AvailableLanguages}"
+                <ComboBox AutomationProperties.AutomationId="settings.language"
+                          ItemsSource="{Binding AvailableLanguages}"
                           SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
                           Width="160"
                           HorizontalAlignment="Left"
@@ -200,7 +202,8 @@
 
                 <!-- Bound to the busy flag rather than left clickable: binding and draining a
                      socket takes long enough that a second click would queue another whole cycle. -->
-                <CheckBox Content="{x:Static res:UiStrings.Settings_WebServerEnabled}"
+                <CheckBox AutomationProperties.AutomationId="settings.server"
+                          Content="{x:Static res:UiStrings.Settings_WebServerEnabled}"
                           IsChecked="{Binding WebServerEnabled, Mode=TwoWay}"
                           IsEnabled="{Binding !IsWebServerBusy}"
                           Focusable="False" />
@@ -224,7 +227,8 @@
                                        Width="140" />
                         <!-- What the server is doing, not what the switch was set to: a taken port
                              fails the start and the user needs to see that here. -->
-                        <TextBlock Text="{Binding WebServerStatus}"
+                        <TextBlock AutomationProperties.AutomationId="settings.server-status"
+                                   Text="{Binding WebServerStatus}"
                                    VerticalAlignment="Center"
                                    FontSize="12"
                                    Opacity="0.75"
@@ -252,11 +256,13 @@
                                 IsEnabled="{Binding WebRemoteControlEnabled}">
                         <TextBlock Text="{x:Static res:UiStrings.Settings_WebRemoteControlPin}"
                                    VerticalAlignment="Center" />
-                        <SelectableTextBlock Text="{Binding WebRemoteControlPin}"
+                        <SelectableTextBlock AutomationProperties.AutomationId="settings.pin"
+                                             Text="{Binding WebRemoteControlPin}"
                                              VerticalAlignment="Center"
                                              FontSize="18"
                                              FontWeight="SemiBold" />
-                        <Button Content="{x:Static res:UiStrings.Settings_WebRegeneratePin}"
+                        <Button AutomationProperties.AutomationId="settings.new-pin"
+                                Content="{x:Static res:UiStrings.Settings_WebRegeneratePin}"
                                 Command="{Binding RegeneratePinCommand}"
                                 Focusable="False" />
                     </StackPanel>

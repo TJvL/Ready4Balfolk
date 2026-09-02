@@ -17,6 +17,7 @@
     <Grid RowDefinitions="*,Auto" ClipToBounds="True">
         <ListBox Grid.Row="0"
                  x:Name="HistoryList"
+                 AutomationProperties.AutomationId="history.items"
                  ItemsSource="{Binding Items}"
                  SelectionMode="Single"
                  FontSize="18"

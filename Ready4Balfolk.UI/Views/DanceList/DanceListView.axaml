@@ -91,7 +91,8 @@
                                                 Text="{x:Static res:UiStrings.DanceList_Update}"
                                                 IconSize="14" />
                     </Button>
-                    <Button Click="OnUpdateFromFileClick"
+                    <Button AutomationProperties.AutomationId="dancelist.import"
+                            Click="OnUpdateFromFileClick"
                             IsEnabled="{CompiledBinding !IsUpdating}"
                             ToolTip.Tip="{x:Static res:UiStrings.DanceList_UpdateFromFileTip}"
                             HorizontalAlignment="Stretch"
@@ -140,7 +141,8 @@
                 CornerRadius="4">
             <controls:LoadingContainer IsLoading="{CompiledBinding IsLoading}">
                 <ScrollViewer Padding="8">
-                    <ItemsControl ItemsSource="{CompiledBinding Dances}">
+                    <ItemsControl AutomationProperties.AutomationId="dancelist.dances"
+                                  ItemsSource="{CompiledBinding Dances}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="danceList:DanceCardViewModel">
                                 <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"

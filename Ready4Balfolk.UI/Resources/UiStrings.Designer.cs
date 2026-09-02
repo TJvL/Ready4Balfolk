@@ -178,6 +178,9 @@ public static class UiStrings
     public static string Settings_EndOfNightAtCutoffDescription =>
         ResourceManager.GetString("Settings_EndOfNightAtCutoffDescription", Culture)!;
 
+    public static string Queue_NoRandomTrack =>
+        ResourceManager.GetString("Queue_NoRandomTrack", Culture)!;
+
     public static string Queue_CutoffPaused =>
         ResourceManager.GetString("Queue_CutoffPaused", Culture)!;
 

@@ -9,7 +9,8 @@
              x:Class="Ready4Balfolk.UI.Views.History.HistoryToolbarView"
              x:DataType="local:HistoryViewModel">
     <StackPanel Orientation="Horizontal" Spacing="4">
-        <Button Click="OnToggleClick"
+        <Button AutomationProperties.AutomationId="history.show-queue"
+                Click="OnToggleClick"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_SwitchToQueue}"
                 Padding="8"
                 Focusable="False">
@@ -20,7 +21,8 @@
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
-        <Button Click="OnExportClick"
+        <Button AutomationProperties.AutomationId="history.export"
+                Click="OnExportClick"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ExportHistory}"
                 IsEnabled="{Binding HasItems}"
                 Padding="8"
@@ -29,7 +31,8 @@
                                     Text="{x:Static res:UiStrings.HistoryToolbar_ExportLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Command="{Binding StartNewNightCommand}"
+        <Button AutomationProperties.AutomationId="history.new-night"
+                Command="{Binding StartNewNightCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_NewNight}"
                 Padding="8"
                 Focusable="False">
@@ -37,7 +40,8 @@
                                     Text="{x:Static res:UiStrings.HistoryToolbar_NewNightLabel}"
                                     IconSize="16" />
         </Button>
-        <Button Command="{Binding DeleteNightCommand}"
+        <Button AutomationProperties.AutomationId="history.delete-night"
+                Command="{Binding DeleteNightCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_DeleteNight}"
                 Padding="8"
                 Focusable="False">

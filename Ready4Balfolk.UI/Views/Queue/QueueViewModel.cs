@@ -114,7 +114,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
         else
         {
-            _notificationService.Show("No tracks available for random selection", NotificationSeverity.Warning);
+            _notificationService.Show(UiStrings.Queue_NoRandomTrack, NotificationSeverity.Warning);
         }
     }
 
@@ -583,7 +583,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             // request went through: past a halt there is no end time to judge it against.
             if (settings.QueueCutoffEnabled)
             {
-                text += $" \u2014 {UiStrings.Queue_CutoffPaused}";
+                text += $" - {UiStrings.Queue_CutoffPaused}";
             }
         }
         // The evening being over is knowable in exactly the way an open-ended one is not: nothing
