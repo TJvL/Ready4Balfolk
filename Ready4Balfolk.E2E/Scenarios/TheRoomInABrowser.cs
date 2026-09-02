@@ -1,3 +1,5 @@
+using Ready4Balfolk.UI.Resources;
+
 namespace Ready4Balfolk.E2E.Scenarios;
 
 /// <summary>The pages the hall reads: a laptop at the projector, and a phone in a pocket.</summary>
@@ -262,6 +264,92 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
 
             await projector.WaitUntilItReads("nextTitle", "La Belle");
+        });
+    }
+
+    /// <summary>The screen in the hall says so when it loses the application.</summary>
+    /// <remarks>
+    /// World: a library of one dance and the server on, with a browser open at the display.
+    /// Steps: switch the server off in the settings, the way a DJ does when they are packing up.
+    /// Sees: the page saying it has lost the application rather than standing there showing a dance
+    /// that stopped some time ago.
+    /// </remarks>
+    [Fact]
+    public async Task TheDisplaySaysSoWhenItLosesTheApp()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var projector = await TheBrowser.OpenAt(world.ServerAddress);
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await projector.WaitUntilItReads("title", "Salamandre");
+
+            application.Click("toolbar.settings");
+
+            await application.WaitUntil(
+                () => application.IsShowing("settings.server"),
+                "the settings to come up");
+
+            application.Click("settings.server");
+
+            await application.WaitUntil(
+                () => application.TextOf("settings.server-status")
+                    .Equals(UiStrings.Settings_WebServerStopped, StringComparison.Ordinal),
+                "the server to stop");
+
+            await projector.Page.Locator("#lost").WaitForAsync();
+        });
+    }
+
+    /// <summary>The DJ picks a port somebody else is already using.</summary>
+    /// <remarks>
+    /// World: a library of one dance, the server switched on, and its port already held by
+    /// something else on this machine.
+    /// Steps: open the settings and read what the server says it is doing.
+    /// Sees: the failure said out loud, rather than a switch that is on above a server that is not.
+    /// </remarks>
+    [Fact]
+    public async Task DjPicksAPortThatIsAlreadyTaken()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .Save();
+
+        using var squatter = world.WhereSomethingElseHasThePort();
+        world.Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            application.Click("toolbar.settings");
+
+            await application.WaitUntil(
+                () => application.IsShowing("settings.server-status"),
+                "the settings to come up");
+
+            await application.WaitUntil(
+                () => application.TextOf("settings.server-status").Length > 0
+                      && !application.TextOf("settings.server-status")
+                          .Equals(UiStrings.Settings_WebServerStarting, StringComparison.Ordinal),
+                "the server to say what happened");
+
+            Assert.DoesNotContain(
+                UiStrings.Settings_WebServerRunning,
+                application.TextOf("settings.server-status"),
+                StringComparison.Ordinal);
         });
     }
 }

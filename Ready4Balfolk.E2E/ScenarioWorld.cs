@@ -131,6 +131,23 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         });
     }
 
+    /// <summary>Somebody else is already listening on the port the DJ chose.</summary>
+    /// <remarks>
+    /// Returned so the scenario can hold it: the port is only taken for as long as this is alive,
+    /// which is what makes the state the application reports the state of a real conflict.
+    /// </remarks>
+    public Socket WhereSomethingElseHasThePort()
+    {
+        var squatter = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        squatter.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        squatter.Listen();
+
+        WebServerPort = ((IPEndPoint)squatter.LocalEndPoint!).Port;
+        WithSettings(settings => settings with { WebServerEnabled = true, WebServerPort = WebServerPort });
+
+        return squatter;
+    }
+
     /// <summary>Where a browser reaches this world's application.</summary>
     public string ServerAddress => $"http://127.0.0.1:{WebServerPort}";
 

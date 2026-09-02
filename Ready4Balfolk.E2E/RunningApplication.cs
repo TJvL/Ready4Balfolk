@@ -178,6 +178,12 @@ public sealed class RunningApplication : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(control);
 
+        // Scrolled to first, the way a person scrolls before they click: a control below the fold
+        // is visible as far as the tree is concerned, and a click aimed at where it would be lands
+        // on whatever is at those coordinates instead. The settings page is long enough to matter.
+        control.BringIntoView();
+        Settle();
+
         Assert.True(
             control.IsEffectivelyVisible,
             $"The control clicked on is not on screen.{Environment.NewLine}"
