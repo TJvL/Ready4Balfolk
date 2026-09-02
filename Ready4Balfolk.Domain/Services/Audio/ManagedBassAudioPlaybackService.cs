@@ -366,25 +366,15 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         // -1 is the default output; 0 is BASS's "no sound" device.
         var device = _useNoSoundDevice ? 0 : -1;
 
-        // Already means this device is up in this process, which is a state to carry on from
-        // rather than fail on: BASS is initialised per process, not per instance. What follows is
-        // therefore not flagged as ours to free, because whoever did initialise it still owns it.
-        var alreadyUp = false;
-
         try
         {
             if (!Bass.Init(device))
             {
-                alreadyUp = Bass.LastError == Errors.Already;
-
-                if (!alreadyUp)
-                {
-                    _bassFailed = true;
-                    _isAvailable.OnNext(false);
-                    _ = _loggerService.CriticalAsync("Failed to initialize BASS audio",
-                        new InvalidOperationException($"Bass.Init failed: {Bass.LastError}"));
-                    return;
-                }
+                _bassFailed = true;
+                _isAvailable.OnNext(false);
+                _ = _loggerService.CriticalAsync("Failed to initialize BASS audio",
+                    new InvalidOperationException($"Bass.Init failed: {Bass.LastError}"));
+                return;
             }
         }
         catch (Exception ex)
@@ -395,10 +385,8 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
             return;
         }
 
-        _bassInitialized = !alreadyUp;
-        _ = _loggerService.DebugAsync(alreadyUp
-            ? "BASS audio was already initialised in this process"
-            : "BASS audio initialized");
+        _bassInitialized = true;
+        _ = _loggerService.DebugAsync("BASS audio initialized");
 
         // Runs the whole effect chain in floating point even for 16 bit files, so nothing is
         // quantised between filters. Must be set before any effect exists.

@@ -5,6 +5,7 @@ using Xunit.v3;
 // One dispatcher for the assembly, handed out one scenario at a time.
 [assembly: AssemblyFixture(typeof(HeadlessSession))]
 
-// Scenarios run one after another. They share a dispatcher thread, they open an audio device, and
-// the ones that switch the web server on bind a port; two at once would be two evenings in one room.
-[assembly: Parallelization(Mode = ParallelMode.None)]
+// Scenarios run beside each other, because each one is a process of its own: what they would have
+// fought over, the audio device and the dispatcher, is not shared any more. Capped, because every
+// one of them starts a whole application.
+[assembly: Parallelization(Mode = ParallelMode.All, MaxThreads = 4)]

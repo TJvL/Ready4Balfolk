@@ -7,8 +7,6 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
-using ReactiveUI.Primitives.Reactive.Concurrency;
-using ReactiveUI.Reactive;
 using Ready4Balfolk.UI;
 
 namespace Ready4Balfolk.E2E;
@@ -39,17 +37,6 @@ public sealed class RunningApplication : IAsyncDisposable
 
     internal static RunningApplication Start()
     {
-        // A fresh scheduler for a fresh dispatcher. The session gives every scenario its own
-        // Application and its own dispatcher, but ReactiveUI's main thread scheduler is a static
-        // that keeps pointing at the first one: from the second scenario on, everything the UI
-        // observes on it is posted to a dispatcher that is never pumped again. The window comes up
-        // and stays empty, the library never arrives, and the audio reads as unavailable.
-        RxSchedulers.MainThreadScheduler = new AvaloniaScheduler(Dispatcher.UIThread, DispatcherPriority.Normal);
-
-        // ReactiveUI's own property notifiers, put back if this application was built without them.
-        // They are registered once per process behind a static guard, and the second application in
-        // a run therefore comes up with a resolver that cannot answer for a plain ReactiveObject:
-        // every confirmation dialog then failed on "your service locator is probably broken".
         var application = (App)Application.Current!;
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {

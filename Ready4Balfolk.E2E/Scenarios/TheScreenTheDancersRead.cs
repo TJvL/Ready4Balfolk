@@ -74,4 +74,43 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
             Assert.False(application.IsShowing("display.title"), "A track name was left on the screen.");
         });
     }
+
+    /// <summary>The DJ puts a second screen up for the other room.</summary>
+    /// <remarks>
+    /// World: a library of one dance, and one screen already on.
+    /// Steps: open the settings and ask for a second screen.
+    /// Sees: two screens up for the room instead of one.
+    /// </remarks>
+    [Fact]
+    public async Task DjOpensASecondScreenForTheOtherRoom()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                PresentationDisplayCount = 1
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.ScreensShowing() == 1,
+                "the screen the DJ already had");
+
+            application.Click("toolbar.settings");
+
+            await application.WaitUntil(
+                () => application.IsShowing("settings.screens"),
+                "the settings to come up");
+
+            application.TypeInto("settings.screens", "2");
+
+            await application.WaitUntil(
+                () => application.ScreensShowing() == 2,
+                "the second screen to come up");
+        });
+    }
 }
