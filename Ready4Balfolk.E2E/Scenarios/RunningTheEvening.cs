@@ -583,4 +583,82 @@ public sealed class RunningTheEvening(HeadlessSession session)
                 "the dance to start when the DJ takes the message down");
         });
     }
+
+    /// <summary>The DJ starts the dance again from the top for a room that missed the start.</summary>
+    /// <remarks>
+    /// World: a library of one dance and auto queue off.
+    /// Steps: start the dance, let it run, then restart it and agree when asked.
+    /// Sees: the same dance playing from the beginning rather than where it had got to.
+    /// </remarks>
+    [Fact]
+    public async Task DjRestartsTheTrackFromTheTop()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.ProgressOf("playback.progress") > 0.4,
+                "the dance to be under way");
+
+            var playedTo = application.ProgressOf("playback.progress");
+            application.Click("playback.restart");
+
+            await application.WaitUntil(
+                () => application.IsShowing("dialog.confirm"),
+                "the application to ask whether to start it again");
+
+            application.Click("dialog.confirm");
+
+            await application.WaitUntil(
+                () => application.ProgressOf("playback.progress") < playedTo,
+                "the dance to be back at the beginning");
+
+            Assert.Contains("Salamandre", application.TextOf("playback.title"), StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>The DJ is refused a dance that would run past the end of the evening.</summary>
+    /// <remarks>
+    /// World: a library of one dance, and a cutoff that has just arrived, which is the state a
+    /// DJ's evening is in when the hall wants everybody out on the hour.
+    /// Steps: try to queue a dance.
+    /// Sees: it refused, with the reason on screen, and a queue that is still empty.
+    /// </remarks>
+    [Fact]
+    public async Task DjIsRefusedADanceThatWouldRunPastTheCutoff()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WhereTheCutoffHasArrived()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+
+            await application.WaitUntil(
+                () => application.IsShowing("notification.message"),
+                "the application to say why the dance was refused");
+
+            Assert.Empty(application.RowsOf("queue.items"));
+        });
+    }
 }

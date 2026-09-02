@@ -7,7 +7,8 @@
              xmlns:wizard="using:Ready4Balfolk.UI.Views.Wizard"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
              x:Class="Ready4Balfolk.UI.Views.Wizard.SetupWizardView"
-             x:DataType="wizard:SetupWizardViewModel">
+             x:DataType="wizard:SetupWizardViewModel"
+             AutomationProperties.AutomationId="wizard">
     <!-- The whole window, not a dialog. The dance list editor and the tagging report are full
          screens in their own right, and running them inside a box gave them a fraction of the space
          they need. -->

@@ -102,6 +102,15 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         return this;
     }
 
+    /// <summary>Renames a track behind the application's back, the way a tidy-up does.</summary>
+    public void RenameTrackFile(string titleInFileName, string newFileName)
+    {
+        var file = Directory.EnumerateFiles(MusicDirectory.FullName)
+            .First(path => path.Contains(titleInFileName, StringComparison.OrdinalIgnoreCase));
+
+        File.Move(file, Path.Combine(MusicDirectory.FullName, newFileName));
+    }
+
     /// <summary>Takes a track away behind the application's back, the way a tidy-up does.</summary>
     public void RemoveTrackFile(string titleInFileName)
     {
@@ -195,6 +204,24 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         ArgumentNullException.ThrowIfNull(change);
 
         _settings = change(_settings);
+        return this;
+    }
+
+    /// <summary>The queue stops accepting entries as of now, so the next dance is already too late.</summary>
+    public ScenarioWorld WhereTheCutoffHasArrived() =>
+        WithSettings(settings => settings with
+        {
+            QueueCutoffEnabled = true,
+            QueueCutoffMinutesOfDay = (int)DateTime.Now.TimeOfDay.TotalMinutes,
+            QueueCutoffGraceMinutes = 0
+        });
+
+    /// <summary>A settings file that is not settings, which is what an interrupted write leaves.</summary>
+    public ScenarioWorld WhereTheSettingsFileIsCorrupt()
+    {
+        Save();
+        File.WriteAllText(Path.Combine(DirectoryInfoRoot.FullName, "settings.json"), "{ this is not settings");
+
         return this;
     }
 
