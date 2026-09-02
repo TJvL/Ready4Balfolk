@@ -113,4 +113,43 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
                 "the second screen to come up");
         });
     }
+
+    /// <summary>The DJ takes the screen down again part way through the evening.</summary>
+    /// <remarks>
+    /// World: a library of one dance, and a screen up for the room.
+    /// Steps: open the settings and ask for no screens.
+    /// Sees: the screen gone, without the application needing a restart.
+    /// </remarks>
+    [Fact]
+    public async Task DjTurnsTheScreenOffAgainMidEvening()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                PresentationDisplayCount = 1
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.ScreensShowing() == 1,
+                "the screen the DJ had up");
+
+            application.Click("toolbar.settings");
+
+            await application.WaitUntil(
+                () => application.IsShowing("settings.screens"),
+                "the settings to come up");
+
+            application.TypeInto("settings.screens", "0");
+
+            await application.WaitUntil(
+                () => application.ScreensShowing() == 0,
+                "the screen to come down");
+        });
+    }
 }

@@ -179,7 +179,8 @@
 
             <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:UiStrings.Settings_Language}" />
-                <ComboBox ItemsSource="{Binding AvailableLanguages}"
+                <ComboBox AutomationProperties.AutomationId="settings.language"
+                          ItemsSource="{Binding AvailableLanguages}"
                           SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
                           Width="160"
                           HorizontalAlignment="Left"

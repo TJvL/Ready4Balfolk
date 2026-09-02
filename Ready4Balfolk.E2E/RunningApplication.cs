@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -169,6 +170,36 @@ public sealed class RunningApplication : IAsyncDisposable
         Settle();
     }
 
+    /// <summary>Whether these words are anywhere on screen.</summary>
+    public bool SaysAnywhere(string text) =>
+        Everywhere()
+            .SelectMany(root => root.GetVisualDescendants().OfType<TextBlock>())
+            .Where(block => block.IsEffectivelyVisible)
+            .Any(block => string.Equals(block.Text, text, StringComparison.Ordinal));
+
+    /// <summary>The one thing on screen reading exactly this, for the lists that offer choices.</summary>
+    /// <remarks>
+    /// By text rather than by an id, because these are not controls somebody placed: the entries of
+    /// a dropdown are the values themselves, and what the user picks is the word they can see.
+    /// </remarks>
+    public Control Offering(string text)
+    {
+        var offers = Everywhere()
+            .SelectMany(root => root.GetVisualDescendants().OfType<Control>())
+            .Where(control => control is ListBoxItem or ComboBoxItem or MenuItem)
+            .Where(control => control.IsEffectivelyVisible)
+            .ToList();
+
+        var match = offers.FirstOrDefault(offer =>
+            string.Equals(Screen.Says(offer), text, StringComparison.Ordinal));
+
+        Assert.True(
+            match is not null,
+            $"Nothing on screen offers {text}. What is offered: {string.Join(" / ", offers.Select(Screen.Says))}");
+
+        return match!;
+    }
+
     /// <summary>Clicks whatever carries this automation id.</summary>
     public void Click(string automationId) => Click(Find(automationId));
 
@@ -192,6 +223,14 @@ public sealed class RunningApplication : IAsyncDisposable
         window.KeyReleaseQwerty(PhysicalKey.A, RawInputModifiers.Control);
 
         Type(text);
+    }
+
+    /// <summary>Presses a key, for the choices a keyboard makes better than a mouse.</summary>
+    public void Press(PhysicalKey key)
+    {
+        Window.KeyPressQwerty(key, RawInputModifiers.None);
+        Window.KeyReleaseQwerty(key, RawInputModifiers.None);
+        Settle();
     }
 
     /// <summary>Types into whatever has the keyboard, character by character.</summary>
@@ -243,10 +282,24 @@ public sealed class RunningApplication : IAsyncDisposable
     /// Not just the main one: a confirmation is a dialog over it, and the screen the dancers read is
     /// a window of its own on another monitor.
     /// </remarks>
-    private IEnumerable<Visual> Everywhere() =>
-        new Visual[] { Window }
+    private IEnumerable<Visual> Everywhere()
+    {
+        var windows = new Visual[] { Window }
             .Concat(Window.OwnedWindows)
-            .Concat(_startup.PresentationWindows);
+            .Concat(_startup.PresentationWindows)
+            .ToList();
+
+        // What a dropdown or a context menu is showing hangs off the popup rather than off the
+        // window: opened for real, it is a top level of its own, and the entries a user is choosing
+        // between are nowhere in the window's tree.
+        var offered = windows
+            .SelectMany(window => window.GetVisualDescendants().OfType<Popup>())
+            .Where(popup => popup.IsOpen)
+            .Select(popup => popup.Child)
+            .OfType<Visual>();
+
+        return windows.Concat(offered);
+    }
 
     /// <summary>Teardown, while what it should let go of is being worked out.</summary>
     /// <summary>Unhooks what startup wired up, and leaves everything else to the scenario's own application.</summary>
