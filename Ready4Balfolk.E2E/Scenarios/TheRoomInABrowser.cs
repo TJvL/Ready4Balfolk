@@ -352,4 +352,58 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
                 StringComparison.Ordinal);
         });
     }
+
+    /// <summary>Changing the PIN turns out the phone that had the old one.</summary>
+    /// <remarks>
+    /// World: a library of one dance, the server on, and the remote on with a PIN a helper knows.
+    /// Steps: unlock the remote on the phone, then have the DJ generate a new PIN in the settings.
+    /// Sees: the phone no longer able to touch the queue, which is what makes changing the PIN a
+    /// way of taking the remote back rather than a note for next time. What the phone is told about
+    /// it is asserted in #113, where that behaviour changes.
+    /// </remarks>
+    [Fact]
+    public async Task ChangingThePinTurnsTheHelperOutOfTheRemote()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "314159")
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "314159");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            application.Click("toolbar.settings");
+
+            await application.WaitUntil(
+                () => application.IsShowing("settings.new-pin"),
+                "the settings to come up");
+
+            var wasPin = application.TextOf("settings.pin");
+            application.Click("settings.new-pin");
+
+            await application.WaitUntil(
+                () => !application.TextOf("settings.pin").Equals(wasPin, StringComparison.Ordinal),
+                "the DJ to be given a new PIN");
+
+            // The phone still has its page, so it can still ask for things. Nothing it asks for
+            // may reach the evening.
+            await phone.Page.Locator("[data-tab='add']").ClickAsync();
+            await phone.Page.Locator("[data-act='random']").ClickAsync();
+
+            await Task.Delay(1500);
+            application.Settle();
+
+            Assert.Empty(application.RowsOf("queue.items"));
+        });
+    }
 }
