@@ -272,6 +272,10 @@ public sealed class ReviewViewModelTests : IDisposable
         Assert.Equal(2, _approved.Count(entry => entry.Field == TrackField.Dance && entry.Value == "Mazurka"));
         Assert.DoesNotContain(_approved, entry => entry.Field == TrackField.Artist);
         Assert.All(_sut.Rows.Where(candidate => candidate.IsShared), candidate => Assert.False(candidate.IsApproved));
+
+        // Whatever those answers completed belongs in the library now, not the next time some
+        // other row happens to be answered.
+        await _trackStore.Received().RefreshLibraryAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -1,3 +1,5 @@
+using Avalonia.Input;
+
 namespace Ready4Balfolk.E2E.Scenarios;
 
 /// <summary>The gate into the library, which is a person agreeing to three things.</summary>
@@ -233,6 +235,50 @@ public sealed class GettingMusicIntoTheLibrary(HeadlessSession session)
                 "the value to be gone from both tracks");
 
             Assert.Equal(2, application.RowsOf("review.rows").Count);
+        });
+    }
+
+    /// <summary>The DJ answers every track that says the same wrong thing, once.</summary>
+    /// <remarks>
+    /// World: a library whose dance tag the DJ trusts, with two tracks whose tag holds the same
+    /// spelling the published list does not carry, which is what one evening's tagging habit looks
+    /// like across a folder.
+    /// Steps: open review, give the first one the name the list does carry, and say to use it for
+    /// every track saying the same thing.
+    /// Sees: both tracks in the library, because twenty files claiming the same misspelling are one
+    /// decision about a dance rather than twenty.
+    /// </remarks>
+    [Fact]
+    public async Task DjApprovesEverythingTheScannerWasSureAbout()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka van Pierre", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Mazurka van Pierre", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            application.Click("toolbar.review");
+
+            await application.WaitUntil(
+                () => application.RowsOf("review.rows").Count == 2,
+                "both tracks to be waiting on the same unknown name");
+
+            var row = application.Row("review.rows", "Salamandre");
+            application.TypeIntoWithin(row, "review.dance", "Mazurka");
+
+            // The names the box offers hang over the row beneath, buttons and all, so they are put
+            // away before anything under them is pressed.
+            application.Press(PhysicalKey.Escape);
+
+            application.Click(RunningApplication.Within(row, "review.use-for-all"));
+
+            application.Click("screen.back");
+
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "both tracks to reach the catalogue on one decision");
         });
     }
 }

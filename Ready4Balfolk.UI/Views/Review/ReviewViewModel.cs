@@ -541,6 +541,12 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             candidate.Dance = dance;
         }
 
+        // The library is what the person is watching, and this is the decision most likely to fill
+        // it: the tracks whose other fields were already answered belong in it the moment the dance
+        // is. Without this the catalogue stayed empty until some other row was answered, which read
+        // as the button having done nothing.
+        await _trackStore.RefreshLibraryAsync();
+
         _notifications.Show(
             string.Format(CultureInfo.CurrentCulture, UiStrings.Review_UsedForAll, sharing.Count, dance),
             NotificationSeverity.Information);
