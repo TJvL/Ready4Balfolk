@@ -10,7 +10,8 @@ public static class QueueGuardBuilder
         ApplicationSettings settings,
         Func<IQueueItem?> currentItemProvider,
         IQueueHistoryStore historyStore,
-        Func<TimeSpan> currentItemRemainingProvider)
+        Func<TimeSpan> currentItemRemainingProvider,
+        TimeProvider time)
     {
         var rules = new List<IQueueRule>
         {
@@ -27,7 +28,7 @@ public static class QueueGuardBuilder
         if (settings.QueueCutoffEnabled)
         {
             rules.Add(new QueueCutoffRule(settings.QueueCutoff, settings.QueueCutoffGrace,
-                currentItemRemainingProvider, () => DateTime.Now));
+                currentItemRemainingProvider, () => time.GetLocalNow().DateTime));
         }
 
         rules.Add(new MaxItemsRule(settings.MaxQueueItems));

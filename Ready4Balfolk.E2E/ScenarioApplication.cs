@@ -38,7 +38,11 @@ public static class ScenarioApplication
                 SettingsDirectory = new CurrentWorld(),
                 // The desktop's pickers, answered by the scenario: there is no desktop here, and
                 // what a person decides in a picker is which file comes back.
-                AlsoRegister = services => services.AddSingleton<IFilePickerService>(Pickers)
+                AlsoRegister = services =>
+                {
+                    services.AddSingleton<IFilePickerService>(Pickers);
+                    services.AddSingleton<TimeProvider>(Clock);
+                }
             });
 
     /// <summary>Points at whichever world is running, rather than at the one that was.</summary>
@@ -51,6 +55,9 @@ public static class ScenarioApplication
     /// </remarks>
     /// <summary>What the person will pick, for the scenario that is about picking something.</summary>
     internal static ScenarioPickers Pickers { get; } = new();
+
+    /// <summary>The clock the application reads, for the scenarios that are about time passing.</summary>
+    internal static ScenarioClock Clock { get; } = new();
 
     private sealed class CurrentWorld : IApplicationSettingsDirectory
     {

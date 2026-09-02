@@ -406,4 +406,50 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             Assert.Empty(application.RowsOf("queue.items"));
         });
     }
+
+    /// <summary>A phone that was let in last night is asked for the PIN again tonight.</summary>
+    /// <remarks>
+    /// World: a library of one dance, the server on, and the remote on with a PIN.
+    /// Steps: unlock the remote, then let half a day go by and reload the page the way a phone does
+    /// when it wakes up.
+    /// Sees: nothing the phone asks for reaching the evening, because a token from some other night
+    /// opening tonight's queue is exactly what the PIN is there to prevent. What the page says about
+    /// it is asserted in #113, where the remote learns to say it has been turned out.
+    /// </remarks>
+    [Fact]
+    public async Task AnOldRemoteTokenIsNoLongerGoodEnough()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "271828")
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "271828");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            // The ball is over, the phone slept, and it is the next evening.
+            RunningApplication.TimePassed(TimeSpan.FromHours(13));
+
+            await phone.Page.ReloadAsync();
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            await phone.Page.Locator("[data-tab='add']").ClickAsync();
+            await phone.Page.Locator("[data-act='random']").ClickAsync();
+
+            await Task.Delay(1500);
+            application.Settle();
+
+            Assert.Empty(application.RowsOf("queue.items"));
+        });
+    }
 }

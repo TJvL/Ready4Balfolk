@@ -661,4 +661,86 @@ public sealed class RunningTheEvening(HeadlessSession session)
             Assert.Empty(application.RowsOf("queue.items"));
         });
     }
+
+    /// <summary>The grace past the cutoff runs out, and the next dance is refused.</summary>
+    /// <remarks>
+    /// World: a library of two dances, a cutoff that has just arrived, and the two minutes of grace
+    /// a DJ leaves themselves for the dance that is already on the floor.
+    /// Steps: queue a dance inside the grace, then let the grace run out and try another.
+    /// Sees: the first one allowed and the second refused, which is what the grace is for.
+    /// </remarks>
+    [Fact]
+    public async Task DjIsRefusedADanceThatWouldRunPastTheCutoffGrace()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WhereTheCutoffHasArrived(graceMinutes: 2)
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+
+            Assert.Single(application.RowsOf("queue.items"));
+
+            // The grace is spent while the DJ is looking at the floor.
+            RunningApplication.TimePassed(TimeSpan.FromMinutes(3));
+
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+
+            await application.WaitUntil(
+                () => application.IsShowing("notification.message"),
+                "the application to say why the second dance was refused");
+
+            Assert.Single(application.RowsOf("queue.items"));
+        });
+    }
+
+    /// <summary>A delay of the length a DJ actually announces, without anybody waiting for it.</summary>
+    /// <remarks>
+    /// World: a library of two dances and a delay of five minutes, which is what "go and get a
+    /// drink" is worth.
+    /// Steps: queue a dance, a delay and another dance, start the evening, and let the five minutes
+    /// pass.
+    /// Sees: the delay giving way to the dance behind it when its time is up rather than when a
+    /// second and a half of test audio happens to end.
+    /// </remarks>
+    [Fact]
+    public async Task DjQueuesADelayLongEnoughToBeReal()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false, DelaySeconds = 300 })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            application.Click("queue.delay");
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 1,
+                "the delay to be the thing the room is waiting on");
+
+            RunningApplication.TimePassed(TimeSpan.FromMinutes(6));
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                "the dance behind the delay to take over once the delay is up");
+        });
+    }
 }

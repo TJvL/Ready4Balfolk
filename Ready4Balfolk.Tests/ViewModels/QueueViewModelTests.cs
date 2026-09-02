@@ -115,7 +115,8 @@ public sealed class QueueViewModelTests : IDisposable
             new TrackEditorService(
                 Substitute.For<Domain.Stores.Dances.IDanceListStore>(),
                 Substitute.For<Domain.Stores.Library.ILibraryIndex>(),
-                Substitute.For<Domain.Stores.Tracks.ITrackStore>()));
+                Substitute.For<Domain.Stores.Tracks.ITrackStore>()),
+            TimeProvider.System);
     }
 
     // --- QueueRandomTrack ---

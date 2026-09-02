@@ -274,6 +274,9 @@ public sealed class RunningApplication : IAsyncDisposable
         return match!;
     }
 
+    /// <summary>Puts the evening further along, for the things that are minutes or hours away.</summary>
+    public static void TimePassed(TimeSpan howLong) => ScenarioApplication.Clock.MoveOn(howLong);
+
     /// <summary>Says which file the DJ picks the next time something asks them for one.</summary>
     public static void TheDjWillPick(string path) => ScenarioApplication.Pickers.TheyWillPick(path);
 

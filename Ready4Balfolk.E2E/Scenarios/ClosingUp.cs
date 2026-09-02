@@ -88,4 +88,26 @@ public sealed class ClosingUp(HeadlessSession session)
                 "the music to still be running");
         });
     }
+
+    /// <summary>The DJ is asked about an evening that was never ended.</summary>
+    /// <remarks>
+    /// World: a machine with a night on it that nobody closed, from nine hours ago, which is what a
+    /// flat laptop or a lid shut at three in the morning leaves behind.
+    /// Steps: open the application.
+    /// Sees: being asked once whether that evening is over, at the one moment the question does not
+    /// interrupt a room.
+    /// </remarks>
+    [Fact]
+    public async Task DjIsAskedAboutTheUnfinishedNight()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithAnEveningNobodyEnded(TimeSpan.FromHours(9))
+            .Save();
+
+        await session.RunAsync(world, application => application.WaitUntil(
+            () => application.IsShowing("dialog.confirm"),
+            "the application to ask about the evening that was never ended"));
+    }
 }

@@ -27,7 +27,8 @@ namespace Ready4Balfolk.Domain.Stores.History;
 public sealed class QueueHistoryStore(
     IApplicationSettingsDirectory dataDirectory,
     IFileSystem fileSystem,
-    ILoggerService loggerService)
+    ILoggerService loggerService,
+    TimeProvider time)
     : IQueueHistoryStore
 {
     private const string DatabaseFileName = "history.sqlite";
@@ -87,7 +88,7 @@ public sealed class QueueHistoryStore(
         try
         {
             var current = Current;
-            var startedAt = current.StartedAt ?? DateTime.Now;
+            var startedAt = current.StartedAt ?? time.GetLocalNow().DateTime;
             var entries = new List<QueueHistoryEntry>(current.Entries)
             {
                 entry
@@ -117,7 +118,7 @@ public sealed class QueueHistoryStore(
                     "UPDATE nights SET ended_at = $endedAt WHERE id = $id;",
                     current.Id,
                     "Failed to end the night",
-                    command => command.Parameters.AddWithValue("$endedAt", Format(DateTime.Now)));
+                    command => command.Parameters.AddWithValue("$endedAt", Format(time.GetLocalNow().DateTime)));
             }
 
             _history.OnNext(QueueHistory.Empty);

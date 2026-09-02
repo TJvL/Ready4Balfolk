@@ -43,7 +43,8 @@ public sealed class QueueServiceTests : IDisposable
         trackStore.WhenTrackFileVanished.Returns(_vanished);
 
         _sut = new QueueService(
-            settingsStore, historyStore, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService());
+            settingsStore, historyStore, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService(),
+            TimeProvider.System);
     }
 
     // --- What has gone from the disk ---

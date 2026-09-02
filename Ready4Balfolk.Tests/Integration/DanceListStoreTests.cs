@@ -27,7 +27,7 @@ public sealed class DanceListStoreTests : IDisposable
         var settingsDirectory = Substitute.For<IApplicationSettingsDirectory>();
         settingsDirectory.DirectoryInfoRoot.Returns(_ => _tempDir);
         _feed.HomePage.Returns(new Uri("https://example.invalid/list"));
-        _sut = new DanceListStore(settingsDirectory, _fileSystem, _feed, new NoOpLoggerService());
+        _sut = new DanceListStore(settingsDirectory, _fileSystem, _feed, new NoOpLoggerService(), TimeProvider.System);
     }
 
     [Fact]

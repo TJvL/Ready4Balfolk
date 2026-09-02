@@ -18,6 +18,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly IQueueService _queue;
     private readonly IQueueHistoryStore _history;
     private readonly ILoggerService _loggerService;
+    private readonly TimeProvider _time;
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly CompositeDisposable _globalDisposables = [];
@@ -47,12 +48,14 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         IAudioPlaybackService audio,
         IQueueService queue,
         IQueueHistoryStore history,
-        ILoggerService loggerService)
+        ILoggerService loggerService,
+        TimeProvider time)
     {
         _audio = audio;
         _queue = queue;
         _history = history;
         _loggerService = loggerService;
+        _time = time;
 
         // The consumption service manages all advancement, so auto-advance is disabled on audio
         _audio.AutoAdvance = false;
@@ -162,7 +165,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private async Task<bool> TryStartItemAsync(IQueueItem item)
     {
         _itemFinishedNaturally = false;
-        _currentItemStartedAt = DateTime.Now;
+        _currentItemStartedAt = _time.GetLocalNow().DateTime;
         _itemDisposables = [];
         _elapsed.OnNext(TimeSpan.Zero);
         _totalDuration.OnNext(TimeSpan.Zero);
@@ -252,12 +255,12 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _totalDuration.OnNext(duration);
         _elapsed.OnNext(TimeSpan.Zero);
 
-        var start = DateTimeOffset.UtcNow;
+        var start = _time.GetUtcNow();
         _itemDisposables!.Add(
             Observable.Interval(TimeSpan.FromMilliseconds(100))
                 .Subscribe(tick =>
                 {
-                    var elapsed = DateTimeOffset.UtcNow - start;
+                    var elapsed = _time.GetUtcNow() - start;
                     if (elapsed >= duration)
                     {
                         _elapsed.OnNext(duration);

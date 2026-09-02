@@ -56,9 +56,11 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         trackStore.WhenTrackFileVanished.Returns(Observable.Never<string>());
 
         _queue = new QueueService(
-            settingsStore, _history, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService());
+            settingsStore, _history, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService(),
+            TimeProvider.System);
 
-        _sut = new QueueConsumptionService(_audio, _queue, _history, new NoOpLoggerService());
+        _sut = new QueueConsumptionService(
+            _audio, _queue, _history, new NoOpLoggerService(), TimeProvider.System);
     }
 
     [Fact]

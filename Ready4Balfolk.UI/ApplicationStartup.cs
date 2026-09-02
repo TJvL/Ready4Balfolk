@@ -49,7 +49,8 @@ internal sealed class ApplicationStartup(
     NavigationService navigation,
     ConfirmationService confirmationOwner,
     FilePickerService pickers,
-    TrackEditorService trackEditor) : IDisposable
+    TrackEditorService trackEditor,
+    TimeProvider time) : IDisposable
 {
     /// <summary>How long a silence has to be before it stops being the same evening.</summary>
     /// <remarks>
@@ -290,7 +291,7 @@ internal sealed class ApplicationStartup(
             return;
         }
 
-        if (DateTime.Now - lastActivity < UnfinishedNightGap)
+        if (time.GetLocalNow().DateTime - lastActivity < UnfinishedNightGap)
         {
             return;
         }
