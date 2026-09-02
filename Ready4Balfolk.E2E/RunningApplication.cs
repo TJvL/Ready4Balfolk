@@ -371,6 +371,14 @@ public sealed class RunningApplication : IAsyncDisposable
     {
         _startup.Dispose();
 
+        // Let what is still in flight arrive before the things it needs are taken away. A command
+        // that fails delivers its exception through the dispatcher, and on a slow enough machine
+        // that lands after teardown: the application then reports it, from a container that is no
+        // longer there.
+        Settle();
+        await Task.Delay(200);
+        Settle();
+
         switch (App.Services)
         {
             case IAsyncDisposable asynchronous:
