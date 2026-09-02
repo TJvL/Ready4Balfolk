@@ -225,6 +225,20 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         return this;
     }
 
+    /// <summary>Whether this world has any way to reach the internet.</summary>
+    public bool HasInternet { get; private set; } = true;
+
+    /// <summary>A hall with no wifi, which is where most of these evenings happen.</summary>
+    /// <remarks>
+    /// Nothing is substituted for it: the scenario's process is pointed at a proxy that is not
+    /// listening, so every request the application makes fails the way it fails in a cellar.
+    /// </remarks>
+    public ScenarioWorld WhereThereIsNoInternet()
+    {
+        HasInternet = false;
+        return this;
+    }
+
     /// <summary>Writes the settings file, which is the last thing to happen before the app starts.</summary>
     public ScenarioWorld Save()
     {

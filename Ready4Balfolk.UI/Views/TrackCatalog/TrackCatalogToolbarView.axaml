@@ -10,6 +10,7 @@
              x:DataType="local:TrackCatalogViewModel">
     <DockPanel>
         <Button DockPanel.Dock="Left"
+                AutomationProperties.AutomationId="catalog.show-dances"
                 Click="OnToggleClick"
                 ToolTip.Tip="{x:Static res:UiStrings.TrackCatalog_SwitchToDanceList}"
                 Padding="8"

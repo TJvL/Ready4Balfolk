@@ -52,7 +52,7 @@ public sealed class HeadlessSession : IAsyncDisposable
 
         if (Environment.GetEnvironmentVariable(InsideTheChild) is null)
         {
-            await RunInAProcessOfItsOwnAsync();
+            await RunInAProcessOfItsOwnAsync(world.HasInternet);
             return;
         }
 
@@ -82,7 +82,7 @@ public sealed class HeadlessSession : IAsyncDisposable
         _session.IsValueCreated ? _session.Value.DisposeAsync() : ValueTask.CompletedTask;
 
     /// <summary>Starts this assembly again, for the one scenario that is running.</summary>
-    private static async Task RunInAProcessOfItsOwnAsync()
+    private static async Task RunInAProcessOfItsOwnAsync(bool hasInternet)
     {
         var scenario = TestContext.Current.Test?.TestDisplayName
                        ?? throw new InvalidOperationException("No scenario is running.");
@@ -95,6 +95,14 @@ public sealed class HeadlessSession : IAsyncDisposable
         start.ArgumentList.Add("-method");
         start.ArgumentList.Add(scenario);
         start.Environment[InsideTheChild] = "1";
+
+        if (!hasInternet)
+        {
+            // Everything the application asks the network for goes to a proxy that is not there.
+            start.Environment["HTTP_PROXY"] = "http://127.0.0.1:9";
+            start.Environment["HTTPS_PROXY"] = "http://127.0.0.1:9";
+            start.Environment["ALL_PROXY"] = "http://127.0.0.1:9";
+        }
 
         using var child = Process.Start(start)
                           ?? throw new InvalidOperationException($"Could not start a process for {scenario}.");

@@ -84,4 +84,35 @@ public sealed class StartingOnWhatIsThere(HeadlessSession session)
                 "the library to follow the file to its new name");
         });
     }
+
+    /// <summary>The hall has no wifi, and the evening runs on the list the application shipped with.</summary>
+    /// <remarks>
+    /// World: a machine with no dance list of its own and nothing to download one with, which is a
+    /// cellar with a laptop in it.
+    /// Steps: start the application.
+    /// Sees: a dance vocabulary anyway, and a library that fills, because the list the build ships
+    /// with is a real one rather than a placeholder.
+    /// </remarks>
+    [Fact]
+    public async Task DanceListRefreshFailsAndTheOldListStays()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WhereThereIsNoInternet()
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the track to reach the catalogue on the list the build shipped with");
+
+            application.Click("catalog.show-dances");
+
+            await application.WaitUntil(
+                () => application.SeesAnywhere("Mazurka") && application.SeesAnywhere("Scottish"),
+                "the dance list panel to be showing the dances the build shipped with");
+        });
+    }
 }

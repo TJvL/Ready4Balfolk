@@ -124,7 +124,8 @@
                                            VerticalAlignment="Center" />
                                 <!-- The folder answer sits with the folder it answers, once, rather
                                      than on every row it would take. -->
-                                <Button Content="{Binding AnswerFolderText}"
+                                <Button AutomationProperties.AutomationId="review.answer-folder"
+                                        Content="{Binding AnswerFolderText}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveFolderCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding CanAnswerFolder}"
@@ -291,7 +292,8 @@
                                         Orientation="Horizontal"
                                         Spacing="8"
                                         IsVisible="{Binding HasUnknownValue}">
-                                <Button Content="{Binding SharedText}"
+                                <Button AutomationProperties.AutomationId="review.use-for-all"
+                                        Content="{Binding SharedText}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).UseDanceForAllCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding IsShared}"

@@ -222,6 +222,13 @@ public sealed class RunningApplication : IAsyncDisposable
             .Where(block => block.IsEffectivelyVisible)
             .Any(block => string.Equals(block.Text, text, StringComparison.Ordinal));
 
+    /// <summary>Whether these words appear anywhere on screen, inside whatever else is written.</summary>
+    public bool SeesAnywhere(string text) =>
+        Everywhere()
+            .SelectMany(root => root.GetVisualDescendants().OfType<TextBlock>())
+            .Where(block => block.IsEffectivelyVisible)
+            .Any(block => block.Text?.Contains(text, StringComparison.Ordinal) == true);
+
     /// <summary>The one thing on screen reading exactly this, for the lists that offer choices.</summary>
     /// <remarks>
     /// By text rather than by an id, because these are not controls somebody placed: the entries of
