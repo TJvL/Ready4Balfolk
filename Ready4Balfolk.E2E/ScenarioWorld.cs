@@ -225,17 +225,20 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         return this;
     }
 
-    /// <summary>Whether this world has any way to reach the internet.</summary>
-    public bool HasInternet { get; private set; } = true;
-
-    /// <summary>A hall with no wifi, which is where most of these evenings happen.</summary>
+    /// <summary>Whether this world has any way to reach the internet. It has not, unless it says.</summary>
     /// <remarks>
-    /// Nothing is substituted for it: the scenario's process is pointed at a proxy that is not
-    /// listening, so every request the application makes fails the way it fails in a cellar.
+    /// A hall with no wifi is where most of these evenings happen, and it is also the honest
+    /// default for a scenario: nothing here asserts anything that comes off the network, and a run
+    /// that asks BigBalfolkList for the dance list on every scenario is a run that fails when
+    /// GitHub does. Nothing is substituted for it: the scenario's process is pointed at a proxy
+    /// that is not listening, so every request fails the way it fails in a cellar.
     /// </remarks>
-    public ScenarioWorld WhereThereIsNoInternet()
+    public bool HasInternet { get; private set; }
+
+    /// <summary>This world can reach the internet, for the scenarios that are about reaching it.</summary>
+    public ScenarioWorld WhereThereIsInternet()
     {
-        HasInternet = false;
+        HasInternet = true;
         return this;
     }
 

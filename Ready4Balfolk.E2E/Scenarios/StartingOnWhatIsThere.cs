@@ -99,7 +99,6 @@ public sealed class StartingOnWhatIsThere(HeadlessSession session)
         using var world = ScenarioWorld.Create()
             .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
             .WhereTheTagsAreTrusted()
-            .WhereThereIsNoInternet()
             .Save();
 
         await session.RunAsync(world, async application =>

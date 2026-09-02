@@ -354,24 +354,33 @@ public sealed class RunningApplication : IAsyncDisposable
     }
 
     /// <summary>Teardown, while what it should let go of is being worked out.</summary>
-    /// <summary>Unhooks what startup wired up, and leaves everything else to the scenario's own application.</summary>
+    /// <summary>Lets go of the world's files, which is all teardown is for.</summary>
     /// <remarks>
     /// <para>
-    /// The window is left open and the container is left alone. Every scenario builds its own, and
-    /// they cost nothing but memory for the length of a run; disposing the container instead took
-    /// ReactiveUI's registrations down with it, and the next scenario could not resolve so much as a
-    /// property notifier.
+    /// The window is left open. Closing it is a scenario step, with a confirmation dialog behind it
+    /// and nobody here to answer, and the process ends a moment later anyway.
     /// </para>
     /// <para>
-    /// The audio device is not freed either, and does not need to be: BASS is initialised per
-    /// process, and the application now carries on from a device that is already up rather than
-    /// reading it as a failure. Freeing it here instead broke the scenario that came next, which
-    /// had subscribed to what was being disposed underneath it.
+    /// The container is disposed, and that is what stops the temporary directories piling up: the
+    /// two SQLite files are held open until it goes, so the world could not delete itself and said
+    /// nothing about it. Safe here because a process runs one scenario and then ends; disposing it
+    /// with another application to come took ReactiveUI's registrations down with it.
     /// </para>
     /// </remarks>
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _startup.Dispose();
-        return ValueTask.CompletedTask;
+
+        switch (App.Services)
+        {
+            case IAsyncDisposable asynchronous:
+                await asynchronous.DisposeAsync();
+                break;
+            case IDisposable synchronous:
+                synchronous.Dispose();
+                break;
+            default:
+                break;
+        }
     }
 }
