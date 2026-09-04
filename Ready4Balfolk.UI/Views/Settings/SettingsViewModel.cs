@@ -47,6 +47,11 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool RequirePlaybackConfirmation { get; set; }
     [Reactive] public partial bool ShowButtonText { get; set; }
 
+    // A moment between one dance and the next, so a floor can clear without the DJ queueing a delay
+    // every time.
+    [Reactive] public partial bool GapBetweenTracksEnabled { get; set; }
+    [Reactive] public partial int GapBetweenTracksSeconds { get; set; }
+
     // How a track is written on each screen that writes one as a line, in the user's own words.
     [Reactive] public partial string NowPlayingPrimaryTemplate { get; set; }
     [Reactive] public partial string NowPlayingSecondaryTemplate { get; set; }
@@ -136,6 +141,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         AllowDuplicateTracksInQueue = current.AllowDuplicateTracksInQueue;
         RequirePlaybackConfirmation = current.RequirePlaybackConfirmation;
         ShowButtonText = current.ShowButtonText;
+        GapBetweenTracksEnabled = current.GapBetweenTracksEnabled;
+        GapBetweenTracksSeconds = current.GapBetweenTracksSeconds;
         NowPlayingPrimaryTemplate = current.DisplayTemplates.NowPlayingPrimary;
         NowPlayingSecondaryTemplate = current.DisplayTemplates.NowPlayingSecondary;
         QueueItemTemplate = current.DisplayTemplates.QueueItem;
@@ -187,6 +194,14 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         ThrottledSave(x => x.ShowButtonText, v => s => s with
         {
             ShowButtonText = v
+        });
+        ThrottledSave(x => x.GapBetweenTracksEnabled, v => s => s with
+        {
+            GapBetweenTracksEnabled = v
+        });
+        ThrottledSave(x => x.GapBetweenTracksSeconds, v => s => s with
+        {
+            GapBetweenTracksSeconds = v
         });
         ThrottledSave(x => x.NowPlayingPrimaryTemplate, v => s => s with
         {
@@ -360,6 +375,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         AllowDuplicateTracksInQueue = s.AllowDuplicateTracksInQueue;
         RequirePlaybackConfirmation = s.RequirePlaybackConfirmation;
         ShowButtonText = s.ShowButtonText;
+        GapBetweenTracksEnabled = s.GapBetweenTracksEnabled;
+        GapBetweenTracksSeconds = s.GapBetweenTracksSeconds;
         QueueCutoffEnabled = s.QueueCutoffEnabled;
         QueueCutoffMinutesOfDay = s.QueueCutoffMinutesOfDay;
         QueueCutoffGraceMinutes = s.QueueCutoffGraceMinutes;

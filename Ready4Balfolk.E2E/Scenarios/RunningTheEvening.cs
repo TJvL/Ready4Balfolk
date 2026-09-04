@@ -5,6 +5,132 @@ namespace Ready4Balfolk.E2E.Scenarios;
 /// <summary>The evening itself: what goes in the queue, what plays, and what is left behind.</summary>
 public sealed class RunningTheEvening(HeadlessSession session)
 {
+    /// <summary>The room gets a moment between one dance and the next.</summary>
+    /// <remarks>
+    /// World: a library of two dances, auto queue off, and the standard gap switched on at two
+    /// seconds.
+    /// Steps: queue both dances and start the evening.
+    /// Sees: the first dance play out, a moment where nothing is playing while the second is still
+    /// in the queue, and then the second starting. A floor clears and re-forms in that moment, and
+    /// the DJ did not have to queue a delay to get it.
+    /// </remarks>
+    [Fact]
+    public async Task TheRoomGetsAMomentBetweenDances()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                RequirePlaybackConfirmation = false,
+                GapBetweenTracksEnabled = true,
+                GapBetweenTracksSeconds = 2
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
+                "the first dance to start");
+
+            // The gap itself: the first dance is over, nothing is playing, and the second is still
+            // waiting in the queue rather than having been taken out of it.
+            await application.WaitUntil(
+                () => !application.IsShowing("playback.track")
+                      && application.RowsOf("queue.items").Any(row =>
+                          row.Contains("La Belle", StringComparison.Ordinal)),
+                "the floor to be given its moment");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
+                "the second dance to start after the moment has passed");
+        });
+    }
+
+    /// <summary>The gap is nowhere: not in the queue, not on the screen, not in the night.</summary>
+    /// <remarks>
+    /// World: a library of two dances, a screen for the room, and the gap switched on.
+    /// Steps: play both dances through, then read the queue, the screen and the history.
+    /// Sees: two rows in the queue and two entries in the night, with nothing about the quiet in
+    /// between. A queue with a delay between every pair of tracks is a queue nobody can read, and a
+    /// night's account of ten seconds of quiet is not what was played or what was decided.
+    /// </remarks>
+    [Fact]
+    public async Task TheGapIsNotInTheQueueOrTheNight()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                RequirePlaybackConfirmation = false,
+                PresentationDisplayCount = 1,
+                GapBetweenTracksEnabled = true,
+                GapBetweenTracksSeconds = 1
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+
+            // Two rows before the evening starts, and two rows are all there will ever be.
+            Assert.Equal(2, application.RowsOf("queue.items").Count);
+
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
+                "the first dance to start");
+
+            // What the screen says during the gap is what it says between two dances: the coming
+            // dance is still what is next, and no pause has taken its place.
+            await application.WaitUntil(
+                () => !application.IsShowing("playback.track"),
+                "the floor to be given its moment");
+
+            Assert.Contains("Scottish", application.TextOf("display.next-dance"), StringComparison.Ordinal);
+            Assert.False(application.IsShowing("display.behind-dance"), "The gap was announced as something to wait behind.");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
+                "the second dance to start");
+
+            await application.WaitUntil(
+                () => !application.IsShowing("playback.track"),
+                "the evening to run out");
+
+            application.Click("queue.show-history");
+
+            await application.WaitUntil(
+                () => application.RowsOf("history.items").Count(row =>
+                    row.Contains(UiStrings.History_StatusFinished, StringComparison.Ordinal)) == 2,
+                "the night to hold the two dances");
+
+            Assert.DoesNotContain(
+                application.RowsOf("history.items"),
+                row => row.Contains(UiStrings.History_TypeDelay, StringComparison.Ordinal));
+        });
+    }
+
     /// <summary>A clicked seek bar asks once, however many times it is clicked.</summary>
     /// <remarks>
     /// World: a library of one dance, auto queue off, and the confirmations a DJ is asked for left

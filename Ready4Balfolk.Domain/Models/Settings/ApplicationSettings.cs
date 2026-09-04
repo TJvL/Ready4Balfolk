@@ -54,7 +54,11 @@ public sealed record ApplicationSettings(
     bool PlayEndOfNightAtCutoff = false,
     // Null rather than an instance, for the same reason as the equalizer: a constructor default has
     // to be a compile-time constant. Read it through DisplayTemplates, never directly.
-    DisplayTemplates? DisplayTemplatesOrNull = null)
+    DisplayTemplates? DisplayTemplatesOrNull = null,
+    // A moment between one dance and the next, so a floor can clear and re-form without the DJ
+    // queueing a delay every time. Off by default: an evening that wants no gaps should get none.
+    bool GapBetweenTracksEnabled = false,
+    int GapBetweenTracksSeconds = 10)
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [])
@@ -87,4 +91,11 @@ public sealed record ApplicationSettings(
     /// <summary>How tracks are written on the screens that write them as a line.</summary>
     [JsonIgnore]
     public DisplayTemplates DisplayTemplates => DisplayTemplatesOrNull ?? DisplayTemplates.Default;
+
+    /// <summary>The quiet between one dance and the next, or nothing when it is switched off.</summary>
+    /// <remarks>Clamped to something a room would recognise as a gap rather than as a fault.</remarks>
+    [JsonIgnore]
+    public TimeSpan GapBetweenTracks => GapBetweenTracksEnabled
+        ? TimeSpan.FromSeconds(Math.Clamp(GapBetweenTracksSeconds, 1, 120))
+        : TimeSpan.Zero;
 }

@@ -73,6 +73,27 @@
                 </StackPanel>
 
                 <StackPanel Spacing="8">
+                    <CheckBox AutomationProperties.AutomationId="settings.gap-between-tracks"
+                              Content="{x:Static res:UiStrings.Settings_GapBetweenTracks}"
+                              IsChecked="{Binding GapBetweenTracksEnabled, Mode=TwoWay}"
+                              Focusable="False" />
+                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                IsEnabled="{Binding GapBetweenTracksEnabled}">
+                        <NumericUpDown Value="{Binding GapBetweenTracksSeconds, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
+                                       Minimum="1"
+                                       Maximum="120"
+                                       Increment="5"
+                                       Width="120" />
+                        <TextBlock Text="{x:Static res:UiStrings.Settings_GapBetweenTracksSeconds}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_GapBetweenTracksDescription}"
+                               FontSize="11"
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Spacing="8">
                     <CheckBox Content="{x:Static res:UiStrings.Settings_AutoQueue}"
                               IsChecked="{Binding AutoQueueRandomTrack, Mode=TwoWay}"
                               Focusable="False" />

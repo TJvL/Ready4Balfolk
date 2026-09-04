@@ -591,7 +591,13 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
 
         var settings = _settingsStore.Current;
-        var finishTime = _time.GetLocalNow().DateTime + currentRemaining + queueDuration;
+
+        // The quiet between the dances is time the evening spends, so an evening of thirty of them
+        // would otherwise finish five minutes after the toolbar said it would.
+        var gaps = TrackGaps.Between(
+            _consumptionService.CurrentItem, _queuedItems, settings.GapBetweenTracks);
+
+        var finishTime = _time.GetLocalNow().DateTime + currentRemaining + queueDuration + gaps;
         string text;
         if (halts)
         {
