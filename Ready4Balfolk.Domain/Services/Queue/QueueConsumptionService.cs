@@ -22,6 +22,9 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly ILoggerService _loggerService;
     private readonly TimeProvider _time;
 
+    /// <summary>How often a countdown says how far along it is. Not how accurate its end is.</summary>
+    private static readonly TimeSpan CountdownTick = TimeSpan.FromMilliseconds(100);
+
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly CompositeDisposable _globalDisposables = [];
     private CompositeDisposable? _itemDisposables;
@@ -312,28 +315,50 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _ = AdvanceAsync();
     }
 
+    /// <summary>Counts a delay, a message or a gap down, and advances once when it runs out.</summary>
+    /// <remarks>
+    /// The countdown stops itself the instant it expires, rather than ticking on until the item is
+    /// cleaned up. Cleanup happens after the history row has been written, and writing one is a
+    /// SQLite commit: every tick that landed while that was in flight queued another advance, and
+    /// the second of them arrived after the next dance had already started and filed it as skipped.
+    /// A delay or a message before a dance ate that dance, and the room heard the one after it.
+    ///
+    /// It counts on <see cref="TimeProvider" /> rather than on a scheduler of its own, so that the
+    /// clock deciding when it expires is the same one deciding how far along it says it is, and a
+    /// test can move both together.
+    /// </remarks>
     private void StartCountdown(TimeSpan duration)
     {
         _totalDuration.OnNext(duration);
         _elapsed.OnNext(TimeSpan.Zero);
 
         var start = _time.GetUtcNow();
-        _itemDisposables!.Add(
-            Observable.Interval(TimeSpan.FromMilliseconds(100))
-                .Subscribe(tick =>
+
+        // The tick stops the countdown by disposing this, so it has to be something the tick can
+        // reach before the timer it will hold exists. Assigning into it is safe either way round:
+        // a tick that beat the assignment leaves it disposed, and the timer is then disposed the
+        // moment it lands in it.
+        var countdown = new SingleAssignmentDisposable();
+        _itemDisposables!.Add(countdown);
+
+        countdown.Disposable = _time.CreateTimer(
+            _ =>
+            {
+                var elapsed = _time.GetUtcNow() - start;
+                if (elapsed < duration)
                 {
-                    var elapsed = _time.GetUtcNow() - start;
-                    if (elapsed >= duration)
-                    {
-                        _elapsed.OnNext(duration);
-                        _itemFinishedNaturally = true;
-                        _ = AdvanceAsync();
-                    }
-                    else
-                    {
-                        _elapsed.OnNext(elapsed);
-                    }
-                }));
+                    _elapsed.OnNext(elapsed);
+                    return;
+                }
+
+                countdown.Dispose();
+                _elapsed.OnNext(duration);
+                _itemFinishedNaturally = true;
+                _ = AdvanceAsync();
+            },
+            null,
+            CountdownTick,
+            CountdownTick);
     }
 
     private void PreloadNext()
@@ -433,15 +458,26 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _currentItemStartedAt = null;
     }
 
+    /// <summary>Stops everything this service drives. The subjects are left alone on purpose.</summary>
+    /// <remarks>
+    /// Disposing them used to be part of this, and it is what turned shutting down into a crash.
+    /// Stopping a subscription or a timer does not wait for a callback that has already started, so
+    /// a countdown tick or an end-of-track callback from the audio thread can still be on its way
+    /// here when this returns. It then writes to a subject that no longer accepts one, and an
+    /// ObjectDisposedException raised on a threadpool timer thread has nowhere to go but the
+    /// process: the application dies with no dialog and no log line, and in CI the test host
+    /// disappears mid-run and takes an unrelated half of the suite with it.
+    ///
+    /// A subject holds nothing that needs releasing. Once this service is unreachable so are these,
+    /// and a late tick writing into one that nobody is listening to is harmless.
+    /// <see cref="CleanupCurrentItem" /> has always left them alone for exactly this reason, which
+    /// is why the fault only ever showed at shutdown.
+    /// </remarks>
     public void Dispose()
     {
         _itemDisposables?.Dispose();
+        _itemDisposables = null;
         _globalDisposables.Dispose();
-        _currentItem.Dispose();
-        _elapsed.Dispose();
-        _totalDuration.Dispose();
-        _isPlaying.Dispose();
-        _itemCompleted.Dispose();
         _gate.Dispose();
     }
 }

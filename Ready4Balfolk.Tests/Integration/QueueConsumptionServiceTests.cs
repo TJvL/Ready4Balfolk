@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
@@ -20,6 +21,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     private readonly IAudioPlaybackService _audio;
     private readonly QueueService _queue;
     private readonly IQueueHistoryStore _history;
+    private readonly ISettingsStore _settingsStore;
     private readonly QueueConsumptionService _sut;
 
     private readonly Subject<RxUnit> _playbackStarted = new();
@@ -47,23 +49,23 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         _history = Substitute.For<IQueueHistoryStore>();
         _history.Current.Returns(new QueueHistory(null, []));
 
-        var settingsStore = Substitute.For<ISettingsStore>();
+        _settingsStore = Substitute.For<ISettingsStore>();
         _settings = new ApplicationSettings() with
         {
             MaxQueueItems = 100
         };
-        settingsStore.Current.Returns(_ => _settings);
-        settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(_settings));
+        _settingsStore.Current.Returns(_ => _settings);
+        _settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(_settings));
 
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.WhenTrackFileVanished.Returns(Observable.Never<string>());
 
         _queue = new QueueService(
-            settingsStore, _history, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService(),
+            _settingsStore, _history, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService(),
             TimeProvider.System);
 
         _sut = new QueueConsumptionService(
-            _audio, _queue, _history, settingsStore, new NoOpLoggerService(), TimeProvider.System);
+            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), TimeProvider.System);
     }
 
     [Fact]
@@ -321,6 +323,63 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         await _sut.AdvanceAsync();
 
         await _history.DidNotReceive().EndNightAsync(Arg.Any<DateTime?>());
+    }
+
+    /// <summary>A second service on a clock a test can move, sharing this fixture's doubles.</summary>
+    private QueueConsumptionService CreateServiceOn(TimeProvider time) =>
+        new(_audio, _queue, _history, _settingsStore, new NoOpLoggerService(), time);
+
+    [Fact]
+    public async Task ACountdownThatHasExpired_StopsTicking_WhileTheHistoryWriteIsStillGoing()
+    {
+        var time = new FakeTimeProvider();
+        using var sut = CreateServiceOn(time);
+
+        var elapsed = new List<TimeSpan>();
+        using var watchingElapsed = sut.WhenElapsedChanged.Subscribe(elapsed.Add);
+
+        var delay = TimeSpan.FromSeconds(5);
+        _queue.Enqueue(new DelayQueueItem(delay));
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+
+        await sut.AdvanceAsync();
+
+        // Holding the write open is the whole point of the test: cleaning the item up is what used
+        // to stop the countdown, and that only happens once the history row is down.
+        var writing = new TaskCompletionSource();
+        _history.AddAsync(Arg.Any<QueueHistoryEntry>()).Returns(_ => writing.Task);
+
+        time.Advance(delay);
+        time.Advance(TimeSpan.FromSeconds(10));
+
+        // One expiry, one advance. Every tick that landed while the write was in flight used to
+        // queue another, and the second of them filed the dance that had just started as skipped.
+        Assert.Equal(1, elapsed.Count(value => value == delay));
+
+        var advanced = new TaskCompletionSource();
+        using var watchingItem = sut.WhenCurrentItemChanged
+            .Where(item => item is TrackQueueItem)
+            .Take(1)
+            .Subscribe(_ => advanced.TrySetResult());
+
+        writing.SetResult();
+        await advanced.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public void Disposing_LeavesTheSubjectsUsable_SoALateTickCannotTakeTheProcessDown()
+    {
+        var sut = CreateServiceOn(TimeProvider.System);
+
+        sut.Dispose();
+
+        // A countdown tick or an end-of-track callback from the audio thread can already be on its
+        // way when disposal returns, because stopping a timer does not wait for a callback that has
+        // started. Against a disposed subject that threw ObjectDisposedException on a threadpool
+        // thread, which no handler in the application can catch and which ends the process.
+        Assert.Null(Record.Exception(() => sut.WhenElapsedChanged.Subscribe(_ => { }).Dispose()));
+        Assert.Null(Record.Exception(() => sut.WhenIsPlayingChanged.Subscribe(_ => { }).Dispose()));
+        Assert.Null(Record.Exception(() => sut.WhenCurrentItemChanged.Subscribe(_ => { }).Dispose()));
     }
 
     public void Dispose()
