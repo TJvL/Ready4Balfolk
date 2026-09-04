@@ -521,6 +521,10 @@ tonen wat er speelt en wat er komt.
 - **Voortgangsbalk**: een groene balk in het midden
 - **Onderste helft**: de volgende dans en zijn gegevens, of "Geen volgend nummer" bij een lege
   wachtrij
+- **Achter een pauze**: staat er een pauze, een stop of een bericht als volgende en zit daar
+  meteen een dans achter, dan staat die dans er ook onder. Zulke items zet je juist in de wachtrij
+  zodat de zaal rijen kan vormen of een partner kan zoeken, en dan wil de vloer weten waarvoor. Het
+  webscherm laat hetzelfde zien.
 
 ### Configuratie
 

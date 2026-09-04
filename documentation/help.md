@@ -494,6 +494,7 @@ Presentation windows are full-screen displays intended for projectors or externa
 - **Top half**: The current dance name in large text, with artist and title below. When a message item is active, the message text is displayed instead.
 - **Progress bar**: A green bar in the middle showing playback progress
 - **Bottom half**: The next upcoming dance name and track details, or "No next track" if the queue is empty
+- **Behind a pause**: When the next item is a delay, a stop or a message and a dance sits directly behind it, the dance is named underneath as well. Those items are usually queued so the room can form groups or find a partner, and that is exactly when the floor wants to know what it is getting ready for. The web display shows the same thing.
 
 ### Configuration
 

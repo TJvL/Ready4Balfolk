@@ -22,6 +22,13 @@
     nextArtist: document.getElementById("nextArtist"),
     nextDash: document.getElementById("nextDash"),
     nextTitle: document.getElementById("nextTitle"),
+    behind: document.querySelector('[data-when="behind"]'),
+    behindLabel: document.getElementById("behindLabel"),
+    behindPrimary: document.getElementById("behindPrimary"),
+    behindSub: document.getElementById("behindSub"),
+    behindArtist: document.getElementById("behindArtist"),
+    behindDash: document.getElementById("behindDash"),
+    behindTitle: document.getElementById("behindTitle"),
     lost: document.getElementById("lost")
   };
 
@@ -39,6 +46,7 @@
     el.idle.textContent = window.R4B.t("noTrack");
     el.nextIdle.textContent = window.R4B.t("noNext");
     el.nextLabel.textContent = window.R4B.t("next");
+    el.behindLabel.textContent = window.R4B.t("then");
     el.lost.textContent = window.R4B.t("reconnecting");
   }
 
@@ -78,6 +86,21 @@
       el.nextTitle.textContent = isMessage ? "" : next.title;
       show(el.nextSub, isMessage || (next.kind === "Track" && next.artist.length > 0));
       show(el.nextDash, !isMessage && next.title.length > 0);
+    }
+
+    // The dance the pause is for. A delay or a stop is often queued so the room can make lines or
+    // find a partner, and it is exactly then that the floor wants to know what for.
+    var behind = snapshot.behind;
+    var hasBehind = hasNext && behind.kind !== "None";
+
+    show(el.behind, hasBehind);
+
+    if (hasBehind) {
+      el.behindPrimary.textContent = primaryOf(behind);
+      el.behindArtist.textContent = behind.artist;
+      el.behindTitle.textContent = behind.title;
+      show(el.behindSub, behind.artist.length > 0);
+      show(el.behindDash, behind.title.length > 0);
     }
   }
 
