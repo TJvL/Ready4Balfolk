@@ -212,7 +212,28 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                 }
 
                 var bytes = Bass.ChannelSeconds2Bytes(_channel, position.TotalSeconds);
+                var wasPlaying = Bass.ChannelIsActive(_channel) == PlaybackState.Playing;
+
+                // Stopped, moved, and started again, rather than moved underneath a running
+                // channel. What has already been handed to the speakers is not part of the track
+                // any more: pausing keeps it and plays it out after the jump, on top of the new
+                // position, so the room hears the same tune twice a moment apart. Stopping is what
+                // throws that buffer away; the position survives it, and playing again picks up
+                // where the seek put it rather than at the start.
+                if (wasPlaying)
+                {
+                    Bass.ChannelStop(_channel);
+                }
+
                 Bass.ChannelSetPosition(_channel, bytes);
+
+                if (wasPlaying)
+                {
+                    Bass.ChannelPlay(_channel);
+                }
+
+                _ = _loggerService.DebugAsync(
+                    $"Seeked to {position} on channel {_channel}, error {Bass.LastError}");
             }
             finally
             {
