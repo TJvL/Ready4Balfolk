@@ -570,6 +570,13 @@ webserver:
   wat het scherm daar zegt. De avond afsluiten werkt net zo: welk bestand dat is, is aan de computer
   bepaald, en staat er geen, dan zegt de afstandsbediening dat in plaats van er een te kiezen.
 
+Zolang er iets wordt aangeboden zegt de werkbalk dat, naast de reviewknop: **Scherm** als de
+schermpagina draait, **Afstandsbediening** als die er ook is. Ze volgen de server en niet de schakelaar,
+dus een poort die al bezet is levert niets op in plaats van een belofte. Klik erop en het adres komt
+in beeld als QR-code waar je een telefoon op richt, met het adres eronder en bij de afstandsbediening
+de pincode ernaast. Zit de computer op meerdere netwerken, dan staan de andere adressen onder de
+code, want maar een daarvan is het netwerk waar de telefoon op zit.
+
 Beide worden aangezet in **Instellingen**. De afstandsbediening staat uit tot jij hem aanzet, en
 is beveiligd met een pincode: wie de pagina kan bereiken en de pincode kent, kan veranderen waar de
 zaal op danst, dus behandel hem daarnaar. **Nieuwe pincode** maakt een verse en verbreekt elke

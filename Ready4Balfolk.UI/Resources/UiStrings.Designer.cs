@@ -703,6 +703,9 @@ public static class UiStrings
     public static string Settings_WebServerStopped =>
         ResourceManager.GetString("Settings_WebServerStopped", Culture)!;
 
+    public static string Settings_WebServerSwitchedOff =>
+        ResourceManager.GetString("Settings_WebServerSwitchedOff", Culture)!;
+
     public static string Settings_WebServerStarting =>
         ResourceManager.GetString("Settings_WebServerStarting", Culture)!;
 
@@ -1126,6 +1129,33 @@ public static class UiStrings
 
     public static string Toolbar_Review =>
         ResourceManager.GetString("Toolbar_Review", Culture)!;
+
+    public static string Qr_DisplayTitle =>
+        ResourceManager.GetString("Qr_DisplayTitle", Culture)!;
+
+    public static string Qr_RemoteTitle =>
+        ResourceManager.GetString("Qr_RemoteTitle", Culture)!;
+
+    public static string Qr_Pin =>
+        ResourceManager.GetString("Qr_Pin", Culture)!;
+
+    public static string Qr_OtherAddresses =>
+        ResourceManager.GetString("Qr_OtherAddresses", Culture)!;
+
+    public static string Qr_Close =>
+        ResourceManager.GetString("Qr_Close", Culture)!;
+
+    public static string Toolbar_DisplayServed =>
+        ResourceManager.GetString("Toolbar_DisplayServed", Culture)!;
+
+    public static string Toolbar_DisplayServedTip =>
+        ResourceManager.GetString("Toolbar_DisplayServedTip", Culture)!;
+
+    public static string Toolbar_RemoteServed =>
+        ResourceManager.GetString("Toolbar_RemoteServed", Culture)!;
+
+    public static string Toolbar_RemoteServedTip =>
+        ResourceManager.GetString("Toolbar_RemoteServedTip", Culture)!;
 
     public static string Toolbar_ReviewLabel =>
         ResourceManager.GetString("Toolbar_ReviewLabel", Culture)!;

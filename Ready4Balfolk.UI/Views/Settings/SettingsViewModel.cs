@@ -337,6 +337,10 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
                 CultureInfo.CurrentCulture,
                 UiStrings.Settings_WebServerFailed,
                 _webServer.LastError ?? ""),
+            // Stopped with a reason is a server that was switched off because it could not run.
+            // Without this the box unticks itself and says nothing about why.
+            _ when _webServer.LastError is { Length: > 0 } reason => string.Format(
+                CultureInfo.CurrentCulture, UiStrings.Settings_WebServerSwitchedOff, reason),
             _ => UiStrings.Settings_WebServerStopped
         };
 

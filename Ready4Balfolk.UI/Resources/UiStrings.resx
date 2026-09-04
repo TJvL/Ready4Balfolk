@@ -809,6 +809,9 @@
   <data name="Settings_WebServerStopped" xml:space="preserve">
     <value>Stopped</value>
   </data>
+  <data name="Settings_WebServerSwitchedOff" xml:space="preserve">
+    <value>Switched off: {0} Tick it again to try once more.</value>
+  </data>
   <data name="Settings_WebServerStarting" xml:space="preserve">
     <value>Starting</value>
   </data>
@@ -1237,6 +1240,33 @@
   </data>
   <data name="Toolbar_Review" xml:space="preserve">
     <value>Everything waiting for you</value>
+  </data>
+  <data name="Qr_DisplayTitle" xml:space="preserve">
+    <value>The display page</value>
+  </data>
+  <data name="Qr_RemoteTitle" xml:space="preserve">
+    <value>The remote</value>
+  </data>
+  <data name="Qr_Pin" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="Qr_OtherAddresses" xml:space="preserve">
+    <value>This machine is also reachable at, if the phone is on another network:</value>
+  </data>
+  <data name="Qr_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Toolbar_DisplayServed" xml:space="preserve">
+    <value>Display</value>
+  </data>
+  <data name="Toolbar_DisplayServedTip" xml:space="preserve">
+    <value>The display page is being served. Click for the address as a code a phone can read.</value>
+  </data>
+  <data name="Toolbar_RemoteServed" xml:space="preserve">
+    <value>Remote</value>
+  </data>
+  <data name="Toolbar_RemoteServedTip" xml:space="preserve">
+    <value>The remote is being served. Click for the address and the PIN.</value>
   </data>
   <data name="Toolbar_ReviewLabel" xml:space="preserve">
     <value>Review</value>

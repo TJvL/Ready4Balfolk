@@ -734,6 +734,9 @@
   <data name="Settings_WebServerStopped" xml:space="preserve">
     <value>Gestopt</value>
   </data>
+  <data name="Settings_WebServerSwitchedOff" xml:space="preserve">
+    <value>Uitgezet: {0} Vink opnieuw aan om het nog eens te proberen.</value>
+  </data>
   <data name="Settings_WebServerStarting" xml:space="preserve">
     <value>Wordt gestart</value>
   </data>
@@ -1162,6 +1165,33 @@
   </data>
   <data name="Toolbar_Review" xml:space="preserve">
     <value>Alles wat op jou wacht</value>
+  </data>
+  <data name="Qr_DisplayTitle" xml:space="preserve">
+    <value>De schermpagina</value>
+  </data>
+  <data name="Qr_RemoteTitle" xml:space="preserve">
+    <value>De afstandsbediening</value>
+  </data>
+  <data name="Qr_Pin" xml:space="preserve">
+    <value>Pincode</value>
+  </data>
+  <data name="Qr_OtherAddresses" xml:space="preserve">
+    <value>Deze computer is ook bereikbaar op, als de telefoon op een ander netwerk zit:</value>
+  </data>
+  <data name="Qr_Close" xml:space="preserve">
+    <value>Sluiten</value>
+  </data>
+  <data name="Toolbar_DisplayServed" xml:space="preserve">
+    <value>Scherm</value>
+  </data>
+  <data name="Toolbar_DisplayServedTip" xml:space="preserve">
+    <value>De schermpagina wordt aangeboden. Klik voor het adres als code die een telefoon kan lezen.</value>
+  </data>
+  <data name="Toolbar_RemoteServed" xml:space="preserve">
+    <value>Afstandsbediening</value>
+  </data>
+  <data name="Toolbar_RemoteServedTip" xml:space="preserve">
+    <value>De afstandsbediening wordt aangeboden. Klik voor het adres en de pincode.</value>
   </data>
   <data name="Toolbar_ReviewLabel" xml:space="preserve">
     <value>Nakijken</value>

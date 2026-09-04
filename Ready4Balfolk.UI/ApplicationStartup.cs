@@ -162,9 +162,33 @@ internal sealed class ApplicationStartup(
 
         RestoreWindowState(mainWindow);
 
+        // A start that failed puts the switch back down. The alternative is what a taken port used
+        // to leave behind: a setting that says the display page is being served, a toolbar that
+        // says nothing because it is not, and no way to try again short of guessing that the switch
+        // has to be flicked. Off is the truth, and ticking it again is the retry.
+        //
+        // Watched before the first apply, or a server that fails in the moment between the two is
+        // never noticed and the switch stays up over nothing.
+        void SwitchOffIfItCouldNotStart()
+        {
+            if (webServer.State is not WebServerState.Failed || !settingsStore.Current.WebServerEnabled)
+            {
+                return;
+            }
+
+            settingsStore
+                .UpdateAsync(settings => settings with { WebServerEnabled = false })
+                .SafeFireAndForget(exception =>
+                    logger.ErrorAsync("Failed to switch the presentation server off after it would not start", exception));
+        }
+
+        _disposables.Add(webServer.WhenChanged.Subscribe(_ => SwitchOffIfItCouldNotStart()));
+
         // The embedded server follows the settings live: switching it on, moving its port or
         // opening it to the network never needs a restart.
         ApplyWebServer(settingsStore.Current);
+        SwitchOffIfItCouldNotStart();
+
         _disposables.Add(settingsStore.Observe()
             .Select(ToWebServerOptions)
             .DistinctUntilChanged()

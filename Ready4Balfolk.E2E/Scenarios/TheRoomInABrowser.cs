@@ -1,3 +1,5 @@
+using System.Globalization;
+using Avalonia.Controls;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -231,6 +233,71 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
         });
     }
 
+    /// <summary>The DJ shows a helper where the remote is, without reading out an address.</summary>
+    /// <remarks>
+    /// World: a library of one dance, the server on and the remote on with a PIN.
+    /// Steps: open the toolbar's remote status.
+    /// Sees: the address the phone would have to be typed with, and the PIN beside it. Reading
+    /// "http://192.168.1.42:8420/remote" across a hall and having somebody type it in the dark is
+    /// how a helper ends up on the wrong port with the wrong digit.
+    /// </remarks>
+    [Fact]
+    public async Task DjShowsAHelperTheRemoteAddress()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "202020")
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.IsShowing("toolbar.remote-served"),
+                "the toolbar to say the remote is being served");
+
+            Assert.True(application.IsShowing("toolbar.display-served"), "The display page is served too, and said nothing.");
+
+            application.Click("toolbar.remote-served");
+
+            await application.WaitUntil(
+                () => application.IsShowing("qr.address"),
+                "the address to come up as something a phone can be pointed at");
+
+            Assert.EndsWith("/remote", application.TextOf("qr.address"), StringComparison.Ordinal);
+            Assert.Contains(world.WebServerPort.ToString(CultureInfo.InvariantCulture), application.TextOf("qr.address"), StringComparison.Ordinal);
+            Assert.Equal("202020", application.TextOf("qr.pin"));
+
+            application.Click("qr.close");
+        });
+    }
+
+    /// <summary>The toolbar says nothing about a server that is not running.</summary>
+    /// <remarks>
+    /// World: a library of one dance and no server at all, which is the default.
+    /// Steps: open the application.
+    /// Sees: neither status on the toolbar. A toolbar that said "remote" over a server that never
+    /// bound would send a hall to an address nothing answers.
+    /// </remarks>
+    [Fact]
+    public async Task TheToolbarSaysNothingWhileTheServerIsOff()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            Assert.False(application.IsShowing("toolbar.display-served"), "A display page nobody is serving was announced.");
+            Assert.False(application.IsShowing("toolbar.remote-served"), "A remote nobody is serving was announced.");
+        });
+    }
+
     /// <summary>The DJ queues a dance and the screen in the hall keeps up.</summary>
     /// <remarks>
     /// World: a library of two dances, the server on, and auto queue off.
@@ -319,7 +386,9 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
     /// World: a library of one dance, the server switched on, and its port already held by
     /// something else on this machine.
     /// Steps: open the settings and read what the server says it is doing.
-    /// Sees: the failure said out loud, rather than a switch that is on above a server that is not.
+    /// Sees: the failure said out loud and the switch back down, rather than a setting that claims
+    /// the display page is being served over a server that never started. Ticking it again is the
+    /// way to try once more.
     /// </remarks>
     [Fact]
     public async Task DjPicksAPortThatIsAlreadyTaken()
@@ -350,6 +419,14 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
                 UiStrings.Settings_WebServerRunning,
                 application.TextOf("settings.server-status"),
                 StringComparison.Ordinal);
+
+            // The switch follows what actually happened, and the toolbar says nothing about a page
+            // nobody is serving.
+            await application.WaitUntil(
+                () => application.Find("settings.server") is CheckBox { IsChecked: false },
+                "the switch to go back down after the server could not start");
+
+            Assert.False(application.IsShowing("toolbar.display-served"), "A display page nobody is serving was announced.");
         });
     }
 
