@@ -90,6 +90,20 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         DraftMisses = [];
         ScanProgressText = string.Empty;
 
+        // While the scan runs the only thing that moves is a count, read from the index rather than
+        // from the library: nothing reaches the library during a scan, so counting that would sit
+        // at nil. It is the whole of this screen until the reading is done.
+        this.WhenAnyValue(x => x.IsScanning)
+            .Select(scanning => scanning
+                ? Observable.Interval(TimeSpan.FromSeconds(1))
+                : Observable.Empty<long>())
+            .Switch()
+            .SelectMany(_ => Observable.FromAsync(() => _libraryIndex.CountIndexedAsync()))
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(count => ScanProgressText = string.Format(
+                CultureInfo.CurrentCulture, UiStrings.Discovery_ScanningCount, count))
+            .DisposeWith(_disposables);
+
         // A rule is measured against the library, so measuring one while the library is still being
         // read would put a number in front of the user that is not the number they are agreeing to.
         trackStore.IsLoading

@@ -36,13 +36,17 @@ public sealed class DiscoveryStepViewModel(DiscoveryViewModel discovery) : Wizar
     /// </remarks>
     public override IObservable<bool> CanContinue =>
         Discovery.WhenAnyValue(
+            x => x.IsScanning,
             x => x.UsesFileNamePatterns,
             x => x.UsesFolderRoles,
             x => x.UsesTagTrust,
             x => x.UsesCustomDanceTag,
-            (names, folders, tags, custom) => names || folders || tags || custom);
+            (scanning, names, folders, tags, custom) => !scanning && (names || folders || tags || custom));
 
-    public override string BlockedReason => UiStrings.Wizard_Discovery_Required;
+    /// <summary>Reading the library first, and what has not been ticked after that.</summary>
+    public override IObservable<string> BlockedReason =>
+        Discovery.WhenAnyValue(x => x.IsScanning)
+            .Select(scanning => scanning ? UiStrings.Discovery_Scanning : UiStrings.Wizard_Discovery_Required);
 
     public override Task EnterAsync() => Discovery.RefreshCommand.Execute().FirstAsync().ToTask();
 

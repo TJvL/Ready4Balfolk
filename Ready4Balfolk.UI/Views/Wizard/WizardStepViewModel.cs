@@ -22,8 +22,12 @@ public abstract class WizardStepViewModel : ReactiveObject
     public virtual IObservable<bool> CanContinue => Observable.Return(true);
 
     /// <summary>Why the wizard will not move on, shown next to a disabled continue button.</summary>
-    /// <remarks>A disabled button with no reason beside it is the most common way to strand a user.</remarks>
-    public virtual string BlockedReason => string.Empty;
+    /// <remarks>
+    /// A disabled button with no reason beside it is the most common way to strand a user. An
+    /// observable like the verdict it explains, because a step can be blocked for one reason and
+    /// then another: reading the library first, and what the person has not said yet after that.
+    /// </remarks>
+    public virtual IObservable<string> BlockedReason => Observable.Return(string.Empty);
 
     /// <summary>Runs when the step is shown, so it can pick up state a previous step wrote.</summary>
     public virtual Task EnterAsync() => Task.CompletedTask;

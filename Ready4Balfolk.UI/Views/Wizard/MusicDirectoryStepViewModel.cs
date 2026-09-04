@@ -29,7 +29,7 @@ public sealed partial class MusicDirectoryStepViewModel(
         this.WhenAnyValue(x => x.MusicDirectoryPath)
             .Select(path => !string.IsNullOrWhiteSpace(path) && fileSystem.Directory.Exists(path));
 
-    public override string BlockedReason => UiStrings.Wizard_Music_Required;
+    public override IObservable<string> BlockedReason => Observable.Return(UiStrings.Wizard_Music_Required);
 
     public override Task EnterAsync()
     {

@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO.Abstractions;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
@@ -50,7 +51,7 @@ public sealed partial class DanceListStepViewModel(
 
     public override IObservable<bool> CanContinue => this.WhenAnyValue(step => step.HasAList);
 
-    public override string BlockedReason => UiStrings.Wizard_DanceList_Blocked;
+    public override IObservable<string> BlockedReason => Observable.Return(UiStrings.Wizard_DanceList_Blocked);
 
     /// <summary>Shows what the machine already has, and asks for nothing on its own.</summary>
     public override Task EnterAsync()

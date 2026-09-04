@@ -1199,6 +1199,9 @@
   <data name="Discovery_Scanning" xml:space="preserve">
     <value>Reading your library. A rule can be measured once that is done.</value>
   </data>
+  <data name="Discovery_ScanningCount" xml:space="preserve">
+    <value>{0} tracks so far.</value>
+  </data>
   <data name="Discovery_ApplyHint" xml:space="preserve">
     <value>Nothing on this screen does anything until you save it. Your library is read again afterwards, so a rule answers the files already in it.</value>
   </data>

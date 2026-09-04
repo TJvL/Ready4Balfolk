@@ -828,6 +828,9 @@ public static class UiStrings
     public static string Wizard_Discovery_Required =>
         ResourceManager.GetString("Wizard_Discovery_Required", Culture)!;
 
+    public static string Discovery_ScanningCount =>
+        ResourceManager.GetString("Discovery_ScanningCount", Culture)!;
+
     public static string Settings_MusicDirectoryChangeHint =>
         ResourceManager.GetString("Settings_MusicDirectoryChangeHint", Culture)!;
 
