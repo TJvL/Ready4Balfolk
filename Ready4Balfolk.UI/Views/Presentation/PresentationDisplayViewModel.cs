@@ -121,6 +121,7 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
     private static string Label(PresentationItem item) => item.Kind switch
     {
         PresentationItemKind.Delay => UiStrings.Presentation_Delay,
+        PresentationItemKind.Gap => UiStrings.Presentation_Gap,
         PresentationItemKind.Stop => UiStrings.Presentation_Stop,
         PresentationItemKind.EndOfNight => UiStrings.Presentation_EndOfNight,
         _ => item.Primary

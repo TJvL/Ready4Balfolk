@@ -80,6 +80,9 @@
   <data name="DelayQueueItem_Description" xml:space="preserve">
     <value>Delay</value>
   </data>
+  <data name="GapQueueItem_Description" xml:space="preserve">
+    <value>Between dances</value>
+  </data>
   <data name="EndOfNightQueueItem_Description" xml:space="preserve">
     <value>End of the night</value>
   </data>

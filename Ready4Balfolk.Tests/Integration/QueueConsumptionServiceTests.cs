@@ -238,10 +238,13 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         _playbackEnded.OnNext(RxUnit.Default);
         await Task.Delay(200, TestContext.Current.CancellationToken);
 
-        // The floor's moment: nothing playing, and the coming dance still in the queue rather than
-        // taken out of it, so the screens still call it next.
-        Assert.Null(_sut.CurrentItem);
+        // The floor's moment: the gap is what is playing, so every screen can draw it, and the
+        // coming dance is still in the queue rather than taken out of it.
+        Assert.IsType<GapQueueItem>(_sut.CurrentItem);
         Assert.Equal(1, _queue.Count);
+
+        // And it is never written down: a night's account is what was played and what was decided.
+        await _history.DidNotReceive().AddAsync(Arg.Any<DelayHistoryEntry>());
     }
 
     [Fact]

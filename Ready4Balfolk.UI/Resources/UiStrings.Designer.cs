@@ -489,6 +489,12 @@ public static class UiStrings
     public static string Playback_Delay =>
         ResourceManager.GetString("Playback_Delay", Culture)!;
 
+    public static string Playback_Gap =>
+        ResourceManager.GetString("Playback_Gap", Culture)!;
+
+    public static string Presentation_Gap =>
+        ResourceManager.GetString("Presentation_Gap", Culture)!;
+
     public static string Playback_Stop =>
         ResourceManager.GetString("Playback_Stop", Culture)!;
 

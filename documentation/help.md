@@ -431,9 +431,14 @@ The default duration (in seconds) for delay markers added to the queue, between 
 floor can clear and re-form without you queueing a delay every time. Off unless you turn it on, and
 ten seconds when you do.
 
-It is a real pause, so the music waits it out, but it is not an item: nothing appears in the queue,
-on the phone, or in the night afterwards. While it runs the screens say what they say between two
-dances, with the coming dance still named as next, and pressing next takes the room straight to it.
+It is a real pause, so the music waits it out, and the screens say so: the playing line names it and
+the bar counts it down, with the coming dance still named as next. A floor reading "no track
+playing" for ten seconds cannot tell a moment from a machine that has stopped. Pressing next takes
+the room straight to the dance.
+
+It is still not an item: nothing appears in the queue, on the phone's queue, or in the night
+afterwards. The time is not lost by that, because every history entry says when it started and when
+it finished, so the moment is the space between one row and the next.
 
 Nothing is added around a delay, a stop, a message or the end of the night, since those already give
 the room time, and nothing before the first dance of an evening. The finish time and the end time

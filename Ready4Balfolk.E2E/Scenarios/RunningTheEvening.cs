@@ -44,10 +44,12 @@ public sealed class RunningTheEvening(HeadlessSession session)
                 () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the first dance to start");
 
-            // The gap itself: the first dance is over, nothing is playing, and the second is still
-            // waiting in the queue rather than having been taken out of it.
+            // The gap itself: the floor is told what is happening rather than left reading a bar
+            // that says nothing, and the second dance is still in the queue rather than taken out
+            // of it.
             await application.WaitUntil(
-                () => !application.IsShowing("playback.track")
+                () => application.TextOf("playback.dance")
+                          .Contains(UiStrings.Playback_Gap, StringComparison.Ordinal)
                       && application.RowsOf("queue.items").Any(row =>
                           row.Contains("La Belle", StringComparison.Ordinal)),
                 "the floor to be given its moment");
@@ -101,14 +103,14 @@ public sealed class RunningTheEvening(HeadlessSession session)
                 () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the first dance to start");
 
-            // What the screen says during the gap is what it says between two dances: the coming
-            // dance is still what is next, and no pause has taken its place.
+            // The screen in the hall names the moment and keeps naming the dance behind it, rather
+            // than saying nothing is playing while the music is only pausing.
             await application.WaitUntil(
-                () => !application.IsShowing("playback.track"),
-                "the floor to be given its moment");
+                () => application.TextOf("display.dance")
+                    .Contains(UiStrings.Presentation_Gap, StringComparison.Ordinal),
+                "the screen to say what the moment is");
 
             Assert.Contains("Scottish", application.TextOf("display.next-dance"), StringComparison.Ordinal);
-            Assert.False(application.IsShowing("display.behind-dance"), "The gap was announced as something to wait behind.");
 
             await application.WaitUntil(
                 () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),

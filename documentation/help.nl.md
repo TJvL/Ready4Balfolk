@@ -445,10 +445,14 @@ in de wachtrijwerkbalk gebruikt.
 de vloer kan leeglopen en zich opnieuw kan opstellen zonder dat jij elke keer een pauze in de
 wachtrij zet. Uit tenzij je het aanzet, en tien seconden als je dat doet.
 
-Het is een echte pauze, de muziek wacht hem dus af, maar het is geen item: er verschijnt niets in de
-wachtrij, niets op de telefoon en niets in de avond achteraf. Ondertussen tonen de schermen wat ze
-tussen twee dansen tonen, met de komende dans nog steeds als volgende, en druk je op volgende dan
-gaat de zaal er meteen naartoe.
+Het is een echte pauze, de muziek wacht hem dus af, en de schermen zeggen dat ook: de regel die
+speelt noemt hem en de balk telt hem af, met de komende dans nog steeds als volgende. Een vloer die
+tien seconden "geen nummer aan het afspelen" leest kan een moment niet van een vastgelopen programma
+onderscheiden. Druk je op volgende, dan gaat de zaal meteen naar de dans.
+
+Het blijft geen item: er verschijnt niets in de wachtrij, niets in de wachtrij op de telefoon en
+niets in de avond achteraf. Daar gaat geen tijd mee verloren, want elke regel in de geschiedenis
+zegt wanneer hij begon en wanneer hij klaar was, dus het moment is de ruimte tussen twee regels.
 
 Rond een pauze, een stop, een bericht of het einde van de avond komt er niets bij, want die geven de
 zaal al tijd, en voor de eerste dans van een avond ook niet. De eindtijd en de sluitingstijd tellen

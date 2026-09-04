@@ -511,6 +511,12 @@
   <data name="Playback_Delay" xml:space="preserve">
     <value>Pauze</value>
   </data>
+  <data name="Playback_Gap" xml:space="preserve">
+    <value>Standaard pauze tussen dansen</value>
+  </data>
+  <data name="Presentation_Gap" xml:space="preserve">
+    <value>Even tijd tussen twee dansen</value>
+  </data>
   <data name="Playback_Stop" xml:space="preserve">
     <value>Stop</value>
   </data>

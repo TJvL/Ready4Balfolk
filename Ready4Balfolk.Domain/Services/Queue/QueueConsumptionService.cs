@@ -3,7 +3,6 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using AsyncAwaitBestPractices;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Resources;
@@ -36,7 +35,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private bool _itemFinishedNaturally;
 
     /// <summary>The quiet between two dances, while it is running. Nothing else is.</summary>
-    private IDisposable? _gap;
     // Captured when the item starts, since the history entry is only built once it ends.
     private DateTime? _currentItemStartedAt;
 
@@ -81,10 +79,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
     public async Task AdvanceAsync()
     {
-        // Whatever the gap was waiting for, this is it. Pressing next during one is a person
-        // saying they are ready now.
-        EndGap();
-
         await _gate.WaitAsync();
         try
         {
@@ -102,9 +96,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             // next, and the row a person is looking at does not move.
             if (ranOut && WaitsBeforeTheNextDance(finished) is { } gap)
             {
-                _currentItem.OnNext(null);
-                _elapsed.OnNext(TimeSpan.Zero);
-                _totalDuration.OnNext(TimeSpan.Zero);
                 StartGap(gap);
                 return;
             }
@@ -147,35 +138,23 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             : null;
     }
 
+    /// <summary>
+    /// Makes the gap the thing that is playing, so every screen can draw it.
+    /// </summary>
+    /// <remarks>
+    /// It runs on the same countdown a queued delay does, and ends the same way: the count reaches
+    /// the gap, the item is over, and the evening advances to the dance that was waiting. What it
+    /// never is is a row in the queue.
+    /// </remarks>
     private void StartGap(TimeSpan gap)
     {
         _ = _loggerService.DebugAsync($"A gap of {gap.TotalSeconds:0} seconds before the next dance");
 
-        _gap = Observable.Timer(gap).Subscribe(_ =>
-        {
-            _gap = null;
-            ContinueAfterTheGapAsync().SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to start the next dance after the gap", exception));
-        });
-    }
-
-    private void EndGap()
-    {
-        _gap?.Dispose();
-        _gap = null;
-    }
-
-    private async Task ContinueAfterTheGapAsync()
-    {
-        await _gate.WaitAsync();
-        try
-        {
-            await StartTheNextItemAsync();
-        }
-        finally
-        {
-            _gate.Release();
-        }
+        _itemFinishedNaturally = false;
+        _currentItemStartedAt = _time.GetLocalNow().DateTime;
+        _itemDisposables = [];
+        _currentItem.OnNext(new GapQueueItem(gap));
+        StartCountdown(gap);
     }
 
     public async Task PlayPauseAsync()
@@ -200,8 +179,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
     public async Task ClearAsync()
     {
-        EndGap();
-
         await _gate.WaitAsync();
         try
         {
@@ -385,6 +362,14 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         // the night say how long a thing actually ran rather than how long it would have taken.
         var finishedAt = _time.GetLocalNow().DateTime;
 
+        // The gap is neither, and thirty of them in a night of thirty dances would bury both. No
+        // time is lost by leaving it out: every entry says when it started and when it finished, so
+        // the gap is the space between one row's finish and the next row's start.
+        if (item is GapQueueItem)
+        {
+            return;
+        }
+
         QueueHistoryEntry entry = item switch
         {
             AutoTrackQueueItem auto => new TrackHistoryEntry(
@@ -450,7 +435,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
     public void Dispose()
     {
-        EndGap();
         _itemDisposables?.Dispose();
         _globalDisposables.Dispose();
         _currentItem.Dispose();

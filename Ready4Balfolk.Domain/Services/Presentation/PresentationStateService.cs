@@ -150,6 +150,8 @@ public sealed class PresentationStateService : IPresentationStateService, IDispo
         // window keeps reading UiStrings and the browser keeps its own.
         DelayQueueItem => new PresentationItem(
             PresentationItemKind.Delay, string.Empty, string.Empty, string.Empty),
+        GapQueueItem => new PresentationItem(
+            PresentationItemKind.Gap, string.Empty, string.Empty, string.Empty),
         StopQueueItem => new PresentationItem(
             PresentationItemKind.Stop, string.Empty, string.Empty, string.Empty),
         EndOfNightQueueItem => new PresentationItem(
