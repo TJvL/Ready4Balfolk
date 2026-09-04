@@ -54,6 +54,15 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     private Dictionary<string, int> _customTagCounts = new(StringComparer.OrdinalIgnoreCase);
     private int _indexedFiles;
 
+    /// <summary>Whether the controls a person answers have been filled in from disk yet.</summary>
+    /// <remarks>
+    /// Reading a library of thousands takes minutes, and this screen refreshes when it finishes.
+    /// Everything measured is measured again then, which is the point, but what the person has been
+    /// doing while they waited is not the settings file's to overwrite: a tick made during the scan
+    /// vanishing the moment it completes is the worst possible moment to lose it.
+    /// </remarks>
+    private bool _shownWhatIsOnDisk;
+
     public DiscoveryViewModel(
         ISettingsStore settingsStore,
         ILibraryIndex libraryIndex,
@@ -313,6 +322,11 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     }
 
     /// <summary>Shows what the given rules do to the library that was read.</summary>
+    /// <remarks>
+    /// What is measured is redone every time. What a person answers is filled in once, and after
+    /// that it is theirs: a save comes back through here carrying what they just said, so there is
+    /// nothing to put back.
+    /// </remarks>
     private void Apply(DiscoverySettings settings)
     {
         Patterns.Clear();
@@ -328,24 +342,29 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
                 DeclarationPreview.ForFolderLevel(level, _folders), settings.RoleForLevel(level)));
         }
 
-        for (var i = 0; i < TagFields.Count; i++)
+        if (!_shownWhatIsOnDisk)
         {
-            var declared = i switch
+            for (var i = 0; i < TagFields.Count; i++)
             {
-                0 => settings.TagTrust.Dance,
-                1 => settings.TagTrust.Artist,
-                _ => settings.TagTrust.Title
-            };
+                var declared = i switch
+                {
+                    0 => settings.TagTrust.Dance,
+                    1 => settings.TagTrust.Artist,
+                    _ => settings.TagTrust.Title
+                };
 
-            TagFields[i].ShowDeclared(declared);
+                TagFields[i].ShowDeclared(declared);
+            }
+
+            UsesFileNamePatterns = settings.UsesFileNamePatterns;
+            UsesFolderRoles = settings.UsesFolderRoles;
+            UsesTagTrust = settings.UsesTagTrust;
+            UsesCustomDanceTag = settings.UsesCustomDanceTag;
+
+            CustomDanceTag = settings.CustomDanceTag ?? string.Empty;
+            _shownWhatIsOnDisk = true;
         }
 
-        UsesFileNamePatterns = settings.UsesFileNamePatterns;
-        UsesFolderRoles = settings.UsesFolderRoles;
-        UsesTagTrust = settings.UsesTagTrust;
-        UsesCustomDanceTag = settings.UsesCustomDanceTag;
-
-        CustomDanceTag = settings.CustomDanceTag ?? string.Empty;
         SummariseCustomTag();
 
         Measure(settings);

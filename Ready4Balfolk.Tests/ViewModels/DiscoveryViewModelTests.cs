@@ -299,6 +299,23 @@ public sealed class DiscoveryViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task WhatTheUserTickedWhileWaiting_SurvivesTheLibraryBeingRead()
+    {
+        // Reading thousands of files takes minutes, and this screen refreshes when it finishes. A
+        // person ticking a section while they wait must not have it taken away at the moment the
+        // scan lands.
+        await Refresh();
+
+        _sut.UsesFolderRoles = true;
+        _sut.CustomDanceTag = "STYLE";
+
+        await Refresh();
+
+        Assert.True(_sut.UsesFolderRoles);
+        Assert.Equal("STYLE", _sut.CustomDanceTag);
+    }
+
+    [Fact]
     public async Task WhichSectionsAreOn_IsSavedWithWhatIsInThem()
     {
         await Refresh();
