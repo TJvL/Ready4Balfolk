@@ -356,10 +356,11 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
     /// <summary>Changing the PIN turns out the phone that had the old one.</summary>
     /// <remarks>
     /// World: a library of one dance, the server on, and the remote on with a PIN a helper knows.
-    /// Steps: unlock the remote on the phone, then have the DJ generate a new PIN in the settings.
-    /// Sees: the phone no longer able to touch the queue, which is what makes changing the PIN a
-    /// way of taking the remote back rather than a note for next time. What the phone is told about
-    /// it is asserted in #113, where that behaviour changes.
+    /// Steps: unlock the remote on the phone, have the DJ generate a new PIN in the settings, and
+    /// ask for a random track from the phone. Then read the new PIN off the desktop and enter it.
+    /// Sees: nothing reaching the queue, the phone told it is not let in any more and asked for the
+    /// PIN, and the new PIN letting it straight back in. Changing the PIN is a way of taking the
+    /// remote back, and a helper at the bar can tell that from an application that has crashed.
     /// </remarks>
     [Fact]
     public async Task ChangingThePinTurnsTheHelperOutOfTheRemote()
@@ -395,15 +396,42 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
                 () => !application.TextOf("settings.pin").Equals(wasPin, StringComparison.Ordinal),
                 "the DJ to be given a new PIN");
 
+            // Read while the settings are up, and then back to the evening: a queue nobody is
+            // looking at is a queue a scenario cannot read either.
+            var newPin = application.TextOf("settings.pin");
+            application.Click("screen.back");
+
+            await application.WaitUntil(
+                () => application.IsShowing("queue.items"),
+                "the main screen to come back");
+
             // The phone still has its page, so it can still ask for things. Nothing it asks for
             // may reach the evening.
             await phone.Page.Locator("[data-tab='add']").ClickAsync();
             await phone.Page.Locator("[data-act='random']").ClickAsync();
 
+            await phone.Page.Locator("#gate").WaitForAsync();
+
+            Assert.False(await phone.IsShowing("app"), "The phone still looked like a working remote.");
+            Assert.NotEqual(string.Empty, await phone.Reads("gateError"));
+
             await Task.Delay(1500);
             application.Settle();
 
             Assert.Empty(application.RowsOf("queue.items"));
+
+            // The gate is the honest answer rather than a dead end: the remote is there, and the
+            // helper only needs the PIN that is on the DJ's screen.
+            await phone.TypeInto("pin", newPin);
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            await phone.Page.Locator("[data-tab='add']").ClickAsync();
+            await phone.Page.Locator("[data-act='random']").ClickAsync();
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 1,
+                "the helper to be back in with the new PIN");
         });
     }
 
@@ -413,8 +441,7 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
     /// Steps: unlock the remote, then let half a day go by and reload the page the way a phone does
     /// when it wakes up.
     /// Sees: nothing the phone asks for reaching the evening, because a token from some other night
-    /// opening tonight's queue is exactly what the PIN is there to prevent. What the page says about
-    /// it is asserted in #113, where the remote learns to say it has been turned out.
+    /// opening tonight's queue is exactly what the PIN is there to prevent.
     /// </remarks>
     [Fact]
     public async Task AnOldRemoteTokenIsNoLongerGoodEnough()
@@ -442,20 +469,65 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
 
             await phone.Page.ReloadAsync();
 
-            // Whichever way the page settles, and it settles differently on a slow machine, the
-            // phone must not be able to touch tonight with last night's token.
-            await phone.SettlesOnEither("gate", "app");
-
-            if (await phone.IsShowing("app"))
-            {
-                await phone.Page.Locator("[data-tab='add']").ClickAsync();
-                await phone.Page.Locator("[data-act='random']").ClickAsync();
-            }
+            // The page never gets as far as a remote, so there is nothing to tap: the token it
+            // still has opens nothing tonight.
+            await phone.Page.Locator("#gate").WaitForAsync();
 
             await Task.Delay(1500);
             application.Settle();
 
             Assert.Empty(application.RowsOf("queue.items"));
+        });
+    }
+
+    /// <summary>A token from another night puts the PIN form back, rather than a dead remote.</summary>
+    /// <remarks>
+    /// World: a library of one dance, the server on, and the remote on with a PIN.
+    /// Steps: unlock the remote, let half a day go by, and reload the page the way a phone does when
+    /// it wakes up. Then enter the PIN, which has not changed.
+    /// Sees: the phone asked for the PIN and told why, and let back in on the PIN that is still
+    /// pinned to the DJ's screen. A helper arriving tonight is not looking at a broken application.
+    /// </remarks>
+    [Fact]
+    public async Task AnOldRemoteTokenAsksForThePinAgain()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "161803")
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "161803");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            // The ball is over, the phone slept, and it is the next evening.
+            RunningApplication.TimePassed(TimeSpan.FromHours(13));
+
+            await phone.Page.ReloadAsync();
+            await phone.Page.Locator("#gate").WaitForAsync();
+
+            Assert.False(await phone.IsShowing("app"), "The phone still looked like a working remote.");
+            Assert.NotEqual(string.Empty, await phone.Reads("gateError"));
+
+            await phone.TypeInto("pin", "161803");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            await phone.Page.Locator("[data-tab='add']").ClickAsync();
+            await phone.Page.Locator("[data-act='random']").ClickAsync();
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 1,
+                "tonight's PIN to let the same phone back in");
         });
     }
 }

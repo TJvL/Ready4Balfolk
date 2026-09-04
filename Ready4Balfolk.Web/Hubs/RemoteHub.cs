@@ -31,15 +31,23 @@ public sealed class RemoteHub(
     /// <summary>The client method the queue list is pushed to.</summary>
     public const string QueueMethod = "queue";
 
+    /// <summary>The client method that says this phone is not let in any more.</summary>
+    /// <remarks>
+    /// Sent before the connection goes, and again by the filter on any command from a token that
+    /// has stopped being good. A remote that silently does nothing reads as a crashed application,
+    /// and the honest answer is the PIN form: the remote is there, the helper needs the new PIN.
+    /// </remarks>
+    public const string TurnedOutMethod = "turnedOut";
+
     /// <summary>How many search results a phone screen is sent.</summary>
     private const int MaxSearchResults = 40;
 
     /// <summary>Rejects the connection outright unless it carries a token issued for the PIN.</summary>
     public override async Task OnConnectedAsync()
     {
-        var token = Context.GetHttpContext()?.Request.Query["access_token"].ToString();
-        if (!access.IsTokenValid(token))
+        if (!access.IsTokenValid(RemoteTokenFilter.TokenOf(Context)))
         {
+            await Clients.Caller.SendAsync(TurnedOutMethod);
             Context.Abort();
             return;
         }
