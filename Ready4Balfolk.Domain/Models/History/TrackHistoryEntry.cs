@@ -8,4 +8,5 @@ public sealed record TrackHistoryEntry(
     TimeSpan Duration,
     bool RandomlyAdded,
     CompletionStatus CompletionStatus,
-    DateTime? StartedAt = null) : QueueHistoryEntry(CompletionStatus, StartedAt);
+    DateTime? StartedAt = null,
+    DateTime? FinishedAt = null) : QueueHistoryEntry(CompletionStatus, StartedAt, FinishedAt);

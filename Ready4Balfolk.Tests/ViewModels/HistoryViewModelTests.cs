@@ -1,6 +1,7 @@
 using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.History;
@@ -19,19 +20,21 @@ public sealed class HistoryViewModelTests : IDisposable
         _historySubject = new BehaviorSubject<QueueHistory>(new QueueHistory(null, []));
         _historyStore = Substitute.For<IQueueHistoryStore>();
         _historyStore.Observe().Returns(_historySubject);
+        _historyStore.ListNightsAsync().Returns(Task.FromResult<IReadOnlyList<NightSummary>>([]));
+        _historyStore.Current.Returns(_ => _historySubject.Value);
 
         _confirmation = Substitute.For<IConfirmationService>();
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<string>()).Returns(true);
 
-        _sut = new HistoryViewModel(_historyStore, _confirmation);
+        _sut = new HistoryViewModel(_historyStore, _confirmation, Substitute.For<ILoggerService>());
     }
 
     [Fact]
     public void InitialState_NoHistory()
     {
         Assert.Equal("No history", _sut.ItemCountText);
-        Assert.Equal("", _sut.TotalDurationText);
+        Assert.Empty(_sut.Items);
         Assert.False(_sut.HasItems);
     }
 
@@ -45,7 +48,9 @@ public sealed class HistoryViewModelTests : IDisposable
 
         _historySubject.OnNext(history);
 
-        Assert.Single(_sut.Items);
+        // The entry, and the line saying where the night began.
+        Assert.Single(_sut.Items, item => !item.IsMarker);
+        Assert.Single(_sut.Items, item => item.IsMarker);
         Assert.True(_sut.HasItems);
     }
 
@@ -76,14 +81,55 @@ public sealed class HistoryViewModelTests : IDisposable
     }
 
     [Fact]
-    public void TotalDurationText_FormatsCorrectly()
+    public async Task AFiledNight_CanBeChosenAndRead()
     {
-        _historySubject.OnNext(new QueueHistory(DateTime.Now, [
-            new TrackHistoryEntry("/tmp/a.mp3", "M", "A", "T",
-                TimeSpan.FromMinutes(3) + TimeSpan.FromSeconds(15), false, CompletionStatus.Finished)
-        ]));
+        var filed = new QueueHistory(Yesterday, [Track("Salamandre")])
+        {
+            Id = 7,
+            EndedAt = Yesterday.AddHours(4)
+        };
+        _historyStore.ListNightsAsync().Returns(Task.FromResult<IReadOnlyList<NightSummary>>(
+            [new NightSummary(7, Yesterday, Yesterday.AddHours(4), 1)]));
+        _historyStore.ReadNightAsync(7).Returns(Task.FromResult<QueueHistory?>(filed));
 
-        Assert.Equal("3:15", _sut.TotalDurationText);
+        await _sut.RefreshNightsAsync();
+        _sut.SelectedNight = _sut.Nights.Single(night => !night.IsTonight);
+
+        // The night's own boundaries are lines in it, so an account of an evening says which
+        // evening it is and when it was called.
+        Assert.Contains(_sut.Items, item => item.Description.Contains("Salamandre", StringComparison.Ordinal));
+        Assert.Equal(2, _sut.Items.Count(item => item.IsMarker));
+    }
+
+    [Fact]
+    public async Task WhenTonightIsEmptyAndNobodyHasChosen_TheLastEveningIsShown()
+    {
+        // Opening the tab on a machine that holds a season of dancing must not be a blank list
+        // under the words "no history".
+        _historyStore.ListNightsAsync().Returns(Task.FromResult<IReadOnlyList<NightSummary>>(
+            [new NightSummary(7, Yesterday, Yesterday.AddHours(4), 1)]));
+        _historyStore.ReadNightAsync(7).Returns(Task.FromResult<QueueHistory?>(
+            new QueueHistory(Yesterday, [Track("Salamandre")]) { Id = 7, EndedAt = Yesterday.AddHours(4) }));
+
+        await _sut.RefreshNightsAsync();
+
+        Assert.False(_sut.SelectedNight!.IsTonight);
+        Assert.Contains(_sut.Items, item => item.Description.Contains("Salamandre", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Export_WritesTheNightThatIsBeingRead()
+    {
+        _historyStore.ListNightsAsync().Returns(Task.FromResult<IReadOnlyList<NightSummary>>(
+            [new NightSummary(7, Yesterday, Yesterday.AddHours(4), 1)]));
+        _historyStore.ReadNightAsync(7).Returns(Task.FromResult<QueueHistory?>(
+            new QueueHistory(Yesterday, [Track("Salamandre")]) { Id = 7, EndedAt = Yesterday.AddHours(4) }));
+
+        await _sut.RefreshNightsAsync();
+        await _sut.ExportAsync("/tmp/for the organisers.json");
+
+        // The night on screen, not the empty one that is running.
+        await _historyStore.Received(1).ExportAsync(7, "/tmp/for the organisers.json");
     }
 
     [Fact]
@@ -127,7 +173,7 @@ public sealed class HistoryViewModelTests : IDisposable
 
         _sut.DeleteNightCommand.Execute().Subscribe();
 
-        _historyStore.Received(1).DeleteNightAsync();
+        _historyStore.Received(1).DeleteNightAsync(Arg.Any<long>());
     }
 
     [Fact]
@@ -143,8 +189,14 @@ public sealed class HistoryViewModelTests : IDisposable
 
         _sut.DeleteNightCommand.Execute().Subscribe();
 
-        _historyStore.DidNotReceive().DeleteNightAsync();
+        _historyStore.DidNotReceive().DeleteNightAsync(Arg.Any<long>());
     }
+
+    private static readonly DateTime Yesterday = DateTime.Now.AddDays(-1);
+
+    private static TrackHistoryEntry Track(string title) => new(
+        "/tmp/a.mp3", "Mazurka", "Naragonia", title, TimeSpan.FromMinutes(3), false,
+        CompletionStatus.Finished, Yesterday, Yesterday.AddMinutes(3));
 
     public void Dispose()
     {

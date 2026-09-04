@@ -194,26 +194,30 @@ At the bottom of the queue panel:
 
 ## History
 
-The history view shows a log of items that have been played or skipped during the current night.
+The history view shows what happened in an evening: tonight as it goes, or any night that has been filed.
 
 ### Viewing History
 
 Switch to the history view using the toggle button in the queue toolbar. Each entry shows:
 
 - **Description**: The dance name (for tracks), message text, delay, stop, or the end of the night
-- **Duration**: How long the item played
-- **Status**: Whether it was finished or skipped
+- **Started** and **Finished**: The clock times it ran between
+- **Duration**: How long it actually ran, which is not the same as how long the track is: a dance cut short after forty seconds says forty seconds
+- **Status**: Finished, skipped, or a file that was missing when the evening reached it. A file that was not there is not a decision somebody made, so it is not filed as one
+
+The night's own boundaries are lines in the list: where it began, and where it ended if it has.
 
 ### History Toolbar
 
 - **Toggle to Queue**: Switch back to the queue view
-- **Export History**: Save the night to a JSON file. Useful for keeping records of what was played at an event.
+- **Which night**: Tonight, or any evening that has been filed. Everything else in this toolbar acts on the night you are looking at.
+- **Export History**: Save that night to a JSON file. Useful for keeping records of what was played at an event.
 - **New night**: Keep tonight and start a new one (with confirmation). Nothing is deleted: the evening is filed and the history starts empty. Use it after a soundcheck, or on any evening that did not end with the end-of-the-night audio.
-- **Delete**: Throw tonight's history away (with confirmation). This cannot be undone.
+- **Delete**: Throw that night away (with confirmation). This cannot be undone, and it is how the file stays a size somebody chose.
 
 ### Nights
 
-An evening ends by itself once the end-of-the-night audio has played: the night is kept and the history starts fresh, so nothing has to be remembered while packing up. The exported file and the history on screen are always the current night, never a mix of tonight and last month.
+An evening ends by itself once the end-of-the-night audio has played: the night is kept and the history starts fresh, so nothing has to be remembered while packing up. The evening does not leave the screen when that happens; it becomes the night you are reading rather than the night that is running. Every filed night can be read, exported and deleted, and one night is never mixed with another.
 
 If an evening was never ended, because the application was closed or the laptop went flat, it is still there when the application starts again. After more than eight hours of quiet it asks once, before anything is playing, whether to keep it and start fresh or carry on with it. Neither answer deletes anything.
 
@@ -221,8 +225,8 @@ If an evening was never ended, because the application was closed or the laptop 
 
 At the bottom of the history panel:
 
+- **Which night**: The evening on screen
 - **Item count**: Number of history entries, or "No history"
-- **Total duration**: Combined playback time of all history entries
 
 ---
 

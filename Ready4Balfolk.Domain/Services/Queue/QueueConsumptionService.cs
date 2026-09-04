@@ -153,7 +153,9 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 return;
             }
 
-            await RecordCurrentItemAsync(CompletionStatus.Skipped);
+            // Not skipped: nobody decided anything here. The file was not there when the evening
+            // reached it, and a night read back later has to be able to say which of those it was.
+            await RecordCurrentItemAsync(CompletionStatus.FileMissing);
             CleanupCurrentItem();
             next = _queue.Dequeue();
         }
@@ -296,6 +298,10 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             return;
         }
 
+        // Now, because this runs the moment the item stops being the current one. It is what makes
+        // the night say how long a thing actually ran rather than how long it would have taken.
+        var finishedAt = _time.GetLocalNow().DateTime;
+
         QueueHistoryEntry entry = item switch
         {
             AutoTrackQueueItem auto => new TrackHistoryEntry(
@@ -306,7 +312,8 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 auto.TrackQueueItem.Track.Length,
                 auto.TrackQueueItem.RandomlyAdded,
                 status,
-                _currentItemStartedAt),
+                _currentItemStartedAt,
+                finishedAt),
             TrackQueueItem track => new TrackHistoryEntry(
                 track.Track.FileInfo.FullName,
                 track.Track.Dance,
@@ -315,21 +322,25 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 track.Track.Length,
                 track.RandomlyAdded,
                 status,
-                _currentItemStartedAt),
+                _currentItemStartedAt,
+                finishedAt),
             MessageQueueItem message => new MessageHistoryEntry(
                 message.Description,
                 message.Duration,
                 status,
-                _currentItemStartedAt),
+                _currentItemStartedAt,
+                finishedAt),
             DelayQueueItem delay => new DelayHistoryEntry(
                 delay.DelayDuration,
                 status,
-                _currentItemStartedAt),
-            StopQueueItem => new StopHistoryEntry(status, _currentItemStartedAt),
+                _currentItemStartedAt,
+                finishedAt),
+            StopQueueItem => new StopHistoryEntry(status, _currentItemStartedAt, finishedAt),
             EndOfNightQueueItem endOfNight => new EndOfNightHistoryEntry(
                 endOfNight.Duration,
                 status,
-                _currentItemStartedAt),
+                _currentItemStartedAt,
+                finishedAt),
             _ => throw new InvalidOperationException($"Unknown queue item type: {item.GetType()}")
         };
 

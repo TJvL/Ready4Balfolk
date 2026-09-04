@@ -1,5 +1,6 @@
 using System;
 using System.Reactive.Linq;
+using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Threading;
 using ReactiveUI.Avalonia.Reactive;
@@ -17,7 +18,13 @@ public partial class HistoryView : ReactiveUserControl<HistoryViewModel>
         // WhenActivated would only ever fire on the first attach to the visual tree.
         this.GetObservable(IsVisibleProperty)
             .Where(visible => visible)
-            .Subscribe(_ => ScrollToLatest());
+            .Subscribe(_ =>
+            {
+                // The nights on file are read when somebody looks at them, rather than on every
+                // track that finishes: the list only changes when a night is opened or filed.
+                ViewModel?.RefreshNightsAsync().SafeFireAndForget();
+                ScrollToLatest();
+            });
     }
 
     private void ScrollToLatest() =>

@@ -4,4 +4,5 @@ public sealed record MessageHistoryEntry(
     string Message,
     TimeSpan? Duration,
     CompletionStatus CompletionStatus,
-    DateTime? StartedAt = null) : QueueHistoryEntry(CompletionStatus, StartedAt);
+    DateTime? StartedAt = null,
+    DateTime? FinishedAt = null) : QueueHistoryEntry(CompletionStatus, StartedAt, FinishedAt);

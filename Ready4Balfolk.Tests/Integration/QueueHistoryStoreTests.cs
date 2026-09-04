@@ -125,7 +125,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
     {
         await _sut.AddAsync(Track());
 
-        await _sut.DeleteNightAsync();
+        await _sut.DeleteNightAsync(_sut.Current.Id);
 
         Assert.Empty(_sut.Current.Entries);
         Assert.Equal(0, await CountAsync("SELECT COUNT(*) FROM nights;"));
@@ -138,7 +138,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
         await _sut.AddAsync(Track());
 
         var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "history.json"));
-        await _sut.ExportAsync(exportFile.FullName);
+        await _sut.ExportAsync(_sut.Current.Id, exportFile.FullName);
 
         Assert.True(exportFile.Exists);
         var content = await File.ReadAllTextAsync(exportFile.FullName, TestContext.Current.CancellationToken);
@@ -146,13 +146,63 @@ public sealed class QueueHistoryStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task TotalDuration_SumsCorrectly()
+    public async Task ListNightsAsync_HasTheNightsNewestFirst()
     {
         await _sut.AddAsync(Track());
-        await _sut.AddAsync(new DelayHistoryEntry(TimeSpan.FromSeconds(30), CompletionStatus.Finished));
+        await _sut.EndNightAsync();
+        await _sut.AddAsync(Track());
+
+        var nights = await _sut.ListNightsAsync();
+
+        Assert.Equal(2, nights.Count);
+        Assert.True(nights[0].IsOpen, "The night that is running was not the first one offered.");
+        Assert.False(nights[1].IsOpen, "A night that was filed still reads as running.");
+        Assert.Equal(1, nights[1].Entries);
+    }
+
+    [Fact]
+    public async Task ReadNightAsync_ReadsBackAnEveningThatWasFiled()
+    {
+        await _sut.AddAsync(Track());
+        var filed = _sut.Current.Id;
+        await _sut.EndNightAsync();
+
+        var night = await _sut.ReadNightAsync(filed);
+
+        Assert.NotNull(night);
+        Assert.Single(night.Entries);
+        Assert.NotNull(night.EndedAt);
+        Assert.Contains(night.Entries, entry => entry is TrackHistoryEntry { Dance: "Mazurka" });
+    }
+
+    [Fact]
+    public async Task DeleteNightAsync_ThrowsAwayAFiledNightAndLeavesTonightAlone()
+    {
+        await _sut.AddAsync(Track());
+        var filed = _sut.Current.Id;
+        await _sut.EndNightAsync();
+        await _sut.AddAsync(Track());
+
+        await _sut.DeleteNightAsync(filed);
+
+        Assert.Single(_sut.Current.Entries);
+        Assert.Single(await _sut.ListNightsAsync());
+    }
+
+    [Fact]
+    public async Task ExportAsync_WritesAFiledNightRatherThanTheOneRunning()
+    {
+        await _sut.AddAsync(Track());
+        var filed = _sut.Current.Id;
+        await _sut.EndNightAsync();
         await _sut.AddAsync(new StopHistoryEntry(CompletionStatus.Finished));
 
-        Assert.Equal(TimeSpan.FromMinutes(3) + TimeSpan.FromSeconds(30), _sut.Current.TotalDuration);
+        var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "filed.json"));
+        await _sut.ExportAsync(filed, exportFile.FullName);
+
+        var content = await File.ReadAllTextAsync(exportFile.FullName, TestContext.Current.CancellationToken);
+        Assert.Contains("Mazurka", content);
+        Assert.DoesNotContain("\"stop\"", content);
     }
 
     [Fact]

@@ -18,9 +18,22 @@ public interface IQueueHistoryStore : ILoadableStore, IDisposable
     /// </remarks>
     Task EndNightAsync();
 
-    /// <summary>Throws the current night away.</summary>
-    /// <remarks>Explicit and confirmed, and no longer the thing anybody reaches for at the end of an evening.</remarks>
-    Task DeleteNightAsync();
+    /// <summary>Every night on file, newest first, including the one that is running.</summary>
+    /// <remarks>
+    /// A night that is filed is still an evening somebody may want to read, hand over or throw
+    /// away. Without this the history file grew for the life of the application with nothing
+    /// anybody could do about it, and the account of an evening vanished from the screen the moment
+    /// it ended.
+    /// </remarks>
+    Task<IReadOnlyList<NightSummary>> ListNightsAsync();
 
-    Task ExportAsync(string destinationPath);
+    /// <summary>One night, read whole. Null when there is no night with that id.</summary>
+    Task<QueueHistory?> ReadNightAsync(long nightId);
+
+    /// <summary>Throws one night away, whether it is running or filed.</summary>
+    /// <remarks>Explicit and confirmed, and no longer the thing anybody reaches for at the end of an evening.</remarks>
+    Task DeleteNightAsync(long nightId);
+
+    /// <summary>Writes one night out as JSON, whether it is running or filed.</summary>
+    Task ExportAsync(long nightId, string destinationPath);
 }

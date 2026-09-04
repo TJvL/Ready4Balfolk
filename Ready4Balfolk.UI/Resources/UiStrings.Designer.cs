@@ -361,6 +361,27 @@ public static class UiStrings
     public static string History_StartedAt =>
         ResourceManager.GetString("History_StartedAt", Culture)!;
 
+    public static string History_NightStarted =>
+        ResourceManager.GetString("History_NightStarted", Culture)!;
+
+    public static string History_NightEnded =>
+        ResourceManager.GetString("History_NightEnded", Culture)!;
+
+    public static string History_Tonight =>
+        ResourceManager.GetString("History_Tonight", Culture)!;
+
+    public static string History_NightOn =>
+        ResourceManager.GetString("History_NightOn", Culture)!;
+
+    public static string History_StatusFileMissing =>
+        ResourceManager.GetString("History_StatusFileMissing", Culture)!;
+
+    public static string History_FinishedAt =>
+        ResourceManager.GetString("History_FinishedAt", Culture)!;
+
+    public static string History_Showing =>
+        ResourceManager.GetString("History_Showing", Culture)!;
+
     public static string History_StatusFinished =>
         ResourceManager.GetString("History_StatusFinished", Culture)!;
 

@@ -202,19 +202,23 @@ De geschiedenis is het logboek van wat er deze avond gespeeld of overgeslagen is
 Schakel naar de geschiedenis met de knop in de wachtrijwerkbalk. Elke regel toont:
 
 - **Omschrijving**: de dansnaam (bij nummers), de berichttekst, de pauze, de stop of het einde van de avond
-- **Duur**: hoe lang het item speelde
-- **Status**: afgespeeld of overgeslagen
+- **Begin** en **Klaar**: de kloktijden waartussen het liep
+- **Duur**: hoe lang het echt liep, wat iets anders is dan hoe lang het nummer duurt: een dans die na veertig seconden werd afgebroken zegt veertig seconden
+- **Status**: afgespeeld, overgeslagen, of een bestand dat weg was toen de avond eraan toe was. Een bestand dat er niet was is geen keuze van iemand, en wordt dus ook niet zo genoteerd
+
+Waar de avond begint en waar hij eindigt staan als regels in de lijst.
 
 ### Geschiedeniswerkbalk
 
 - **Naar wachtrij**: terug naar de wachtrijweergave
-- **Geschiedenis exporteren**: bewaart de avond als JSON. Handig als verslag van een avond.
+- **Welke avond**: vanavond, of een avond die is opgeborgen. De rest van deze werkbalk werkt op de avond waar je naar kijkt.
+- **Geschiedenis exporteren**: bewaart die avond als JSON. Handig als verslag van een avond.
 - **Nieuwe avond**: bewaart deze avond en begint een nieuwe (met bevestiging). Er wordt niets verwijderd: de avond wordt opgeborgen en de geschiedenis begint leeg. Handig na een soundcheck, of op een avond die niet met het eindsignaal is afgesloten.
-- **Verwijderen**: gooit de geschiedenis van deze avond weg (met bevestiging). Dit kan niet ongedaan worden gemaakt.
+- **Verwijderen**: gooit die avond weg (met bevestiging). Dit kan niet ongedaan worden gemaakt, en zo blijft het bestand een omvang die iemand gekozen heeft.
 
 ### Avonden
 
-Een avond sluit zichzelf af zodra het eindsignaal gespeeld is: de avond wordt bewaard en de geschiedenis begint opnieuw, zodat er tijdens het opruimen niets onthouden hoeft te worden. Het geexporteerde bestand en de geschiedenis op het scherm zijn altijd de huidige avond, nooit een mengsel van vanavond en vorige maand.
+Een avond sluit zichzelf af zodra het eindsignaal gespeeld is: de avond wordt bewaard en de geschiedenis begint opnieuw, zodat er tijdens het opruimen niets onthouden hoeft te worden. De avond verdwijnt daarbij niet van het scherm; hij wordt de avond waar je naar kijkt in plaats van de avond die loopt. Elke opgeborgen avond kun je lezen, exporteren en verwijderen, en avonden worden nooit door elkaar gehaald.
 
 Is een avond nooit afgesloten, omdat de applicatie afgesloten werd of de laptop leeg raakte, dan staat hij er bij de volgende start nog. Na meer dan acht uur stilte wordt er een keer gevraagd, voordat er iets speelt, of de avond bewaard moet worden om opnieuw te beginnen of dat ermee doorgegaan wordt. Geen van beide antwoorden verwijdert iets.
 
@@ -222,8 +226,8 @@ Is een avond nooit afgesloten, omdat de applicatie afgesloten werd of de laptop 
 
 Onderaan het geschiedenispaneel:
 
+- **Welke avond**: de avond op het scherm
 - **Aantal items**: het aantal regels, of "Geen geschiedenis"
-- **Totale duur**: opgetelde afspeeltijd
 
 ---
 
