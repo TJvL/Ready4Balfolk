@@ -11,337 +11,410 @@
              x:Class="Ready4Balfolk.UI.Views.Settings.SettingsView"
              x:DataType="local:SettingsViewModel">
     <ScrollViewer>
-        <StackPanel Spacing="16" Margin="16">
-            <!-- Reported, not edited. Changing the music directory re-reads the whole library and
-                 re-decides every track, which is setup, not a setting to nudge. -->
-            <StackPanel Spacing="8">
-                <TextBlock Text="{x:Static res:UiStrings.Settings_MusicDirectory}" />
-                <SelectableTextBlock Text="{Binding MusicDirectoryPath}"
-                                     TextWrapping="Wrap"
-                                     Opacity="0.8" />
-                <TextBlock Text="{x:Static res:UiStrings.Settings_MusicDirectoryChangeHint}"
-                           FontSize="11"
-                           Opacity="0.6"
-                           TextWrapping="Wrap" />
-                <Button Content="{x:Static res:UiStrings.Settings_RunSetupAgain}"
-                        Click="OnRunSetupClick"
-                        HorizontalAlignment="Left"
-                        Focusable="False" />
-            </StackPanel>
-
-
-            <StackPanel Spacing="8">
-                <TextBlock Text="{x:Static res:UiStrings.Settings_MaxQueueItems}" />
-                <NumericUpDown Value="{Binding MaxQueueItems, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
-                               Minimum="1"
-                               Maximum="100"
-                               Increment="1"
-                               Width="120"
-                               HorizontalAlignment="Left" />
-            </StackPanel>
-
-            <StackPanel Spacing="8">
-                <CheckBox Content="{x:Static res:UiStrings.Settings_QueueCutoff}"
-                          IsChecked="{Binding QueueCutoffEnabled, Mode=TwoWay}"
-                          Focusable="False" />
-                <StackPanel Orientation="Horizontal" Spacing="8"
-                            IsEnabled="{Binding QueueCutoffEnabled}">
-                    <TimePicker SelectedTime="{Binding QueueCutoffMinutesOfDay, Mode=TwoWay, Converter={x:Static settings:MinutesOfDayConverter.Instance}}"
-                                ClockIdentifier="24HourClock" />
-                    <TextBlock Text="{x:Static res:UiStrings.Settings_QueueCutoffGrace}"
-                               VerticalAlignment="Center" />
-                    <NumericUpDown Value="{Binding QueueCutoffGraceMinutes, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
-                                   Minimum="0"
-                                   Maximum="60"
-                                   Increment="1"
-                                   Width="120" />
+        <StackPanel Spacing="30" Margin="24,20,24,32">
+            <!-- Where the music is. Changing it is setup rather than a setting to nudge. -->
+            <StackPanel Spacing="14">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_SectionLibrary}" FontSize="18" FontWeight="SemiBold" />
+                    <Rectangle Height="1"
+                               Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                               Opacity="0.6" />
                 </StackPanel>
-                <TextBlock
-                    Text="{x:Static res:UiStrings.Settings_QueueCutoffDescription}"
-                    FontSize="11"
-                    Opacity="0.6"
-                    TextWrapping="Wrap" />
-                <!-- What happens after the cutoff, so it sits with it rather than in a section of
-                     its own. Enabled only when there is an end time to reach. -->
-                <CheckBox Content="{x:Static res:UiStrings.Settings_EndOfNightAtCutoff}"
-                          IsChecked="{Binding PlayEndOfNightAtCutoff, Mode=TwoWay}"
-                          IsEnabled="{Binding QueueCutoffEnabled}"
-                          Focusable="False" />
-                <TextBlock
-                    Text="{x:Static res:UiStrings.Settings_EndOfNightAtCutoffDescription}"
-                    FontSize="11"
-                    Opacity="0.6"
-                    TextWrapping="Wrap" />
-            </StackPanel>
 
-            <StackPanel Spacing="8">
-                <TextBlock Text="{x:Static res:UiStrings.Settings_EndOfNightAudio}" />
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <TextBox Grid.Column="0" Text="{Binding EndOfNightAudioPath, Mode=TwoWay}" />
-                    <Button Grid.Column="1"
-                            Content="{x:Static res:UiStrings.Settings_EndOfNightBrowse}"
-                            Click="OnBrowseEndOfNightClick"
+                <!-- Reported, not edited. Changing the music directory re-reads the whole library and
+                     re-decides every track, which is setup, not a setting to nudge. -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_MusicDirectory}" />
+                    <SelectableTextBlock Text="{Binding MusicDirectoryPath}"
+                                         TextWrapping="Wrap"
+                                         Opacity="0.8" />
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_MusicDirectoryChangeHint}"
+                               FontSize="11"
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
+                    <Button Content="{x:Static res:UiStrings.Settings_RunSetupAgain}"
+                            Click="OnRunSetupClick"
+                            HorizontalAlignment="Left"
                             Focusable="False" />
-                </Grid>
-                <TextBlock Text="{x:Static res:UiStrings.Settings_EndOfNightMissing}"
-                           IsVisible="{Binding IsEndOfNightAudioMissing}"
-                           FontSize="11"
-                           Foreground="{DynamicResource NotificationWarningBrush}"
-                           TextWrapping="Wrap" />
-                <TextBlock Text="{x:Static res:UiStrings.Settings_EndOfNightAudioDescription}"
-                           FontSize="11"
-                           Opacity="0.6"
-                           TextWrapping="Wrap" />
+                </StackPanel>
+
             </StackPanel>
 
-            <StackPanel Spacing="8">
-                <TextBlock Text="{x:Static res:UiStrings.Settings_DelayDuration}" />
-                <NumericUpDown Value="{Binding DelaySeconds, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
-                               Minimum="1"
-                               Maximum="300"
-                               Increment="5"
-                               Width="120"
-                               HorizontalAlignment="Left" />
-                <TextBlock Text="{x:Static res:UiStrings.Settings_DelayDescription}"
-                           FontSize="11"
-                           Opacity="0.6" />
+            <!-- How the queue behaves while an evening is running. -->
+            <StackPanel Spacing="14">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_SectionEvening}" FontSize="18" FontWeight="SemiBold" />
+                    <Rectangle Height="1"
+                               Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                               Opacity="0.6" />
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_MaxQueueItems}" />
+                    <NumericUpDown Value="{Binding MaxQueueItems, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
+                                   Minimum="1"
+                                   Maximum="100"
+                                   Increment="1"
+                                   Width="120"
+                                   HorizontalAlignment="Left" />
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_DelayDuration}" />
+                    <NumericUpDown Value="{Binding DelaySeconds, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
+                                   Minimum="1"
+                                   Maximum="300"
+                                   Increment="5"
+                                   Width="120"
+                                   HorizontalAlignment="Left" />
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_DelayDescription}"
+                               FontSize="11"
+                               Opacity="0.6" />
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <CheckBox Content="{x:Static res:UiStrings.Settings_AutoQueue}"
+                              IsChecked="{Binding AutoQueueRandomTrack, Mode=TwoWay}"
+                              Focusable="False" />
+                    <TextBlock
+                        Text="{x:Static res:UiStrings.Settings_AutoQueueDescription}"
+                        FontSize="11"
+                        Opacity="0.6" />
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <CheckBox Content="{x:Static res:UiStrings.Settings_AllowDuplicates}"
+                              IsChecked="{Binding AllowDuplicateTracksInQueue, Mode=TwoWay}"
+                              Focusable="False" />
+                    <TextBlock
+                        Text="{x:Static res:UiStrings.Settings_AllowDuplicatesDescription}"
+                        FontSize="11"
+                        Opacity="0.6"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <CheckBox Content="{x:Static res:UiStrings.Settings_ConfirmPlayback}"
+                              IsChecked="{Binding RequirePlaybackConfirmation, Mode=TwoWay}"
+                              Focusable="False" />
+                    <TextBlock
+                        Text="{x:Static res:UiStrings.Settings_ConfirmPlaybackDescription}"
+                        FontSize="11"
+                        Opacity="0.6"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
             </StackPanel>
 
-            <StackPanel Spacing="8">
-                <TextBlock Text="{x:Static res:UiStrings.Settings_PresentationDisplays}" />
-                <NumericUpDown AutomationProperties.AutomationId="settings.screens"
-                               Value="{Binding PresentationDisplayCount, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
-                               Minimum="0"
-                               Maximum="10"
-                               Increment="1"
-                               Width="120"
-                               HorizontalAlignment="Left"
-                               Focusable="False" />
-                <TextBlock Text="{x:Static res:UiStrings.Settings_PresentationDescription}"
-                           FontSize="11"
-                           Opacity="0.6" />
-            </StackPanel>
+            <!-- When the evening stops taking requests, and what it ends with. -->
+            <StackPanel Spacing="14">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_SectionEndOfNight}" FontSize="18" FontWeight="SemiBold" />
+                    <Rectangle Height="1"
+                               Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                               Opacity="0.6" />
+                </StackPanel>
 
-            <StackPanel Spacing="8">
-                <CheckBox Content="{x:Static res:UiStrings.Settings_AutoQueue}"
-                          IsChecked="{Binding AutoQueueRandomTrack, Mode=TwoWay}"
-                          Focusable="False" />
-                <TextBlock
-                    Text="{x:Static res:UiStrings.Settings_AutoQueueDescription}"
-                    FontSize="11"
-                    Opacity="0.6" />
-            </StackPanel>
-
-            <StackPanel Spacing="8">
-                <CheckBox Content="{x:Static res:UiStrings.Settings_AllowDuplicates}"
-                          IsChecked="{Binding AllowDuplicateTracksInQueue, Mode=TwoWay}"
-                          Focusable="False" />
-                <TextBlock
-                    Text="{x:Static res:UiStrings.Settings_AllowDuplicatesDescription}"
-                    FontSize="11"
-                    Opacity="0.6"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-
-            <StackPanel Spacing="8">
-                <CheckBox Content="{x:Static res:UiStrings.Settings_ShowButtonText}"
-                          IsChecked="{Binding ShowButtonText, Mode=TwoWay}"
-                          Focusable="False" />
-                <TextBlock
-                    Text="{x:Static res:UiStrings.Settings_ShowButtonTextDescription}"
-                    FontSize="11"
-                    Opacity="0.6"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-
-            <!-- How a track is written where the application writes it as a line. The track
-                 overview is not here: it is a table somebody sorts by field. -->
-            <StackPanel Spacing="8">
-                <TextBlock Text="{x:Static res:UiStrings.Settings_DisplayTemplates}"
-                           FontWeight="SemiBold" />
-                <TextBlock Text="{x:Static res:UiStrings.Settings_DisplayTemplatesHint}"
-                           FontSize="11"
-                           Opacity="0.6"
-                           TextWrapping="Wrap" />
-
-                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
-                    <TextBlock Grid.Row="0" Grid.Column="0"
-                               Text="{x:Static res:UiStrings.Settings_TemplateNowPlayingPrimary}"
-                               VerticalAlignment="Center" />
-                    <TextBox Grid.Row="0" Grid.Column="1"
-                             AutomationProperties.AutomationId="settings.template-now-playing"
-                             Text="{Binding NowPlayingPrimaryTemplate, Mode=TwoWay}"
-                             FontFamily="monospace" />
-
-                    <TextBlock Grid.Row="1" Grid.Column="0"
-                               Text="{x:Static res:UiStrings.Settings_TemplateNowPlayingSecondary}"
-                               VerticalAlignment="Center" />
-                    <TextBox Grid.Row="1" Grid.Column="1"
-                             AutomationProperties.AutomationId="settings.template-now-playing-line"
-                             Text="{Binding NowPlayingSecondaryTemplate, Mode=TwoWay}"
-                             FontFamily="monospace" />
-
-                    <TextBlock Grid.Row="2" Grid.Column="0"
-                               Text="{x:Static res:UiStrings.Settings_TemplateQueueItem}"
-                               VerticalAlignment="Center" />
-                    <TextBox Grid.Row="2" Grid.Column="1"
-                             AutomationProperties.AutomationId="settings.template-queue"
-                             Text="{Binding QueueItemTemplate, Mode=TwoWay}"
-                             FontFamily="monospace" />
-
-                    <TextBlock Grid.Row="3" Grid.Column="0"
-                               Text="{x:Static res:UiStrings.Settings_TemplateHistoryItem}"
-                               VerticalAlignment="Center" />
-                    <TextBox Grid.Row="3" Grid.Column="1"
-                             AutomationProperties.AutomationId="settings.template-history"
-                             Text="{Binding HistoryItemTemplate, Mode=TwoWay}"
-                             FontFamily="monospace" />
-                </Grid>
-
-                <TextBlock Text="{x:Static res:UiStrings.Settings_TemplatePreview}"
-                           FontSize="11"
-                           Opacity="0.6" />
-                <TextBlock AutomationProperties.AutomationId="settings.template-preview"
-                           Text="{Binding TemplatePreview}"
-                           TextWrapping="Wrap"
-                           Opacity="0.85" />
-
-                <TextBlock Text="{x:Static res:UiStrings.Settings_TemplateCatalogNote}"
-                           FontSize="11"
-                           Opacity="0.6"
-                           TextWrapping="Wrap" />
-            </StackPanel>
-
-            <StackPanel Spacing="8">
-                <CheckBox Content="{x:Static res:UiStrings.Settings_ConfirmPlayback}"
-                          IsChecked="{Binding RequirePlaybackConfirmation, Mode=TwoWay}"
-                          Focusable="False" />
-                <TextBlock
-                    Text="{x:Static res:UiStrings.Settings_ConfirmPlaybackDescription}"
-                    FontSize="11"
-                    Opacity="0.6"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-
-            <StackPanel Spacing="8">
-                <TextBlock Text="{x:Static res:UiStrings.Settings_Theme}" />
-                <ComboBox ItemsSource="{Binding AvailableThemes}"
-                          SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
-                          Width="120"
-                          HorizontalAlignment="Left"
-                          Focusable="False" />
-                <TextBlock Text="{x:Static res:UiStrings.Settings_ThemeDescription}"
-                           FontSize="11"
-                           Opacity="0.6" />
-            </StackPanel>
-
-            <StackPanel Spacing="8">
-                <TextBlock Text="{x:Static res:UiStrings.Settings_Language}" />
-                <ComboBox AutomationProperties.AutomationId="settings.language"
-                          ItemsSource="{Binding AvailableLanguages}"
-                          SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
-                          Width="160"
-                          HorizontalAlignment="Left"
-                          Focusable="False">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Converter={x:Static local:LanguageDisplayConverter.Instance}}" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-                <TextBlock Text="{x:Static res:UiStrings.Settings_LanguageDescription}"
-                           FontSize="11"
-                           Opacity="0.6" />
-            </StackPanel>
-
-            <!-- Presentation in a browser -->
-            <StackPanel Spacing="8" Margin="0,16,0,0">
-                <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerSection}" FontSize="18" FontWeight="SemiBold" />
-
-                <!-- Bound to the busy flag rather than left clickable: binding and draining a
-                     socket takes long enough that a second click would queue another whole cycle. -->
-                <CheckBox AutomationProperties.AutomationId="settings.server"
-                          Content="{x:Static res:UiStrings.Settings_WebServerEnabled}"
-                          IsChecked="{Binding WebServerEnabled, Mode=TwoWay}"
-                          IsEnabled="{Binding !IsWebServerBusy}"
-                          Focusable="False" />
-                <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerDescription}"
-                           FontSize="11"
-                           Opacity="0.6"
-                           TextWrapping="Wrap" />
-
-                <StackPanel Spacing="8" IsEnabled="{Binding WebServerEnabled}">
-                    <ProgressBar IsIndeterminate="True"
-                                 Height="3"
-                                 IsVisible="{Binding IsWebServerBusy}" />
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerPort}"
+                <StackPanel Spacing="8">
+                    <CheckBox Content="{x:Static res:UiStrings.Settings_QueueCutoff}"
+                              IsChecked="{Binding QueueCutoffEnabled, Mode=TwoWay}"
+                              Focusable="False" />
+                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                IsEnabled="{Binding QueueCutoffEnabled}">
+                        <TimePicker SelectedTime="{Binding QueueCutoffMinutesOfDay, Mode=TwoWay, Converter={x:Static settings:MinutesOfDayConverter.Instance}}"
+                                    ClockIdentifier="24HourClock" />
+                        <TextBlock Text="{x:Static res:UiStrings.Settings_QueueCutoffGrace}"
                                    VerticalAlignment="Center" />
-                        <NumericUpDown Value="{Binding WebServerPort, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
-                                       Minimum="1024"
-                                       Maximum="65535"
+                        <NumericUpDown Value="{Binding QueueCutoffGraceMinutes, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
+                                       Minimum="0"
+                                       Maximum="60"
                                        Increment="1"
-                                       IsEnabled="{Binding !IsWebServerBusy}"
-                                       Width="140" />
-                        <!-- What the server is doing, not what the switch was set to: a taken port
-                             fails the start and the user needs to see that here. -->
-                        <TextBlock AutomationProperties.AutomationId="settings.server-status"
-                                   Text="{Binding WebServerStatus}"
-                                   VerticalAlignment="Center"
-                                   FontSize="12"
-                                   Opacity="0.75"
-                                   TextWrapping="Wrap" />
+                                       Width="120" />
                     </StackPanel>
+                    <TextBlock
+                        Text="{x:Static res:UiStrings.Settings_QueueCutoffDescription}"
+                        FontSize="11"
+                        Opacity="0.6"
+                        TextWrapping="Wrap" />
+                    <!-- What happens after the cutoff, so it sits with it rather than in a section of
+                         its own. Enabled only when there is an end time to reach. -->
+                    <CheckBox Content="{x:Static res:UiStrings.Settings_EndOfNightAtCutoff}"
+                              IsChecked="{Binding PlayEndOfNightAtCutoff, Mode=TwoWay}"
+                              IsEnabled="{Binding QueueCutoffEnabled}"
+                              Focusable="False" />
+                    <TextBlock
+                        Text="{x:Static res:UiStrings.Settings_EndOfNightAtCutoffDescription}"
+                        FontSize="11"
+                        Opacity="0.6"
+                        TextWrapping="Wrap" />
+                </StackPanel>
 
-                    <StackPanel Spacing="2"
-                                IsVisible="{Binding WebServerAddresses, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
-                        <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerAddresses}"
-                                   FontSize="11"
-                                   Opacity="0.6" />
-                        <SelectableTextBlock Text="{Binding WebServerAddresses}" FontSize="12" />
-                    </StackPanel>
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_EndOfNightAudio}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBox Grid.Column="0" Text="{Binding EndOfNightAudioPath, Mode=TwoWay}" />
+                        <Button Grid.Column="1"
+                                Content="{x:Static res:UiStrings.Settings_EndOfNightBrowse}"
+                                Click="OnBrowseEndOfNightClick"
+                                Focusable="False" />
+                    </Grid>
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_EndOfNightMissing}"
+                               IsVisible="{Binding IsEndOfNightAudioMissing}"
+                               FontSize="11"
+                               Foreground="{DynamicResource NotificationWarningBrush}"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_EndOfNightAudioDescription}"
+                               FontSize="11"
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
+                </StackPanel>
 
-                    <CheckBox Content="{x:Static res:UiStrings.Settings_WebRemoteControlEnabled}"
-                              IsChecked="{Binding WebRemoteControlEnabled, Mode=TwoWay}"
+            </StackPanel>
+
+            <!-- How a track is written where the application writes it as a line. -->
+            <StackPanel Spacing="14">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_DisplayTemplates}" FontSize="18" FontWeight="SemiBold" />
+                    <Rectangle Height="1"
+                               Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                               Opacity="0.6" />
+                </StackPanel>
+
+                <!-- How a track is written where the application writes it as a line. The track
+                     overview is not here: it is a table somebody sorts by field. -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_DisplayTemplatesHint}"
+                               FontSize="11"
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
+
+                    <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+                        <TextBlock Grid.Row="0" Grid.Column="0"
+                                   Text="{x:Static res:UiStrings.Settings_TemplateNowPlayingPrimary}"
+                                   VerticalAlignment="Center" />
+                        <TextBox Grid.Row="0" Grid.Column="1"
+                                 AutomationProperties.AutomationId="settings.template-now-playing"
+                                 Text="{Binding NowPlayingPrimaryTemplate, Mode=TwoWay}"
+                                 FontFamily="monospace" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0"
+                                   Text="{x:Static res:UiStrings.Settings_TemplateNowPlayingSecondary}"
+                                   VerticalAlignment="Center" />
+                        <TextBox Grid.Row="1" Grid.Column="1"
+                                 AutomationProperties.AutomationId="settings.template-now-playing-line"
+                                 Text="{Binding NowPlayingSecondaryTemplate, Mode=TwoWay}"
+                                 FontFamily="monospace" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0"
+                                   Text="{x:Static res:UiStrings.Settings_TemplateQueueItem}"
+                                   VerticalAlignment="Center" />
+                        <TextBox Grid.Row="2" Grid.Column="1"
+                                 AutomationProperties.AutomationId="settings.template-queue"
+                                 Text="{Binding QueueItemTemplate, Mode=TwoWay}"
+                                 FontFamily="monospace" />
+
+                        <TextBlock Grid.Row="3" Grid.Column="0"
+                                   Text="{x:Static res:UiStrings.Settings_TemplateHistoryItem}"
+                                   VerticalAlignment="Center" />
+                        <TextBox Grid.Row="3" Grid.Column="1"
+                                 AutomationProperties.AutomationId="settings.template-history"
+                                 Text="{Binding HistoryItemTemplate, Mode=TwoWay}"
+                                 FontFamily="monospace" />
+                    </Grid>
+
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_TemplatePreview}"
+                               FontSize="11"
+                               Opacity="0.6" />
+                    <TextBlock AutomationProperties.AutomationId="settings.template-preview"
+                               Text="{Binding TemplatePreview}"
+                               TextWrapping="Wrap"
+                               Opacity="0.85" />
+
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_TemplateCatalogNote}"
+                               FontSize="11"
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+            </StackPanel>
+
+            <!-- What anybody other than the DJ is looking at: the room, and a browser. -->
+            <StackPanel Spacing="14">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_SectionScreens}" FontSize="18" FontWeight="SemiBold" />
+                    <Rectangle Height="1"
+                               Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                               Opacity="0.6" />
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_PresentationDisplays}" />
+                    <NumericUpDown AutomationProperties.AutomationId="settings.screens"
+                                   Value="{Binding PresentationDisplayCount, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
+                                   Minimum="0"
+                                   Maximum="10"
+                                   Increment="1"
+                                   Width="120"
+                                   HorizontalAlignment="Left"
+                                   Focusable="False" />
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_PresentationDescription}"
+                               FontSize="11"
+                               Opacity="0.6" />
+                </StackPanel>
+
+                <!-- Presentation in a browser -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerSection}" FontWeight="SemiBold" />
+
+                    <!-- Bound to the busy flag rather than left clickable: binding and draining a
+                         socket takes long enough that a second click would queue another whole cycle. -->
+                    <CheckBox AutomationProperties.AutomationId="settings.server"
+                              Content="{x:Static res:UiStrings.Settings_WebServerEnabled}"
+                              IsChecked="{Binding WebServerEnabled, Mode=TwoWay}"
                               IsEnabled="{Binding !IsWebServerBusy}"
                               Focusable="False" />
-                    <TextBlock Text="{x:Static res:UiStrings.Settings_WebRemoteControlDescription}"
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerDescription}"
                                FontSize="11"
                                Opacity="0.6"
                                TextWrapping="Wrap" />
 
-                    <StackPanel Orientation="Horizontal" Spacing="8"
-                                IsEnabled="{Binding WebRemoteControlEnabled}">
-                        <TextBlock Text="{x:Static res:UiStrings.Settings_WebRemoteControlPin}"
-                                   VerticalAlignment="Center" />
-                        <SelectableTextBlock AutomationProperties.AutomationId="settings.pin"
-                                             Text="{Binding WebRemoteControlPin}"
-                                             VerticalAlignment="Center"
-                                             FontSize="18"
-                                             FontWeight="SemiBold" />
-                        <Button AutomationProperties.AutomationId="settings.new-pin"
-                                Content="{x:Static res:UiStrings.Settings_WebRegeneratePin}"
-                                Command="{Binding RegeneratePinCommand}"
-                                Focusable="False" />
+                    <StackPanel Spacing="8" IsEnabled="{Binding WebServerEnabled}">
+                        <ProgressBar IsIndeterminate="True"
+                                     Height="3"
+                                     IsVisible="{Binding IsWebServerBusy}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerPort}"
+                                       VerticalAlignment="Center" />
+                            <NumericUpDown Value="{Binding WebServerPort, Mode=TwoWay, Converter={x:Static uiconv:WeightConverter.Instance}}"
+                                           Minimum="1024"
+                                           Maximum="65535"
+                                           Increment="1"
+                                           IsEnabled="{Binding !IsWebServerBusy}"
+                                           Width="140" />
+                            <!-- What the server is doing, not what the switch was set to: a taken port
+                                 fails the start and the user needs to see that here. -->
+                            <TextBlock AutomationProperties.AutomationId="settings.server-status"
+                                       Text="{Binding WebServerStatus}"
+                                       VerticalAlignment="Center"
+                                       FontSize="12"
+                                       Opacity="0.75"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="2"
+                                    IsVisible="{Binding WebServerAddresses, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerAddresses}"
+                                       FontSize="11"
+                                       Opacity="0.6" />
+                            <SelectableTextBlock Text="{Binding WebServerAddresses}" FontSize="12" />
+                        </StackPanel>
+
+                        <CheckBox Content="{x:Static res:UiStrings.Settings_WebRemoteControlEnabled}"
+                                  IsChecked="{Binding WebRemoteControlEnabled, Mode=TwoWay}"
+                                  IsEnabled="{Binding !IsWebServerBusy}"
+                                  Focusable="False" />
+                        <TextBlock Text="{x:Static res:UiStrings.Settings_WebRemoteControlDescription}"
+                                   FontSize="11"
+                                   Opacity="0.6"
+                                   TextWrapping="Wrap" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                    IsEnabled="{Binding WebRemoteControlEnabled}">
+                            <TextBlock Text="{x:Static res:UiStrings.Settings_WebRemoteControlPin}"
+                                       VerticalAlignment="Center" />
+                            <SelectableTextBlock AutomationProperties.AutomationId="settings.pin"
+                                                 Text="{Binding WebRemoteControlPin}"
+                                                 VerticalAlignment="Center"
+                                                 FontSize="18"
+                                                 FontWeight="SemiBold" />
+                            <Button AutomationProperties.AutomationId="settings.new-pin"
+                                    Content="{x:Static res:UiStrings.Settings_WebRegeneratePin}"
+                                    Command="{Binding RegeneratePinCommand}"
+                                    Focusable="False" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Static res:UiStrings.Settings_WebRegeneratePinDescription}"
+                                   FontSize="11"
+                                   Opacity="0.6"
+                                   IsEnabled="{Binding WebRemoteControlEnabled}"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
-                    <TextBlock Text="{x:Static res:UiStrings.Settings_WebRegeneratePinDescription}"
-                               FontSize="11"
-                               Opacity="0.6"
-                               IsEnabled="{Binding WebRemoteControlEnabled}"
-                               TextWrapping="Wrap" />
                 </StackPanel>
+
             </StackPanel>
 
-            <!-- Troubleshooting section -->
-            <StackPanel Spacing="8" Margin="0,16,0,0">
-                <TextBlock Text="{x:Static res:UiStrings.Settings_Troubleshooting}" FontSize="18" FontWeight="SemiBold" />
-                <Button Content="{x:Static res:UiStrings.Settings_ExportLog}"
-                        Click="OnExportLogClick"
-                        HorizontalAlignment="Left"
-                        Focusable="False" />
-                <TextBlock Text="{x:Static res:UiStrings.Settings_ExportLogDescription}"
-                           FontSize="11"
-                           Opacity="0.6" />
+            <!-- The application itself rather than any one evening. -->
+            <StackPanel Spacing="14">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_SectionApplication}" FontSize="18" FontWeight="SemiBold" />
+                    <Rectangle Height="1"
+                               Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                               Opacity="0.6" />
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_Theme}" />
+                    <ComboBox ItemsSource="{Binding AvailableThemes}"
+                              SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
+                              Width="120"
+                              HorizontalAlignment="Left"
+                              Focusable="False" />
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_ThemeDescription}"
+                               FontSize="11"
+                               Opacity="0.6" />
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_Language}" />
+                    <ComboBox AutomationProperties.AutomationId="settings.language"
+                              ItemsSource="{Binding AvailableLanguages}"
+                              SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
+                              Width="160"
+                              HorizontalAlignment="Left"
+                              Focusable="False">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static local:LanguageDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_LanguageDescription}"
+                               FontSize="11"
+                               Opacity="0.6" />
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <CheckBox Content="{x:Static res:UiStrings.Settings_ShowButtonText}"
+                              IsChecked="{Binding ShowButtonText, Mode=TwoWay}"
+                              Focusable="False" />
+                    <TextBlock
+                        Text="{x:Static res:UiStrings.Settings_ShowButtonTextDescription}"
+                        FontSize="11"
+                        Opacity="0.6"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+            </StackPanel>
+
+            <!-- For when something has gone wrong and somebody needs to see why. -->
+            <StackPanel Spacing="14">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_Troubleshooting}" FontSize="18" FontWeight="SemiBold" />
+                    <Rectangle Height="1"
+                               Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                               Opacity="0.6" />
+                </StackPanel>
+
+                <!-- Troubleshooting section -->
+                <StackPanel Spacing="8">
+                    <Button Content="{x:Static res:UiStrings.Settings_ExportLog}"
+                            Click="OnExportLogClick"
+                            HorizontalAlignment="Left"
+                            Focusable="False" />
+                    <TextBlock Text="{x:Static res:UiStrings.Settings_ExportLogDescription}"
+                               FontSize="11"
+                               Opacity="0.6" />
+                </StackPanel>
+
             </StackPanel>
 
             <!-- Version info -->

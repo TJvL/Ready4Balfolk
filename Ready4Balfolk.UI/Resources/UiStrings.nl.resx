@@ -156,6 +156,21 @@
   <data name="Settings_MusicDirectory" xml:space="preserve">
     <value>Muziekmap</value>
   </data>
+  <data name="Settings_SectionLibrary" xml:space="preserve">
+    <value>Je bibliotheek</value>
+  </data>
+  <data name="Settings_SectionEvening" xml:space="preserve">
+    <value>Terwijl een avond loopt</value>
+  </data>
+  <data name="Settings_SectionEndOfNight" xml:space="preserve">
+    <value>Het einde van de avond</value>
+  </data>
+  <data name="Settings_SectionScreens" xml:space="preserve">
+    <value>Wat de zaal ziet</value>
+  </data>
+  <data name="Settings_SectionApplication" xml:space="preserve">
+    <value>Het programma</value>
+  </data>
   <data name="Settings_DisplayTemplates" xml:space="preserve">
     <value>Hoe nummers op het scherm komen te staan</value>
   </data>

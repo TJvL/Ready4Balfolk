@@ -139,6 +139,21 @@ public static class UiStrings
     public static string Settings_MusicDirectory =>
         ResourceManager.GetString("Settings_MusicDirectory", Culture)!;
 
+    public static string Settings_SectionLibrary =>
+        ResourceManager.GetString("Settings_SectionLibrary", Culture)!;
+
+    public static string Settings_SectionEvening =>
+        ResourceManager.GetString("Settings_SectionEvening", Culture)!;
+
+    public static string Settings_SectionEndOfNight =>
+        ResourceManager.GetString("Settings_SectionEndOfNight", Culture)!;
+
+    public static string Settings_SectionScreens =>
+        ResourceManager.GetString("Settings_SectionScreens", Culture)!;
+
+    public static string Settings_SectionApplication =>
+        ResourceManager.GetString("Settings_SectionApplication", Culture)!;
+
     public static string Settings_DisplayTemplates =>
         ResourceManager.GetString("Settings_DisplayTemplates", Culture)!;
 
