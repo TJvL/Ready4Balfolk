@@ -18,4 +18,22 @@
     <WarningsAsErrors>$(WarningsAsErrors);AVLN5001</WarningsAsErrors>
   </PropertyGroup>
 
+  <!--The debug symbols of somebody else's native libraries, which no build here can use.
+
+      SkiaSharp and HarfBuzz ship a .pdb beside every native library, for every runtime they
+      support, and MSBuild copies them next to the .dll. libSkiaSharp.pdb alone is 81 MB, and it
+      arrives three times over for the Windows runtimes in each project's output: about 300 MB per
+      project of Windows symbols on a Linux machine, and the same in reverse on Windows. It made
+      the four outputs of this solution 2.2 GB, nearly all of it copying rather than compiling.
+
+      Only the natives are stripped. The symbols of the code in this repository are what a stack
+      trace is read from, and they are untouched.-->
+  <Target Name="DropNativeDebugSymbols" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths
+        Remove="@(ReferenceCopyLocalPaths)"
+        Condition="'%(Extension)' == '.pdb' and $([System.String]::Copy('%(ReferenceCopyLocalPaths.DestinationSubDirectory)').StartsWith('runtimes'))" />
+    </ItemGroup>
+  </Target>
+
 </Project>
