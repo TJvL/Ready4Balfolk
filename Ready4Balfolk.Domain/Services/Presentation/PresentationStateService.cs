@@ -86,10 +86,44 @@ public sealed class PresentationStateService : IPresentationStateService, IDispo
         PresentationState next;
         lock (_gate)
         {
-            next = new PresentationState(Map(_currentItem), Map(_queueService.Peek()), _isPlaying);
+            // Both read from one snapshot of the queue rather than a peek and then a second look,
+            // so what is next and what is behind it can never come from different moments.
+            var queued = _queueService.Items;
+
+            next = new PresentationState(
+                Map(_currentItem),
+                Map(queued.Count > 0 ? queued[0] : null),
+                Behind(queued),
+                _isPlaying);
         }
 
         _state.OnNext(next);
+    }
+
+    /// <summary>
+    /// The dance waiting behind a pause, and nothing in any other case.
+    /// </summary>
+    /// <remarks>
+    /// Only a delay, a stop or a message is stood behind. Those are the items a room is given to
+    /// get ready during, and the question they raise is which dance they are getting ready for.
+    /// Anything else that is next answers that question by itself.
+    /// </remarks>
+    private static PresentationItem Behind(IReadOnlyList<IQueueItem> queued)
+    {
+        if (queued.Count < 2)
+        {
+            return PresentationItem.None;
+        }
+
+        var next = Map(queued[0]);
+        if (next.Kind is not (PresentationItemKind.Delay or PresentationItemKind.Stop
+            or PresentationItemKind.Message))
+        {
+            return PresentationItem.None;
+        }
+
+        var behind = Map(queued[1]);
+        return behind.Kind is PresentationItemKind.Track ? behind : PresentationItem.None;
     }
 
     private void PublishProgress()

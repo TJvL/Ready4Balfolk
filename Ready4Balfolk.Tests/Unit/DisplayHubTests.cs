@@ -30,6 +30,7 @@ public sealed class DisplayHubTests : IDisposable
         _state.Current.Returns(new PresentationState(
             new PresentationItem(PresentationItemKind.Track, "Mazurka", "Naragonia", "Salamandre"),
             PresentationItem.None,
+            PresentationItem.None,
             IsPlaying: true));
 
         // The real broadcaster: it is sealed, and it is only asked for its current picture here.

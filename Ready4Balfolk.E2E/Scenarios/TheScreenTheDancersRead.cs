@@ -45,6 +45,66 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
         });
     }
 
+    /// <summary>The room is told what the pause is for, on both screens.</summary>
+    /// <remarks>
+    /// World: a library of two dances, a screen switched on for the room, the server on for the
+    /// hall's browser, and auto queue off.
+    /// Steps: start one dance, put a delay behind it, and a second dance behind the delay, which is
+    /// what a DJ does to give the room time to make lines.
+    /// Sees: both screens showing the delay as what is next and the dance waiting behind it, in one
+    /// run. During that pause the one thing the floor wants to know is what it is getting ready
+    /// for, and that is exactly when a screen showing only the pause stops answering.
+    /// </remarks>
+    [Fact]
+    public async Task DancersSeeTheDanceWaitingBehindTheDelay()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                PresentationDisplayCount = 1
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            await using var projector = await TheBrowser.OpenAt(world.ServerAddress);
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("display.title").Contains("Salamandre", StringComparison.Ordinal),
+                "the screen to show what is playing");
+
+            application.Click("queue.delay");
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+
+            await application.WaitUntil(
+                () => application.IsShowing("display.behind-dance"),
+                "the screen to name the dance the pause is for");
+
+            // The name the shared list carries, which is what every screen says: the tag says
+            // Schottische and the vocabulary calls it Scottish.
+            Assert.Equal(UiStrings.Presentation_Delay, application.TextOf("display.next-dance"));
+            Assert.Equal("Scottish", application.TextOf("display.behind-dance"));
+            Assert.Equal("La Belle", application.TextOf("display.behind-title"));
+
+            // The same picture in the hall's browser, which is the other screen a room reads.
+            await projector.WaitUntilItReads("behindPrimary", "Scottish");
+
+            Assert.Equal("La Belle", await projector.Reads("behindTitle"));
+        });
+    }
+
     /// <summary>The screen says nothing is playing rather than the last thing that did.</summary>
     /// <remarks>
     /// World: a library of one dance and a screen switched on for the room.
