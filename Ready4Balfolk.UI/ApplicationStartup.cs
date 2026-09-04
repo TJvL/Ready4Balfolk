@@ -310,7 +310,10 @@ internal sealed class ApplicationStartup(
 
         if (startFresh)
         {
-            await historyStore.EndNightAsync();
+            // Ended when it stopped, not when it was noticed: the question is asked at the next
+            // start, which can be days later, and an evening that reads as having run until
+            // Tuesday is not the evening anybody had.
+            await historyStore.EndNightAsync(lastActivity);
         }
     }
 

@@ -161,6 +161,8 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         using var history = new QueueHistoryStore(
             this, _fileSystem, new NoOpLoggerService(), new AnHourInThePast(howLongAgo));
 
+        var stopped = DateTime.Now - howLongAgo;
+
         history.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
         history.AddAsync(new TrackHistoryEntry(
             Path.Combine(MusicDirectory.FullName, "the last dance.mp3"),
@@ -169,10 +171,17 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
             "Salamandre",
             TimeSpan.FromMinutes(3),
             RandomlyAdded: false,
-            CompletionStatus.Finished)).GetAwaiter().GetResult();
+            CompletionStatus.Finished,
+            stopped - TimeSpan.FromMinutes(3),
+            stopped)).GetAwaiter().GetResult();
+
+        LastDanceEndedAt = stopped;
 
         return this;
     }
+
+    /// <summary>When the evening nobody ended actually stopped.</summary>
+    public DateTime LastDanceEndedAt { get; private set; }
 
     /// <summary>A clock that says the evening happened a while ago.</summary>
     private sealed class AnHourInThePast(TimeSpan howLongAgo) : TimeProvider

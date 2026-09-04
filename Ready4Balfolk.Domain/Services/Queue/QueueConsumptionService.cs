@@ -351,7 +351,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         // one starts clean without anybody having to remember to press anything while packing up.
         if (entry is EndOfNightHistoryEntry)
         {
-            await _history.EndNightAsync();
+            await _history.EndNightAsync(finishedAt);
         }
 
         _itemCompleted.OnNext(Unit.Default);

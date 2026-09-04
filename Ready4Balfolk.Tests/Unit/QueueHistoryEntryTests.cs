@@ -78,6 +78,22 @@ public sealed class QueueHistoryEntryTests
     }
 
     [Fact]
+    public void ANight_LastHappenedWhenItsLastEntryFinished()
+    {
+        // The finish rather than the start: an evening ends when the music does, and this is both
+        // how a night is judged stale and when it is taken to have ended.
+        var started = new DateTime(2026, 7, 12, 23, 50, 0, DateTimeKind.Local);
+        var history = new QueueHistory(started,
+        [
+            new TrackHistoryEntry("/music/a.mp3", "Mazurka", "Artist", "Title",
+                TimeSpan.FromMinutes(3), false, CompletionStatus.Finished,
+                started, started.AddMinutes(3))
+        ]);
+
+        Assert.Equal(started.AddMinutes(3), history.LastActivityAt);
+    }
+
+    [Fact]
     public void AnEntry_RemembersWhenItStartedAndWhenItStopped()
     {
         var startedAt = new DateTime(2026, 7, 12, 21, 4, 0, DateTimeKind.Local);
