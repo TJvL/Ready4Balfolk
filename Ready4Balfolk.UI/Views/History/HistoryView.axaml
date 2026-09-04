@@ -29,25 +29,42 @@
             </ListBox.Styles>
             <ListBox.DataTemplates>
                 <DataTemplate DataType="local:HistoryItemViewModel">
-                    <Grid ColumnDefinitions="*,52,60,60">
-                        <TextBlock Grid.Column="0" Text="{Binding Description}"
-                                   VerticalAlignment="Center"
-                                   TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="1" Text="{Binding StartedAtFormatted}"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Right"
-                                   Margin="8,0,0,0"
-                                   Opacity="0.6"
-                                   ToolTip.Tip="{x:Static res:UiStrings.History_StartedAt}" />
-                        <TextBlock Grid.Column="2" Text="{Binding DurationFormatted}"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Right"
-                                   Margin="8,0" />
-                        <TextBlock Grid.Column="3" Text="{Binding Status}"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Right"
-                                   Opacity="0.6" />
-                    </Grid>
+                    <Panel>
+                        <!-- Where the night begins and ends, in the order it happened rather than
+                             as a heading somewhere else. -->
+                        <TextBlock AutomationProperties.AutomationId="history.night-marker"
+                                   Text="{Binding MarkerText}"
+                                   IsVisible="{Binding IsMarker}"
+                                   FontStyle="Italic"
+                                   Opacity="0.7"
+                                   Margin="0,4" />
+
+                        <Grid ColumnDefinitions="*,52,52,60,72" IsVisible="{Binding !IsMarker}">
+                            <TextBlock Grid.Column="0" Text="{Binding Description}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="1" Text="{Binding StartedAtFormatted}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Right"
+                                       Margin="8,0,0,0"
+                                       Opacity="0.6"
+                                       ToolTip.Tip="{x:Static res:UiStrings.History_StartedAt}" />
+                            <TextBlock Grid.Column="2" Text="{Binding FinishedAtFormatted}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Right"
+                                       Margin="8,0,0,0"
+                                       Opacity="0.6"
+                                       ToolTip.Tip="{x:Static res:UiStrings.History_FinishedAt}" />
+                            <TextBlock Grid.Column="3" Text="{Binding DurationFormatted}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Right"
+                                       Margin="8,0" />
+                            <TextBlock Grid.Column="4" Text="{Binding Status}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Right"
+                                       Opacity="0.6" />
+                        </Grid>
+                    </Panel>
                 </DataTemplate>
             </ListBox.DataTemplates>
         </ListBox>
@@ -58,18 +75,22 @@
                 Padding="10,6"
                 Margin="0,8,0,0"
                 MinHeight="32">
-            <Grid ColumnDefinitions="*,*">
+            <!-- Which night, and how much of it. The total that used to sit on the right counted a
+                 skipped track as its whole length, so it was not the time anybody danced. -->
+            <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Grid.Column="0"
-                           Text="{Binding ItemCountText}"
+                           AutomationProperties.AutomationId="history.showing"
+                           Text="{Binding ShowingText}"
                            HorizontalAlignment="Left"
                            VerticalAlignment="Center"
                            FontSize="18"
                            Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
                 <TextBlock Grid.Column="1"
-                           Text="{Binding TotalDurationText}"
+                           Text="{Binding ItemCountText}"
                            HorizontalAlignment="Right"
                            VerticalAlignment="Center"
                            FontSize="18"
+                           Opacity="0.7"
                            Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
             </Grid>
         </Border>

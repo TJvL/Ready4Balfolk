@@ -31,14 +31,4 @@ public sealed record QueueHistory(
     /// <summary>When something last happened, which is how a night nobody ended is judged stale.</summary>
     [JsonIgnore]
     public DateTime? LastActivityAt => Entries.Count > 0 ? Entries[^1].StartedAt ?? StartedAt : StartedAt;
-
-    [JsonIgnore]
-    public TimeSpan TotalDuration => Entries.Aggregate(TimeSpan.Zero, (sum, entry) => sum + entry switch
-    {
-        TrackHistoryEntry t => t.Duration,
-        MessageHistoryEntry m => m.Duration ?? TimeSpan.Zero,
-        DelayHistoryEntry d => d.Duration,
-        EndOfNightHistoryEntry e => e.Duration ?? TimeSpan.Zero,
-        _ => TimeSpan.Zero
-    });
 }

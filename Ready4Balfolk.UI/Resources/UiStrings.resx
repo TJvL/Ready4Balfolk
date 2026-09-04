@@ -456,6 +456,27 @@
   <data name="History_StartedAt" xml:space="preserve">
     <value>Started at</value>
   </data>
+  <data name="History_NightStarted" xml:space="preserve">
+    <value>The night started at {0}</value>
+  </data>
+  <data name="History_NightEnded" xml:space="preserve">
+    <value>The night ended at {0}</value>
+  </data>
+  <data name="History_Tonight" xml:space="preserve">
+    <value>Tonight</value>
+  </data>
+  <data name="History_NightOn" xml:space="preserve">
+    <value>{0}, from {1}</value>
+  </data>
+  <data name="History_StatusFileMissing" xml:space="preserve">
+    <value>File missing</value>
+  </data>
+  <data name="History_FinishedAt" xml:space="preserve">
+    <value>Finished at</value>
+  </data>
+  <data name="History_Showing" xml:space="preserve">
+    <value>Showing</value>
+  </data>
   <data name="History_StatusFinished" xml:space="preserve">
     <value>Finished</value>
   </data>

@@ -381,6 +381,27 @@
   <data name="History_StartedAt" xml:space="preserve">
     <value>Gestart om</value>
   </data>
+  <data name="History_NightStarted" xml:space="preserve">
+    <value>De avond begon om {0}</value>
+  </data>
+  <data name="History_NightEnded" xml:space="preserve">
+    <value>De avond eindigde om {0}</value>
+  </data>
+  <data name="History_Tonight" xml:space="preserve">
+    <value>Vanavond</value>
+  </data>
+  <data name="History_NightOn" xml:space="preserve">
+    <value>{0}, vanaf {1}</value>
+  </data>
+  <data name="History_StatusFileMissing" xml:space="preserve">
+    <value>Bestand weg</value>
+  </data>
+  <data name="History_FinishedAt" xml:space="preserve">
+    <value>Klaar om</value>
+  </data>
+  <data name="History_Showing" xml:space="preserve">
+    <value>Je kijkt naar</value>
+  </data>
   <data name="History_StatusFinished" xml:space="preserve">
     <value>Afgelopen</value>
   </data>

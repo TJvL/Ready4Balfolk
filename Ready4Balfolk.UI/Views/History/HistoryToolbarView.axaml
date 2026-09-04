@@ -21,6 +21,21 @@
 
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="4,4" />
 
+        <!-- Which evening is being read. Nights are kept rather than lost, so this is how a filed
+             one is reached, exported or thrown away. -->
+        <ComboBox AutomationProperties.AutomationId="history.nights"
+                  ItemsSource="{Binding Nights}"
+                  SelectedItem="{Binding SelectedNight, Mode=TwoWay}"
+                  ToolTip.Tip="{x:Static res:UiStrings.History_Showing}"
+                  MinWidth="180"
+                  VerticalAlignment="Center">
+            <ComboBox.ItemTemplate>
+                <DataTemplate DataType="local:NightOption">
+                    <TextBlock Text="{Binding Label}" />
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
         <Button AutomationProperties.AutomationId="history.export"
                 Click="OnExportClick"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ExportHistory}"

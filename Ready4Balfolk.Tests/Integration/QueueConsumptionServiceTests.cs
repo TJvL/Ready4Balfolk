@@ -249,6 +249,19 @@ public sealed class QueueConsumptionServiceTests : IDisposable
             e!.Duration == TimeSpan.FromMinutes(4) && e.StartedAt != null));
     }
 
+    /// <summary>A file that was not there is recorded as that, not as somebody skipping it.</summary>
+    [Fact]
+    public async Task AdvanceAsync_AFileThatWillNotOpen_IsRecordedAsMissingRatherThanSkipped()
+    {
+        _audio.SelectAsync(Arg.Any<Uri>()).Returns(_ => throw new InvalidOperationException("gone"));
+        _queue.Enqueue(new EndOfNightQueueItem(EndOfNightPath, TimeSpan.FromMinutes(4)));
+
+        await _sut.AdvanceAsync();
+
+        await _history.Received(1).AddAsync(Arg.Is<QueueHistoryEntry>(e =>
+            e!.CompletionStatus == CompletionStatus.FileMissing));
+    }
+
     /// <summary>Nothing can follow the end of the night, so the night is filed and the next opens.</summary>
     [Fact]
     public async Task AdvanceAsync_EndOfNight_FilesTheNight()

@@ -129,24 +129,30 @@ public sealed class QueueHistoryStore(
         }
     }
 
-    public async Task DeleteNightAsync()
+    public async Task DeleteNightAsync(long nightId)
     {
         await _gate.WaitAsync();
         try
         {
-            var current = Current;
-            if (current.Id != 0)
+            if (nightId == 0)
             {
-                await ExecuteOnNightAsync(
-                    """
-                    DELETE FROM entries WHERE night_id = $id;
-                    DELETE FROM nights WHERE id = $id;
-                    """,
-                    current.Id,
-                    "Failed to delete the night");
+                return;
             }
 
-            _history.OnNext(QueueHistory.Empty);
+            await ExecuteOnNightAsync(
+                """
+                DELETE FROM entries WHERE night_id = $id;
+                DELETE FROM nights WHERE id = $id;
+                """,
+                nightId,
+                "Failed to delete the night");
+
+            // Only the running night is on screen as it happens; throwing away a filed one leaves
+            // tonight alone.
+            if (nightId == Current.Id)
+            {
+                _history.OnNext(QueueHistory.Empty);
+            }
         }
         finally
         {
@@ -154,15 +160,84 @@ public sealed class QueueHistoryStore(
         }
     }
 
-    public async Task ExportAsync(string destinationPath)
+    public async Task<IReadOnlyList<NightSummary>> ListNightsAsync()
     {
+        await _gate.WaitAsync();
+        try
+        {
+            var connection = await EnsureOpenLockedAsync(CancellationToken.None);
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT n.id, n.started_at, n.ended_at, COUNT(e.ordinal)
+                FROM nights n LEFT JOIN entries e ON e.night_id = n.id
+                GROUP BY n.id
+                ORDER BY n.id DESC;
+                """;
+
+            var nights = new List<NightSummary>();
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                nights.Add(new NightSummary(
+                    reader.GetInt64(0),
+                    Parse(reader.GetString(1)),
+                    reader.IsDBNull(2) ? null : Parse(reader.GetString(2)),
+                    reader.GetInt32(3)));
+            }
+
+            return nights;
+        }
+        catch (Exception exception) when (exception is SqliteException or JsonException)
+        {
+            await loggerService.ErrorAsync("Failed to list the nights", exception);
+            return [];
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task<QueueHistory?> ReadNightAsync(long nightId)
+    {
+        // The running night is already in memory, and it is the only one that is still changing.
+        if (nightId != 0 && nightId == Current.Id)
+        {
+            return Current;
+        }
+
+        await _gate.WaitAsync();
+        try
+        {
+            var connection = await EnsureOpenLockedAsync(CancellationToken.None);
+            return await ReadNightLockedAsync(connection, nightId, CancellationToken.None);
+        }
+        catch (Exception exception) when (exception is SqliteException or JsonException)
+        {
+            await loggerService.ErrorAsync("Failed to read a night", exception);
+            return null;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task ExportAsync(long nightId, string destinationPath)
+    {
+        var night = await ReadNightAsync(nightId);
+        if (night is null)
+        {
+            return;
+        }
+
         await _gate.WaitAsync();
         try
         {
             var destination = fileSystem.FileInfo.New(destinationPath);
             destination.Directory?.Create();
             await using var stream = fileSystem.File.Create(destination.FullName);
-            await JsonSerializer.SerializeAsync(stream, Current, JsonOptions);
+            await JsonSerializer.SerializeAsync(stream, night, JsonOptions);
             _ = loggerService.InfoAsync($"Exported the night to {destination.FullName}");
         }
         finally
@@ -250,6 +325,34 @@ public sealed class QueueHistoryStore(
         return new QueueHistory(startedAt, await ReadEntriesAsync(connection, id, token))
         {
             Id = id
+        };
+    }
+
+    /// <summary>One night with its entries, or nothing when no night has that id.</summary>
+    private static async Task<QueueHistory?> ReadNightLockedAsync(
+        SqliteConnection connection, long nightId, CancellationToken token)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT started_at, ended_at FROM nights WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", nightId);
+
+        DateTime startedAt;
+        DateTime? endedAt;
+        await using (var reader = await command.ExecuteReaderAsync(token))
+        {
+            if (!await reader.ReadAsync(token))
+            {
+                return null;
+            }
+
+            startedAt = Parse(reader.GetString(0));
+            endedAt = reader.IsDBNull(1) ? null : Parse(reader.GetString(1));
+        }
+
+        return new QueueHistory(startedAt, await ReadEntriesAsync(connection, nightId, token))
+        {
+            Id = nightId,
+            EndedAt = endedAt
         };
     }
 

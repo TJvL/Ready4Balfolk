@@ -78,15 +78,20 @@ public sealed class QueueHistoryEntryTests
     }
 
     [Fact]
-    public void EndOfNight_CountsTowardsTheTotal()
+    public void AnEntry_RemembersWhenItStartedAndWhenItStopped()
     {
-        var history = new QueueHistory(null,
-        [
-            new TrackHistoryEntry("/music/a.mp3", "Mazurka", "Artist", "Title",
-                TimeSpan.FromMinutes(3), false, CompletionStatus.Finished),
-            new EndOfNightHistoryEntry(TimeSpan.FromMinutes(4), CompletionStatus.Finished)
-        ]);
+        var startedAt = new DateTime(2026, 7, 12, 21, 4, 0, DateTimeKind.Local);
+        QueueHistoryEntry entry = new TrackHistoryEntry("/music/a.mp3", "Mazurka", "Artist", "Title",
+            TimeSpan.FromMinutes(3), false, CompletionStatus.Skipped, startedAt,
+            startedAt + TimeSpan.FromSeconds(40));
 
-        Assert.Equal(TimeSpan.FromMinutes(7), history.TotalDuration);
+        var round = JsonSerializer.Deserialize<QueueHistoryEntry>(
+            JsonSerializer.Serialize(entry, JsonOptions), JsonOptions);
+
+        var track = Assert.IsType<TrackHistoryEntry>(round);
+        Assert.Equal(startedAt, track.StartedAt);
+
+        // Forty seconds of a three minute track, which is what the room actually heard.
+        Assert.Equal(startedAt + TimeSpan.FromSeconds(40), track.FinishedAt);
     }
 }
