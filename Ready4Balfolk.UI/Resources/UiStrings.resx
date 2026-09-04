@@ -231,6 +231,21 @@
   <data name="Settings_MusicDirectory" xml:space="preserve">
     <value>Music Directory</value>
   </data>
+  <data name="Settings_SectionLibrary" xml:space="preserve">
+    <value>Your library</value>
+  </data>
+  <data name="Settings_SectionEvening" xml:space="preserve">
+    <value>While an evening is running</value>
+  </data>
+  <data name="Settings_SectionEndOfNight" xml:space="preserve">
+    <value>Ending the night</value>
+  </data>
+  <data name="Settings_SectionScreens" xml:space="preserve">
+    <value>What the room sees</value>
+  </data>
+  <data name="Settings_SectionApplication" xml:space="preserve">
+    <value>The application</value>
+  </data>
   <data name="Settings_DisplayTemplates" xml:space="preserve">
     <value>How tracks are written on screen</value>
   </data>
