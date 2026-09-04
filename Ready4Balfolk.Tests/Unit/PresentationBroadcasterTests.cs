@@ -39,6 +39,7 @@ public sealed class PresentationBroadcasterTests : IDisposable
     private static readonly PresentationState Playing = new(
         new PresentationItem(PresentationItemKind.Track, "Mazurka", "Naragonia", "Salamandre"),
         PresentationItem.None,
+        PresentationItem.None,
         IsPlaying: true);
 
     public PresentationBroadcasterTests()

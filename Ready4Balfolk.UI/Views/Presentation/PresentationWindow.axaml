@@ -124,6 +124,41 @@
                                    Foreground="#999999"
                                    FontSize="56" />
                     </StackPanel>
+
+                    <!-- What the pause is for. Under the delay rather than instead of it: the
+                         room is being told to make lines, and this is what for. -->
+                    <StackPanel IsVisible="{Binding HasBehindItem}"
+                                HorizontalAlignment="Center"
+                                Margin="0,20,0,0">
+                        <TextBlock Text="{x:Static res:UiStrings.Presentation_Then}"
+                                   Foreground="#888888"
+                                   FontSize="40"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8" />
+                        <TextBlock AutomationProperties.AutomationId="display.behind-dance"
+                                   Text="{Binding BehindDance}"
+                                   Foreground="#cccccc"
+                                   FontSize="72"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8" />
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding BehindArtist}"
+                                       Foreground="#aaaaaa"
+                                       FontSize="44" />
+                            <TextBlock Text=" - "
+                                       Foreground="#999999"
+                                       FontSize="44"
+                                       IsVisible="{Binding BehindTitle, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                            <TextBlock AutomationProperties.AutomationId="display.behind-title"
+                                       Text="{Binding BehindTitle}"
+                                       Foreground="#888888"
+                                       FontSize="44" />
+                        </StackPanel>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- No next item -->

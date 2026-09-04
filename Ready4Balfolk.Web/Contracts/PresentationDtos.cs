@@ -19,6 +19,7 @@ public sealed record PresentationItemDto(string Kind, string Primary, string Art
 public sealed record PresentationSnapshotDto(
     PresentationItemDto Current,
     PresentationItemDto Next,
+    PresentationItemDto Behind,
     bool IsPlaying,
     double ElapsedSeconds,
     double DurationSeconds)
@@ -27,6 +28,7 @@ public sealed record PresentationSnapshotDto(
         new(
             PresentationItemDto.From(state.Current),
             PresentationItemDto.From(state.Next),
+            PresentationItemDto.From(state.Behind),
             state.IsPlaying,
             progress.Elapsed.TotalSeconds,
             progress.Duration.TotalSeconds);

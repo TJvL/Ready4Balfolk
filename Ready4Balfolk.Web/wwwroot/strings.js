@@ -11,6 +11,7 @@
     en: {
       noTrack: "No track playing",
       next: "Next",
+      then: "then",
       noNext: "No next track",
       delay: "Delay",
       stop: "Stop",
@@ -74,6 +75,7 @@
     nl: {
       noTrack: "Geen nummer aan het afspelen",
       next: "Volgende",
+      then: "daarna",
       noNext: "Geen volgend nummer",
       delay: "Pauze",
       stop: "Stop",

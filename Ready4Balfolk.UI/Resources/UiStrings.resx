@@ -593,6 +593,9 @@
   <data name="Presentation_Next" xml:space="preserve">
     <value>Next</value>
   </data>
+  <data name="Presentation_Then" xml:space="preserve">
+    <value>then</value>
+  </data>
   <data name="Presentation_NoNextTrack" xml:space="preserve">
     <value>No next track</value>
   </data>

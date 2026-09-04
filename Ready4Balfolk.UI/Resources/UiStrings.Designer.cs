@@ -491,6 +491,9 @@ public static class UiStrings
     public static string Presentation_Next =>
         ResourceManager.GetString("Presentation_Next", Culture)!;
 
+    public static string Presentation_Then =>
+        ResourceManager.GetString("Presentation_Then", Culture)!;
+
     public static string Presentation_NoNextTrack =>
         ResourceManager.GetString("Presentation_NoNextTrack", Culture)!;
 

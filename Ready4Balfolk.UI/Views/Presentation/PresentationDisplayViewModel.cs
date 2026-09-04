@@ -37,6 +37,12 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
     [Reactive] public partial string NextTitle { get; set; }
     [Reactive] public partial bool HasNextItem { get; set; }
 
+    // The dance waiting behind a pause, shown under it rather than instead of it.
+    [Reactive] public partial string BehindDance { get; set; }
+    [Reactive] public partial string BehindArtist { get; set; }
+    [Reactive] public partial string BehindTitle { get; set; }
+    [Reactive] public partial bool HasBehindItem { get; set; }
+
     public PresentationDisplayViewModel(IPresentationStateService presentationState)
     {
         ArgumentNullException.ThrowIfNull(presentationState);
@@ -47,6 +53,9 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         NextDance = "";
         NextArtist = "";
         NextTitle = "";
+        BehindDance = "";
+        BehindArtist = "";
+        BehindTitle = "";
         CurrentTimeLeft = "";
 
         presentationState.WhenStateChanged
@@ -81,6 +90,13 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         }
 
         HasNextItem = state.HasNext;
+
+        // The dance the pause is for. A delay or a stop is often queued so the room can make lines
+        // or find a partner, and it is exactly then that the floor wants to know what for.
+        HasBehindItem = state.HasBehind;
+        BehindDance = state.Behind.Primary;
+        BehindArtist = state.Behind.Artist;
+        BehindTitle = state.Behind.Title;
 
         // A queued announcement is billed as "Message" with its text beneath, rather than shouting
         // the whole announcement in the next-up slot before its turn.
