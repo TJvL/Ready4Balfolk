@@ -14,6 +14,7 @@
       then: "then",
       noNext: "No next track",
       delay: "Delay",
+      gap: "A moment between dances",
       stop: "Stop",
       message: "Message",
       endOfNight: "End of the night",
@@ -78,6 +79,7 @@
       then: "daarna",
       noNext: "Geen volgend nummer",
       delay: "Pauze",
+      gap: "Even tijd tussen twee dansen",
       stop: "Stop",
       message: "Bericht",
       endOfNight: "Einde van de avond",
@@ -150,6 +152,7 @@
   /* The label for a kind that carries no text of its own. */
   R4B.kindLabel = function (kind) {
     if (kind === "Delay") return R4B.t("delay");
+    if (kind === "Gap") return R4B.t("gap");
     if (kind === "Stop") return R4B.t("stop");
     if (kind === "Message") return R4B.t("message");
     if (kind === "EndOfNight") return R4B.t("endOfNight");

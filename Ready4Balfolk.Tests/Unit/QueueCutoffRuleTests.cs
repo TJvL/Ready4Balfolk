@@ -9,9 +9,11 @@ public sealed class QueueCutoffRuleTests
     private static readonly DateTime Evening = new(2026, 8, 6, 22, 45, 0, DateTimeKind.Local);
 
     private static QueueCutoffRule CreateSut(
-        int cutoffHour = 23, int graceMinutes = 2, TimeSpan? currentRemaining = null, DateTime? now = null)
+        int cutoffHour = 23, int graceMinutes = 2, TimeSpan? currentRemaining = null, DateTime? now = null,
+        IQueueItem? current = null, TimeSpan? gapBetweenTracks = null)
         => new(TimeSpan.FromHours(cutoffHour), TimeSpan.FromMinutes(graceMinutes),
-            () => currentRemaining ?? TimeSpan.Zero, () => now ?? Evening);
+            () => current, () => currentRemaining ?? TimeSpan.Zero, () => now ?? Evening,
+            gapBetweenTracks ?? TimeSpan.Zero);
 
     private static TrackQueueItem Track(int minutes) =>
         new(TestData.CreateTrack(lengthSeconds: minutes * 60), false);

@@ -28,7 +28,8 @@ public static class QueueGuardBuilder
         if (settings.QueueCutoffEnabled)
         {
             rules.Add(new QueueCutoffRule(settings.QueueCutoff, settings.QueueCutoffGrace,
-                currentItemRemainingProvider, () => time.GetLocalNow().DateTime));
+                currentItemProvider, currentItemRemainingProvider, () => time.GetLocalNow().DateTime,
+                settings.GapBetweenTracks));
         }
 
         rules.Add(new MaxItemsRule(settings.MaxQueueItems));

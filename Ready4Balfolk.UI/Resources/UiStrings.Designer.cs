@@ -250,6 +250,15 @@ public static class UiStrings
     public static string Settings_AutoQueue =>
         ResourceManager.GetString("Settings_AutoQueue", Culture)!;
 
+    public static string Settings_GapBetweenTracks =>
+        ResourceManager.GetString("Settings_GapBetweenTracks", Culture)!;
+
+    public static string Settings_GapBetweenTracksSeconds =>
+        ResourceManager.GetString("Settings_GapBetweenTracksSeconds", Culture)!;
+
+    public static string Settings_GapBetweenTracksDescription =>
+        ResourceManager.GetString("Settings_GapBetweenTracksDescription", Culture)!;
+
     public static string Settings_AutoQueueDescription =>
         ResourceManager.GetString("Settings_AutoQueueDescription", Culture)!;
 
@@ -479,6 +488,12 @@ public static class UiStrings
 
     public static string Playback_Delay =>
         ResourceManager.GetString("Playback_Delay", Culture)!;
+
+    public static string Playback_Gap =>
+        ResourceManager.GetString("Playback_Gap", Culture)!;
+
+    public static string Presentation_Gap =>
+        ResourceManager.GetString("Presentation_Gap", Culture)!;
 
     public static string Playback_Stop =>
         ResourceManager.GetString("Playback_Stop", Culture)!;

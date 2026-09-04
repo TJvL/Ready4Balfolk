@@ -19,6 +19,15 @@ public enum PresentationItemKind
     /// <summary>A timed pause. The surface supplies its own label.</summary>
     Delay,
 
+    /// <summary>
+    /// The moment between two dances, which the DJ asked for once rather than queued.
+    /// </summary>
+    /// <remarks>
+    /// Its own kind rather than a delay, because a floor reading the screen is being told that the
+    /// music has not stopped: this one ends by itself, and the dance behind it is already named.
+    /// </remarks>
+    Gap,
+
     /// <summary>An open-ended stop. The surface supplies its own label.</summary>
     Stop,
 

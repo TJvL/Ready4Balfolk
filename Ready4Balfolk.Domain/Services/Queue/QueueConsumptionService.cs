@@ -9,6 +9,7 @@ using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.Domain.Stores.Settings;
 
 namespace Ready4Balfolk.Domain.Services.Queue;
 
@@ -17,6 +18,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly IAudioPlaybackService _audio;
     private readonly IQueueService _queue;
     private readonly IQueueHistoryStore _history;
+    private readonly ISettingsStore _settingsStore;
     private readonly ILoggerService _loggerService;
     private readonly TimeProvider _time;
 
@@ -31,6 +33,8 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly Subject<Unit> _itemCompleted = new();
 
     private bool _itemFinishedNaturally;
+
+    /// <summary>The quiet between two dances, while it is running. Nothing else is.</summary>
     // Captured when the item starts, since the history entry is only built once it ends.
     private DateTime? _currentItemStartedAt;
 
@@ -48,12 +52,14 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         IAudioPlaybackService audio,
         IQueueService queue,
         IQueueHistoryStore history,
+        ISettingsStore settingsStore,
         ILoggerService loggerService,
         TimeProvider time)
     {
         _audio = audio;
         _queue = queue;
         _history = history;
+        _settingsStore = settingsStore;
         _loggerService = loggerService;
         _time = time;
 
@@ -76,25 +82,79 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         await _gate.WaitAsync();
         try
         {
-            await RecordCurrentItemAsync(
-                _itemFinishedNaturally ? CompletionStatus.Finished : CompletionStatus.Skipped);
+            var finished = _currentItem.Value;
+
+            // Read before the cleanup, which puts it down again: a gap follows a dance that ran
+            // out, not one somebody moved past.
+            var ranOut = _itemFinishedNaturally;
+
+            await RecordCurrentItemAsync(ranOut ? CompletionStatus.Finished : CompletionStatus.Skipped);
             CleanupCurrentItem();
 
-            var item = _queue.Dequeue();
-            if (item != null)
+            // A moment between two dances, if the DJ asked for one. The queue is left alone while
+            // it runs: nothing is dequeued, so the coming dance is still what the screens call
+            // next, and the row a person is looking at does not move.
+            if (ranOut && WaitsBeforeTheNextDance(finished) is { } gap)
             {
-                _ = _loggerService.DebugAsync($"Advancing to: {item.GetType().Name}");
-                await StartItemAsync(item);
+                StartGap(gap);
+                return;
             }
-            else
-            {
-                _currentItem.OnNext(null);
-            }
+
+            await StartTheNextItemAsync();
         }
         finally
         {
             _gate.Release();
         }
+    }
+
+    /// <summary>Dequeues and starts. The gate must be held.</summary>
+    private async Task StartTheNextItemAsync()
+    {
+        var item = _queue.Dequeue();
+        if (item != null)
+        {
+            _ = _loggerService.DebugAsync($"Advancing to: {item.GetType().Name}");
+            await StartItemAsync(item);
+        }
+        else
+        {
+            _currentItem.OnNext(null);
+        }
+    }
+
+    /// <summary>How long the room is given before the next dance, or nothing.</summary>
+    /// <remarks>
+    /// Only between two dances. A delay, a stop or a message on either side is already the room
+    /// being given time, the first thing of an evening has nothing to follow, and the end of the
+    /// night has nothing after it.
+    /// </remarks>
+    private TimeSpan? WaitsBeforeTheNextDance(IQueueItem? finished)
+    {
+        var gap = _settingsStore.Current.GapBetweenTracks;
+
+        return gap > TimeSpan.Zero && TrackGaps.IsTrack(finished) && TrackGaps.IsTrack(_queue.Peek())
+            ? gap
+            : null;
+    }
+
+    /// <summary>
+    /// Makes the gap the thing that is playing, so every screen can draw it.
+    /// </summary>
+    /// <remarks>
+    /// It runs on the same countdown a queued delay does, and ends the same way: the count reaches
+    /// the gap, the item is over, and the evening advances to the dance that was waiting. What it
+    /// never is is a row in the queue.
+    /// </remarks>
+    private void StartGap(TimeSpan gap)
+    {
+        _ = _loggerService.DebugAsync($"A gap of {gap.TotalSeconds:0} seconds before the next dance");
+
+        _itemFinishedNaturally = false;
+        _currentItemStartedAt = _time.GetLocalNow().DateTime;
+        _itemDisposables = [];
+        _currentItem.OnNext(new GapQueueItem(gap));
+        StartCountdown(gap);
     }
 
     public async Task PlayPauseAsync()
@@ -301,6 +361,14 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         // Now, because this runs the moment the item stops being the current one. It is what makes
         // the night say how long a thing actually ran rather than how long it would have taken.
         var finishedAt = _time.GetLocalNow().DateTime;
+
+        // The gap is neither, and thirty of them in a night of thirty dances would bury both. No
+        // time is lost by leaving it out: every entry says when it started and when it finished, so
+        // the gap is the space between one row's finish and the next row's start.
+        if (item is GapQueueItem)
+        {
+            return;
+        }
 
         QueueHistoryEntry entry = item switch
         {

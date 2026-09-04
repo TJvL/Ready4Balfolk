@@ -425,6 +425,26 @@ The maximum number of items allowed in the queue, between 1 and 100. When the qu
 
 The default duration (in seconds) for delay markers added to the queue, between 1 and 300 seconds. This value is used when you click "Enqueue Delay" in the queue toolbar.
 
+### A moment between dances
+
+**Add a standard delay in between tracks** takes a few seconds between one dance and the next, so a
+floor can clear and re-form without you queueing a delay every time. Off unless you turn it on, and
+ten seconds when you do.
+
+It is a real pause, so the music waits it out, and the screens say so: the playing line names it and
+the bar counts it down, with the coming dance still named as next. A floor reading "no track
+playing" for ten seconds cannot tell a moment from a machine that has stopped. Pressing next takes
+the room straight to the dance.
+
+It is still not an item: nothing appears in the queue, on the phone's queue, or in the night
+afterwards. The time is not lost by that, because every history entry says when it started and when
+it finished, so the moment is the space between one row and the next.
+
+Nothing is added around a delay, a stop, a message or the end of the night, since those already give
+the room time, and nothing before the first dance of an evening. The finish time and the end time
+both count the gaps, so an evening of thirty dances does not drift five minutes past what the
+toolbar promised.
+
 ### Stop accepting requests after a set time
 
 An end time for the night. Once the queue would run past it (plus a grace period in minutes), new

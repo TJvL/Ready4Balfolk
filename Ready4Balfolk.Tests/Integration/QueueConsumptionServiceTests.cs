@@ -30,6 +30,9 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     private readonly Subject<TimeSpan> _progressChanged = new();
     private readonly Subject<TimeSpan> _durationChanged = new();
 
+    /// <summary>Read live, so a test can change a setting after the service is built.</summary>
+    private ApplicationSettings _settings = new();
+
     public QueueConsumptionServiceTests()
     {
         _audio = Substitute.For<IAudioPlaybackService>();
@@ -45,12 +48,12 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         _history.Current.Returns(new QueueHistory(null, []));
 
         var settingsStore = Substitute.For<ISettingsStore>();
-        var settings = new ApplicationSettings() with
+        _settings = new ApplicationSettings() with
         {
             MaxQueueItems = 100
         };
-        settingsStore.Current.Returns(settings);
-        settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
+        settingsStore.Current.Returns(_ => _settings);
+        settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(_settings));
 
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.WhenTrackFileVanished.Returns(Observable.Never<string>());
@@ -60,7 +63,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
             TimeProvider.System);
 
         _sut = new QueueConsumptionService(
-            _audio, _queue, _history, new NoOpLoggerService(), TimeProvider.System);
+            _audio, _queue, _history, settingsStore, new NoOpLoggerService(), TimeProvider.System);
     }
 
     [Fact]
@@ -223,6 +226,40 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     // Absolute in this platform's own notation: what EndOfNightAudio resolves the setting to, and
     // the only shape System.Uri accepts on Windows.
     private static readonly string EndOfNightPath = Path.GetFullPath("/audio/last-waltz.mp3");
+
+    [Fact]
+    public async Task AdvanceAsync_WithAGapAsked_WaitsBeforeTheNextDance()
+    {
+        _settings = _settings with { GapBetweenTracksEnabled = true, GapBetweenTracksSeconds = 5 };
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(title: "Second"), false));
+
+        await _sut.AdvanceAsync();
+        _playbackEnded.OnNext(RxUnit.Default);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
+
+        // The floor's moment: the gap is what is playing, so every screen can draw it, and the
+        // coming dance is still in the queue rather than taken out of it.
+        Assert.IsType<GapQueueItem>(_sut.CurrentItem);
+        Assert.Equal(1, _queue.Count);
+
+        // And it is never written down: a night's account is what was played and what was decided.
+        await _history.DidNotReceive().AddAsync(Arg.Any<DelayHistoryEntry>());
+    }
+
+    [Fact]
+    public async Task AdvanceAsync_WithNoGapAsked_StartsTheNextDanceAtOnce()
+    {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(title: "Second"), false));
+
+        await _sut.AdvanceAsync();
+        _playbackEnded.OnNext(RxUnit.Default);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(_sut.CurrentItem);
+        Assert.Equal(0, _queue.Count);
+    }
 
     [Fact]
     public async Task AdvanceAsync_EndOfNight_PlaysTheChosenFile()

@@ -145,7 +145,7 @@ Services hold **ephemeral runtime state** and operational logic, queue managemen
 | Service | Responsibility |
 |---------|---------------|
 | `QueueService` | In-memory queue backed by `SourceList<IQueueItem>`. Delegates all validation to a `QueueGuard` (see below). |
-| `QueueConsumptionService` | Dequeues items, drives playback, tracks elapsed time, records history. |
+| `QueueConsumptionService` | Dequeues items, drives playback, tracks elapsed time, records history, and holds the gap between two dances. `GapQueueItem` is the gap while it runs: it is the *current* item and never a queued one, so every surface draws it the way it draws a delay, and nothing has to filter it out of the queue, the remote or the row indices a move works on. Recording skips it, and no time is lost by that: entries carry a start and a finish, so the gap is the space between two rows. `TrackGaps` is the same rule for anything projecting when the evening ends. |
 | `AudioPlaybackService` | ManagedBass wrapper for audio playback (play, pause, seek, volume). |
 | `RandomTrackService` | Random selection over the dances a `RandomSelectionScope` reaches: a `Pool` of tags (empty means every dance) or one `SingleDance`. Every dance in the pool is equally likely and a dance's tracks share its share, so forty recordings of one waltz do not drown out the rest. Deduplicates against queue + history + currently playing, and groups tracks by slug so an unresolved track never takes part. |
 | `DancePool` | The tags a pick draws from, held in memory and read by the dance panel, the auto-queue and the phone remote alike. Not persisted: it is a decision about tonight. |

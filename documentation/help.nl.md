@@ -439,6 +439,26 @@ gespeeld of verwijderd is.
 De standaardduur (in seconden) van pauzemarkeringen, tussen 1 en 300. Dit is wat "Pauze toevoegen"
 in de wachtrijwerkbalk gebruikt.
 
+### Even tijd tussen twee dansen
+
+**Standaard pauze tussen nummers** neemt een paar seconden tussen de ene dans en de volgende, zodat
+de vloer kan leeglopen en zich opnieuw kan opstellen zonder dat jij elke keer een pauze in de
+wachtrij zet. Uit tenzij je het aanzet, en tien seconden als je dat doet.
+
+Het is een echte pauze, de muziek wacht hem dus af, en de schermen zeggen dat ook: de regel die
+speelt noemt hem en de balk telt hem af, met de komende dans nog steeds als volgende. Een vloer die
+tien seconden "geen nummer aan het afspelen" leest kan een moment niet van een vastgelopen programma
+onderscheiden. Druk je op volgende, dan gaat de zaal meteen naar de dans.
+
+Het blijft geen item: er verschijnt niets in de wachtrij, niets in de wachtrij op de telefoon en
+niets in de avond achteraf. Daar gaat geen tijd mee verloren, want elke regel in de geschiedenis
+zegt wanneer hij begon en wanneer hij klaar was, dus het moment is de ruimte tussen twee regels.
+
+Rond een pauze, een stop, een bericht of het einde van de avond komt er niets bij, want die geven de
+zaal al tijd, en voor de eerste dans van een avond ook niet. De eindtijd en de sluitingstijd tellen
+de pauzes allebei mee, zodat een avond van dertig dansen niet vijf minuten na de belofte van de
+werkbalk eindigt.
+
 ### Geen verzoeken meer na een eindtijd
 
 Een eindtijd voor de avond. Zodra de wachtrij voorbij die tijd zou lopen (plus een respijt in

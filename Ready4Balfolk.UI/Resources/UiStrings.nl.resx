@@ -267,6 +267,15 @@
   <data name="Settings_AutoQueue" xml:space="preserve">
     <value>Automatisch willekeurig nummer toevoegen tijdens afspelen</value>
   </data>
+  <data name="Settings_GapBetweenTracks" xml:space="preserve">
+    <value>Standaard pauze tussen nummers</value>
+  </data>
+  <data name="Settings_GapBetweenTracksSeconds" xml:space="preserve">
+    <value>seconden</value>
+  </data>
+  <data name="Settings_GapBetweenTracksDescription" xml:space="preserve">
+    <value>Even tijd om de vloer leeg te laten lopen en opnieuw op te stellen, tussen de ene dans en de volgende, zonder dat er iets in de wachtrij verschijnt. Rond een pauze, een stop, een bericht of het einde van de avond komt er niets bij: die geven de zaal al tijd. De eindtijd telt ze mee.</value>
+  </data>
   <data name="Settings_AutoQueueDescription" xml:space="preserve">
     <value>Voegt automatisch een willekeurig nummer toe tijdens het afspelen. Wordt verwijderd bij handmatig toevoegen.</value>
   </data>
@@ -501,6 +510,12 @@
   </data>
   <data name="Playback_Delay" xml:space="preserve">
     <value>Pauze</value>
+  </data>
+  <data name="Playback_Gap" xml:space="preserve">
+    <value>Standaard pauze tussen dansen</value>
+  </data>
+  <data name="Presentation_Gap" xml:space="preserve">
+    <value>Even tijd tussen twee dansen</value>
   </data>
   <data name="Playback_Stop" xml:space="preserve">
     <value>Stop</value>

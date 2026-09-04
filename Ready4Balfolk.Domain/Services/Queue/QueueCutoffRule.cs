@@ -22,8 +22,10 @@ namespace Ready4Balfolk.Domain.Services.Queue;
 public sealed class QueueCutoffRule(
     TimeSpan cutoff,
     TimeSpan grace,
+    Func<IQueueItem?> currentItemProvider,
     Func<TimeSpan> currentItemRemainingProvider,
-    Func<DateTime> nowProvider) : IQueueRule
+    Func<DateTime> nowProvider,
+    TimeSpan gapBetweenTracks) : IQueueRule
 {
     public Func<IQueueItem, bool>? GetPreAddRemovalPredicate(IQueueItem newItem, IReadOnlyList<IQueueItem> currentItems)
         => null;
@@ -49,10 +51,13 @@ public sealed class QueueCutoffRule(
             return null;
         }
 
+        // The gaps between the dances are part of how long this takes, so a track that only fits
+        // without them does not fit.
         var projectedEnd = nowProvider()
                            + currentItemRemainingProvider()
                            + adjustedItems.Aggregate(TimeSpan.Zero, (sum, queued) => sum + (queued.Duration ?? TimeSpan.Zero))
-                           + (item.Duration ?? TimeSpan.Zero);
+                           + (item.Duration ?? TimeSpan.Zero)
+                           + TrackGaps.Between(currentItemProvider(), [.. adjustedItems, item], gapBetweenTracks);
 
         var now = nowProvider();
         var limit = now.Date + cutoff;

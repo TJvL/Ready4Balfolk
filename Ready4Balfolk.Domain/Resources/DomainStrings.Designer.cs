@@ -59,6 +59,9 @@ public static class DomainStrings
     public static string DelayQueueItem_Description =>
         ResourceManager.GetString("DelayQueueItem_Description", Culture)!;
 
+    public static string GapQueueItem_Description =>
+        ResourceManager.GetString("GapQueueItem_Description", Culture)!;
+
     public static string EndOfNightQueueItem_Description =>
         ResourceManager.GetString("EndOfNightQueueItem_Description", Culture)!;
 

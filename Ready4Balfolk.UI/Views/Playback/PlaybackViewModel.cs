@@ -192,6 +192,12 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
                 DanceName = UiStrings.Playback_Delay;
                 TrackLine = "";
                 break;
+            case GapQueueItem:
+                IsMessageMode = false;
+                HasTrack = false;
+                DanceName = UiStrings.Playback_Gap;
+                TrackLine = "";
+                break;
             case StopQueueItem:
                 IsMessageMode = false;
                 HasTrack = false;
