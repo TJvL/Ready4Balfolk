@@ -13,11 +13,17 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
 {
     private IDisposable? _trackInfoScroll;
 
+    /// <summary>Whether the press that is in flight started on the bar, so a drag from elsewhere
+    /// does not land as a seek when the button comes up over it.</summary>
+    private bool _pressedOnTheBar;
+
     public PlaybackView()
     {
         InitializeComponent();
 
         PlaybackProgressBar.PointerPressed += OnProgressBarPointerPressed;
+        PlaybackProgressBar.PointerReleased += OnProgressBarPointerReleased;
+        PlaybackProgressBar.PointerCaptureLost += (_, _) => _pressedOnTheBar = false;
 
         TrackInfoCanvas.GetObservable(BoundsProperty)
             .CombineLatest(TrackInfoPanel.GetObservable(BoundsProperty))
@@ -26,9 +32,24 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
             .Subscribe(_ => UpdateTrackInfoScroll());
     }
 
-    private void OnProgressBarPointerPressed(object? sender, PointerPressedEventArgs e)
+    /// <summary>
+    /// The press is only noted. What it starts happens when the button comes back up.
+    /// </summary>
+    /// <remarks>
+    /// A confirmation raised while the mouse is still down is a window opened underneath a pointer
+    /// the old one has hold of: it comes up without the pointer, so it does not light up under the
+    /// cursor and the first click on it only wakes it. Every other confirmed action comes off a
+    /// button's Click, which is the release, and none of them behave that way.
+    /// </remarks>
+    private void OnProgressBarPointerPressed(object? sender, PointerPressedEventArgs e) =>
+        _pressedOnTheBar = e.GetCurrentPoint(PlaybackProgressBar).Properties.IsLeftButtonPressed;
+
+    private void OnProgressBarPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (ViewModel is not { HasTrack: true, Duration: > 0 } vm)
+        var wasPressed = _pressedOnTheBar;
+        _pressedOnTheBar = false;
+
+        if (!wasPressed || ViewModel is not { HasTrack: true, Duration: > 0 } vm)
         {
             return;
         }
