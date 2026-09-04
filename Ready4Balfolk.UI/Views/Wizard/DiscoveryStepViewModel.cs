@@ -1,6 +1,8 @@
+using System;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
+using ReactiveUI.Reactive;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Views.Discovery;
 
@@ -11,8 +13,9 @@ namespace Ready4Balfolk.UI.Views.Wizard;
 /// </summary>
 /// <remarks>
 /// It sits here because this is where it pays: a rule declared now answers two thousand files in one
-/// act, and the review step after it is then the leftovers rather than the whole library. Optional,
-/// like every other step: a library with no shape to declare skips straight past it.
+/// act, and the review step after it is then the leftovers rather than the whole library. One of the
+/// four ways of reading a library has to be ticked, because a library nothing is read by is a review
+/// screen with every file in it.
 /// </remarks>
 public sealed class DiscoveryStepViewModel(DiscoveryViewModel discovery) : WizardStepViewModel
 {
@@ -22,6 +25,28 @@ public sealed class DiscoveryStepViewModel(DiscoveryViewModel discovery) : Wizar
     public override string Title => UiStrings.Wizard_Discovery_Title;
 
     public override string Explanation => UiStrings.Wizard_Discovery_Explanation;
+
+    /// <summary>
+    /// One section ticked is enough. Which one, and what is in it, is theirs.
+    /// </summary>
+    /// <remarks>
+    /// Ticked rather than filled in: a person who says their folders are the dance and then sets
+    /// every level to unknown has said something about their library, and second-guessing that here
+    /// would be the application deciding what a good declaration looks like.
+    /// </remarks>
+    public override IObservable<bool> CanContinue =>
+        Discovery.WhenAnyValue(
+            x => x.IsScanning,
+            x => x.UsesFileNamePatterns,
+            x => x.UsesFolderRoles,
+            x => x.UsesTagTrust,
+            x => x.UsesCustomDanceTag,
+            (scanning, names, folders, tags, custom) => !scanning && (names || folders || tags || custom));
+
+    /// <summary>Reading the library first, and what has not been ticked after that.</summary>
+    public override IObservable<string> BlockedReason =>
+        Discovery.WhenAnyValue(x => x.IsScanning)
+            .Select(scanning => scanning ? UiStrings.Discovery_Scanning : UiStrings.Wizard_Discovery_Required);
 
     public override Task EnterAsync() => Discovery.RefreshCommand.Execute().FirstAsync().ToTask();
 

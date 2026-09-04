@@ -220,6 +220,30 @@ public sealed class SetupWizardViewModelTests : IDisposable
     }
 
     [Fact]
+    public void TheDiscoveryStepWillNotBePassedWithNoWayOfReadingTheLibrary()
+    {
+        GoTo<DiscoveryStepViewModel>();
+
+        // All four ways of reading a library start off, and a library nothing reads is a review
+        // screen with every file in it.
+        Assert.False(CanContinueNow());
+        Assert.True(_sut.IsBlocked);
+        Assert.NotEqual(string.Empty, _sut.BlockedReason);
+    }
+
+    [Fact]
+    public void TheDiscoveryStepIsPassedOnceOneWayIsTickedOn()
+    {
+        var step = GoTo<DiscoveryStepViewModel>();
+
+        // One is enough, and which one is theirs. Ticked rather than filled in: what a person puts
+        // in the section they ticked is not for the wizard to grade.
+        step.Discovery.UsesFolderRoles = true;
+
+        Assert.True(CanContinueNow());
+    }
+
+    [Fact]
     public void ProgressText_CountsTheSteps() => Assert.Equal("Step 1 of 5", _sut.ProgressText);
 
     [Fact]

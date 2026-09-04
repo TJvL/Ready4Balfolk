@@ -34,11 +34,19 @@ public sealed class DeclaredDiscovery
     /// <summary>The custom tag declared to hold the dance, or null when none is.</summary>
     public string? CustomDanceTag { get; }
 
-    public static DeclaredDiscovery Compile(DiscoverySettings settings) => new(
-        [.. settings.FileNamePatterns.Select(text => FileNamePattern.Parse(text).Pattern).OfType<FileNamePattern>()],
-        settings.FolderRoles,
-        settings.TagTrust,
-        string.IsNullOrWhiteSpace(settings.CustomDanceTag) ? null : settings.CustomDanceTag.Trim());
+    /// <summary>Compiles what is switched on, which is the only thing a scan is allowed to run.</summary>
+    public static DeclaredDiscovery Compile(DiscoverySettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        var declared = settings.InForce();
+
+        return new DeclaredDiscovery(
+            [.. declared.FileNamePatterns.Select(text => FileNamePattern.Parse(text).Pattern).OfType<FileNamePattern>()],
+            declared.FolderRoles,
+            declared.TagTrust,
+            string.IsNullOrWhiteSpace(declared.CustomDanceTag) ? null : declared.CustomDanceTag.Trim());
+    }
 
     /// <summary>The role declared for a level, counted from 1 outermost.</summary>
     public FolderRole RoleForLevel(int level) =>

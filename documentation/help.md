@@ -30,6 +30,8 @@ Supported audio formats: MP3, MP2, MP1, WAV, OGG, AIFF, and FLAC.
 
 If your library *does* follow a shape, you can say so. Open **Review** and press **Rules**; the panel opens over the queue it exists to empty. What you state there outranks everything the application worked out for itself, because you know your library and it does not.
 
+Each of the four is ticked on separately, and they all start off. Tick the ones your library actually uses; the rest stay folded away and do nothing, so a rule you cannot see never reaches your files. Unticking one keeps what you wrote in it, in case you want it back.
+
 - **File name patterns.** `%d` dance, `%a` artist, `%t` title, `%n` track number, `%i` ignore, `%ex` extension; anything else has to be there exactly. `%d - %a - %t` reads `Mazurka - Naragonia - Idiosyncrasie.mp3`. A pattern has to match a whole name, and the first pattern in the list that does is the one that answers, so put the most specific first.
 - **Folder levels.** Counted from the outside in. Saying level 1 is the artist reads that folder as the artist for every file deep enough to have one, and says nothing about the files that are not.
 - **Tags.** Which tag fields hold which value. Left alone, artist and album artist are read as the artist, the title tag as the title, and no tag is read as the dance. A dance name from your list is still recognised inside any tag whatever you set here.

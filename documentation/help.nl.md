@@ -30,6 +30,8 @@ Ondersteunde audioformaten: MP3, MP2, MP1, WAV, OGG, AIFF en FLAC.
 
 Als je bibliotheek *wél* een vaste vorm heeft, kun je dat zeggen. Open **Review** en klik op **Regels**; het paneel opent boven de wachtrij die het moet legen. Wat je daar verklaart gaat boven alles wat het programma zelf heeft uitgedokterd, want jij kent je bibliotheek en het programma niet.
 
+Elk van de vier zet je apart aan, en ze staan allemaal uit. Vink aan wat jouw bibliotheek daadwerkelijk gebruikt; de rest blijft dichtgeklapt en doet niets, zodat een regel die je niet ziet je bestanden nooit raakt. Iets uitvinken laat staan wat je erin hebt gezet, voor het geval je het terug wilt.
+
 - **Bestandsnaampatronen.** `%d` dans, `%a` artiest, `%t` titel, `%n` volgnummer, `%i` negeren, `%ex` extensie; al het andere moet er letterlijk staan. `%d - %a - %t` leest `Mazurka - Naragonia - Idiosyncrasie.mp3`. Een patroon moet een hele naam dekken, en het eerste patroon in de lijst dat past is het patroon dat antwoordt, dus zet het meest specifieke bovenaan.
 - **Mapniveaus.** Geteld van buiten naar binnen. Niveau 1 als artiest bestempelen leest die map als artiest voor elk bestand dat diep genoeg zit, en zegt niets over de bestanden die dat niet zijn.
 - **Tags.** Welke tagvelden welke waarde bevatten. Standaard gelden artiest en albumartiest als artiest, het titelveld als titel, en geldt geen enkele tag als dans. Een dansnaam uit je lijst wordt hoe dan ook in elke tag herkend, wat je hier ook instelt.

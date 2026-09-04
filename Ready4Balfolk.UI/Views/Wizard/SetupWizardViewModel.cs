@@ -115,6 +115,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
 
         _blockedReasonHelper = this.WhenAnyValue(x => x.CurrentStep)
             .Select(step => step.BlockedReason)
+            .Switch()
             .ToProperty(this, x => x.BlockedReason);
         _blockedReasonHelper.DisposeWith(_disposables);
 

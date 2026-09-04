@@ -280,6 +280,71 @@ public sealed class DiscoveryViewModelTests : IDisposable
         await _sut.AcceptProposalCommand.Execute(proposal);
 
         Assert.Equal([FolderRole.Artist], _stored.Discovery.FolderRoles);
+
+        // Taking a proposal is the same act as writing the rule by hand, so it switches its section
+        // on: a role stored under a switch that is off would sit there doing nothing.
+        Assert.True(_stored.Discovery.UsesFolderRoles);
+    }
+
+    [Fact]
+    public async Task NothingIsReadUntilAWayOfReadingItIsTickedOn()
+    {
+        await Refresh();
+
+        Assert.False(_sut.UsesFileNamePatterns);
+        Assert.False(_sut.UsesFolderRoles);
+        Assert.False(_sut.UsesTagTrust);
+        Assert.False(_sut.UsesCustomDanceTag);
+        Assert.False(_stored.Discovery.DeclaresAnything);
+    }
+
+    [Fact]
+    public async Task WhatTheUserTickedWhileWaiting_SurvivesTheLibraryBeingRead()
+    {
+        // Reading thousands of files takes minutes, and this screen refreshes when it finishes. A
+        // person ticking a section while they wait must not have it taken away at the moment the
+        // scan lands.
+        await Refresh();
+
+        _sut.UsesFolderRoles = true;
+        _sut.CustomDanceTag = "STYLE";
+
+        await Refresh();
+
+        Assert.True(_sut.UsesFolderRoles);
+        Assert.Equal("STYLE", _sut.CustomDanceTag);
+    }
+
+    [Fact]
+    public async Task WhichSectionsAreOn_IsSavedWithWhatIsInThem()
+    {
+        await Refresh();
+
+        _sut.UsesFolderRoles = true;
+        _sut.UsesTagTrust = true;
+        _sut.Levels[0].Role = FolderRole.Artist;
+
+        await _sut.ApplyRolesAndTagsCommand.Execute();
+
+        Assert.True(_stored.Discovery.UsesFolderRoles);
+        Assert.True(_stored.Discovery.UsesTagTrust);
+        Assert.False(_stored.Discovery.UsesFileNamePatterns);
+        Assert.Equal([FolderRole.Artist], _stored.Discovery.FolderRoles);
+    }
+
+    [Fact]
+    public async Task WhatASwitchedOffSectionHolds_IsKeptAndDoesNothing()
+    {
+        // Unticking is trying something else, not throwing away what was written: the patterns are
+        // still there to be switched back on, and until then they take no files.
+        await Refresh();
+        await Declare("%d - %a - %t");
+
+        _sut.UsesFileNamePatterns = false;
+        await _sut.ApplyRolesAndTagsCommand.Execute();
+
+        Assert.Equal(["%d - %a - %t"], _stored.Discovery.FileNamePatterns);
+        Assert.Empty(_stored.Discovery.InForce().FileNamePatterns);
     }
 
     [Fact]
@@ -329,6 +394,9 @@ public sealed class DiscoveryViewModelTests : IDisposable
 
     private async Task Declare(string pattern)
     {
+        // Switched on first, because that is the only state in which there is a box to type a
+        // pattern into, and a pattern stored under a switch that is off does nothing.
+        _sut.UsesFileNamePatterns = true;
         _sut.DraftPattern = pattern;
         Preview();
         await _sut.DeclareDraftCommand.Execute();

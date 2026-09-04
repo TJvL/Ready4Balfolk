@@ -11,10 +11,12 @@
         <TextBlock Text="{x:Static res:UiStrings.Settings_MusicDirectory}" />
         <Grid ColumnDefinitions="*, Auto">
             <TextBox Grid.Column="0"
+                     AutomationProperties.AutomationId="wizard.music-directory"
                      Text="{CompiledBinding MusicDirectoryPath, Mode=TwoWay}"
                      PlaceholderText="{x:Static res:UiStrings.Settings_MusicDirectoryWatermark}"
                      IsReadOnly="True" />
             <Button Grid.Column="1"
+                    AutomationProperties.AutomationId="wizard.browse"
                     Content="{x:Static res:UiStrings.Settings_Browse}"
                     Margin="8,0,0,0"
                     Click="OnBrowseClick" />

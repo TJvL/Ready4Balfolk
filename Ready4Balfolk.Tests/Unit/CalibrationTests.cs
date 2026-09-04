@@ -161,7 +161,7 @@ public sealed class CalibrationTests
                 File($"{i:00} - Tune {i}", [band]) with { TagArtist = band }));
         }
 
-        var declared = new DiscoverySettings { FolderRoles = [FolderRole.Artist] };
+        var declared = new DiscoverySettings { UsesFolderRoles = true, FolderRoles = [FolderRole.Artist] };
 
         Assert.Empty(Calibration.Measure(files, _dances, declared).Folders);
     }

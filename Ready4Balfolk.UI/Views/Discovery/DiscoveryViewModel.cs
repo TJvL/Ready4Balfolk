@@ -54,6 +54,15 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     private Dictionary<string, int> _customTagCounts = new(StringComparer.OrdinalIgnoreCase);
     private int _indexedFiles;
 
+    /// <summary>Whether the controls a person answers have been filled in from disk yet.</summary>
+    /// <remarks>
+    /// Reading a library of thousands takes minutes, and this screen refreshes when it finishes.
+    /// Everything measured is measured again then, which is the point, but what the person has been
+    /// doing while they waited is not the settings file's to overwrite: a tick made during the scan
+    /// vanishing the moment it completes is the worst possible moment to lose it.
+    /// </remarks>
+    private bool _shownWhatIsOnDisk;
+
     public DiscoveryViewModel(
         ISettingsStore settingsStore,
         ILibraryIndex libraryIndex,
@@ -80,6 +89,20 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         DraftSamples = [];
         DraftMisses = [];
         ScanProgressText = string.Empty;
+
+        // While the scan runs the only thing that moves is a count, read from the index rather than
+        // from the library: nothing reaches the library during a scan, so counting that would sit
+        // at nil. It is the whole of this screen until the reading is done.
+        this.WhenAnyValue(x => x.IsScanning)
+            .Select(scanning => scanning
+                ? Observable.Interval(TimeSpan.FromSeconds(1))
+                : Observable.Empty<long>())
+            .Switch()
+            .SelectMany(_ => Observable.FromAsync(() => _libraryIndex.CountIndexedAsync()))
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(count => ScanProgressText = string.Format(
+                CultureInfo.CurrentCulture, UiStrings.Discovery_ScanningCount, count))
+            .DisposeWith(_disposables);
 
         // A rule is measured against the library, so measuring one while the library is still being
         // read would put a number in front of the user that is not the number they are agreeing to.
@@ -113,6 +136,22 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     }
 
     [Reactive] public partial bool IsBusy { get; private set; }
+
+    /// <summary>
+    /// Whether each way of reading the library is switched on. All four start off.
+    /// </summary>
+    /// <remarks>
+    /// Most libraries are read by one of these, and four sections of settings for three mechanisms
+    /// that do not apply is the most overwhelming part of the setup. Off is also off rather than
+    /// merely folded away: what a section holds is kept, and does nothing until it is ticked.
+    /// </remarks>
+    [Reactive] public partial bool UsesFileNamePatterns { get; set; }
+
+    [Reactive] public partial bool UsesFolderRoles { get; set; }
+
+    [Reactive] public partial bool UsesTagTrust { get; set; }
+
+    [Reactive] public partial bool UsesCustomDanceTag { get; set; }
 
     /// <summary>True while the library is being read, so no rule can be measured yet.</summary>
     [Reactive] public partial bool IsScanning { get; private set; }
@@ -217,7 +256,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         }
 
         var patterns = Current().FileNamePatterns.Append(DraftPattern.Trim()).ToList();
-        await SaveAsync(Current() with { FileNamePatterns = patterns });
+        await SaveAsync(Edited() with { FileNamePatterns = patterns });
 
         DraftPattern = string.Empty;
     }
@@ -231,7 +270,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     /// </remarks>
     [ReactiveCommand]
     private async Task RemovePatternAsync(DeclaredPatternViewModel row) =>
-        await SaveAsync(Current() with
+        await SaveAsync(Edited() with
         {
             FileNamePatterns = [.. Current().FileNamePatterns.Where(text => !string.Equals(text, row.Text, StringComparison.Ordinal))]
         });
@@ -246,7 +285,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     /// <summary>Saves the folder roles and the tag trust as they stand on screen.</summary>
     [ReactiveCommand]
     private async Task ApplyRolesAndTagsAsync() =>
-        await SaveAsync(Current() with
+        await SaveAsync(Edited() with
         {
             FolderRoles = [.. Levels.Select(level => level.Role)],
             TagTrust = new TagTrust
@@ -262,6 +301,19 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
 
     private DiscoverySettings Current() => _settingsStore.Current.Discovery;
 
+    /// <summary>The stored settings with the switches as they stand on screen.</summary>
+    /// <remarks>
+    /// Everything that saves goes through here, because a pattern declared while the section it
+    /// belongs to was ticked a moment ago must not be stored under a switch that is still off.
+    /// </remarks>
+    private DiscoverySettings Edited() => Current() with
+    {
+        UsesFileNamePatterns = UsesFileNamePatterns,
+        UsesFolderRoles = UsesFolderRoles,
+        UsesTagTrust = UsesTagTrust,
+        UsesCustomDanceTag = UsesCustomDanceTag
+    };
+
     private async Task MoveAsync(DeclaredPatternViewModel row, int offset)
     {
         var patterns = Current().FileNamePatterns.ToList();
@@ -274,7 +326,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         }
 
         (patterns[at], patterns[to]) = (patterns[to], patterns[at]);
-        await SaveAsync(Current() with { FileNamePatterns = patterns });
+        await SaveAsync(Edited() with { FileNamePatterns = patterns });
     }
 
     private async Task SaveAsync(DiscoverySettings settings)
@@ -284,6 +336,11 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     }
 
     /// <summary>Shows what the given rules do to the library that was read.</summary>
+    /// <remarks>
+    /// What is measured is redone every time. What a person answers is filled in once, and after
+    /// that it is theirs: a save comes back through here carrying what they just said, so there is
+    /// nothing to put back.
+    /// </remarks>
     private void Apply(DiscoverySettings settings)
     {
         Patterns.Clear();
@@ -299,19 +356,29 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
                 DeclarationPreview.ForFolderLevel(level, _folders), settings.RoleForLevel(level)));
         }
 
-        for (var i = 0; i < TagFields.Count; i++)
+        if (!_shownWhatIsOnDisk)
         {
-            var declared = i switch
+            for (var i = 0; i < TagFields.Count; i++)
             {
-                0 => settings.TagTrust.Dance,
-                1 => settings.TagTrust.Artist,
-                _ => settings.TagTrust.Title
-            };
+                var declared = i switch
+                {
+                    0 => settings.TagTrust.Dance,
+                    1 => settings.TagTrust.Artist,
+                    _ => settings.TagTrust.Title
+                };
 
-            TagFields[i].ShowDeclared(declared);
+                TagFields[i].ShowDeclared(declared);
+            }
+
+            UsesFileNamePatterns = settings.UsesFileNamePatterns;
+            UsesFolderRoles = settings.UsesFolderRoles;
+            UsesTagTrust = settings.UsesTagTrust;
+            UsesCustomDanceTag = settings.UsesCustomDanceTag;
+
+            CustomDanceTag = settings.CustomDanceTag ?? string.Empty;
+            _shownWhatIsOnDisk = true;
         }
 
-        CustomDanceTag = settings.CustomDanceTag ?? string.Empty;
         SummariseCustomTag();
 
         Measure(settings);
@@ -370,11 +437,22 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        var current = Current();
+        var current = Edited();
 
+        // Taking a proposal is the same act as writing the rule by hand, so it switches its section
+        // on. Storing a rule under a switch that is off would be accepting something that then sits
+        // there doing nothing.
         await SaveAsync(proposal.IsFolderRole
-            ? current with { FolderRoles = WithRole(current.FolderRoles, proposal.Level, proposal.Role) }
-            : current with { FileNamePatterns = [.. current.FileNamePatterns, proposal.Pattern!] });
+            ? current with
+            {
+                UsesFolderRoles = true,
+                FolderRoles = WithRole(current.FolderRoles, proposal.Level, proposal.Role)
+            }
+            : current with
+            {
+                UsesFileNamePatterns = true,
+                FileNamePatterns = [.. current.FileNamePatterns, proposal.Pattern!]
+            });
     }
 
     /// <summary>Turns a proposal down, which leaves the level or the shape as it was: unknown.</summary>
