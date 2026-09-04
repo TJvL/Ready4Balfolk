@@ -45,6 +45,9 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     private IObservable<bool> CanNextOrClear =>
         this.WhenAnyValue(x => x.ShowNextIcon, x => x.HasCurrentItem, (next, current) => next || current);
 
+    private IObservable<bool> CanSeek =>
+        this.WhenAnyValue(x => x.HasTrack, x => x.IsAudioUnavailable, (has, unavailable) => has && !unavailable);
+
     [ReactiveCommand(CanExecute = nameof(CanPlayPause))]
     private async Task PlayPause() => await _consumptionService.PlayPauseAsync();
 
@@ -219,13 +222,18 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     private static string FormatTime(TimeSpan time)
         => $"{(int)time.TotalMinutes}:{time.Seconds:D2}";
 
-    public async Task SeekAsync(TimeSpan position)
+    /// <summary>
+    /// Moves playback to a position on the bar, one at a time.
+    /// </summary>
+    /// <remarks>
+    /// A command like every other confirmed action, because a command will not run again while it
+    /// is still running. Started as a bare call it could: a second click while the confirmation was
+    /// up raised a second confirmation, each one holding the position it was made with, and working
+    /// through the stack walked the track forward instead of landing on the spot that was clicked.
+    /// </remarks>
+    [ReactiveCommand(CanExecute = nameof(CanSeek))]
+    private async Task Seek(TimeSpan position)
     {
-        if (!HasTrack)
-        {
-            return;
-        }
-
         if (HasCurrentItem && _settingsStore.Current.RequirePlaybackConfirmation &&
             !await _confirmationService.ConfirmAsync(UiStrings.Playback_SeekTitle, UiStrings.Playback_SeekMessage, UiStrings.Playback_SeekButton, UiStrings.Playback_CancelButton))
         {

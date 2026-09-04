@@ -469,7 +469,7 @@ When disabled, tracks that are currently playing, already in the queue, or alrea
 
 ### Confirm Playback Actions
 
-When enabled (the default), a confirmation dialog is shown before skipping to the next item, clearing the current track, or restarting playback. Disable this if you find the confirmations disruptive during a performance.
+When enabled (the default), a confirmation dialog is shown before skipping to the next item, clearing the current track, restarting playback, or moving to a spot you clicked on the progress bar. Disable this if you find the confirmations disruptive during a performance.
 
 ### Theme
 
