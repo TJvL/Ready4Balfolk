@@ -62,16 +62,6 @@ jobs:
       - name: Build Release
         run: dotnet build Ready4Balfolk.sln -c Release --no-restore
 
-      # One platform is enough: .gitattributes normalises line endings, so the answer cannot differ.
-      - name: Check formatting
-        if: runner.os == 'Linux'
-        run: dotnet format Ready4Balfolk.sln --verify-no-changes --verbosity normal --no-restore
-
-      # One platform is enough, for the same reason the formatting check runs on one.
-      - name: Check translations
-        if: runner.os == 'Linux'
-        run: python3 scripts/check-translations.py
-
       # --project, not a directory: global.json opts into Microsoft.Testing.Platform, whose
       # dotnet test takes a project or a solution and rejects a bare path.
       - name: Run tests
@@ -81,27 +71,6 @@ jobs:
           -c Release --no-build --verbosity normal
           --coverage --coverage-output-format cobertura
           --coverage-output coverage.cobertura.xml
-
-      # The scenarios drive the display and the remote in a real browser, which is a download the
-      # harness makes on demand the first time. Cached on the Playwright version, so it happens when
-      # that changes and not once per run.
-      - name: Cache the browser
-        if: runner.os == 'Linux'
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj') }}
-
-      # Its own step, and one platform. These start a real application, index a real library and
-      # decode real audio, so they are slow enough that a failure here must never be mistaken for a
-      # failure of the fast suite, and slow enough that running them twice buys nothing: nothing a
-      # scenario asserts is platform specific.
-      - name: Run scenarios
-        if: runner.os == 'Linux'
-        run: >-
-          dotnet test
-          --project Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj
-          -c Release --no-build --verbosity normal
 
       # Collected, not gated. A threshold is a policy decision and belongs in a conversation, not
       # in the first commit that measures anything; this makes the number reviewable meanwhile.
@@ -116,19 +85,119 @@ jobs:
           path: '**/TestResults/coverage.cobertura.xml'
           if-no-files-found: error
 
-  # A stable name for the branch ruleset to require. A matrix reports one status check per leg,
-  # named after its matrix values, so requiring those directly means editing the ruleset every time
-  # the matrix changes — and a leg nobody remembered to add is a leg that cannot block a merge.
-  # This job is the contract; what runs underneath it is free to change.
+  # Its own job, beside the tests rather than in front of them. It needs nothing they produce, and
+  # in the same job it was three quarters of a minute that every other check waited behind.
+  #
+  # One platform is enough for both of these: .gitattributes normalises line endings, so the
+  # formatting answer cannot differ, and the translations are two files.
+  style:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Cache BASS natives
+        uses: actions/cache@v6
+        with:
+          path: build/bass-native
+          key: bass-${{ runner.os }}-${{ hashFiles('Directory.Build.targets') }}
+
+      - name: Restore
+        run: dotnet restore Ready4Balfolk.sln
+
+      # Formatting is analysed from the source rather than from a build, but the analysers load the
+      # references, so the natives have to be where a build would have put them.
+      - name: Download native dependencies
+        run: dotnet build Ready4Balfolk.Domain/Ready4Balfolk.Domain.csproj -c Release --no-restore
+
+      - name: Check formatting
+        run: dotnet format Ready4Balfolk.sln --verify-no-changes --verbosity normal --no-restore
+
+      - name: Check translations
+        run: python3 scripts/check-translations.py
+
+  # Its own job for the same reason, and more so as time goes on: these start a real application,
+  # index a real library, decode real audio and drive a browser, so this is the leg that grows every
+  # time a scenario is written. Beside the others it grows on its own rather than on top of them.
+  #
+  # One platform. Nothing a scenario asserts is platform specific, and a failure here must never be
+  # mistaken for a failure of the fast suite.
+  scenarios:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Cache BASS natives
+        uses: actions/cache@v6
+        with:
+          path: build/bass-native
+          key: bass-${{ runner.os }}-${{ hashFiles('Directory.Build.targets') }}
+
+      # The scenarios drive the display and the remote in a real browser, which is a download the
+      # harness makes on demand the first time. Cached on the Playwright version, so it happens when
+      # that changes and not once per run.
+      - name: Cache the browser
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj') }}
+
+      - name: Restore
+        run: dotnet restore Ready4Balfolk.sln
+
+      - name: Download native dependencies
+        run: dotnet build Ready4Balfolk.Domain/Ready4Balfolk.Domain.csproj -c Release --no-restore
+
+      - name: Build Release
+        run: dotnet build Ready4Balfolk.sln -c Release --no-restore
+
+      - name: Run scenarios
+        run: >-
+          dotnet test
+          --project Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj
+          -c Release --no-build --verbosity normal
+
+  # A stable name for the branch ruleset to require. The jobs underneath report one status check
+  # each, named after themselves and after their matrix values, so requiring those directly means
+  # editing the ruleset every time one is added or split — and a leg nobody remembered to add is a
+  # leg that cannot block a merge. This job is the contract; what runs underneath it is free to
+  # change.
   verify:
-    needs: test
+    needs: [test, style, scenarios]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Check every platform passed
+      - name: Check everything passed
         run: |
-          if [[ "${{ needs.test.result }}" != "success" ]]; then
-            echo "The verify matrix finished as: ${{ needs.test.result }}"
-            exit 1
-          fi
-          echo "Verify passed on every platform."
+          for result in "${{ needs.test.result }}" "${{ needs.style.result }}" "${{ needs.scenarios.result }}"; do
+            if [[ "$result" != "success" ]]; then
+              echo "Tests: ${{ needs.test.result }}, style: ${{ needs.style.result }}, scenarios: ${{ needs.scenarios.result }}"
+              exit 1
+            fi
+          done
+          echo "Verify passed: tests on every platform, style, and the scenarios."

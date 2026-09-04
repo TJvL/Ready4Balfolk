@@ -408,13 +408,16 @@ UI-level errors (e.g. a failed refresh, missing tracks) are shown to the user vi
 
 ### Continuous Integration
 
-`verify.yml` builds and runs the tests on Ubuntu and Windows on every push and pull request. `release.yml` is triggered by hand with a version and chains everything else: verify → build binaries → package (Flatpak, Inno Setup) → smoke test the packages → publish the release. macOS is not a build target.
+`verify.yml` runs on every push and pull request. `release.yml` is triggered by hand with a version and chains everything else: verify → build binaries → package (Flatpak, Inno Setup) → smoke test the packages → publish the release. macOS is not a build target.
 
-`verify.yml` also runs three checks that are not the tests, all on Linux only since none of them can answer differently per platform:
+It is **four jobs that run beside each other**, because a pull request goes green when the slowest one finishes rather than when the longest list of steps does:
 
-- `dotnet format --verify-no-changes`.
-- `scripts/check-translations.py`, which compares the `.resx` key sets in both directions. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed.
-- Coverage, collected as cobertura and uploaded as an artifact. It is deliberately **not** gated on a threshold; the artifact is there to be read.
+- `test`, on Ubuntu and Windows. The tests have to run somewhere they could fail differently: `Directory.Build.targets` resolves the BASS natives from the host OS, and the paths the stores write to are not the same shape on Windows.
+- `style`: `dotnet format --verify-no-changes` and `scripts/check-translations.py`, which compares the `.resx` key sets in both directions. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed. One platform for both: `.gitattributes` normalises line endings, so neither can answer differently per platform.
+- `scenarios`: the end to end suite. Its own job above all because it is the leg that grows every time a scenario is written, and beside the others it grows on its own rather than on top of them.
+- `verify`, which needs the other three and is the only name the branch ruleset requires. A matrix reports one check per leg, so requiring those directly means editing the ruleset every time one is split, and a leg nobody remembered to add is a leg that cannot block a merge.
+
+Coverage is collected as cobertura in the `test` job and uploaded as an artifact. It is deliberately **not** gated on a threshold; the artifact is there to be read.
 
 Two build-level gates are worth knowing about. `TreatWarningsAsErrors` does not reach the Avalonia XAML compiler, so `AVLN5001` (the obsolete-member warning) is listed in `WarningsAsErrors` separately. And every workflow declares a `concurrency` group so a superseded push is cancelled, except on `main`, where a commit left with no verdict is worse than a slow one.
 
