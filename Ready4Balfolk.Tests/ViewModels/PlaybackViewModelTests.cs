@@ -39,7 +39,9 @@ public sealed class PlaybackViewModelTests : IDisposable
             Arg.Any<string>(), Arg.Any<string>()).Returns(true);
 
         var settingsStore = Substitute.For<ISettingsStore>();
-        settingsStore.Current.Returns(new ApplicationSettings());
+        var settings = new ApplicationSettings();
+        settingsStore.Current.Returns(settings);
+        settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
 
         _sut = new PlaybackViewModel(consumption, queue, confirmation, settingsStore, Substitute.For<IAudioPlaybackService>());
     }
@@ -53,8 +55,7 @@ public sealed class PlaybackViewModelTests : IDisposable
         _currentItem.OnNext(track);
 
         Assert.Equal("Mazurka", _sut.DanceName);
-        Assert.Equal("Artist1", _sut.ArtistName);
-        Assert.Equal("Title1", _sut.TrackTitle);
+        Assert.Equal("Artist1 - Title1", _sut.TrackLine);
         Assert.True(_sut.HasTrack);
         Assert.False(_sut.IsMessageMode);
         Assert.True(_sut.HasCurrentItem);
@@ -68,8 +69,7 @@ public sealed class PlaybackViewModelTests : IDisposable
         _currentItem.OnNext(auto);
 
         Assert.Equal("Waltz", _sut.DanceName);
-        Assert.Equal("ArtistW", _sut.ArtistName);
-        Assert.Equal("TitleW", _sut.TrackTitle);
+        Assert.Equal("ArtistW - TitleW", _sut.TrackLine);
         Assert.True(_sut.HasTrack);
     }
 

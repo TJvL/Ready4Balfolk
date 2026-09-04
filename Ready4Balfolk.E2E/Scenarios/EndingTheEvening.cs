@@ -36,7 +36,7 @@ public sealed class EndingTheEvening(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the last dance to start");
 
             await application.WaitUntil(

@@ -94,7 +94,7 @@ public sealed class WhenTheWorldIsBroken(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
                 "the evening to carry on with the dance that is still there");
         });
     }

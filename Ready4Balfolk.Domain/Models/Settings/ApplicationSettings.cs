@@ -51,7 +51,10 @@ public sealed record ApplicationSettings(
     string EndOfNightAudioPath = "",
     // Play it after the last track the cutoff allowed, so nobody has to remember to press anything
     // while packing up.
-    bool PlayEndOfNightAtCutoff = false)
+    bool PlayEndOfNightAtCutoff = false,
+    // Null rather than an instance, for the same reason as the equalizer: a constructor default has
+    // to be a compile-time constant. Read it through DisplayTemplates, never directly.
+    DisplayTemplates? DisplayTemplatesOrNull = null)
 {
     public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
         ApplicationLanguage.English, new WindowState(), [])
@@ -80,4 +83,8 @@ public sealed record ApplicationSettings(
     /// </remarks>
     [JsonIgnore]
     public EqualizerSettings Equalizer => EqualizerOrNull ?? EqualizerSettings.Flat;
+
+    /// <summary>How tracks are written on the screens that write them as a line.</summary>
+    [JsonIgnore]
+    public DisplayTemplates DisplayTemplates => DisplayTemplatesOrNull ?? DisplayTemplates.Default;
 }

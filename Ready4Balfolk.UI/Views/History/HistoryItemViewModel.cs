@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using Ready4Balfolk.Domain.Models.History;
+using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.History;
@@ -15,21 +16,26 @@ public sealed class HistoryItemViewModel
 {
     private readonly QueueHistoryEntry? _entry;
 
-    private HistoryItemViewModel(QueueHistoryEntry? entry, string markerText)
+    private HistoryItemViewModel(QueueHistoryEntry? entry, string markerText, string trackTemplate)
     {
         _entry = entry;
         MarkerText = markerText;
+        TrackTemplate = trackTemplate;
     }
 
-    public static HistoryItemViewModel ForEntry(QueueHistoryEntry entry) => new(entry, string.Empty);
+    /// <summary>How this row writes a track, handed in by the screen that built it.</summary>
+    private string TrackTemplate { get; }
+
+    public static HistoryItemViewModel ForEntry(QueueHistoryEntry entry, string trackTemplate) =>
+        new(entry, string.Empty, trackTemplate);
 
     /// <summary>The line that says the night began, which is the first thing in it.</summary>
     public static HistoryItemViewModel ForNightStart(DateTime startedAt) =>
-        new(null, string.Format(CultureInfo.CurrentCulture, UiStrings.History_NightStarted, When(startedAt)));
+        new(null, string.Format(CultureInfo.CurrentCulture, UiStrings.History_NightStarted, When(startedAt)), "");
 
     /// <summary>The line that says the night was called, on a night that has been.</summary>
     public static HistoryItemViewModel ForNightEnd(DateTime endedAt) =>
-        new(null, string.Format(CultureInfo.CurrentCulture, UiStrings.History_NightEnded, When(endedAt)));
+        new(null, string.Format(CultureInfo.CurrentCulture, UiStrings.History_NightEnded, When(endedAt)), "");
 
     /// <summary>Whether this row is a boundary of the night rather than something that happened.</summary>
     public bool IsMarker => _entry is null;
@@ -48,7 +54,9 @@ public sealed class HistoryItemViewModel
 
     public string Description => _entry switch
     {
-        TrackHistoryEntry t => $"{t.Dance} - {t.Artist} - {t.Title}",
+        // Written the way the user asked for it. What was recorded is the fields, so a template
+        // changed tonight also changes how last month reads, which is the point of it.
+        TrackHistoryEntry t => TrackTextTemplate.Render(TrackTemplate, t.Dance, t.Artist, t.Title),
         MessageHistoryEntry m => m.Message,
         DelayHistoryEntry => UiStrings.History_TypeDelay,
         StopHistoryEntry => UiStrings.History_TypeStop,

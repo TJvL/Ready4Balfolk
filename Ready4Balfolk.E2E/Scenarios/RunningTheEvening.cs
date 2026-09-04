@@ -99,11 +99,11 @@ public sealed class RunningTheEvening(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the track to start playing");
 
             await application.WaitUntil(
-                () => !application.IsShowing("playback.title"),
+                () => !application.IsShowing("playback.track"),
                 "the track to play out");
 
             application.Click("queue.show-history");
@@ -144,7 +144,7 @@ public sealed class RunningTheEvening(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the first track to start playing");
 
             application.Click("playback.skip");
@@ -156,7 +156,7 @@ public sealed class RunningTheEvening(HeadlessSession session)
             application.Click("dialog.confirm");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
                 "the next track to take over");
 
             application.Click("queue.show-history");
@@ -328,11 +328,11 @@ public sealed class RunningTheEvening(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the first dance to start");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
                 "the delay to run down and the dance behind it to take over");
         });
     }
@@ -376,7 +376,7 @@ public sealed class RunningTheEvening(HeadlessSession session)
             application.Settle();
 
             Assert.False(
-                application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
                 "The dance behind the stop started without anybody asking for it.");
 
             // A stop is an item like any other, so moving off it is a skip, and a skip with
@@ -390,7 +390,7 @@ public sealed class RunningTheEvening(HeadlessSession session)
             application.Click("dialog.confirm");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
                 "the evening to pick up again when the DJ says so");
         });
     }
@@ -531,11 +531,11 @@ public sealed class RunningTheEvening(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the dance the DJ chose to start");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
                 "the application to carry on with something of its own");
         });
     }
@@ -581,7 +581,7 @@ public sealed class RunningTheEvening(HeadlessSession session)
                 "the message to go up on the screen");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the message to have its time and the dance behind it to start");
         });
     }
@@ -637,7 +637,7 @@ public sealed class RunningTheEvening(HeadlessSession session)
             application.Click("dialog.confirm");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the dance to start when the DJ takes the message down");
         });
     }
@@ -683,7 +683,7 @@ public sealed class RunningTheEvening(HeadlessSession session)
                 () => application.ProgressOf("playback.progress") < playedTo,
                 "the dance to be back at the beginning");
 
-            Assert.Contains("Salamandre", application.TextOf("playback.title"), StringComparison.Ordinal);
+            Assert.Contains("Salamandre", application.TextOf("playback.track"), StringComparison.Ordinal);
         });
     }
 
@@ -797,7 +797,7 @@ public sealed class RunningTheEvening(HeadlessSession session)
             RunningApplication.TimePassed(TimeSpan.FromMinutes(6));
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
                 "the dance behind the delay to take over once the delay is up");
         });
     }

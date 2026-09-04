@@ -1,8 +1,10 @@
 using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.History;
 
@@ -27,7 +29,13 @@ public sealed class HistoryViewModelTests : IDisposable
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<string>()).Returns(true);
 
-        _sut = new HistoryViewModel(_historyStore, _confirmation, Substitute.For<ILoggerService>());
+        var settingsStore = Substitute.For<ISettingsStore>();
+        var settings = new ApplicationSettings();
+        settingsStore.Current.Returns(settings);
+        settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
+
+        _sut = new HistoryViewModel(
+            _historyStore, settingsStore, _confirmation, Substitute.For<ILoggerService>());
     }
 
     [Fact]

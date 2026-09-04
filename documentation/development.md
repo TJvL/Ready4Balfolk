@@ -122,6 +122,13 @@ On a 2685-file library with BigBalfolkList imported and nothing else configured,
 - **Entries keep their polymorphic JSON as a `payload` column** rather than being flattened. `kind` is lifted back out of that payload so it cannot drift from it, and so counting what an evening was made of costs no parsing.
 - An unreadable database is **logged and left alone**, unlike the library index, which deletes and rebuilds itself. `App` asks once at startup about a night that was never ended and has been quiet for more than eight hours: a gap rather than a date, because a ball crossing midnight is normal.
 
+`TrackTextTemplate` is how a track is written on the screens that write one as a line, in the
+placeholders the file name patterns already use, read the other way round: a pattern takes a name
+apart, a template puts one together. It lives in the domain because four surfaces render it and the
+rule about a field with nothing in it, that it takes its separator with it, has to be the same on
+all of them. `DisplayTemplates` in the settings holds one per surface, defaulting to what each said
+before it existed. The catalogue is deliberately not one of them: it is a table sorted per field.
+
 `DanceListStore` owns `dance_list.json` and additionally exposes an `Index`. The index is rebuilt *before* the new list is published, so a subscriber reacting to a change never reads a lookup built from the list it just replaced.
 
 **To add a new store:**

@@ -465,6 +465,25 @@ de wachtrij gezet zodra de eindtijd het volgende nummer weigert: het laatste wat
 het teken om naar huis te gaan, zonder dat iemand er tijdens het opruimen aan hoeft te denken. De
 eindtijd weigert de slotmuziek zelf nooit: die hoort ná de grens, hij probeert er niet langs.
 
+### Hoe nummers op het scherm komen te staan
+
+Vier vakjes, een per plek waar het programma een nummer als regel schrijft: de grote regel terwijl er
+iets speelt, de regel eronder, een regel van de wachtrij en een regel van de geschiedenis. De
+plaatshouders zijn dezelfde als bij de bestandsnaampatronen, maar dan andersom gelezen: `%d` de dans,
+`%a` de artiest, `%t` de titel. Al het andere komt er letterlijk te staan zoals je het typt, dus
+`%t (%d)` geeft "Salamandre (Mazurka)".
+
+Een veld waar in jouw bestanden niets in staat neemt zijn scheidingsteken mee. `%a - %t` op een
+nummer zonder titel is de artiest, niet de artiest met een bungelend streepje, en een nummer dat
+niets heeft van wat het sjabloon vraagt levert helemaal niets op in plaats van een regel leestekens.
+
+De voorbeeldregels onder de vakjes laten zien wat de vier met een nummer doen, zodat je niets hoeft
+op te slaan om erachter te komen. De wijziging is meteen op elk scherm te zien, ook op een nummer dat
+op dat moment speelt.
+
+Het nummeroverzicht houdt zijn kolommen. Dat is een tabel die je sorteert op dans, artiest of titel,
+en een kolom is geen zin.
+
 ### Tekst op knoppen
 
 Vervangt de iconen op knoppen door een korte omschrijving van wat ze doen. Handig tijdens het leren
