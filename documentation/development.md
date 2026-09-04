@@ -419,6 +419,8 @@ It is **four jobs that run beside each other**, because a pull request goes gree
 
 Coverage is collected as cobertura in the `test` job and uploaded as an artifact. It is deliberately **not** gated on a threshold; the artifact is there to be read.
 
+**Native debug symbols are dropped from the output** (`DropNativeDebugSymbols` in `Directory.Build.props`). SkiaSharp and HarfBuzz ship a `.pdb` beside every native library for every runtime they support, and MSBuild copies them: `libSkiaSharp.pdb` alone is 81 MB and arrives once per Windows runtime in each project's output. It made the four outputs of this solution 2.2 GB, nearly all of it copying rather than compiling, and none of it usable on the machine doing the copying. Only the natives are stripped; the symbols of the code in this repository are what a stack trace is read from.
+
 Two build-level gates are worth knowing about. `TreatWarningsAsErrors` does not reach the Avalonia XAML compiler, so `AVLN5001` (the obsolete-member warning) is listed in `WarningsAsErrors` separately. And every workflow declares a `concurrency` group so a superseded push is cancelled, except on `main`, where a commit left with no verdict is worse than a slow one.
 
 **The smoke test.** CI packages every artifact but cannot tell a healthy one from a broken one by looking. `Directory.Build.targets` picks the BASS, BASSFLAC and BASS_FX natives from the *host* OS rather than from the `RuntimeIdentifier`, so a publish that lands the wrong ones, or none, still succeeds, and the failure only shows up when a user double-clicks it.
