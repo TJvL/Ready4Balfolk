@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:qr="clr-namespace:Ready4Balfolk.UI.Views.Dialogs.QrCode"
+        xmlns:res="using:Ready4Balfolk.UI.Resources"
+        mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="560"
+        x:Class="Ready4Balfolk.UI.Views.Dialogs.QrCode.QrCodeDialogView"
+        x:DataType="qr:QrCodeDialogViewModel"
+        Title="{CompiledBinding Title}"
+        Width="420"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False">
+    <StackPanel Margin="24" Spacing="16">
+        <TextBlock Text="{CompiledBinding Title}"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   HorizontalAlignment="Center" />
+
+        <!-- White behind it whatever the theme is: a code drawn dark on dark scans off nothing. -->
+        <Border Background="White"
+                CornerRadius="4"
+                Padding="12"
+                HorizontalAlignment="Center">
+            <Image AutomationProperties.AutomationId="qr.image"
+                   Source="{CompiledBinding Image}"
+                   Width="260"
+                   Height="260" />
+        </Border>
+
+        <SelectableTextBlock AutomationProperties.AutomationId="qr.address"
+                             Text="{CompiledBinding Address}"
+                             FontSize="16"
+                             HorizontalAlignment="Center" />
+
+        <StackPanel Spacing="2" IsVisible="{CompiledBinding HasPin}" HorizontalAlignment="Center">
+            <TextBlock Text="{x:Static res:UiStrings.Qr_Pin}"
+                       FontSize="11"
+                       Opacity="0.6"
+                       HorizontalAlignment="Center" />
+            <SelectableTextBlock AutomationProperties.AutomationId="qr.pin"
+                                 Text="{CompiledBinding Pin}"
+                                 FontSize="22"
+                                 FontWeight="SemiBold"
+                                 HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <!-- A machine with wifi and a cable is on more than one network, and only one of them is
+             the one the phone is on. -->
+        <StackPanel Spacing="2" IsVisible="{CompiledBinding HasOtherAddresses}">
+            <TextBlock Text="{x:Static res:UiStrings.Qr_OtherAddresses}"
+                       FontSize="11"
+                       Opacity="0.6"
+                       TextWrapping="Wrap" />
+            <SelectableTextBlock AutomationProperties.AutomationId="qr.other-addresses"
+                                 Text="{CompiledBinding OtherAddresses}"
+                                 FontSize="12"
+                                 Opacity="0.8"
+                                 TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Button AutomationProperties.AutomationId="qr.close"
+                Content="{x:Static res:UiStrings.Qr_Close}"
+                Click="OnCloseClick"
+                HorizontalAlignment="Center"
+                MinWidth="100" />
+    </StackPanel>
+</Window>

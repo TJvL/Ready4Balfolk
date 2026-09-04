@@ -1,8 +1,12 @@
 using System.Reactive.Subjects;
 using NSubstitute;
 using ReactiveUI.Reactive;
+using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Views.Toolbar;
+using Ready4Balfolk.Web;
 
 namespace Ready4Balfolk.Tests.ViewModels;
 
@@ -17,13 +21,25 @@ namespace Ready4Balfolk.Tests.ViewModels;
 public sealed class ToolbarViewModelTests : IDisposable
 {
     private readonly BehaviorSubject<int> _inReview = new(0);
+    private readonly BehaviorSubject<ApplicationSettings> _settings = new(new ApplicationSettings());
+    private readonly PresentationWebServer _webServer;
     private readonly ToolbarViewModel _sut;
 
     public ToolbarViewModelTests()
     {
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.InReviewCount.Returns(_inReview);
-        _sut = new ToolbarViewModel(trackStore);
+
+        var settingsStore = Substitute.For<ISettingsStore>();
+        settingsStore.Current.Returns(_ => _settings.Value);
+        settingsStore.Observe().Returns(_settings);
+
+        // Never started, so it reports Stopped. Sealed, so there is nothing to substitute, and
+        // starting one would mean binding a socket.
+        _webServer = new PresentationWebServer(
+            Substitute.For<IServiceProvider>(), new NoOpLoggerService(), TimeProvider.System);
+
+        _sut = new ToolbarViewModel(trackStore, _webServer, settingsStore);
     }
 
     [Fact]
@@ -70,9 +86,28 @@ public sealed class ToolbarViewModelTests : IDisposable
         Assert.Equal(2, seen);
     }
 
+    [Fact]
+    public void WithNoServer_TheToolbarSaysNothingAboutWhatIsServed()
+    {
+        // What is actually being served, not what a switch was set to: this server was never
+        // started, so there is nothing for a phone to reach and nothing on the toolbar.
+        Assert.False(_sut.IsServingDisplay);
+        Assert.False(_sut.IsServingRemote);
+    }
+
+    [Fact]
+    public void WithNoAddress_ThereIsNothingToShowAPhone()
+    {
+        // A server that never bound has no address, and an empty code is worse than no code.
+        Assert.Null(_sut.DisplayAddress());
+        Assert.Null(_sut.RemoteAddress());
+    }
+
     public void Dispose()
     {
         _sut.Dispose();
         _inReview.Dispose();
+        _settings.Dispose();
+        _webServer.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }

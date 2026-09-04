@@ -19,6 +19,7 @@
             initialise on a Wayland session without Xwayland (see the Flatpak sandbox).
             The backend guards on OperatingSystem.IsLinux, so it is inert on Windows and macOS.-->
         <PackageReference Include="Avalonia.Wayland" Version="12.1.2" />
+        <PackageReference Include="QRCoder" Version="1.8.0" />
         <PackageReference Include="ReactiveUI.Avalonia.Reactive" Version="12.1.1" />
         <PackageReference Include="ReactiveUI.Avalonia.Microsoft.Extensions.DependencyInjection.Reactive" Version="12.1.1" />
         <!--Upstream of the OneWare fork used pre-Avalonia-12; same control and xmlns.

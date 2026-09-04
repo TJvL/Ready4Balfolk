@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
+using Ready4Balfolk.UI.Controls;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.Message;
 
@@ -17,6 +18,8 @@ public partial class QueueToolbarView : ReactiveUserControl<QueueViewModel>
 
     private async void OnMessageClick(object? sender, RoutedEventArgs e)
     {
+        Tooltips.Dismiss(sender);
+
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is not Window owner)
         {

@@ -60,5 +60,29 @@
                 </Border>
             </StackPanel>
         </Button>
+
+        <!-- What is being served, and how a phone gets to it. Only while it is actually being
+             served: a toolbar that said "remote" over a server that never bound would send a hall
+             to an address nothing answers. -->
+        <Button AutomationProperties.AutomationId="toolbar.display-served"
+                Click="OnDisplayAddressClick"
+                IsVisible="{Binding IsServingDisplay}"
+                ToolTip.Tip="{x:Static res:UiStrings.Toolbar_DisplayServedTip}"
+                Padding="8"
+                Focusable="False">
+            <controls:ButtonContent Icon="{StaticResource IconMonitor}"
+                                    Text="{x:Static res:UiStrings.Toolbar_DisplayServed}"
+                                    IconSize="16" />
+        </Button>
+        <Button AutomationProperties.AutomationId="toolbar.remote-served"
+                Click="OnRemoteAddressClick"
+                IsVisible="{Binding IsServingRemote}"
+                ToolTip.Tip="{x:Static res:UiStrings.Toolbar_RemoteServedTip}"
+                Padding="8"
+                Focusable="False">
+            <controls:ButtonContent Icon="{StaticResource IconPhone}"
+                                    Text="{x:Static res:UiStrings.Toolbar_RemoteServed}"
+                                    IconSize="16" />
+        </Button>
     </StackPanel>
 </UserControl>
