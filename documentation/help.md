@@ -517,5 +517,8 @@ Ready4Balfolk can serve two pages over your local network from a small built-in 
 Both are enabled in **Settings**. The remote is off unless you turn it on, and it is guarded by a
 PIN: anyone who can reach the page and knows the PIN can change what the room is dancing to, so
 treat it accordingly. **New PIN** mints a fresh one and disconnects every phone using the old one.
+That phone is told so and shown the PIN form again, so a helper at the bar can tell being turned out
+from an application that has stopped working. The same happens to a phone whose access has simply
+aged out overnight: it asks for the PIN rather than showing a remote that does nothing.
 
 The random pick on the remote draws from the same pool as the desktop, exclusions included.

@@ -67,6 +67,7 @@
       pinWrong: "That PIN is not right",
       pinLocked: "Too many tries. Wait {0} seconds",
       pinDisabled: "The remote is switched off in the app",
+      turnedOut: "This remote is no longer let in. Ask for the PIN and enter it again",
       connectionLost: "Connection lost, reconnecting"
     },
 
@@ -129,6 +130,7 @@
       pinWrong: "Die pincode klopt niet",
       pinLocked: "Te veel pogingen. Wacht {0} seconden",
       pinDisabled: "De afstandsbediening staat uit in de app",
+      turnedOut: "Deze afstandsbediening wordt niet meer toegelaten. Vraag de pincode en voer hem opnieuw in",
       connectionLost: "Verbinding verbroken, opnieuw verbinden"
     }
   };

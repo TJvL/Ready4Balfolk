@@ -86,24 +86,6 @@ public sealed class TheBrowser : IAsyncDisposable
         await Page.Mouse.UpAsync();
     }
 
-    /// <summary>Waits until the page is showing one of these, whichever it lands on.</summary>
-    public async Task SettlesOnEither(string oneId, string orTheOtherId)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
-
-        while (DateTime.UtcNow < deadline)
-        {
-            if (await IsShowing(oneId) || await IsShowing(orTheOtherId))
-            {
-                return;
-            }
-
-            await Task.Delay(100);
-        }
-
-        Assert.Fail($"The page showed neither {oneId} nor {orTheOtherId}.");
-    }
-
     /// <summary>Whether the page is showing this at all.</summary>
     public async Task<bool> IsShowing(string elementId) =>
         await Page.Locator($"#{elementId}").IsVisibleAsync();

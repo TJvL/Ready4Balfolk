@@ -545,7 +545,10 @@ webserver:
 Beide worden aangezet in **Instellingen**. De afstandsbediening staat uit tot jij hem aanzet, en
 is beveiligd met een pincode: wie de pagina kan bereiken en de pincode kent, kan veranderen waar de
 zaal op danst, dus behandel hem daarnaar. **Nieuwe pincode** maakt een verse en verbreekt elke
-telefoon die de oude gebruikt.
+telefoon die de oude gebruikt. Die telefoon krijgt dat te zien en komt weer op het pincodeformulier,
+zodat een helper aan de bar het verschil merkt tussen buitengesloten zijn en een programma dat
+ermee opgehouden is. Hetzelfde gebeurt met een telefoon waarvan de toegang gewoon is verlopen: die
+vraagt om de pincode in plaats van een afstandsbediening te tonen die niets doet.
 
 De willekeurige keuze op de afstandsbediening trekt uit dezelfde pool als de computer, uitsluitingen
 inbegrepen.

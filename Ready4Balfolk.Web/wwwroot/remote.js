@@ -186,7 +186,14 @@
     var call = arg === undefined ? connection.invoke(method) : connection.invoke(method, arg);
     return call
       .then(function (result) { report(result, okMessage); return result; })
-      .catch(function () { toast(t("connectionLost"), true); return null; });
+      .catch(function () {
+        // A command refused because this phone is no longer let in is not a lost connection, and
+        // the gate that has just come up says the true thing already.
+        if (!id("gate").classList.contains("is-hidden")) return null;
+
+        toast(t("connectionLost"), true);
+        return null;
+      });
   }
 
   /* --------------------------------------------------------------------- wire */
@@ -327,25 +334,54 @@
 
   /* --------------------------------------------------------------------- gate */
 
+  /* Shown when the hub has answered, not when the socket opened. A connection whose token is no
+     longer good gets as far as the handshake and is turned away after it, so revealing the remote
+     on start is how a phone ends up looking connected to a hub that refuses everything it says. */
+  function showRemote() {
+    if (!id("app").classList.contains("is-hidden")) return;
+
+    id("gate").classList.add("is-hidden");
+    id("app").classList.remove("is-hidden");
+    text("gateError", "");
+    text("delayValue", delaySeconds + "s");
+    runSearch();
+  }
+
+  /* The way back in. The remote is still there; this phone simply needs the PIN again. */
+  function askForThePinAgain() {
+    try { window.sessionStorage.removeItem("r4b-token"); } catch (e) { /* private mode */ }
+
+    id("app").classList.add("is-hidden");
+    id("gate").classList.remove("is-hidden");
+    id("pin").value = "";
+    text("link", "");
+    text("gateError", t("turnedOut"));
+
+    if (connection) {
+      var old = connection;
+      connection = null;
+      old.stop().catch(function () { });
+    }
+  }
+
   function connect(token) {
     connection = new signalR.HubConnectionBuilder()
       .withUrl("/hubs/remote?access_token=" + encodeURIComponent(token))
       .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
       .build();
 
-    connection.on("snapshot", renderSnapshot);
+    connection.on("snapshot", function (snapshot) {
+      showRemote();
+      renderSnapshot(snapshot);
+    });
     connection.on("queue", renderQueue);
+    connection.on("turnedOut", askForThePinAgain);
 
     connection.onreconnecting(function () { text("link", t("reconnecting")); });
     connection.onreconnected(function () { text("link", ""); });
     connection.onclose(function () { text("link", t("connectionLost")); });
 
-    return connection.start().then(function () {
-      id("gate").classList.add("is-hidden");
-      id("app").classList.remove("is-hidden");
-      text("delayValue", delaySeconds + "s");
-      runSearch();
-    });
+    return connection.start();
   }
 
   function wireGate() {

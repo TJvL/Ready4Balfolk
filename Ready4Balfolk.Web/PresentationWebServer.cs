@@ -7,6 +7,7 @@ using System.Reactive.Subjects;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -134,7 +135,12 @@ public sealed class PresentationWebServer(
             builder.Services.Configure<HostOptions>(host =>
                 host.ShutdownTimeout = TimeSpan.FromSeconds(2));
 
-            builder.Services.AddSignalR();
+            builder.Services.AddSingleton<RemoteTokenFilter>();
+            builder.Services
+                .AddSignalR()
+                // Every command from a phone, not only the socket it arrives on: a PIN change has
+                // to turn out the connection the helper already has.
+                .AddHubOptions<RemoteHub>(options => options.AddFilter<RemoteTokenFilter>());
             builder.Services.AddForwardedHostServices(hostServices);
             builder.Services.AddSingleton(_access);
             builder.Services.AddSingleton<PresentationBroadcaster>();
