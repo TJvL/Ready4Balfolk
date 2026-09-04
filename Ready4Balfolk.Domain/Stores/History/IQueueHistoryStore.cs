@@ -13,10 +13,19 @@ public interface IQueueHistoryStore : ILoadableStore, IDisposable
 
     /// <summary>Files the current night and opens the next one.</summary>
     /// <remarks>
+    /// <para>
     /// Nothing is thrown away, which is why this can happen on its own when the end of the night has
     /// played: the evening is kept, and what the user sees is that it is no longer tonight.
+    /// </para>
+    /// <para>
+    /// <paramref name="endedAt"/> is when the evening actually stopped, for a night that is being
+    /// filed after the fact. A night nobody ended is noticed at the next start, which can be days
+    /// later, and stamping it with the moment somebody answered the question would put an evening
+    /// in the books that ran until Tuesday. Null means now, which is right for a night being ended
+    /// as it happens.
+    /// </para>
     /// </remarks>
-    Task EndNightAsync();
+    Task EndNightAsync(DateTime? endedAt = null);
 
     /// <summary>Every night on file, newest first, including the one that is running.</summary>
     /// <remarks>

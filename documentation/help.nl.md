@@ -220,7 +220,7 @@ Waar de avond begint en waar hij eindigt staan als regels in de lijst.
 
 Een avond sluit zichzelf af zodra het eindsignaal gespeeld is: de avond wordt bewaard en de geschiedenis begint opnieuw, zodat er tijdens het opruimen niets onthouden hoeft te worden. De avond verdwijnt daarbij niet van het scherm; hij wordt de avond waar je naar kijkt in plaats van de avond die loopt. Elke opgeborgen avond kun je lezen, exporteren en verwijderen, en avonden worden nooit door elkaar gehaald.
 
-Is een avond nooit afgesloten, omdat de applicatie afgesloten werd of de laptop leeg raakte, dan staat hij er bij de volgende start nog. Na meer dan acht uur stilte wordt er een keer gevraagd, voordat er iets speelt, of de avond bewaard moet worden om opnieuw te beginnen of dat ermee doorgegaan wordt. Geen van beide antwoorden verwijdert iets.
+Is een avond nooit afgesloten, omdat de applicatie afgesloten werd of de laptop leeg raakte, dan staat hij er bij de volgende start nog. Na meer dan acht uur stilte wordt er een keer gevraagd, voordat er iets speelt, of de avond bewaard moet worden om opnieuw te beginnen of dat ermee doorgegaan wordt. Geen van beide antwoorden verwijdert iets. Opnieuw beginnen bergt de avond op op het moment dat de muziek stopte, niet op het moment dat de vraag gesteld werd, zodat een avond die om twee uur ’s nachts eindigde er ook zo uitziet, hoe lang de laptop daarna ook dicht bleef.
 
 ### Statusbalk
 

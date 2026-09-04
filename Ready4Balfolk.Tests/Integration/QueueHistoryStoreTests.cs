@@ -146,6 +146,23 @@ public sealed class QueueHistoryStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task EndNightAsync_WithATime_FilesTheNightAtThatTimeRatherThanNow()
+    {
+        // A night nobody ended is noticed at the next start, which can be days later. Stamping it
+        // with the moment somebody answered would put an evening in the books that ran until then.
+        var stopped = DateTime.Now.AddHours(-9);
+        await _sut.AddAsync(Track());
+        var filed = _sut.Current.Id;
+
+        await _sut.EndNightAsync(stopped);
+
+        var night = await _sut.ReadNightAsync(filed);
+
+        Assert.NotNull(night);
+        Assert.Equal(stopped, night.EndedAt);
+    }
+
+    [Fact]
     public async Task ListNightsAsync_HasTheNightsNewestFirst()
     {
         await _sut.AddAsync(Track());

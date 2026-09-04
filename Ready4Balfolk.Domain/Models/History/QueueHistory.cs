@@ -28,7 +28,16 @@ public sealed record QueueHistory(
     [JsonIgnore]
     public bool IsOpen => EndedAt is null;
 
-    /// <summary>When something last happened, which is how a night nobody ended is judged stale.</summary>
+    /// <summary>
+    /// When something last happened, which is how a night nobody ended is judged stale, and when
+    /// such a night is taken to have ended.
+    /// </summary>
+    /// <remarks>
+    /// The finish of the last thing in it rather than its start: an evening ends when the music
+    /// does, not when the last track began.
+    /// </remarks>
     [JsonIgnore]
-    public DateTime? LastActivityAt => Entries.Count > 0 ? Entries[^1].StartedAt ?? StartedAt : StartedAt;
+    public DateTime? LastActivityAt => Entries.Count > 0
+        ? Entries[^1].FinishedAt ?? Entries[^1].StartedAt ?? StartedAt
+        : StartedAt;
 }

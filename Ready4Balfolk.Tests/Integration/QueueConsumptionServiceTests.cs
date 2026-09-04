@@ -271,7 +271,8 @@ public sealed class QueueConsumptionServiceTests : IDisposable
 
         await _sut.AdvanceAsync();
 
-        await _history.Received(1).EndNightAsync();
+        // Filed at the moment the closing song finished rather than a beat later.
+        await _history.Received(1).EndNightAsync(Arg.Any<DateTime?>());
     }
 
     [Fact]
@@ -282,7 +283,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
 
         await _sut.AdvanceAsync();
 
-        await _history.DidNotReceive().EndNightAsync();
+        await _history.DidNotReceive().EndNightAsync(Arg.Any<DateTime?>());
     }
 
     public void Dispose()

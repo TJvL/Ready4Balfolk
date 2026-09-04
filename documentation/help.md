@@ -219,7 +219,7 @@ The night's own boundaries are lines in the list: where it began, and where it e
 
 An evening ends by itself once the end-of-the-night audio has played: the night is kept and the history starts fresh, so nothing has to be remembered while packing up. The evening does not leave the screen when that happens; it becomes the night you are reading rather than the night that is running. Every filed night can be read, exported and deleted, and one night is never mixed with another.
 
-If an evening was never ended, because the application was closed or the laptop went flat, it is still there when the application starts again. After more than eight hours of quiet it asks once, before anything is playing, whether to keep it and start fresh or carry on with it. Neither answer deletes anything.
+If an evening was never ended, because the application was closed or the laptop went flat, it is still there when the application starts again. After more than eight hours of quiet it asks once, before anything is playing, whether to keep it and start fresh or carry on with it. Neither answer deletes anything. Starting fresh files it at the moment the music stopped, not at the moment you were asked, so an evening that ended at two in the morning reads that way however long the laptop stayed shut.
 
 ### Status Bar
 

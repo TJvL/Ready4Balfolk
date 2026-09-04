@@ -1,3 +1,6 @@
+using System.Globalization;
+using Ready4Balfolk.UI.Resources;
+
 namespace Ready4Balfolk.E2E.Scenarios;
 
 /// <summary>The end of the night for the DJ rather than for the room.</summary>
@@ -106,8 +109,24 @@ public sealed class ClosingUp(HeadlessSession session)
             .WithAnEveningNobodyEnded(TimeSpan.FromHours(9))
             .Save();
 
-        await session.RunAsync(world, application => application.WaitUntil(
-            () => application.IsShowing("dialog.confirm"),
-            "the application to ask about the evening that was never ended"));
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.IsShowing("dialog.confirm"),
+                "the application to ask about the evening that was never ended");
+
+            application.Click("dialog.confirm");
+            application.Click("queue.show-history");
+
+            // Filed at the moment the music stopped rather than at the moment somebody was asked
+            // about it. The question comes at the next start, which can be days later, and an
+            // evening that reads as having run until Tuesday is not the evening anybody had.
+            var stopped = world.LastDanceEndedAt.ToString("HH:mm", CultureInfo.CurrentCulture);
+
+            await application.WaitUntil(
+                () => application.SeesAnywhere(string.Format(
+                    CultureInfo.CurrentCulture, UiStrings.History_NightEnded, stopped)),
+                "the night to be filed at the time it actually stopped");
+        });
     }
 }

@@ -106,7 +106,7 @@ public sealed class QueueHistoryStore(
         }
     }
 
-    public async Task EndNightAsync()
+    public async Task EndNightAsync(DateTime? endedAt = null)
     {
         await _gate.WaitAsync();
         try
@@ -118,7 +118,8 @@ public sealed class QueueHistoryStore(
                     "UPDATE nights SET ended_at = $endedAt WHERE id = $id;",
                     current.Id,
                     "Failed to end the night",
-                    command => command.Parameters.AddWithValue("$endedAt", Format(time.GetLocalNow().DateTime)));
+                    command => command.Parameters.AddWithValue(
+                        "$endedAt", Format(endedAt ?? time.GetLocalNow().DateTime)));
             }
 
             _history.OnNext(QueueHistory.Empty);
