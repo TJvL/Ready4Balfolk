@@ -85,7 +85,11 @@ public sealed class DeclarationPreviewTests
     public void PatternsTogether_SayHowMuchIsStillUnaccountedFor()
     {
         // The number that matters after a rule is greenlit: what the next declaration is aimed at.
-        var settings = new DiscoverySettings { FileNamePatterns = ["%d - %a - %t", "%n. %t"] };
+        var settings = new DiscoverySettings
+        {
+            UsesFileNamePatterns = true,
+            FileNamePatterns = ["%d - %a - %t", "%n. %t"]
+        };
 
         var coverage = DeclarationPreview.ForPatterns(settings, Library);
 
@@ -96,7 +100,11 @@ public sealed class DeclarationPreviewTests
     [Fact]
     public void TheLeftovers_AreTheFilesNoRuleTook()
     {
-        var settings = new DiscoverySettings { FileNamePatterns = ["%d - %a - %t"] };
+        var settings = new DiscoverySettings
+        {
+            UsesFileNamePatterns = true,
+            FileNamePatterns = ["%d - %a - %t"]
+        };
 
         var leftovers = DeclarationPreview.Leftovers(settings, Library);
 

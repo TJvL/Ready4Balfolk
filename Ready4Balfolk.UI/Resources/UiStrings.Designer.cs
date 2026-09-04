@@ -813,6 +813,21 @@ public static class UiStrings
     public static string Wizard_Music_Required =>
         ResourceManager.GetString("Wizard_Music_Required", Culture)!;
 
+    public static string Discovery_PatternsWhen =>
+        ResourceManager.GetString("Discovery_PatternsWhen", Culture)!;
+
+    public static string Discovery_FoldersWhen =>
+        ResourceManager.GetString("Discovery_FoldersWhen", Culture)!;
+
+    public static string Discovery_TagsWhen =>
+        ResourceManager.GetString("Discovery_TagsWhen", Culture)!;
+
+    public static string Discovery_CustomDanceTagWhen =>
+        ResourceManager.GetString("Discovery_CustomDanceTagWhen", Culture)!;
+
+    public static string Wizard_Discovery_Required =>
+        ResourceManager.GetString("Wizard_Discovery_Required", Culture)!;
+
     public static string Settings_MusicDirectoryChangeHint =>
         ResourceManager.GetString("Settings_MusicDirectoryChangeHint", Culture)!;
 

@@ -914,10 +914,10 @@
     <value>One folder. Everything below it counts, however it is arranged, and no particular naming convention is needed.</value>
   </data>
   <data name="Wizard_Welcome_Stage3" xml:space="preserve">
-    <value>3. How your files are named</value>
+    <value>3. How your library is arranged</value>
   </data>
   <data name="Wizard_Welcome_Stage3Detail" xml:space="preserve">
-    <value>Optional. If your files follow a shape, say so once and every file that matches is answered in one act. If they do not, nothing is assumed.</value>
+    <value>Names, folders or tags: tick the ones that apply to your library. Every file they match is answered in one act, and what you leave unticked does nothing.</value>
   </data>
   <data name="Wizard_Welcome_Source" xml:space="preserve">
     <value>The dance list is published at</value>
@@ -940,7 +940,22 @@
     <value>Advanced discovery</value>
   </data>
   <data name="Discovery_Intro" xml:space="preserve">
-    <value>Your library is read as it is found: no folder is assumed to be an artist and no file name is assumed to have fields in it. A rule you state here answers every file it matches in one go, so you are shown what it would do before you add it.</value>
+    <value>Your library is read as it is found: no folder is assumed to be an artist and no file name is assumed to have fields in it. Tick the ways your library is arranged and fill those in. What is not ticked does nothing, so a rule you cannot see never reaches your files.</value>
+  </data>
+  <data name="Discovery_PatternsWhen" xml:space="preserve">
+    <value>Tick this if your file names follow a shape, such as Artist - Title.</value>
+  </data>
+  <data name="Discovery_FoldersWhen" xml:space="preserve">
+    <value>Tick this if the folders your music sits in say what a file is, such as a folder per dance.</value>
+  </data>
+  <data name="Discovery_TagsWhen" xml:space="preserve">
+    <value>Tick this if a tag field in your files reliably holds the artist, the title or the dance.</value>
+  </data>
+  <data name="Discovery_CustomDanceTagWhen" xml:space="preserve">
+    <value>Tick this if your files carry the dance in a tag of its own, such as DANCE.</value>
+  </data>
+  <data name="Wizard_Discovery_Required" xml:space="preserve">
+    <value>Tick at least one way of reading your library to continue.</value>
   </data>
   <data name="Discovery_PatternsHeader" xml:space="preserve">
     <value>File name patterns</value>
@@ -1027,7 +1042,7 @@
     <value>Leave this to the application</value>
   </data>
   <data name="Discovery_ApplyRolesAndTags" xml:space="preserve">
-    <value>Save folders and tags</value>
+    <value>Save these choices</value>
   </data>
   <data name="Discovery_FieldDance" xml:space="preserve">
     <value>Dance</value>
@@ -1176,16 +1191,16 @@
     <value>Your music is read once, which takes a few minutes the first time. Nothing reaches your library until it has an artist, a title, a dance from the list and your say-so, so whatever is left over waits for you. Answer as much or as little of it as you feel like.</value>
   </data>
   <data name="Wizard_Discovery_Title" xml:space="preserve">
-    <value>How your files are named</value>
+    <value>How your library is arranged</value>
   </data>
   <data name="Wizard_Discovery_Explanation" xml:space="preserve">
-    <value>Optional, and worth a minute if your files follow a shape. A rule stated here answers every file it matches in one act, so the step after this is the leftovers rather than your whole library. Nothing is assumed if you skip it.</value>
+    <value>Tick the ways your library is arranged, and fill in the ones you tick. At least one, so there is something to read your files with. What you state here answers every file it matches in one act, so the step after this is the leftovers rather than your whole library.</value>
   </data>
   <data name="Discovery_Scanning" xml:space="preserve">
     <value>Reading your library. A rule can be measured once that is done.</value>
   </data>
   <data name="Discovery_ApplyHint" xml:space="preserve">
-    <value>The folder levels and tags above do nothing until you save them. Your library is read again afterwards, so a rule answers the files already in it.</value>
+    <value>Nothing on this screen does anything until you save it. Your library is read again afterwards, so a rule answers the files already in it.</value>
   </data>
   <data name="Review_Preview" xml:space="preserve">
     <value>Listen to a bit of this</value>

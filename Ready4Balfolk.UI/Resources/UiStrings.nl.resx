@@ -839,10 +839,10 @@
     <value>Een map. Alles daaronder telt mee, hoe het ook geordend is, en er is geen bepaalde naamgeving voor nodig.</value>
   </data>
   <data name="Wizard_Welcome_Stage3" xml:space="preserve">
-    <value>3. Hoe je bestanden heten</value>
+    <value>3. Hoe je bibliotheek is ingedeeld</value>
   </data>
   <data name="Wizard_Welcome_Stage3Detail" xml:space="preserve">
-    <value>Optioneel. Volgen je bestanden een vast patroon, geef dat dan één keer op en elk bestand dat eraan voldoet is meteen beantwoord. Zo niet, dan wordt er niets aangenomen.</value>
+    <value>Namen, mappen of tags: vink aan wat op jouw bibliotheek van toepassing is. Elk bestand dat eraan voldoet wordt in één keer beantwoord, en wat je niet aanvinkt doet niets.</value>
   </data>
   <data name="Wizard_Welcome_Source" xml:space="preserve">
     <value>De dansenlijst wordt gepubliceerd op</value>
@@ -865,7 +865,22 @@
     <value>Geavanceerde herkenning</value>
   </data>
   <data name="Discovery_Intro" xml:space="preserve">
-    <value>Je bibliotheek wordt gelezen zoals hij is: geen map geldt als artiest en geen bestandsnaam wordt in velden opgedeeld. Een regel die je hier opgeeft beantwoordt in één keer elk bestand dat eraan voldoet, dus je ziet eerst wat hij zou doen.</value>
+    <value>Je bibliotheek wordt gelezen zoals hij is: geen map wordt aangenomen als artiest en van geen bestandsnaam wordt aangenomen dat er velden in zitten. Vink aan hoe jouw bibliotheek is ingedeeld en vul dat in. Wat niet aangevinkt staat doet niets, dus een regel die je niet ziet raakt je bestanden nooit.</value>
+  </data>
+  <data name="Discovery_PatternsWhen" xml:space="preserve">
+    <value>Vink dit aan als je bestandsnamen een vaste vorm hebben, zoals Artiest - Titel.</value>
+  </data>
+  <data name="Discovery_FoldersWhen" xml:space="preserve">
+    <value>Vink dit aan als de mappen waar je muziek in staat zeggen wat een bestand is, bijvoorbeeld een map per dans.</value>
+  </data>
+  <data name="Discovery_TagsWhen" xml:space="preserve">
+    <value>Vink dit aan als een tagveld in je bestanden betrouwbaar de artiest, de titel of de dans bevat.</value>
+  </data>
+  <data name="Discovery_CustomDanceTagWhen" xml:space="preserve">
+    <value>Vink dit aan als je bestanden de dans in een eigen tag hebben staan, zoals DANCE.</value>
+  </data>
+  <data name="Wizard_Discovery_Required" xml:space="preserve">
+    <value>Vink minstens één manier aan om je bibliotheek te lezen om verder te gaan.</value>
   </data>
   <data name="Discovery_PatternsHeader" xml:space="preserve">
     <value>Patronen voor bestandsnamen</value>
@@ -952,7 +967,7 @@
     <value>Laat dit aan de applicatie over</value>
   </data>
   <data name="Discovery_ApplyRolesAndTags" xml:space="preserve">
-    <value>Mappen en tags opslaan</value>
+    <value>Deze keuzes opslaan</value>
   </data>
   <data name="TrackCatalog_EditTrack" xml:space="preserve">
     <value>Nummer bewerken</value>
@@ -1101,16 +1116,16 @@
     <value>Je muziek wordt één keer ingelezen, wat de eerste keer een paar minuten duurt. Er komt niets in je bibliotheek zonder artiest, titel, een dans uit de lijst én jouw akkoord, dus wat overblijft wacht op jou. Beantwoord er zoveel of zo weinig van als je wilt.</value>
   </data>
   <data name="Wizard_Discovery_Title" xml:space="preserve">
-    <value>Hoe je bestanden heten</value>
+    <value>Hoe je bibliotheek is ingedeeld</value>
   </data>
   <data name="Wizard_Discovery_Explanation" xml:space="preserve">
-    <value>Optioneel, en een minuut waard als je bestanden een vast patroon volgen. Een regel die je hier opgeeft beantwoordt in één keer elk bestand dat eraan voldoet, zodat de volgende stap alleen de rest is in plaats van je hele bibliotheek. Sla je het over, dan wordt er niets aangenomen.</value>
+    <value>Vink aan hoe jouw bibliotheek is ingedeeld en vul in wat je aanvinkt. Minstens één, zodat er iets is om je bestanden mee te lezen. Wat je hier opgeeft beantwoordt in één keer elk bestand dat eraan voldoet, zodat de volgende stap alleen de rest is in plaats van je hele bibliotheek.</value>
   </data>
   <data name="Discovery_Scanning" xml:space="preserve">
     <value>Je bibliotheek wordt ingelezen. Zodra dat klaar is kan een regel gemeten worden.</value>
   </data>
   <data name="Discovery_ApplyHint" xml:space="preserve">
-    <value>De mapniveaus en tags hierboven doen niets tot je ze opslaat. Daarna wordt je bibliotheek opnieuw ingelezen, zodat een regel de bestanden beantwoordt die er al in staan.</value>
+    <value>Niets op dit scherm doet iets totdat je het opslaat. Je bibliotheek wordt daarna opnieuw gelezen, zodat een regel ook de bestanden beantwoordt die er al in staan.</value>
   </data>
   <data name="Review_Preview" xml:space="preserve">
     <value>Even beluisteren</value>

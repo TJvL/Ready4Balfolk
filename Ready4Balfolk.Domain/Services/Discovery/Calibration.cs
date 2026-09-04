@@ -156,7 +156,9 @@ public static class Calibration
             ? new CalibrationReport()
             : new CalibrationReport
             {
-                Folders = [.. FolderRoles(files, dances, declared)],
+                // What is in force, so a level whose role is switched off is proposed again rather
+                // than counted as answered by a rule that is doing nothing.
+                Folders = [.. FolderRoles(files, dances, declared.InForce())],
                 Shapes = [.. Shapes(files, dances)]
             };
     }

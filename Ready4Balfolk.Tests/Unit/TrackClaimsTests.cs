@@ -153,6 +153,52 @@ public sealed class TrackClaimsTests
     }
 
     [Fact]
+    public void ASwitchedOffMechanism_SaysNothingAtAll()
+    {
+        // Everything is filled in and every switch is off, which is what a person who tried the
+        // patterns and settled on their folders leaves behind. What they cannot see cannot speak.
+        var switchedOff = DeclaredDiscovery.Compile(new DiscoverySettings
+        {
+            FileNamePatterns = ["%d - %a - %t"],
+            FolderRoles = [FolderRole.Artist],
+            TagTrust = new TagTrust { Dance = [TagField.Comment] },
+            CustomDanceTag = "DANCE"
+        });
+
+        var claims = Collect(
+            Evidence("Scottish - Bal O'Gadjo - Le badaud", ["Naragonia"]) with
+            {
+                TagComment = "Mazurka",
+                CustomTags = Tags(("DANCE", "Bourrée"))
+            },
+            switchedOff);
+
+        Assert.DoesNotContain(claims, claim => claim.Trust == ClaimTrust.Declared);
+        Assert.DoesNotContain(claims, claim => claim.Value == "Bourrée");
+    }
+
+    [Fact]
+    public void SwitchedOffTagTrust_LeavesTheBuiltInGuesses()
+    {
+        // Off is the undeclared library, not a library with no tags: the artist and the title are
+        // still read off the tags, and still claimed as the guesses they are.
+        var switchedOff = DeclaredDiscovery.Compile(new DiscoverySettings
+        {
+            TagTrust = new TagTrust { Artist = [], Title = [] }
+        });
+
+        var claims = Collect(
+            Evidence("01 - Something") with { TagArtist = "Naragonia", TagTitle = "Salamandre" },
+            switchedOff);
+
+        Assert.Contains(
+            claims,
+            claim => claim.Field == TrackField.Artist
+                     && claim.Value == "Naragonia"
+                     && claim.Trust == ClaimTrust.Observed);
+    }
+
+    [Fact]
     public void OnlyTheFirstPatternToMatch_Speaks()
     {
         // Order is the user's way of saying which of two overlapping shapes their library means.
@@ -345,6 +391,12 @@ public sealed class TrackClaimsTests
         string? customDanceTag = null) =>
         DeclaredDiscovery.Compile(new DiscoverySettings
         {
+            // A mechanism is only read when it is switched on, and stating something through this
+            // helper is a test saying the user switched that one on.
+            UsesFileNamePatterns = patterns is not null,
+            UsesFolderRoles = roles is not null,
+            UsesTagTrust = trust is not null,
+            UsesCustomDanceTag = customDanceTag is not null,
             FileNamePatterns = patterns ?? [],
             FolderRoles = roles ?? [],
             TagTrust = trust ?? new TagTrust(),

@@ -249,7 +249,11 @@ public sealed class TrackStoreTests : IDisposable
                 return Task.CompletedTask;
             });
 
-        await ApplyAsync(discovery: new DiscoverySettings { FileNamePatterns = ["%a - %t"] });
+        await ApplyAsync(discovery: new DiscoverySettings
+        {
+            UsesFileNamePatterns = true,
+            FileNamePatterns = ["%a - %t"]
+        });
         await ApplyAsync(directory: _dirA);
 
         await WaitUntilAsync(() =>
@@ -292,7 +296,11 @@ public sealed class TrackStoreTests : IDisposable
         await ApplyAsync(directory: _dirA);
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
-        await ApplyAsync(discovery: new DiscoverySettings { FileNamePatterns = ["%a - %t"] });
+        await ApplyAsync(discovery: new DiscoverySettings
+        {
+            UsesFileNamePatterns = true,
+            FileNamePatterns = ["%a - %t"]
+        });
 
         await WaitUntilAsync(() => _libraryIndex.ReceivedCalls()
             .Any(call => call.GetMethodInfo().Name == nameof(ILibraryIndex.RevokeRuleApprovalsAsync)));

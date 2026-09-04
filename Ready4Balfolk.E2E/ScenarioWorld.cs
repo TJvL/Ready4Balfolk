@@ -282,12 +282,25 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
             EndOfNightAudioPath = Path.Combine(_root, "the end of the night.mp3")
         });
 
+    /// <summary>A machine nobody has set up: the wizard is what opens.</summary>
+    /// <remarks>
+    /// The music directory goes with it. Setup is where a person says where their music is, so a
+    /// world that has not been set up cannot already know.
+    /// </remarks>
+    public ScenarioWorld WhereNothingHasBeenSetUpYet() =>
+        WithSettings(settings => settings with
+        {
+            SetupCompleted = false,
+            MusicDirectoryPath = string.Empty
+        });
+
     /// <summary>The DJ has declared which tag field holds what, so their library needs no review.</summary>
     public ScenarioWorld WhereTheTagsAreTrusted() =>
         WithSettings(settings => settings with
         {
             DiscoveryOrNull = new DiscoverySettings
             {
+                UsesTagTrust = true,
                 TagTrust = new TagTrust
                 {
                     Artist = [TagField.Artist],
