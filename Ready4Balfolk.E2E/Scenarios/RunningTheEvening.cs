@@ -5,6 +5,64 @@ namespace Ready4Balfolk.E2E.Scenarios;
 /// <summary>The evening itself: what goes in the queue, what plays, and what is left behind.</summary>
 public sealed class RunningTheEvening(HeadlessSession session)
 {
+    /// <summary>A clicked seek bar asks once, however many times it is clicked.</summary>
+    /// <remarks>
+    /// World: a library of one dance, auto queue off, and the confirmations a DJ is asked for left
+    /// on.
+    /// Steps: start the track, click the seek bar, and click it again while the confirmation is
+    /// still up, the way a hand does when the first click looks like it did nothing.
+    /// Sees: one confirmation, and nothing left behind after answering it. A second confirmation
+    /// waiting behind the first is a track being walked forward a jump at a time in front of a
+    /// room.
+    /// </remarks>
+    [Fact]
+    public async Task ClickingTheSeekBarTwiceAsksOnce()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                RequirePlaybackConfirmation = true
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.ProgressOf("playback.progress") > 0,
+                "the dance to get under way");
+
+            application.Click("playback.progress");
+
+            await application.WaitUntil(
+                () => application.IsShowing("dialog.confirm"),
+                "the DJ to be asked about moving the track");
+
+            // The same click again, which is what a hand does when the first one looks like it did
+            // nothing. It must not start a second seek of its own.
+            application.Click("playback.progress");
+
+            Assert.Single(application.Window.OwnedWindows);
+
+            application.Click("dialog.confirm");
+
+            await application.WaitUntil(
+                () => !application.IsShowing("dialog.confirm"),
+                "the question to be answered and gone");
+
+            Assert.Empty(application.Window.OwnedWindows);
+        });
+    }
+
     /// <summary>The DJ plays a dance the room asked for, and it is in the night's account.</summary>
     /// <remarks>
     /// World: a library of two tracks, and auto queue off, so nothing goes into the queue that the

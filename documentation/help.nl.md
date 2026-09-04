@@ -490,8 +490,9 @@ nog eens toegevoegd worden. Zo speelt hetzelfde nummer niet twee keer op een avo
 
 ### Afspeelacties bevestigen
 
-Aangezet (de standaard) verschijnt een bevestiging vóór overslaan, wissen of herstarten. Zet het
-uit als de bevestigingen tijdens een optreden storen.
+Aangezet (de standaard) verschijnt een bevestiging vóór overslaan, wissen, herstarten of springen
+naar een plek die je op de voortgangsbalk aanklikt. Zet het uit als de bevestigingen tijdens een
+optreden storen.
 
 ### Thema
 

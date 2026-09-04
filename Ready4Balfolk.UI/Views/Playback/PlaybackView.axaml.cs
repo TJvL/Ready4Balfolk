@@ -1,5 +1,6 @@
 using System;
 using System.Reactive.Linq;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -35,7 +36,15 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
         var x = e.GetPosition(PlaybackProgressBar).X;
         var ratio = Math.Clamp(x / PlaybackProgressBar.Bounds.Width, 0, 1);
         var target = TimeSpan.FromSeconds(ratio * vm.Duration);
-        _ = vm.SeekAsync(target);
+
+        // Asked rather than fired: while the confirmation for the last click is still up the
+        // command will not run, and a click that arrives anyway is dropped instead of stacking a
+        // second dialog behind the first.
+        var seek = (ICommand)vm.SeekCommand;
+        if (seek.CanExecute(target))
+        {
+            seek.Execute(target);
+        }
     }
 
     private void UpdateTrackInfoScroll()
