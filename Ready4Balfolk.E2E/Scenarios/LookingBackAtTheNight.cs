@@ -43,7 +43,7 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => !application.IsShowing("playback.title"),
+                () => !application.IsShowing("playback.track"),
                 "the dance to play out");
 
             application.Click("queue.delay");
@@ -109,7 +109,7 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => !application.IsShowing("playback.title"),
+                () => !application.IsShowing("playback.track"),
                 "the dance to play out");
 
             application.Click("queue.show-history");
@@ -217,7 +217,7 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => !application.IsShowing("playback.title"),
+                () => !application.IsShowing("playback.track"),
                 "the dance to play out");
 
             application.Click("queue.show-history");
@@ -269,7 +269,7 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => !application.IsShowing("playback.title"),
+                () => !application.IsShowing("playback.track"),
                 "the soundcheck to play out");
 
             application.Click("queue.show-history");
@@ -286,7 +286,7 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => !application.IsShowing("playback.title"),
+                () => !application.IsShowing("playback.track"),
                 "the dance to play out");
 
             application.Click("queue.show-history");

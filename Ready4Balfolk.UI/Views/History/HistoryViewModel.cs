@@ -13,6 +13,7 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
@@ -28,6 +29,7 @@ namespace Ready4Balfolk.UI.Views.History;
 public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
 {
     private readonly IQueueHistoryStore _historyStore;
+    private readonly ISettingsStore _settingsStore;
     private readonly IConfirmationService _confirmationService;
     private readonly ILoggerService _loggerService;
     private readonly CompositeDisposable _disposables = [];
@@ -112,10 +114,12 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
 
     public HistoryViewModel(
         IQueueHistoryStore historyStore,
+        ISettingsStore settingsStore,
         IConfirmationService confirmationService,
         ILoggerService loggerService)
     {
         _historyStore = historyStore;
+        _settingsStore = settingsStore;
         _confirmationService = confirmationService;
         _loggerService = loggerService;
         ItemCountText = UiStrings.History_NoHistory;
@@ -139,6 +143,17 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
         historyStore.Observe()
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(OnTonightChanged)
+            .DisposeWith(_disposables);
+
+        // A template edited in the settings is on screen at once: the rows hold rendered text, so
+        // they are built again rather than waiting for the next thing to happen in the evening.
+        settingsStore.Observe()
+            .Select(settings => settings.DisplayTemplates.HistoryItem)
+            .DistinctUntilChanged(StringComparer.Ordinal)
+            .Skip(1)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(_ => ShowAsync(SelectedNight).SafeFireAndForget(exception =>
+                _loggerService.ErrorAsync("Failed to redraw a night", exception)))
             .DisposeWith(_disposables);
 
         // The nights on file are read once the store has them. A machine that was shut down after
@@ -283,7 +298,8 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
                 list.Add(HistoryItemViewModel.ForNightStart(startedAt));
             }
 
-            list.AddRange(history.Entries.Select(HistoryItemViewModel.ForEntry));
+            var template = _settingsStore.Current.DisplayTemplates.HistoryItem;
+            list.AddRange(history.Entries.Select(entry => HistoryItemViewModel.ForEntry(entry, template)));
 
             if (history.EndedAt is { } endedAt)
             {

@@ -7,6 +7,7 @@ using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Audio;
+using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
@@ -22,11 +23,14 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     private readonly ISettingsStore _settingsStore;
     private readonly CompositeDisposable _disposables = [];
 
+    /// <summary>What is on screen, so it can be written again when the templates change.</summary>
+    private IQueueItem? _showing;
+
     [Reactive] public partial string DanceName { get; set; }
     [Reactive] public partial bool IsMessageMode { get; set; }
     [Reactive] public partial bool HasTrack { get; set; }
-    [Reactive] public partial string ArtistName { get; set; }
-    [Reactive] public partial string TrackTitle { get; set; }
+    /// <summary>The line under the big one, written the way the user asked for it.</summary>
+    [Reactive] public partial string TrackLine { get; set; }
     [Reactive] public partial string CurrentTime { get; set; }
     [Reactive] public partial string TotalTime { get; set; }
     [Reactive] public partial double Duration { get; set; }
@@ -101,8 +105,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         _confirmationService = confirmationService;
         _settingsStore = settingsStore;
         DanceName = "";
-        ArtistName = "";
-        TrackTitle = "";
+        TrackLine = "";
         CurrentTime = "0:00";
         TotalTime = "0:00";
 
@@ -113,7 +116,21 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
 
         consumptionService.WhenCurrentItemChanged
             .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(OnCurrentItemChanged)
+            .Subscribe(item =>
+            {
+                _showing = item;
+                OnCurrentItemChanged(item);
+            })
+            .DisposeWith(_disposables);
+
+        // A template edited while something is playing is on screen at once. These lines are
+        // written when an item starts, so without this the change would wait for the next dance.
+        settingsStore.Observe()
+            .Select(settings => settings.DisplayTemplates)
+            .DistinctUntilChanged()
+            .Skip(1)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(_ => OnCurrentItemChanged(_showing))
             .DisposeWith(_disposables);
 
         consumptionService.WhenElapsedChanged
@@ -167,29 +184,25 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
                 IsMessageMode = true;
                 HasTrack = false;
                 DanceName = message.Description;
-                ArtistName = "";
-                TrackTitle = "";
+                TrackLine = "";
                 break;
             case DelayQueueItem:
                 IsMessageMode = false;
                 HasTrack = false;
                 DanceName = UiStrings.Playback_Delay;
-                ArtistName = "";
-                TrackTitle = "";
+                TrackLine = "";
                 break;
             case StopQueueItem:
                 IsMessageMode = false;
                 HasTrack = false;
                 DanceName = UiStrings.Playback_Stop;
-                ArtistName = "";
-                TrackTitle = "";
+                TrackLine = "";
                 break;
             case EndOfNightQueueItem:
                 IsMessageMode = false;
                 HasTrack = false;
                 DanceName = UiStrings.Playback_EndOfNight;
-                ArtistName = "";
-                TrackTitle = "";
+                TrackLine = "";
                 break;
             default:
                 break;
@@ -200,9 +213,9 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     {
         IsMessageMode = false;
         HasTrack = true;
-        DanceName = trackItem.Track.Dance;
-        ArtistName = trackItem.Track.Artist;
-        TrackTitle = trackItem.Track.Title;
+        var templates = _settingsStore.Current.DisplayTemplates;
+        DanceName = TrackTextTemplate.Render(templates.NowPlayingPrimary, trackItem.Track);
+        TrackLine = TrackTextTemplate.Render(templates.NowPlayingSecondary, trackItem.Track);
     }
 
     private void ClearState()
@@ -211,8 +224,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         HasTrack = false;
         IsMessageMode = false;
         DanceName = "";
-        ArtistName = "";
-        TrackTitle = "";
+        TrackLine = "";
         Progress = 0;
         Duration = 0;
         CurrentTime = "0:00";

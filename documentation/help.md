@@ -450,6 +450,23 @@ moment the end time refuses the next track, so the last thing the room hears is 
 go home and nobody has to remember to press anything while packing up. The end time never refuses the
 end-of-the-night audio itself: it is what happens after the line, not something sneaking past it.
 
+### How tracks are written on screen
+
+Four boxes, one per place the application writes a track as a line: the large line while something
+is playing, the line under it, a row of the queue and a row of the history. The placeholders are the
+ones the file name patterns use, read the other way round: `%d` the dance, `%a` the artist, `%t` the
+title. Everything else is written exactly as you type it, so `%t (%d)` gives "Salamandre (Mazurka)".
+
+A field your files have nothing in takes its separator with it. `%a - %t` on a track with no title
+is the artist, not the artist and a dash left hanging, and a track that has none of what the template
+asks for writes nothing at all rather than a row of punctuation.
+
+The preview under the boxes shows what the four do to one track, so nothing has to be saved to find
+out. The change reaches every screen at once, including a track that is playing while you type.
+
+The track overview keeps its columns. It is a table you sort by dance, by artist or by title, and a
+column is not a sentence.
+
 ### Show text on buttons
 
 Replaces the icons on buttons with a short description of what they do. Useful while learning the

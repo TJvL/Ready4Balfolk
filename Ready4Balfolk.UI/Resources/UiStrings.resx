@@ -231,6 +231,39 @@
   <data name="Settings_MusicDirectory" xml:space="preserve">
     <value>Music Directory</value>
   </data>
+  <data name="Settings_DisplayTemplates" xml:space="preserve">
+    <value>How tracks are written on screen</value>
+  </data>
+  <data name="Settings_DisplayTemplatesHint" xml:space="preserve">
+    <value>%d dance, %a artist, %t title. Anything else is written exactly as you type it. A field your file has nothing in takes its separator with it, so a track with no title does not leave a dash hanging.</value>
+  </data>
+  <data name="Settings_TemplateNowPlayingPrimary" xml:space="preserve">
+    <value>Playing now, large line</value>
+  </data>
+  <data name="Settings_TemplateNowPlayingSecondary" xml:space="preserve">
+    <value>Playing now, line under it</value>
+  </data>
+  <data name="Settings_TemplateQueueItem" xml:space="preserve">
+    <value>A row of the queue</value>
+  </data>
+  <data name="Settings_TemplateHistoryItem" xml:space="preserve">
+    <value>A row of the history</value>
+  </data>
+  <data name="Settings_TemplatePreview" xml:space="preserve">
+    <value>On a track that has all three:</value>
+  </data>
+  <data name="Settings_TemplateSampleDance" xml:space="preserve">
+    <value>Mazurka</value>
+  </data>
+  <data name="Settings_TemplateSampleArtist" xml:space="preserve">
+    <value>Naragonia</value>
+  </data>
+  <data name="Settings_TemplateSampleTitle" xml:space="preserve">
+    <value>Salamandre</value>
+  </data>
+  <data name="Settings_TemplateCatalogNote" xml:space="preserve">
+    <value>The track overview is a table you sort by dance, by artist or by title, so it keeps its columns.</value>
+  </data>
   <data name="Settings_MusicDirectoryWatermark" xml:space="preserve">
     <value>Select a directory...</value>
   </data>

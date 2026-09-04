@@ -156,6 +156,39 @@
   <data name="Settings_MusicDirectory" xml:space="preserve">
     <value>Muziekmap</value>
   </data>
+  <data name="Settings_DisplayTemplates" xml:space="preserve">
+    <value>Hoe nummers op het scherm komen te staan</value>
+  </data>
+  <data name="Settings_DisplayTemplatesHint" xml:space="preserve">
+    <value>%d dans, %a artiest, %t titel. Al het andere komt er letterlijk te staan zoals je het typt. Een veld waar in jouw bestand niets in staat neemt zijn scheidingsteken mee, zodat een nummer zonder titel geen streepje laat bungelen.</value>
+  </data>
+  <data name="Settings_TemplateNowPlayingPrimary" xml:space="preserve">
+    <value>Speelt nu, grote regel</value>
+  </data>
+  <data name="Settings_TemplateNowPlayingSecondary" xml:space="preserve">
+    <value>Speelt nu, regel eronder</value>
+  </data>
+  <data name="Settings_TemplateQueueItem" xml:space="preserve">
+    <value>Een regel van de wachtrij</value>
+  </data>
+  <data name="Settings_TemplateHistoryItem" xml:space="preserve">
+    <value>Een regel van de geschiedenis</value>
+  </data>
+  <data name="Settings_TemplatePreview" xml:space="preserve">
+    <value>Op een nummer dat alle drie heeft:</value>
+  </data>
+  <data name="Settings_TemplateSampleDance" xml:space="preserve">
+    <value>Mazurka</value>
+  </data>
+  <data name="Settings_TemplateSampleArtist" xml:space="preserve">
+    <value>Naragonia</value>
+  </data>
+  <data name="Settings_TemplateSampleTitle" xml:space="preserve">
+    <value>Salamandre</value>
+  </data>
+  <data name="Settings_TemplateCatalogNote" xml:space="preserve">
+    <value>Het nummeroverzicht is een tabel die je sorteert op dans, artiest of titel, en houdt dus zijn kolommen.</value>
+  </data>
   <data name="Settings_MusicDirectoryWatermark" xml:space="preserve">
     <value>Selecteer een map...</value>
   </data>

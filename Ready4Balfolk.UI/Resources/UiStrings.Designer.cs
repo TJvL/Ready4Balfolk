@@ -139,6 +139,39 @@ public static class UiStrings
     public static string Settings_MusicDirectory =>
         ResourceManager.GetString("Settings_MusicDirectory", Culture)!;
 
+    public static string Settings_DisplayTemplates =>
+        ResourceManager.GetString("Settings_DisplayTemplates", Culture)!;
+
+    public static string Settings_DisplayTemplatesHint =>
+        ResourceManager.GetString("Settings_DisplayTemplatesHint", Culture)!;
+
+    public static string Settings_TemplateNowPlayingPrimary =>
+        ResourceManager.GetString("Settings_TemplateNowPlayingPrimary", Culture)!;
+
+    public static string Settings_TemplateNowPlayingSecondary =>
+        ResourceManager.GetString("Settings_TemplateNowPlayingSecondary", Culture)!;
+
+    public static string Settings_TemplateQueueItem =>
+        ResourceManager.GetString("Settings_TemplateQueueItem", Culture)!;
+
+    public static string Settings_TemplateHistoryItem =>
+        ResourceManager.GetString("Settings_TemplateHistoryItem", Culture)!;
+
+    public static string Settings_TemplatePreview =>
+        ResourceManager.GetString("Settings_TemplatePreview", Culture)!;
+
+    public static string Settings_TemplateSampleDance =>
+        ResourceManager.GetString("Settings_TemplateSampleDance", Culture)!;
+
+    public static string Settings_TemplateSampleArtist =>
+        ResourceManager.GetString("Settings_TemplateSampleArtist", Culture)!;
+
+    public static string Settings_TemplateSampleTitle =>
+        ResourceManager.GetString("Settings_TemplateSampleTitle", Culture)!;
+
+    public static string Settings_TemplateCatalogNote =>
+        ResourceManager.GetString("Settings_TemplateCatalogNote", Culture)!;
+
     public static string Settings_MusicDirectoryWatermark =>
         ResourceManager.GetString("Settings_MusicDirectoryWatermark", Culture)!;
 

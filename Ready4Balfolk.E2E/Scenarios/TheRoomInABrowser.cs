@@ -137,13 +137,13 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("Salamandre", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the first dance to start");
 
             await phone.HoldDown("skip", TimeSpan.FromMilliseconds(900));
 
             await application.WaitUntil(
-                () => application.TextOf("playback.title").Contains("La Belle", StringComparison.Ordinal),
+                () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
                 "the desktop to move on to what the helper skipped to");
         });
     }

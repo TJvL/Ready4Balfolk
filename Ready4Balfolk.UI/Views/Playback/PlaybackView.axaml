@@ -69,16 +69,11 @@
                         <StackPanel x:Name="TrackInfoPanel"
                                     Orientation="Horizontal"
                                     Canvas.Left="0">
-                            <TextBlock AutomationProperties.AutomationId="playback.artist"
-                                       Text="{Binding ArtistName}"
-                                       FontSize="16"
-                                       VerticalAlignment="Center" />
-                            <TextBlock Text=" - "
-                                       FontSize="16"
-                                       Opacity="0.6"
-                                       VerticalAlignment="Center" />
-                            <TextBlock AutomationProperties.AutomationId="playback.title"
-                                       Text="{Binding TrackTitle}"
+                            <!-- One line, written the way the user asked for it. The separator was
+                                 a TextBlock of its own when the fields were fixed; it is theirs
+                                 now, and so is what happens when a track has no title. -->
+                            <TextBlock AutomationProperties.AutomationId="playback.track"
+                                       Text="{Binding TrackLine}"
                                        FontSize="16"
                                        VerticalAlignment="Center" />
                         </StackPanel>

@@ -13,7 +13,9 @@ using AsyncAwaitBestPractices;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
@@ -28,6 +30,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     private readonly ILoggerService _loggerService;
     private readonly IConfirmationService _confirmationService;
     private readonly PresentationWebServer _webServer;
+    private readonly IFileSystem _fileSystem;
     private readonly CompositeDisposable _disposables = [];
 
     /// <summary>What ending a language change does. Replaced only by tests.</summary>
@@ -43,6 +46,15 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool AllowDuplicateTracksInQueue { get; set; }
     [Reactive] public partial bool RequirePlaybackConfirmation { get; set; }
     [Reactive] public partial bool ShowButtonText { get; set; }
+
+    // How a track is written on each screen that writes one as a line, in the user's own words.
+    [Reactive] public partial string NowPlayingPrimaryTemplate { get; set; }
+    [Reactive] public partial string NowPlayingSecondaryTemplate { get; set; }
+    [Reactive] public partial string QueueItemTemplate { get; set; }
+    [Reactive] public partial string HistoryItemTemplate { get; set; }
+
+    /// <summary>What those four do to a track, so nobody has to guess before they save.</summary>
+    [Reactive] public partial string TemplatePreview { get; private set; }
     [Reactive] public partial bool QueueCutoffEnabled { get; set; }
     [Reactive] public partial int QueueCutoffMinutesOfDay { get; set; }
     [Reactive] public partial int QueueCutoffGraceMinutes { get; set; }
@@ -113,6 +125,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         _loggerService = loggerService;
         _confirmationService = confirmationService;
         _webServer = webServer;
+        _fileSystem = fileSystem;
 
         var current = settingsStore.Current;
         MusicDirectoryPath = current.MusicDirectoryPath;
@@ -123,6 +136,10 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         AllowDuplicateTracksInQueue = current.AllowDuplicateTracksInQueue;
         RequirePlaybackConfirmation = current.RequirePlaybackConfirmation;
         ShowButtonText = current.ShowButtonText;
+        NowPlayingPrimaryTemplate = current.DisplayTemplates.NowPlayingPrimary;
+        NowPlayingSecondaryTemplate = current.DisplayTemplates.NowPlayingSecondary;
+        QueueItemTemplate = current.DisplayTemplates.QueueItem;
+        HistoryItemTemplate = current.DisplayTemplates.HistoryItem;
         QueueCutoffEnabled = current.QueueCutoffEnabled;
         QueueCutoffMinutesOfDay = current.QueueCutoffMinutesOfDay;
         QueueCutoffGraceMinutes = current.QueueCutoffGraceMinutes;
@@ -170,6 +187,22 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         ThrottledSave(x => x.ShowButtonText, v => s => s with
         {
             ShowButtonText = v
+        });
+        ThrottledSave(x => x.NowPlayingPrimaryTemplate, v => s => s with
+        {
+            DisplayTemplatesOrNull = s.DisplayTemplates with { NowPlayingPrimary = v }
+        });
+        ThrottledSave(x => x.NowPlayingSecondaryTemplate, v => s => s with
+        {
+            DisplayTemplatesOrNull = s.DisplayTemplates with { NowPlayingSecondary = v }
+        });
+        ThrottledSave(x => x.QueueItemTemplate, v => s => s with
+        {
+            DisplayTemplatesOrNull = s.DisplayTemplates with { QueueItem = v }
+        });
+        ThrottledSave(x => x.HistoryItemTemplate, v => s => s with
+        {
+            DisplayTemplatesOrNull = s.DisplayTemplates with { HistoryItem = v }
         });
         ThrottledSave(x => x.QueueCutoffEnabled, v => s => s with
         {
@@ -236,11 +269,47 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .Subscribe(SyncFromStore)
             .DisposeWith(_disposables);
 
+        // The preview runs as a template is typed, the way the pattern preview does on the
+        // discovery screen: what a template does to a track is the only way to judge it.
+        this.WhenAnyValue(
+                x => x.NowPlayingPrimaryTemplate,
+                x => x.NowPlayingSecondaryTemplate,
+                x => x.QueueItemTemplate,
+                x => x.HistoryItemTemplate)
+            .Subscribe(_ => UpdatePreview())
+            .DisposeWith(_disposables);
+
         UpdateWebServerStatus();
         webServer.WhenChanged
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateWebServerStatus())
             .DisposeWith(_disposables);
+    }
+
+    /// <summary>
+    /// What the four templates make of one track, on the four lines they are for.
+    /// </summary>
+    /// <remarks>
+    /// A track with everything on it, because a preview of the happy case is what somebody is
+    /// writing the template against. What a missing field does is written beside the boxes rather
+    /// than demonstrated, or the preview would have to be four more lines.
+    /// </remarks>
+    private void UpdatePreview()
+    {
+        var sample = new Track(
+            UiStrings.Settings_TemplateSampleDance,
+            UiStrings.Settings_TemplateSampleArtist,
+            UiStrings.Settings_TemplateSampleTitle,
+            _fileSystem.FileInfo.New("sample.mp3"),
+            TimeSpan.FromMinutes(3),
+            AudioFormat.Mp3);
+
+        TemplatePreview = string.Join(
+            Environment.NewLine,
+            TrackTextTemplate.Render(NowPlayingPrimaryTemplate, sample),
+            TrackTextTemplate.Render(NowPlayingSecondaryTemplate, sample),
+            TrackTextTemplate.Render(QueueItemTemplate, sample),
+            TrackTextTemplate.Render(HistoryItemTemplate, sample));
     }
 
     /// <summary>Mints a new PIN, which also drops every phone currently connected.</summary>

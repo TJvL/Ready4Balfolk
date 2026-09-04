@@ -39,6 +39,14 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 
     public ReadOnlyObservableCollection<IQueueItem> QueuedItems => _queuedItems;
 
+    /// <summary>How a track is written on a row here, which the rows read through their binding.</summary>
+    /// <remarks>
+    /// A row is bound to the queue item itself rather than to a view model of its own, so this is
+    /// what the template reaches them by. It follows the settings, so an edit is on screen at once
+    /// rather than at the next restart.
+    /// </remarks>
+    [Reactive] public partial string TrackTemplate { get; private set; }
+
     [Reactive] public partial IQueueItem? SelectedItem { get; set; }
 
     private IObservable<bool> CanEditSelected =>
@@ -262,6 +270,14 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 
         this.WhenAnyValue(x => x.SelectedItem)
             .Subscribe(_ => UpdateMoveStates())
+            .DisposeWith(_disposables);
+
+        TrackTemplate = settingsStore.Current.DisplayTemplates.QueueItem;
+        settingsStore.Observe()
+            .Select(s => s.DisplayTemplates.QueueItem)
+            .DistinctUntilChanged(StringComparer.Ordinal)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(template => TrackTemplate = template)
             .DisposeWith(_disposables);
 
         settingsStore.Observe()
