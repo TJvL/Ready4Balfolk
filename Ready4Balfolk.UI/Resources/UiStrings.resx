@@ -265,10 +265,10 @@
     <value>That file is not there, so the end of the night cannot be played.</value>
   </data>
   <data name="Settings_EndOfNightAtCutoff" xml:space="preserve">
-    <value>Play it after the last track the end time allowed</value>
+    <value>Play the end-of-the-night audio when this time is reached</value>
   </data>
   <data name="Settings_EndOfNightAtCutoffDescription" xml:space="preserve">
-    <value>The last thing the room hears is the thing that means go home, without anybody having to press it while packing up. Once it is queued nothing else goes in; removing it reopens the evening.</value>
+    <value>When the end time refuses the next track, the end-of-the-night file is queued behind the last track that fitted, so nobody has to press it while packing up. Nothing goes in after it, and removing it from the queue opens the evening again.</value>
   </data>
   <data name="Queue_NoRandomTrack" xml:space="preserve">
     <value>No tracks to pick from</value>
