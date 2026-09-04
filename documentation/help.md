@@ -441,9 +441,9 @@ Queueing it declares the evening over. Nothing goes in after it, not a track, no
 delay or a message, and the auto-queue stops so the machine does not extend an evening you have just
 ended. Removing it reopens the evening.
 
-With **play it after the last track the end time allowed** ticked, it is queued for you the moment
-the end time refuses the next track, so the last thing the room hears is the thing that means go
-home and nobody has to remember to press anything while packing up. The end time never refuses the
+With **play the end-of-the-night audio when this time is reached** ticked, it is queued for you the
+moment the end time refuses the next track, so the last thing the room hears is the thing that means
+go home and nobody has to remember to press anything while packing up. The end time never refuses the
 end-of-the-night audio itself: it is what happens after the line, not something sneaking past it.
 
 ### Show text on buttons

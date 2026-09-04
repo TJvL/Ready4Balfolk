@@ -456,8 +456,8 @@ Het in de wachtrij zetten sluit de avond af. Er gaat daarna niets meer bij, geen
 verzoek, geen pauze en geen bericht, en de auto-wachtrij stopt zodat het programma geen avond
 verlengt die jij net beëindigd hebt. Haal je het weg, dan gaat de avond weer open.
 
-Staat **speel het na het laatste nummer dat de eindtijd toeliet** aan, dan wordt het voor je in de
-wachtrij gezet zodra de eindtijd het volgende nummer weigert: het laatste wat de zaal hoort is dan
+Staat **speel de slotmuziek van de avond zodra deze tijd bereikt is** aan, dan wordt het voor je in
+de wachtrij gezet zodra de eindtijd het volgende nummer weigert: het laatste wat de zaal hoort is dan
 het teken om naar huis te gaan, zonder dat iemand er tijdens het opruimen aan hoeft te denken. De
 eindtijd weigert de slotmuziek zelf nooit: die hoort ná de grens, hij probeert er niet langs.
 
