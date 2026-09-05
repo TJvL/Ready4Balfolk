@@ -533,8 +533,11 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         var dance = row.Dance.Trim();
         var sharing = Sharing(row).ToList();
 
+        // Written as the slug when the list knows the dance: thirty-four answers under a name that
+        // later moves are thirty-four tracks quietly re-pointed at another dance.
         await _libraryIndex.ApproveIndividuallyAsync(
-            [.. sharing.Select(candidate => candidate.Path)], [new FieldAnswer(TrackField.Dance, dance)]);
+            [.. sharing.Select(candidate => candidate.Path)],
+            [new FieldAnswer(TrackField.Dance, _danceListStore.Index.ApprovedValueFor(dance))]);
 
         foreach (var candidate in sharing)
         {
@@ -603,16 +606,20 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
 
     private async Task ApproveRowAsync(ReviewRowViewModel row)
     {
+        var typed = row.Dance.Trim();
+
         await _libraryIndex.ApproveIndividuallyAsync([row.Path],
         [
-            new FieldAnswer(TrackField.Dance, row.Dance.Trim()),
+            // The slug, whichever of a dance's names was typed, so the answer still means this dance
+            // the day the published list re-spells it.
+            new FieldAnswer(TrackField.Dance, _danceListStore.Index.ApprovedValueFor(typed)),
             new FieldAnswer(TrackField.Artist, row.Artist.Trim()),
             new FieldAnswer(TrackField.Title, row.Title.Trim())
         ]);
 
         // A dance the published list has never heard of is not a local problem to patch around. The
         // answer is kept, the track parks, and a proposal at BigBalfolkList is what releases it.
-        var known = _danceListStore.Index.ResolveSlug(row.Dance.Trim()) is not null;
+        var known = _danceListStore.Index.ResolveSlug(typed) is not null;
         row.MarkApproved(known);
     }
 

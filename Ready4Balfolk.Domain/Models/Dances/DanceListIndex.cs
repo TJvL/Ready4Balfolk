@@ -75,6 +75,19 @@ public sealed class DanceListIndex
 
     public Dance? FindBySlug(string slug) => _danceBySlug.GetValueOrDefault(slug);
 
+    /// <summary>
+    /// What an approval of this text holds: the slug when the list knows the value, the text itself
+    /// when it does not.
+    /// </summary>
+    /// <remarks>
+    /// The slug is the identity and the names on it are a flat set of equals the published list is
+    /// free to re-spell, so an answer written down as a name silently re-points to another dance the
+    /// day that name moves, and vanishes the day it is dropped. Text is kept only for a value the
+    /// list has never heard of: that is what parks a track, and keeping it is what lets a later
+    /// import release it without anybody being asked twice.
+    /// </remarks>
+    public string ApprovedValueFor(string value) => ResolveSlug(value) ?? value;
+
     /// <summary>The name to show for a slug, or the slug itself when the list no longer has it.</summary>
     public string DisplayNameFor(string slug) => FindBySlug(slug)?.DisplayName ?? slug;
 }

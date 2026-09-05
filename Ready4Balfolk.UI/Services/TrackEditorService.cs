@@ -40,14 +40,15 @@ public sealed class TrackEditorService(
     /// <remarks>
     /// Only what changed: an untouched field keeps whatever approval it already had, so one a rule
     /// answered is still taken back when that rule changes. The track never leaves the library; the
-    /// rebuild is what makes the correction show at once.
+    /// rebuild is what makes the correction show at once. The dance comes in as the name the person
+    /// read, which is what "changed" is decided on, and goes down as the slug it stands for.
     /// </remarks>
     public async Task ApplyAsync(Track track, string dance, string artist, string title)
     {
         var answers = new List<FieldAnswer>();
         if (!string.Equals(dance, track.Dance, System.StringComparison.Ordinal))
         {
-            answers.Add(new FieldAnswer(TrackField.Dance, dance));
+            answers.Add(new FieldAnswer(TrackField.Dance, danceListStore.Index.ApprovedValueFor(dance)));
         }
 
         if (!string.Equals(artist, track.Artist, System.StringComparison.Ordinal))

@@ -99,11 +99,16 @@ public static class ReviewGate
         DanceListIndex dances,
         bool allowDancesOutsideTheList = false)
     {
-        var dance = Field(TrackField.Dance, DerivedDance(entry, dances), approvals);
+        var answered = Field(TrackField.Dance, DerivedDance(entry, dances), approvals);
         var artist = Field(TrackField.Artist, entry.Artist, approvals);
         var title = Field(TrackField.Title, entry.Title, approvals);
 
-        var slug = dance.Value is null ? null : SlugFor(dance.Value, dances);
+        var slug = answered.Value is null ? null : SlugFor(answered.Value, dances);
+
+        // What was agreed to is a slug whenever the list knew the value, and a slug is an identity
+        // rather than something to put in front of a person. A dance the list knows reads as the
+        // list spells it, whichever of the two shapes was written down.
+        var dance = slug is null ? answered : answered with { Value = dances.DisplayNameFor(slug) };
 
         return new TrackReview
         {
@@ -169,8 +174,8 @@ public static class ReviewGate
     /// The dance the value stands for, or nothing when the published list has never heard of it.
     /// </summary>
     /// <remarks>
-    /// A name or a slug: what a rule approved is whatever text it read, and what the tagging editor
-    /// approved is the slug the user picked off the list. Both have to answer the same question.
+    /// A name or a slug: an approval holds the slug when the list knew the value that was agreed to,
+    /// and the raw text when it did not. Both have to answer the same question.
     /// </remarks>
     private static string? SlugFor(string value, DanceListIndex dances) =>
         dances.ResolveSlug(value) ?? (dances.FindBySlug(value) is null ? null : value);

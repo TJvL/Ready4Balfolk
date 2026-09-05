@@ -346,16 +346,23 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             await using var command = connection.CreateCommand();
             command.Transaction = (SqliteTransaction)transaction;
 
-            // One answer per field per track: agreeing to something new replaces what was agreed to
-            // before rather than leaving two answers to choose between.
-            command.CommandText = """
+            // One answer per field per track: a rule answering again replaces what a rule answered
+            // before rather than leaving two answers to choose between. It stops at a row somebody
+            // looked at and answered themselves, which is what makes an individual approval sticky:
+            // without the guard a retag, a rename or a newly declared pattern quietly replaced the
+            // hand correction, and the row being ByRule afterwards meant the next rule change
+            // revoked it outright. The write time is left alone with it, or the rule's clock would
+            // stand in for when the person agreed and the track would stop coming back after a
+            // retag.
+            command.CommandText = $$"""
                 INSERT INTO approvals (content_hash, field, value, kind, rule, file_write_utc)
                 VALUES ($hash, $field, $value, $kind, $rule, $written)
                 ON CONFLICT(content_hash, field) DO UPDATE SET
                     value = excluded.value,
                     kind = excluded.kind,
                     rule = excluded.rule,
-                    file_write_utc = excluded.file_write_utc;
+                    file_write_utc = excluded.file_write_utc
+                WHERE approvals.kind = {{(int)ApprovalKind.ByRule}};
                 """;
 
             var hash = command.Parameters.Add("$hash", SqliteType.Blob);
