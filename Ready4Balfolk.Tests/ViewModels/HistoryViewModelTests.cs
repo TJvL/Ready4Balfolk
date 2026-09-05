@@ -159,7 +159,7 @@ public sealed class HistoryViewModelTests : IDisposable
     public void StartNewNight_WithoutConfirmation_KeepsTheNightRunning()
     {
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>()).Returns(false);
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
 
         _historySubject.OnNext(new QueueHistory(DateTime.Now, [
             new TrackHistoryEntry("/tmp/a.mp3", "M", "A", "T",
@@ -188,7 +188,7 @@ public sealed class HistoryViewModelTests : IDisposable
     public void DeleteNight_WithoutConfirmation_KeepsIt()
     {
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>()).Returns(false);
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
 
         _historySubject.OnNext(new QueueHistory(DateTime.Now, [
             new TrackHistoryEntry("/tmp/a.mp3", "M", "A", "T",

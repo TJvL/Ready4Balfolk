@@ -2,6 +2,7 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
@@ -20,11 +21,15 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     private readonly IQueueConsumptionService _consumptionService;
     private readonly IQueueService _queueService;
     private readonly IConfirmationService _confirmationService;
+    private readonly INotificationService _notificationService;
     private readonly ISettingsStore _settingsStore;
     private readonly CompositeDisposable _disposables = [];
 
     /// <summary>What is on screen, so it can be written again when the templates change.</summary>
     private IQueueItem? _showing;
+
+    /// <summary>The question on screen, so the item it is about can withdraw it when it ends.</summary>
+    private CancellationTokenSource? _pendingConfirmation;
 
     [Reactive] public partial string DanceName { get; set; }
     [Reactive] public partial bool IsMessageMode { get; set; }
@@ -58,8 +63,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     [ReactiveCommand(CanExecute = nameof(CanRestart))]
     private async Task Restart()
     {
-        if (HasCurrentItem && _settingsStore.Current.RequirePlaybackConfirmation &&
-            !await _confirmationService.ConfirmAsync(UiStrings.Playback_RestartTitle, UiStrings.Playback_RestartMessage, UiStrings.Playback_RestartButton, UiStrings.Playback_CancelButton))
+        if (!await ConfirmForAsync(_consumptionService.CurrentItem, UiStrings.Playback_RestartTitle, UiStrings.Playback_RestartMessage, UiStrings.Playback_RestartButton))
         {
             return;
         }
@@ -70,27 +74,25 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     [ReactiveCommand(CanExecute = nameof(CanNextOrClear))]
     private async Task NextOrClear()
     {
-        if (HasCurrentItem && _settingsStore.Current.RequirePlaybackConfirmation)
+        var asked = _consumptionService.CurrentItem;
+
+        var confirmed = _queueService.Count > 0
+            ? await ConfirmForAsync(asked, UiStrings.Playback_SkipTitle, UiStrings.Playback_SkipMessage, UiStrings.Playback_SkipButton)
+            : await ConfirmForAsync(asked, UiStrings.Playback_ClearTitle, UiStrings.Playback_ClearMessage, UiStrings.Playback_ClearButton);
+
+        if (!confirmed)
         {
-            if (_queueService.Count > 0)
-            {
-                if (!await _confirmationService.ConfirmAsync(UiStrings.Playback_SkipTitle, UiStrings.Playback_SkipMessage, UiStrings.Playback_SkipButton, UiStrings.Playback_CancelButton))
-                {
-                    return;
-                }
-            }
-            else
-            {
-                if (!await _confirmationService.ConfirmAsync(UiStrings.Playback_ClearTitle, UiStrings.Playback_ClearMessage, UiStrings.Playback_ClearButton, UiStrings.Playback_CancelButton))
-                {
-                    return;
-                }
-            }
+            return;
         }
 
         if (_queueService.Count > 0)
         {
-            await _consumptionService.AdvanceAsync();
+            // The item is named, so an evening that moved on between the answer and the gate drops
+            // the skip rather than taking the dance that had just started.
+            if (!await _consumptionService.AdvanceAsync(asked))
+            {
+                ReportTooLate();
+            }
         }
         else
         {
@@ -98,11 +100,56 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public PlaybackViewModel(IQueueConsumptionService consumptionService, IQueueService queueService, IConfirmationService confirmationService, ISettingsStore settingsStore, IAudioPlaybackService audioPlaybackService)
+    /// <summary>Asks about <paramref name="asked" />, and says no when the answer came too late.</summary>
+    /// <remarks>
+    /// A question is about whatever was playing when it was asked. Answered after that dance ended,
+    /// "yes" skips the one that followed it, restarts it, or seeks it to a position measured against
+    /// a length that was never its own. The question is withdrawn along with its dance for the same
+    /// reason. Either way the DJ is told: a button pressed and confirmed that then does nothing is a
+    /// button that gets pressed again, harder, with a room watching.
+    /// </remarks>
+    private async Task<bool> ConfirmForAsync(IQueueItem? asked, string title, string message, string confirmText)
+    {
+        if (!HasCurrentItem || !_settingsStore.Current.RequirePlaybackConfirmation)
+        {
+            return true;
+        }
+
+        using var withdrawal = new CancellationTokenSource();
+        _pendingConfirmation = withdrawal;
+
+        bool confirmed;
+        try
+        {
+            confirmed = await _confirmationService.ConfirmAsync(title, message, confirmText, UiStrings.Playback_CancelButton, withdrawal.Token);
+        }
+        finally
+        {
+            _pendingConfirmation = null;
+        }
+
+        if (!withdrawal.IsCancellationRequested && ReferenceEquals(_consumptionService.CurrentItem, asked))
+        {
+            return confirmed;
+        }
+
+        if (confirmed || withdrawal.IsCancellationRequested)
+        {
+            ReportTooLate();
+        }
+
+        return false;
+    }
+
+    private void ReportTooLate() =>
+        _notificationService.Show(UiStrings.Playback_AnswerTooLate, NotificationSeverity.Warning);
+
+    public PlaybackViewModel(IQueueConsumptionService consumptionService, IQueueService queueService, IConfirmationService confirmationService, INotificationService notificationService, ISettingsStore settingsStore, IAudioPlaybackService audioPlaybackService)
     {
         _consumptionService = consumptionService;
         _queueService = queueService;
         _confirmationService = confirmationService;
+        _notificationService = notificationService;
         _settingsStore = settingsStore;
         DanceName = "";
         TrackLine = "";
@@ -118,6 +165,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(item =>
             {
+                _pendingConfirmation?.Cancel();
                 _showing = item;
                 OnCurrentItemChanged(item);
             })
@@ -252,8 +300,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     [ReactiveCommand(CanExecute = nameof(CanSeek))]
     private async Task Seek(TimeSpan position)
     {
-        if (HasCurrentItem && _settingsStore.Current.RequirePlaybackConfirmation &&
-            !await _confirmationService.ConfirmAsync(UiStrings.Playback_SeekTitle, UiStrings.Playback_SeekMessage, UiStrings.Playback_SeekButton, UiStrings.Playback_CancelButton))
+        if (!await ConfirmForAsync(_consumptionService.CurrentItem, UiStrings.Playback_SeekTitle, UiStrings.Playback_SeekMessage, UiStrings.Playback_SeekButton))
         {
             return;
         }

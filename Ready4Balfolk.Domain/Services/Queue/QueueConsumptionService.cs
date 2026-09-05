@@ -115,12 +115,20 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 .Subscribe(_ => _isPlaying.OnNext(false)));
     }
 
-    public async Task AdvanceAsync()
+    public async Task<bool> AdvanceAsync(IQueueItem? requestedFor = null)
     {
         await _gate.WaitAsync();
         try
         {
             var finished = _currentItem.Value;
+
+            // A decision taken about one dance must never land on the next. The wait on this gate
+            // can be as long as a track's last seconds, and a dance that runs out by itself in the
+            // meantime moves the evening on without anybody pressing anything.
+            if (requestedFor != null && !ReferenceEquals(requestedFor, finished))
+            {
+                return false;
+            }
 
             // Read before the cleanup, which puts it down again: a gap follows a dance that ran
             // out, not one somebody moved past.
@@ -135,10 +143,11 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             if (ranOut && WaitsBeforeTheNextDance(finished) is { } gap)
             {
                 StartGap(gap);
-                return;
+                return true;
             }
 
             await StartTheNextItemAsync();
+            return true;
         }
         finally
         {
@@ -360,7 +369,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     {
         _itemFinishedNaturally = true;
         // Fire-and-forget advance: the gate ensures serialization
-        _unawaited.Start(DomainStrings.Queue_AdvanceFailed, AdvanceAsync);
+        _unawaited.Start(DomainStrings.Queue_AdvanceFailed, () => AdvanceAsync());
     });
 
     /// <summary>Counts a delay, a message or a gap down, and advances once when it runs out.</summary>

@@ -568,6 +568,9 @@
   <data name="Playback_AudioUnavailable" xml:space="preserve">
     <value>Audio niet beschikbaar</value>
   </data>
+  <data name="Playback_AnswerTooLate" xml:space="preserve">
+    <value>De avond was al verder, er is niets veranderd.</value>
+  </data>
 
   <!-- Track Catalog -->
   <data name="TrackCatalog_ColumnDance" xml:space="preserve">
