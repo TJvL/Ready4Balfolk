@@ -32,6 +32,18 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool HasInReview { get; private set; }
 
     /// <summary>
+    /// How many tracks the library is keeping but cannot reach, said out loud rather than implied.
+    /// </summary>
+    /// <remarks>
+    /// A dead NAS otherwise reads as a library that is simply smaller than it was, which is the
+    /// worst way to find out ten minutes into an evening. It is not a button: there is nothing to
+    /// press, only something to know, and it goes away by itself when the files come back.
+    /// </remarks>
+    [Reactive] public partial string UnavailableText { get; private set; }
+
+    [Reactive] public partial bool HasUnavailable { get; private set; }
+
+    /// <summary>
     /// Whether each page is actually being served, which is not the same as the switch being on.
     /// </summary>
     /// <remarks>
@@ -48,9 +60,12 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
         ArgumentNullException.ThrowIfNull(webServer);
         ArgumentNullException.ThrowIfNull(settingsStore);
 
+        ArgumentNullException.ThrowIfNull(trackStore);
+
         _webServer = webServer;
         _settingsStore = settingsStore;
         InReviewText = string.Empty;
+        UnavailableText = string.Empty;
 
         UpdateWhatIsServed();
         webServer.WhenChanged
@@ -74,6 +89,18 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
                 HasInReview = waiting > 0;
                 InReviewText = waiting > 0
                     ? string.Format(CultureInfo.CurrentCulture, UiStrings.Toolbar_ReviewCount, waiting)
+                    : string.Empty;
+            })
+            .DisposeWith(_disposables);
+
+        trackStore.UnavailableCount
+            .DistinctUntilChanged()
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(unavailable =>
+            {
+                HasUnavailable = unavailable > 0;
+                UnavailableText = unavailable > 0
+                    ? string.Format(CultureInfo.CurrentCulture, UiStrings.Toolbar_UnavailableCount, unavailable)
                     : string.Empty;
             })
             .DisposeWith(_disposables);

@@ -1178,6 +1178,37 @@ public static class UiStrings
     public static string Toolbar_ReviewCount =>
         ResourceManager.GetString("Toolbar_ReviewCount", Culture)!;
 
+    public static string Toolbar_UnavailableCount =>
+        ResourceManager.GetString("Toolbar_UnavailableCount", Culture)!;
+
+    public static string Toolbar_UnavailableTip =>
+        ResourceManager.GetString("Toolbar_UnavailableTip", Culture)!;
+
+    // Missing folders
+    public static string MissingFolders_Title =>
+        ResourceManager.GetString("MissingFolders_Title", Culture)!;
+
+    public static string MissingFolders_Message =>
+        ResourceManager.GetString("MissingFolders_Message", Culture)!;
+
+    public static string MissingFolders_Unreadable =>
+        ResourceManager.GetString("MissingFolders_Unreadable", Culture)!;
+
+    public static string MissingFolders_Empty =>
+        ResourceManager.GetString("MissingFolders_Empty", Culture)!;
+
+    public static string MissingFolders_Consequence =>
+        ResourceManager.GetString("MissingFolders_Consequence", Culture)!;
+
+    public static string MissingFolders_KeepThem =>
+        ResourceManager.GetString("MissingFolders_KeepThem", Culture)!;
+
+    public static string MissingFolders_ForgetThem =>
+        ResourceManager.GetString("MissingFolders_ForgetThem", Culture)!;
+
+    public static string MissingFolders_Exit =>
+        ResourceManager.GetString("MissingFolders_Exit", Culture)!;
+
     public static string Wizard_Review_Title =>
         ResourceManager.GetString("Wizard_Review_Title", Culture)!;
 
@@ -1271,4 +1302,35 @@ public static class UiStrings
         ResourceManager.GetString("Discovery_DanceListUrl", Culture)!;
     public static string Discovery_DanceListHint =>
         ResourceManager.GetString("Discovery_DanceListHint", Culture)!;
+
+    public static string DanceList_UpdateFromFileFailed =>
+        ResourceManager.GetString("DanceList_UpdateFromFileFailed", Culture)!;
+    public static string DanceList_OpenSiteFailed =>
+        ResourceManager.GetString("DanceList_OpenSiteFailed", Culture)!;
+    public static string Wizard_DanceList_ImportFailed =>
+        ResourceManager.GetString("Wizard_DanceList_ImportFailed", Culture)!;
+    public static string Settings_MusicDirectoryChooseFailed =>
+        ResourceManager.GetString("Settings_MusicDirectoryChooseFailed", Culture)!;
+    public static string Settings_EndOfNightChooseFailed =>
+        ResourceManager.GetString("Settings_EndOfNightChooseFailed", Culture)!;
+    public static string Settings_ExportLogFailed =>
+        ResourceManager.GetString("Settings_ExportLogFailed", Culture)!;
+    public static string Queue_MoveItemFailed =>
+        ResourceManager.GetString("Queue_MoveItemFailed", Culture)!;
+    public static string QueueToolbar_AddMessageFailed =>
+        ResourceManager.GetString("QueueToolbar_AddMessageFailed", Culture)!;
+    public static string History_ReadNightsFailed =>
+        ResourceManager.GetString("History_ReadNightsFailed", Culture)!;
+    public static string HistoryToolbar_ExportFailed =>
+        ResourceManager.GetString("HistoryToolbar_ExportFailed", Culture)!;
+    public static string Toolbar_DisplayAddressFailed =>
+        ResourceManager.GetString("Toolbar_DisplayAddressFailed", Culture)!;
+    public static string Toolbar_RemoteAddressFailed =>
+        ResourceManager.GetString("Toolbar_RemoteAddressFailed", Culture)!;
+    public static string Review_PreviewFailed =>
+        ResourceManager.GetString("Review_PreviewFailed", Culture)!;
+    public static string Review_StopPreviewFailed =>
+        ResourceManager.GetString("Review_StopPreviewFailed", Culture)!;
+    public static string Review_SeekPreviewFailed =>
+        ResourceManager.GetString("Review_SeekPreviewFailed", Culture)!;
 }

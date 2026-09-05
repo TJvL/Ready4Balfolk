@@ -16,6 +16,16 @@
         <_BassIsWindows>$([MSBuild]::IsOSPlatform('Windows'))</_BassIsWindows>
         <_BassIsLinux>$([MSBuild]::IsOSPlatform('Linux'))</_BassIsLinux>
         <_BassArch>$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)</_BassArch>
+
+        <!--
+            Every project in the solution imports this file and they all write to the one
+            build/bass-native directory, so a parallel build had five of them downloading and
+            unzipping the same archives over each other and failing on the file locks (MSB3923,
+            MSB3936). Domain is the only project that fetches. Everything else references it,
+            directly or through UI, so MSBuild has always finished it before any of them starts,
+            and by then the natives are on disk to be copied.
+        -->
+        <_BassFetches Condition="'$(MSBuildProjectName)' == 'Ready4Balfolk.Domain'">true</_BassFetches>
     </PropertyGroup>
 
     <!-- BASS: Windows -->
@@ -53,17 +63,18 @@
     <Target Name="DownloadBassNative"
             BeforeTargets="PrepareForBuild"
             Condition="'$(_BassZipUrl)' != '' AND '$(_BassNativeFile)' != ''">
-        <MakeDir Directories="$(BassNativeDir)"/>
+        <MakeDir Directories="$(BassNativeDir)" Condition="'$(_BassFetches)' == 'true'"/>
 
         <DownloadFile SourceUrl="$(_BassZipUrl)"
                       DestinationFolder="$(BassNativeDir)"
                       SkipUnchangedFiles="true"
                       Retries="3"
-                      Condition="'$(BassSkipDownload)' != 'true'"/>
+                      Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true'"/>
 
         <Unzip SourceFiles="$(BassNativeDir)$(_BassZipFile)"
                DestinationFolder="$(BassNativeDir)$(_BassExtractDir)"
-               OverwriteReadOnlyFiles="true"/>
+               OverwriteReadOnlyFiles="true"
+               Condition="'$(_BassFetches)' == 'true'"/>
 
         <ItemGroup>
             <None Include="$(BassNativeDir)$(_BassExtractDir)$(_BassNativeFile)"
@@ -108,17 +119,18 @@
     <Target Name="DownloadBassFlacNative"
             BeforeTargets="PrepareForBuild"
             Condition="'$(_BassFlacZipUrl)' != '' AND '$(_BassFlacNativeFile)' != ''">
-        <MakeDir Directories="$(BassNativeDir)"/>
+        <MakeDir Directories="$(BassNativeDir)" Condition="'$(_BassFetches)' == 'true'"/>
 
         <DownloadFile SourceUrl="$(_BassFlacZipUrl)"
                       DestinationFolder="$(BassNativeDir)"
                       SkipUnchangedFiles="true"
                       Retries="3"
-                      Condition="'$(BassSkipDownload)' != 'true'"/>
+                      Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true'"/>
 
         <Unzip SourceFiles="$(BassNativeDir)$(_BassFlacZipFile)"
                DestinationFolder="$(BassNativeDir)$(_BassFlacExtractDir)"
-               OverwriteReadOnlyFiles="true"/>
+               OverwriteReadOnlyFiles="true"
+               Condition="'$(_BassFetches)' == 'true'"/>
 
         <ItemGroup>
             <None Include="$(BassNativeDir)$(_BassFlacExtractDir)$(_BassFlacNativeFile)"
@@ -163,17 +175,18 @@
     <Target Name="DownloadBassFxNative"
             BeforeTargets="PrepareForBuild"
             Condition="'$(_BassFxZipUrl)' != '' AND '$(_BassFxNativeFile)' != ''">
-        <MakeDir Directories="$(BassNativeDir)"/>
+        <MakeDir Directories="$(BassNativeDir)" Condition="'$(_BassFetches)' == 'true'"/>
 
         <DownloadFile SourceUrl="$(_BassFxZipUrl)"
                       DestinationFolder="$(BassNativeDir)"
                       SkipUnchangedFiles="true"
                       Retries="3"
-                      Condition="'$(BassSkipDownload)' != 'true'"/>
+                      Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true'"/>
 
         <Unzip SourceFiles="$(BassNativeDir)$(_BassFxZipFile)"
                DestinationFolder="$(BassNativeDir)$(_BassFxExtractDir)"
-               OverwriteReadOnlyFiles="true"/>
+               OverwriteReadOnlyFiles="true"
+               Condition="'$(_BassFetches)' == 'true'"/>
 
         <ItemGroup>
             <None Include="$(BassNativeDir)$(_BassFxExtractDir)$(_BassFxNativeFile)"

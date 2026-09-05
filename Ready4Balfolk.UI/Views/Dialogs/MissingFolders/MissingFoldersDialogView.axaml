@@ -1,0 +1,67 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:missing="clr-namespace:Ready4Balfolk.UI.Views.Dialogs.MissingFolders"
+        xmlns:res="using:Ready4Balfolk.UI.Resources"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="320"
+        x:Class="Ready4Balfolk.UI.Views.Dialogs.MissingFolders.MissingFoldersDialogView"
+        x:DataType="missing:MissingFoldersDialogViewModel"
+        Title="{x:Static res:UiStrings.MissingFolders_Title}"
+        Width="520"
+        SizeToContent="Height"
+        MaxHeight="600"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False">
+    <StackPanel Margin="24" Spacing="16">
+        <TextBlock Text="{x:Static res:UiStrings.MissingFolders_Title}"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   TextWrapping="Wrap" />
+
+        <TextBlock Text="{x:Static res:UiStrings.MissingFolders_Message}" TextWrapping="Wrap" />
+
+        <!-- One line per folder. A library can lose more than one at a time, and a scrolling list
+             beats a dialog taller than the screen. -->
+        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl AutomationProperties.AutomationId="missing-folders.list"
+                          ItemsSource="{CompiledBinding Folders}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <SelectableTextBlock Text="{CompiledBinding}"
+                                             TextWrapping="Wrap"
+                                             Margin="0,0,0,8" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <TextBlock AutomationProperties.AutomationId="missing-folders.consequence"
+                   Text="{CompiledBinding Consequence}"
+                   TextWrapping="Wrap"
+                   Opacity="0.8" />
+
+        <!-- Keeping them is the default: it is the only one of the three that cannot lose
+             anything, and it is what somebody hitting return in a hurry should get. -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button AutomationProperties.AutomationId="missing-folders.exit"
+                    Content="{x:Static res:UiStrings.MissingFolders_Exit}"
+                    Command="{CompiledBinding ExitCommand}"
+                    MinWidth="80" />
+            <Button AutomationProperties.AutomationId="missing-folders.forget"
+                    Content="{x:Static res:UiStrings.MissingFolders_ForgetThem}"
+                    Command="{CompiledBinding ForgetThemCommand}"
+                    MinWidth="80" />
+            <!-- The accent class is provided by FluentAvalonia at runtime, so this is a false positive. -->
+            <!-- ReSharper disable once Xaml.StyleClassNotFound -->
+            <Button x:Name="KeepThemButton"
+                    AutomationProperties.AutomationId="missing-folders.keep"
+                    Content="{x:Static res:UiStrings.MissingFolders_KeepThem}"
+                    Command="{CompiledBinding KeepThemCommand}"
+                    MinWidth="80"
+                    Classes="accent"
+                    IsDefault="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>

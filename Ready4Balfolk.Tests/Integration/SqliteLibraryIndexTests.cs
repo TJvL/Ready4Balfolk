@@ -79,7 +79,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.WriteAsync([Entry("/music/old.mp3", [9, 9], slug: "plinn")], Token);
 
         await _sut.WriteAsync([Entry("/music/new.mp3", [9, 9], slug: "plinn")], Token);
-        await _sut.DeleteMissingAsync(["/music/new.mp3"], Token);
+        await _sut.DeleteMissingAsync(["/music/new.mp3"], [], Token);
 
         var snapshot = await _sut.SnapshotByPathAsync(Token);
         Assert.Single(snapshot);
@@ -99,7 +99,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     {
         await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2])], Token);
 
-        await _sut.DeleteMissingAsync(["/music/a.mp3"], Token);
+        await _sut.DeleteMissingAsync(["/music/a.mp3"], [], Token);
 
         var snapshot = await _sut.SnapshotByPathAsync(Token);
         Assert.Single(snapshot);
@@ -111,9 +111,53 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     {
         await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
 
-        await _sut.DeleteMissingAsync([], Token);
+        await _sut.DeleteMissingAsync([], [], Token);
 
         Assert.Empty(await _sut.SnapshotByPathAsync(Token));
+    }
+
+    /// <summary>
+    /// What the user was asked about and said to keep. The row and everything approved about it
+    /// stay; only its reach is gone.
+    /// </summary>
+    [Fact]
+    public async Task DeleteMissing_WhatIsToBeKept_StaysAsUnavailable()
+    {
+        await _sut.WriteAsync([Entry("/music/nas/a.mp3", [1])], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/nas/a.mp3"], [new FieldAnswer(TrackField.Dance, "Mazurka")], Token);
+
+        await _sut.DeleteMissingAsync([], ["/music/nas/a.mp3"], Token);
+
+        var snapshot = await _sut.SnapshotByPathAsync(Token);
+        Assert.False(Assert.Single(snapshot).Value.IsAvailable);
+        Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+    }
+
+    [Fact]
+    public async Task DeleteMissing_AFileFoundAgain_IsReachableAgain()
+    {
+        await _sut.WriteAsync([Entry("/music/nas/a.mp3", [1])], Token);
+        await _sut.DeleteMissingAsync([], ["/music/nas/a.mp3"], Token);
+
+        await _sut.DeleteMissingAsync(["/music/nas/a.mp3"], [], Token);
+
+        Assert.True((await _sut.SnapshotByPathAsync(Token))["/music/nas/a.mp3"].IsAvailable);
+    }
+
+    /// <summary>
+    /// The watcher's path. A file that comes back on its own is written, and being written is the
+    /// whole of the answer: nobody is asked a second time.
+    /// </summary>
+    [Fact]
+    public async Task Write_AfterAPathWasKeptAsUnavailable_MakesItReachableAgain()
+    {
+        await _sut.WriteAsync([Entry("/music/nas/a.mp3", [1])], Token);
+        await _sut.DeleteMissingAsync([], ["/music/nas/a.mp3"], Token);
+
+        await _sut.WriteAsync([Entry("/music/nas/a.mp3", [1])], Token);
+
+        Assert.True((await _sut.SnapshotByPathAsync(Token))["/music/nas/a.mp3"].IsAvailable);
     }
 
     [Fact]
@@ -259,7 +303,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
         await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Dance, "mazurka")], Token);
 
-        await _sut.DeleteMissingAsync([], Token);
+        await _sut.DeleteMissingAsync([], [], Token);
 
         Assert.Empty(await _sut.ApprovalsAsync(Token));
     }
@@ -289,6 +333,17 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2])], Token);
 
         Assert.Equal(2, await _sut.CountIndexedAsync(Token));
+    }
+
+    /// <summary>A progress line counting files nothing is going to read never moves.</summary>
+    [Fact]
+    public async Task CountIndexed_LeavesOutWhatCannotBeReached()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/nas/b.mp3", [2])], Token);
+
+        await _sut.DeleteMissingAsync(["/music/a.mp3"], ["/music/nas/b.mp3"], Token);
+
+        Assert.Equal(1, await _sut.CountIndexedAsync(Token));
     }
 
     private static TrackApproval ByRule(byte[] hash, TrackField field, string value) => new()

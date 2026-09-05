@@ -109,6 +109,7 @@ On a 2685-file library with BigBalfolkList imported and nothing else configured,
 - The hash is over **the audio stream only** (`AudioContentHasher`, using TagLib's invariant start/end positions). The application writes tags into files itself, and a whole-file hash would make every one of its own edits look like a new track.
 - The **fast path is path + size + last-write-time**, held in a snapshot read once per scan. Hashing would be a better check and is what the row is keyed by, but it means opening the file, which is the cost the index exists to avoid.
 - The index stores **the slug, not a name**, plus `original_dance` for the review screen to group identical unknown values by. The review count itself is the gate's: the track store publishes how many indexed tracks were held out of the library, so all three hold-back reasons count.
+- **`track_paths.available` is per path, and a scan never sets it on its own.** A scan cannot tell a drive that has not mounted from a folder emptied on purpose, so when the index holds tracks in a folder and the walk found no music in it, `TrackStore` asks through `IMissingFolderPrompt` before it writes anything, and only an answer marks rows unavailable. Unavailable rows are excluded from the published library, the review queue, folder agreement and the discovery statistics, and any write or scan that finds the file again clears the flag. Per path rather than per audio because one recording can sit on a local disk and on a NAS at once.
 
 ### Nights
 
@@ -309,6 +310,7 @@ public enum Screen { Main, Settings, Help }
 | Service | Purpose |
 |---------|---------|
 | `ConfirmationService` | Shows a modal `ConfirmationDialogView`. Requires `SetOwner(Window)` to be called once at startup (done in `App.axaml.cs`). Returns `Task<bool>`. |
+| `MissingFolderPromptService` | Implements the Domain's `IMissingFolderPrompt`: shows `MissingFoldersDialogView` for a scan that found no music where the index says there is some. Marshals onto the UI thread, since a scan does not run on it, and takes its owner window from `ConfirmationService` so a question raised from inside the wizard is parented to the wizard. Keeping the tracks is what an unanswered question means. |
 | `NotificationService` | Toast notifications using a DynamicData `SourceList<NotificationItem>` bound to `NotificationOverlayView`. Auto-dismisses after 4 seconds. Supports `Information`, `Warning`, `Error` severity. |
 | `FileLogSinkService` | Implements Avalonia's `ILogSink` to bridge framework logs into the Domain `ILoggerService`. Wired in `Program.cs` via `AfterSetup`. |
 

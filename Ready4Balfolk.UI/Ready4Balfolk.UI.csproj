@@ -36,6 +36,10 @@
           internal to this assembly on purpose: they are the application composing itself, not a
           surface anything else is meant to call.-->
       <InternalsVisibleTo Include="Ready4Balfolk.E2E" />
+      <!--The container a view resolves what it needs from, and the reporting the handlers around
+          it go through, are internal for the same reason: they are the application wiring itself
+          up rather than a surface anything else calls. Both are worth a test of their own.-->
+      <InternalsVisibleTo Include="Ready4Balfolk.Tests" />
     </ItemGroup>
 
     <ItemGroup>

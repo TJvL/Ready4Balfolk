@@ -1214,6 +1214,37 @@
   <data name="Toolbar_ReviewCount" xml:space="preserve">
     <value>{0} nummers wachten</value>
   </data>
+  <data name="Toolbar_UnavailableCount" xml:space="preserve">
+    <value>{0} nummers onbereikbaar</value>
+  </data>
+  <data name="Toolbar_UnavailableTip" xml:space="preserve">
+    <value>Nummers die de bibliotheek bewaart maar niet kan bereiken. Ze kunnen niet in de wachtrij en niet nagekeken worden, en ze komen vanzelf terug zodra een scan hun bestanden weer vindt.</value>
+  </data>
+  <data name="MissingFolders_Title" xml:space="preserve">
+    <value>Mappen zonder muziek erin</value>
+  </data>
+  <data name="MissingFolders_Message" xml:space="preserve">
+    <value>De bibliotheek kent nummers in deze mappen, en deze scan vond er geen muziek.</value>
+  </data>
+  <data name="MissingFolders_Unreadable" xml:space="preserve">
+    <value>{0} kon niet gelezen worden: {1}
+De bibliotheek kent er {2} nummers.</value>
+  </data>
+  <data name="MissingFolders_Empty" xml:space="preserve">
+    <value>{0} bevat {1} nummers in de bibliotheek, en er is geen muziek in gevonden.</value>
+  </data>
+  <data name="MissingFolders_Consequence" xml:space="preserve">
+    <value>Doorgaan zonder deze bewaart die {0} nummers als onbereikbaar, en ze komen vanzelf terug zodra een latere scan hun bestanden vindt. Doorgaan verwijdert ze uit de bibliotheek, samen met alles wat je erover hebt goedgekeurd. Afsluiten schrijft niets weg.</value>
+  </data>
+  <data name="MissingFolders_KeepThem" xml:space="preserve">
+    <value>Doorgaan zonder deze</value>
+  </data>
+  <data name="MissingFolders_ForgetThem" xml:space="preserve">
+    <value>Doorgaan</value>
+  </data>
+  <data name="MissingFolders_Exit" xml:space="preserve">
+    <value>Afsluiten</value>
+  </data>
   <data name="Wizard_Review_Title" xml:space="preserve">
     <value>Wat op jou wacht</value>
   </data>
@@ -1333,5 +1364,52 @@
   </data>
   <data name="Discovery_DanceListHint" xml:space="preserve">
     <value>De dansenlijst waar elk nummer mee vergeleken wordt. Hij is gedeeld, dus een ontbrekende dans stel je daar voor in plaats van hem hier toe te voegen. Je nummers die daarop wachten gaan je bibliotheek in zodra de lijst de naam kent.</value>
+  </data>
+
+  <!-- What a handler could not do -->
+  <data name="DanceList_UpdateFromFileFailed" xml:space="preserve">
+    <value>De dansenlijst kon niet uit dat bestand bijgewerkt worden</value>
+  </data>
+  <data name="DanceList_OpenSiteFailed" xml:space="preserve">
+    <value>De website van de dansenlijst kon niet geopend worden</value>
+  </data>
+  <data name="Wizard_DanceList_ImportFailed" xml:space="preserve">
+    <value>De dansenlijst kon niet geïmporteerd worden</value>
+  </data>
+  <data name="Settings_MusicDirectoryChooseFailed" xml:space="preserve">
+    <value>De muziekmap kon niet gekozen worden</value>
+  </data>
+  <data name="Settings_EndOfNightChooseFailed" xml:space="preserve">
+    <value>De slotmuziek van de avond kon niet gekozen worden</value>
+  </data>
+  <data name="Settings_ExportLogFailed" xml:space="preserve">
+    <value>Het logbestand kon niet geëxporteerd worden</value>
+  </data>
+  <data name="Queue_MoveItemFailed" xml:space="preserve">
+    <value>Het item kon niet verplaatst worden</value>
+  </data>
+  <data name="QueueToolbar_AddMessageFailed" xml:space="preserve">
+    <value>Het bericht kon niet toegevoegd worden</value>
+  </data>
+  <data name="History_ReadNightsFailed" xml:space="preserve">
+    <value>De bewaarde avonden konden niet gelezen worden</value>
+  </data>
+  <data name="HistoryToolbar_ExportFailed" xml:space="preserve">
+    <value>De geschiedenis kon niet geëxporteerd worden</value>
+  </data>
+  <data name="Toolbar_DisplayAddressFailed" xml:space="preserve">
+    <value>Het adres van de schermpagina kon niet getoond worden</value>
+  </data>
+  <data name="Toolbar_RemoteAddressFailed" xml:space="preserve">
+    <value>Het adres van de afstandsbediening kon niet getoond worden</value>
+  </data>
+  <data name="Review_PreviewFailed" xml:space="preserve">
+    <value>Het nummer kon niet beluisterd worden</value>
+  </data>
+  <data name="Review_StopPreviewFailed" xml:space="preserve">
+    <value>Het beluisteren kon niet gestopt worden</value>
+  </data>
+  <data name="Review_SeekPreviewFailed" xml:space="preserve">
+    <value>Er kon niet door het nummer gespoeld worden</value>
   </data>
 </root>

@@ -17,6 +17,16 @@ public interface ITrackStore : ILoadableStore
     /// </remarks>
     IObservable<int> InReviewCount { get; }
 
+    /// <summary>
+    /// How many indexed tracks are being kept but cannot be reached, replayed to new subscribers.
+    /// </summary>
+    /// <remarks>
+    /// Rows the user was asked about and said to keep when a scan found no music in their folder.
+    /// They are in nothing: not the library, not the review queue, not a random pick. Somewhere
+    /// visible has to say so, or a dead NAS reads as a library that is simply smaller than it was.
+    /// </remarks>
+    IObservable<int> UnavailableCount { get; }
+
     /// <summary>The path of a track whose file has just gone from the music directory.</summary>
     /// <remarks>
     /// Published as the watcher notices it, rather than being read off the library: a rebuild

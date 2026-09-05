@@ -51,7 +51,17 @@ public interface ILibraryIndex : IDisposable
         IReadOnlyCollection<string> paths, IReadOnlyCollection<FieldAnswer> answers, CancellationToken token = default);
 
     /// <summary>Forgets every row whose path is not in the set, after a scan has been through.</summary>
-    Task DeleteMissingAsync(IReadOnlyCollection<string> existingPaths, CancellationToken token = default);
+    /// <param name="existingPaths">What the scan found. These rows are marked available again.</param>
+    /// <param name="unavailablePaths">
+    /// What the user was asked about and said to keep. These rows are not deleted; they are marked
+    /// unavailable and stay out of the library until a scan finds their files again. Empty is the
+    /// ordinary case, and then this deletes everything the scan did not find, as it always has.
+    /// </param>
+    /// <param name="token">Cancels the reconciliation.</param>
+    Task DeleteMissingAsync(
+        IReadOnlyCollection<string> existingPaths,
+        IReadOnlyCollection<string> unavailablePaths,
+        CancellationToken token = default);
 
     /// <summary>
     /// Forgets one path, for the watcher noticing a file go. An audio nothing points at any more is
@@ -78,8 +88,8 @@ public interface ILibraryIndex : IDisposable
     /// never both, so this is the number the review badge is for.
     /// </remarks>
     /// <summary>
-    /// How many files the index knows, for a scan's progress line. Whether one is in review is the
-    /// gate's decision, not a query: the published library reports that count itself.
+    /// How many files the index knows and can reach, for a scan's progress line. Whether one is in
+    /// review is the gate's decision, not a query: the published library reports that count itself.
     /// </summary>
     Task<int> CountIndexedAsync(CancellationToken token = default);
 

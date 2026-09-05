@@ -1289,6 +1289,37 @@
   <data name="Toolbar_ReviewCount" xml:space="preserve">
     <value>{0} tracks waiting</value>
   </data>
+  <data name="Toolbar_UnavailableCount" xml:space="preserve">
+    <value>{0} tracks unavailable</value>
+  </data>
+  <data name="Toolbar_UnavailableTip" xml:space="preserve">
+    <value>Tracks the library is keeping but cannot reach. They cannot be queued or reviewed, and they come back on their own once a scan finds their files again.</value>
+  </data>
+  <data name="MissingFolders_Title" xml:space="preserve">
+    <value>Folders with no music in them</value>
+  </data>
+  <data name="MissingFolders_Message" xml:space="preserve">
+    <value>The library holds tracks in these folders, and this scan found no music in them.</value>
+  </data>
+  <data name="MissingFolders_Unreadable" xml:space="preserve">
+    <value>{0} could not be read: {1}
+It holds {2} tracks in the library.</value>
+  </data>
+  <data name="MissingFolders_Empty" xml:space="preserve">
+    <value>{0} holds {1} tracks in the library, and no music was found in it.</value>
+  </data>
+  <data name="MissingFolders_Consequence" xml:space="preserve">
+    <value>Continue without them keeps those {0} tracks, marked unavailable, and they come back by themselves when a later scan finds their files. Continue deletes them from the library along with everything you have approved about them. Exit writes nothing.</value>
+  </data>
+  <data name="MissingFolders_KeepThem" xml:space="preserve">
+    <value>Continue without them</value>
+  </data>
+  <data name="MissingFolders_ForgetThem" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="MissingFolders_Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
   <data name="Wizard_Review_Title" xml:space="preserve">
     <value>What is waiting for you</value>
   </data>
@@ -1408,5 +1439,52 @@
   </data>
   <data name="Discovery_DanceListHint" xml:space="preserve">
     <value>The dance list every track is matched against. It is shared, so a dance missing from it is proposed there rather than added here, and your tracks waiting on one go into your library the moment it carries the name.</value>
+  </data>
+
+  <!-- What a handler could not do -->
+  <data name="DanceList_UpdateFromFileFailed" xml:space="preserve">
+    <value>Failed to update the dance list from a file</value>
+  </data>
+  <data name="DanceList_OpenSiteFailed" xml:space="preserve">
+    <value>Failed to open the dance list website</value>
+  </data>
+  <data name="Wizard_DanceList_ImportFailed" xml:space="preserve">
+    <value>Failed to import the dance list</value>
+  </data>
+  <data name="Settings_MusicDirectoryChooseFailed" xml:space="preserve">
+    <value>Failed to choose the music directory</value>
+  </data>
+  <data name="Settings_EndOfNightChooseFailed" xml:space="preserve">
+    <value>Failed to choose the end-of-night track</value>
+  </data>
+  <data name="Settings_ExportLogFailed" xml:space="preserve">
+    <value>Failed to export the log</value>
+  </data>
+  <data name="Queue_MoveItemFailed" xml:space="preserve">
+    <value>Failed to move the queue item</value>
+  </data>
+  <data name="QueueToolbar_AddMessageFailed" xml:space="preserve">
+    <value>Failed to add the message</value>
+  </data>
+  <data name="History_ReadNightsFailed" xml:space="preserve">
+    <value>Failed to read the nights on file</value>
+  </data>
+  <data name="HistoryToolbar_ExportFailed" xml:space="preserve">
+    <value>Failed to export queue history</value>
+  </data>
+  <data name="Toolbar_DisplayAddressFailed" xml:space="preserve">
+    <value>Failed to show the display address</value>
+  </data>
+  <data name="Toolbar_RemoteAddressFailed" xml:space="preserve">
+    <value>Failed to show the remote address</value>
+  </data>
+  <data name="Review_PreviewFailed" xml:space="preserve">
+    <value>Failed to preview the track</value>
+  </data>
+  <data name="Review_StopPreviewFailed" xml:space="preserve">
+    <value>Failed to stop the preview</value>
+  </data>
+  <data name="Review_SeekPreviewFailed" xml:space="preserve">
+    <value>Failed to move through the preview</value>
   </data>
 </root>
