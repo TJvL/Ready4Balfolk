@@ -4,8 +4,10 @@ using System.IO.Abstractions;
 using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Logging;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 using ReactiveUI.Avalonia.Reactive.Splat;
@@ -63,7 +65,8 @@ public static class ApplicationComposition
                 // Replaces the RxApp.DefaultExceptionHandler assignment removed in ReactiveUI 23.
                 // Resolved lazily: the logger service does not exist yet when the builder runs.
                 withReactiveUIBuilder: reactiveUi => reactiveUi.WithExceptionHandler(
-                    Observer.Create<Exception>(ReportUnhandled)))
+                    Observer.Create<Exception>(exception =>
+                        ReportUnhandled("Unhandled RxApp exception", exception))))
             .WithInterFont()
             .AfterSetup(_ =>
             {
@@ -93,21 +96,49 @@ public static class ApplicationComposition
                     e.SetObserved();
                 };
 
+                // The last net under the UI thread, and the only one that can stop a fall.
+                // Everything above is meant to catch its own failure; what reaches here is what
+                // nothing did, and Avalonia's own answer to it is to tear the loop down and take
+                // the evening with it. Handled, so the window stays up and the DJ is told instead.
+                Dispatcher.UIThread.UnhandledException += (_, e) =>
+                {
+                    ReportUnhandled("Unhandled exception on the UI thread", e.Exception);
+                    e.Handled = true;
+                };
+
+                UseOneReportPerFailure();
+
                 loggerService.InfoAsync("Application starting");
             });
     }
 
-    /// <summary>Writes down what fell out of a subscription, and never throws doing it.</summary>
+    /// <summary>Keeps one thing going wrong to one line in the log and one notice on screen.</summary>
+    /// <remarks>
+    /// AsyncAwaitBestPractices calls a process-wide default exception handler in addition to the
+    /// handler a call site passes, never instead of it. Every fire-and-forget in this
+    /// application either passes a handler that says what it could not do, or goes through
+    /// <see cref="Domain.Helpers.UnawaitedWork.Start"/>, which reports it itself and lets nothing
+    /// escape. A default handler on top of that would give the DJ a second toast reading "Unhandled
+    /// fire-and-forget exception" beside the one that says which thing failed, because
+    /// <see cref="ApplicationStartup"/> groups notifications by message and these are two messages.
+    ///
+    /// So there is deliberately no default, and this makes sure of it rather than leaving it to the
+    /// absence of a line: anything else in the process is free to install one.
+    /// </remarks>
+    internal static void UseOneReportPerFailure() =>
+        SafeFireAndForgetExtensions.RemoveDefaultExceptionHandling();
+
+    /// <summary>Writes down what nothing else caught, and never throws doing it.</summary>
     /// <remarks>
     /// The container it asks for the logger can be gone: on the way down, anything still in flight
     /// arrives after everything it needs has been disposed. An exception handler that throws while
     /// reporting an exception replaces a line in the log with a crash.
     /// </remarks>
-    private static void ReportUnhandled(Exception exception)
+    private static void ReportUnhandled(string whatFailed, Exception exception)
     {
         try
         {
-            _ = App.Services?.GetService<ILoggerService>()?.ErrorAsync("Unhandled RxApp exception", exception);
+            _ = App.Services?.GetService<ILoggerService>()?.ErrorAsync(whatFailed, exception);
         }
         catch (ObjectDisposedException)
         {

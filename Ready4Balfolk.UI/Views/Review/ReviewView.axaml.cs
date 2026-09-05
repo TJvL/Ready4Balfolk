@@ -9,6 +9,8 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ReactiveUI.Avalonia.Reactive;
+using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Review;
 
@@ -97,17 +99,19 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         }
         else if (e.Key is Key.Space && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
         {
-            _ = ViewModel.TogglePreviewAsync(selected);
+            // A file BASS will not open is the ordinary case here rather than the exceptional one:
+            // this queue is where those land, so the DJ is told rather than shown a closed window.
+            Handlers.Run(UiStrings.Review_PreviewFailed, () => ViewModel.TogglePreviewAsync(selected));
         }
         else if (e.Key is Key.Escape)
         {
-            _ = ViewModel.StopPreviewAsync();
+            Handlers.Run(UiStrings.Review_StopPreviewFailed, ViewModel.StopPreviewAsync);
         }
         else if (e.Key is Key.Left or Key.Right && ViewModel.IsPreviewing)
         {
             // Only while something is playing, so they stay ordinary editing keys the rest of the
             // time: a typo in the middle of a title still has to be reachable.
-            _ = ViewModel.SeekByAsync(TimeSpan.FromSeconds(e.Key is Key.Left ? -5 : 5));
+            Handlers.Run(UiStrings.Review_SeekPreviewFailed, () => ViewModel.SeekByAsync(TimeSpan.FromSeconds(e.Key is Key.Left ? -5 : 5)));
         }
         else if (e.Key is Key.Up or Key.Down)
         {
@@ -191,11 +195,11 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
     private static string TextOf(Control field) =>
         field is TextBox box ? box.Text ?? string.Empty : string.Empty;
 
-    private async void OnPreviewClick(object? sender, RoutedEventArgs e)
+    private void OnPreviewClick(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { Tag: ReviewRowViewModel row } && ViewModel is { } viewModel)
         {
-            await viewModel.TogglePreviewAsync(row);
+            Handlers.Run(UiStrings.Review_PreviewFailed, () => viewModel.TogglePreviewAsync(row));
         }
     }
 
@@ -242,6 +246,8 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         }
 
         var ratio = Math.Clamp(e.GetPosition(bar).X / bar.Bounds.Width, 0, 1);
-        _ = viewModel.SeekPreviewAsync(TimeSpan.FromSeconds(ratio * viewModel.PreviewDurationSeconds));
+        Handlers.Run(
+            UiStrings.Review_SeekPreviewFailed,
+            () => viewModel.SeekPreviewAsync(TimeSpan.FromSeconds(ratio * viewModel.PreviewDurationSeconds)));
     }
 }
