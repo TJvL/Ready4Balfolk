@@ -117,4 +117,9 @@
   <data name="DanceList_Invalid" xml:space="preserve">
     <value>That dance list breaks the rules the list is built on, so it has been left alone.</value>
   </data>
+
+  <!-- Audio -->
+  <data name="Audio_OutputGone" xml:space="preserve">
+    <value>No sound is coming out: the audio device is gone. Check the cable, then press play again.</value>
+  </data>
 </root>

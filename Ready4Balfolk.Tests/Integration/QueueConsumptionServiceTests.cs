@@ -34,6 +34,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     private readonly Subject<RxUnit> _playbackEnded = new();
     private readonly Subject<TimeSpan> _progressChanged = new();
     private readonly Subject<TimeSpan> _durationChanged = new();
+    private readonly BehaviorSubject<bool> _availabilityChanged = new(true);
 
     /// <summary>Read live, so a test can change a setting after the service is built.</summary>
     private ApplicationSettings _settings = new();
@@ -48,6 +49,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         _audio.WhenPlaybackEnded.Returns(_playbackEnded);
         _audio.WhenProgressChanged.Returns(_progressChanged);
         _audio.WhenDurationChanged.Returns(_durationChanged);
+        _audio.WhenAvailabilityChanged.Returns(_availabilityChanged);
 
         _history = Substitute.For<IQueueHistoryStore>();
         _history.Current.Returns(new QueueHistory(null, []));
@@ -178,6 +180,22 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         Assert.True(isPlaying);
 
         _playbackPaused.OnNext(RxUnit.Default);
+        Assert.False(isPlaying);
+    }
+
+    [Fact]
+    public void TheOutputGoingAway_StopsTheEveningSayingItIsPlaying()
+    {
+        var isPlaying = false;
+        using var subscription = _sut.WhenIsPlayingChanged.Subscribe(v => isPlaying = v);
+
+        _playbackStarted.OnNext(RxUnit.Default);
+        Assert.True(isPlaying);
+
+        // An interface unplugged mid-set. The desktop, the screens and the phone all read this, so
+        // leaving it true is a dance shown running while the hall hears nothing.
+        _availabilityChanged.OnNext(false);
+
         Assert.False(isPlaying);
     }
 
@@ -537,5 +555,6 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         _playbackEnded.Dispose();
         _progressChanged.Dispose();
         _durationChanged.Dispose();
+        _availabilityChanged.Dispose();
     }
 }
