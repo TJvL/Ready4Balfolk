@@ -24,20 +24,27 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="8">
-            <Button AutomationProperties.AutomationId="dialog.cancel"
+            <!-- The return key, the focus on open and the accent all follow ConfirmIsSafe: a
+                 question that throws something away must not be the one a reflex answers yes to,
+                 and it must not be the inviting button either. Escape stays on cancel throughout. -->
+            <!-- The accent class is provided by FluentAvalonia at runtime, so these are false positives. -->
+            <!-- ReSharper disable once Xaml.StyleClassNotFound -->
+            <Button x:Name="CancelButton"
+                    AutomationProperties.AutomationId="dialog.cancel"
                     Content="{CompiledBinding CancelText}"
                     Command="{CompiledBinding CancelCommand}"
                     MinWidth="80"
+                    Classes.accent="{CompiledBinding !ConfirmIsSafe}"
+                    IsDefault="{CompiledBinding !ConfirmIsSafe}"
                     IsCancel="True" />
-            <!-- The accent class is provided by FluentAvalonia at runtime, so these are false positives. -->
             <!-- ReSharper disable once Xaml.StyleClassNotFound -->
             <Button x:Name="ConfirmButton"
                     AutomationProperties.AutomationId="dialog.confirm"
                     Content="{CompiledBinding ConfirmText}"
                     Command="{CompiledBinding ConfirmCommand}"
                     MinWidth="80"
-                    Classes="accent"
-                    IsDefault="True" />
+                    Classes.accent="{CompiledBinding ConfirmIsSafe}"
+                    IsDefault="{CompiledBinding ConfirmIsSafe}" />
         </StackPanel>
     </Grid>
 </Window>

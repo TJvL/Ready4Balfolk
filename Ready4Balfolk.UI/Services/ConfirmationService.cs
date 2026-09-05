@@ -42,6 +42,7 @@ public class ConfirmationService : IConfirmationService
 
     public async Task<bool> ConfirmAsync(string title, string message,
         string confirmText = "Yes", string cancelText = "No",
+        ConfirmationStakes stakes = ConfirmationStakes.Destructive,
         CancellationToken cancellationToken = default)
     {
         var owner = CurrentOwner;
@@ -60,7 +61,8 @@ public class ConfirmationService : IConfirmationService
             Title = title,
             Message = message,
             ConfirmText = confirmText,
-            CancelText = cancelText
+            CancelText = cancelText,
+            Stakes = stakes
         };
         var dialog = new ConfirmationDialogView
         {

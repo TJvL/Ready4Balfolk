@@ -16,7 +16,13 @@ public partial class ConfirmationDialogView : ReactiveWindow<ConfirmationDialogV
         // surface is mapped. See WaylandAppId.
         WaylandAppId.Apply(this);
 
-        Opened += (_, _) => ConfirmButton.Focus();
+        // Focus follows the default button, so return and space agree with each other. Without it
+        // a destructive dialog still hands the keyboard to the button that throws things away.
+        Opened += (_, _) =>
+        {
+            var safe = (DataContext as ConfirmationDialogViewModel)?.ConfirmIsSafe ?? false;
+            (safe ? ConfirmButton : CancelButton).Focus();
+        };
 
         this.WhenActivated(d => d(this.WhenAnyValue(x => x.ViewModel!.DialogResult)
             .Where(r => r.HasValue)

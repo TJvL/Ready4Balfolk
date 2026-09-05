@@ -129,7 +129,7 @@ public sealed class QueueViewModelTests : IDisposable
         _randomTrackService = Substitute.For<IRandomTrackService>();
         _confirmation = Substitute.For<IConfirmationService>();
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>()).Returns(true);
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>()).Returns(true);
         _notification = Substitute.For<INotificationService>();
         _endOfNightAudio = Substitute.For<IEndOfNightAudio>();
         _endOfNightAudio.IsAvailable.Returns(false);
@@ -237,10 +237,22 @@ public sealed class QueueViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task ClearQueue_AsksWithTheKeyboardOnTheSafeAnswer()
+    {
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
+
+        _sut.ClearQueueCommand.Execute().Subscribe();
+
+        await _confirmation.Received(1).ConfirmAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            ConfirmationStakes.Destructive, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public void ClearQueue_WithoutConfirmation_DoesNotClear()
     {
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>()).Returns(false);
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
 
         _sut.ClearQueueCommand.Execute().Subscribe();

@@ -190,16 +190,30 @@ public sealed class SettingsViewModelTests : IDisposable
     [Fact]
     public async Task ALanguageChange_AsksFirstBecauseItEndsTheEvening()
     {
-        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>())
             .Returns(true);
 
         _sut.SelectedLanguage = ApplicationLanguage.Dutch;
         await SettleAsync();
 
         await _confirmations.Received(1).ConfirmAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>());
         Assert.Equal(ApplicationLanguage.Dutch, _settings.ApplicationLanguage);
         Assert.Equal(1, _restarts);
+    }
+
+    [Fact]
+    public async Task ALanguageChange_AsksWithTheKeyboardOnTheSafeAnswer()
+    {
+        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        _sut.SelectedLanguage = ApplicationLanguage.Dutch;
+        await SettleAsync();
+
+        await _confirmations.Received(1).ConfirmAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            ConfirmationStakes.Destructive, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -207,7 +221,7 @@ public sealed class SettingsViewModelTests : IDisposable
     {
         // The dropdown has already moved by the time the question is asked, so saying no has to
         // move it back or the panel is lying about what the application is running.
-        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>())
             .Returns(false);
 
         _sut.SelectedLanguage = ApplicationLanguage.Dutch;
@@ -221,7 +235,7 @@ public sealed class SettingsViewModelTests : IDisposable
     [Fact]
     public async Task ALanguageChangeBackToWhatItAlreadyIs_AsksNothing()
     {
-        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>())
             .Returns(false);
 
         _sut.SelectedLanguage = ApplicationLanguage.Dutch;
@@ -233,7 +247,7 @@ public sealed class SettingsViewModelTests : IDisposable
         await SettleAsync();
 
         await _confirmations.DidNotReceive().ConfirmAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>());
         Assert.Equal(0, _restarts);
     }
 

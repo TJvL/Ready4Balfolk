@@ -121,7 +121,8 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         bool confirmed;
         try
         {
-            confirmed = await _confirmationService.ConfirmAsync(title, message, confirmText, UiStrings.Playback_CancelButton, withdrawal.Token);
+            confirmed = await _confirmationService.ConfirmAsync(title, message, confirmText, UiStrings.Playback_CancelButton,
+                ConfirmationStakes.Destructive, withdrawal.Token);
         }
         finally
         {
