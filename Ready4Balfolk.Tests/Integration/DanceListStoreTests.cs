@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
 using System.Text.Json;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
@@ -184,6 +185,67 @@ public sealed class DanceListStoreTests : IDisposable
         // An ambiguous name is exactly what would make discovery answer with a set of dances.
         Assert.Equal(DanceListUpdateOutcome.Failed, update.Outcome);
         Assert.Contains("Hanter-dro", update.Problem);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_LeavesNoTemporaryFileBehind()
+    {
+        _feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns(Serialise(TestData.CreateSimpleDanceList()));
+
+        await _sut.RefreshAsync(TestContext.Current.CancellationToken);
+
+        Assert.False(File.Exists(CachePath + ".tmp"));
+    }
+
+    /// <summary>The cached list is never opened for writing at its real path.</summary>
+    /// <remarks>
+    /// This is the atomic write, stated as something a test can see. A plain write truncates before
+    /// it writes, so a crash part way through left half a file, which the next start cannot read and
+    /// throws away: in a hall with no network and nothing shipped to fall back on, that is the whole
+    /// dance vocabulary gone. A crash mid-write cannot be staged, so what is asserted instead is the
+    /// mechanism: the real path reaches Move and never reaches a write.
+    /// </remarks>
+    [Fact]
+    public async Task RefreshAsync_TheCachedFileIsOnlyEverMovedIntoPlace()
+    {
+        var mock = new MockFileSystem();
+        mock.Directory.CreateDirectory(_tempDir.FullName);
+
+        var written = new List<string>();
+        var moved = new List<string>();
+
+        var file = Substitute.For<IFile>();
+        file.WriteAllTextAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                written.Add(call.ArgAt<string>(0));
+                return mock.File.WriteAllTextAsync(call.ArgAt<string>(0), call.ArgAt<string>(1), CancellationToken.None);
+            });
+        file.When(f => f.Move(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>()))
+            .Do(call =>
+            {
+                moved.Add(call.ArgAt<string>(1));
+                mock.File.Move(call.ArgAt<string>(0), call.ArgAt<string>(1), call.ArgAt<bool>(2));
+            });
+
+        var fileSystem = Substitute.For<IFileSystem>();
+        fileSystem.File.Returns(file);
+        fileSystem.FileInfo.Returns(mock.FileInfo);
+
+        var settingsDirectory = Substitute.For<IApplicationSettingsDirectory>();
+        settingsDirectory.DirectoryInfoRoot.Returns(_ => mock.DirectoryInfo.New(_tempDir.FullName));
+
+        var feed = Substitute.For<IDanceListFeed>();
+        feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns(Serialise(TestData.CreateSimpleDanceList()));
+
+        using var store = new DanceListStore(
+            settingsDirectory, fileSystem, feed, new NoOpLoggerService(), TimeProvider.System);
+        await store.RefreshAsync(TestContext.Current.CancellationToken);
+
+        var expected = Path.Combine(mock.DirectoryInfo.New(_tempDir.FullName).FullName, CacheFileName);
+        Assert.DoesNotContain(expected, written);
+        Assert.Contains(expected + ".tmp", written);
+        Assert.Contains(expected, moved);
     }
 
     public void Dispose()

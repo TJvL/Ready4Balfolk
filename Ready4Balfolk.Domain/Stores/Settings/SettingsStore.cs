@@ -12,12 +12,17 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
 {
     private const string SettingsFileName = "settings.json";
 
+    /// <summary>What an unreadable settings file is kept as, so it can be looked at rather than lost.</summary>
+    private const string CorruptSuffix = ".corrupt";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
+        // A field this build does not know is not a reason to throw away the ones it does.
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip,
         Converters =
         {
-            new JsonStringEnumConverter()
+            new LenientEnumConverter()
         }
     };
 
@@ -45,6 +50,14 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
 
     public IObservable<ApplicationSettings> Observe() => _settings.AsObservable();
 
+    /// <summary>Reads the settings file, and never throws: this runs while the application is being composed.</summary>
+    /// <remarks>
+    /// A throw here is not a settings problem, it is no window at all, so everything the disk can
+    /// answer with is caught: a file another process is holding open raises an IOException, not a
+    /// JsonException. A file that parsed as nothing readable is kept beside the real one instead of
+    /// being written over on the next save, because it is a file the user is invited to edit by hand
+    /// and it is the only copy of what they had.
+    /// </remarks>
     private static ApplicationSettings LoadInitial(
         IFileSystemInfo directory, IFileSystem fileSystem, ILoggerService loggerService)
     {
@@ -61,8 +74,31 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
         }
         catch (JsonException ex)
         {
-            _ = loggerService.WarningAsync($"Corrupt settings file, using defaults: {ex.Message}");
+            _ = loggerService.ErrorAsync($"Unreadable settings file, starting from defaults: {ex.Message}");
+            Quarantine(path, fileSystem, loggerService);
             return new ApplicationSettings();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The file is there and may be perfectly good, so it is left exactly as it is.
+            _ = loggerService.ErrorAsync("Could not open the settings file, starting from defaults", ex);
+            return new ApplicationSettings();
+        }
+    }
+
+    /// <summary>Moves an unreadable settings file aside under a fixed name, or leaves it where it is.</summary>
+    private static void Quarantine(string path, IFileSystem fileSystem, ILoggerService loggerService)
+    {
+        try
+        {
+            // One name, overwritten: a run of bad starts leaves one file to look at rather than a
+            // pile of them, and asking for a free name is another thing that can throw.
+            fileSystem.File.Move(path, path + CorruptSuffix, overwrite: true);
+            _ = loggerService.ErrorAsync($"The settings file was kept as {path + CorruptSuffix}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _ = loggerService.ErrorAsync("The unreadable settings file could not be moved aside", ex);
         }
     }
 
