@@ -1,8 +1,6 @@
-using System;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
-using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
@@ -15,24 +13,17 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
         InitializeComponent();
     }
 
-    private async void OnExportClick(object? sender, RoutedEventArgs e)
-    {
-        var path = await App.Services.GetRequiredService<IFilePickerService>()
-            .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportTitle, "queue_history", FileKind.Json);
-
-        if (path is not null)
+    private void OnExportClick(object? sender, RoutedEventArgs e) =>
+        Handlers.Run("Failed to export queue history", async () =>
         {
-            try
+            var path = await App.Services.GetRequiredService<IFilePickerService>()
+                .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportTitle, "queue_history", FileKind.Json);
+
+            if (path is not null)
             {
                 await ViewModel!.ExportAsync(path);
             }
-            catch (Exception ex)
-            {
-                _ = App.Services.GetRequiredService<ILoggerService>()
-                    .ErrorAsync("Failed to export queue history", ex);
-            }
-        }
-    }
+        });
 
     private void OnToggleClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().IsHistoryMode = false;
 }

@@ -134,7 +134,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
                 await RefreshCommand.Execute().FirstAsync();
             }))
             .Subscribe(_ => { }, exception =>
-                _loggerService.ErrorAsync("Failed to change the dance rule", exception).SafeFireAndForget())
+                _loggerService.Report("Failed to change the dance rule", exception))
             .DisposeWith(_disposables);
 
         // The queue waits for the scan and then builds itself. A first run reaches this screen while

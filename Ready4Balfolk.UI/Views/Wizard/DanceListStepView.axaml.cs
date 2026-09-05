@@ -19,23 +19,25 @@ public partial class DanceListStepView : ReactiveUserControl<DanceListStepViewMo
     /// The offline way in: a <c>dances.json</c> carried on a stick, for a machine that will never
     /// reach BigBalfolkList. The same reader takes it as a download would.
     /// </summary>
-    private async void OnImportClick(object? sender, RoutedEventArgs e)
-    {
-        var path = await App.Services.GetRequiredService<IFilePickerService>()
-            .PickFileToOpenAsync(UiStrings.Wizard_DanceList_Import, FileKind.Json);
-
-        if (path is not null)
+    private void OnImportClick(object? sender, RoutedEventArgs e) =>
+        Handlers.Run("Failed to import the dance list", async () =>
         {
-            await ViewModel!.ImportAsync(new FileSystem().FileInfo.New(path));
-        }
-    }
+            var path = await App.Services.GetRequiredService<IFilePickerService>()
+                .PickFileToOpenAsync(UiStrings.Wizard_DanceList_Import, FileKind.Json);
 
-    private async void OnSourceLinkClick(object? sender, RoutedEventArgs e)
-    {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is not null)
+            if (path is not null)
+            {
+                await ViewModel!.ImportAsync(new FileSystem().FileInfo.New(path));
+            }
+        });
+
+    private void OnSourceLinkClick(object? sender, RoutedEventArgs e) =>
+        Handlers.Run("Failed to open the dance list website", async () =>
         {
-            await topLevel.Launcher.LaunchUriAsync(ViewModel!.SourceUri);
-        }
-    }
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel is not null)
+            {
+                await topLevel.Launcher.LaunchUriAsync(ViewModel!.SourceUri);
+            }
+        });
 }

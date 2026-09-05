@@ -325,9 +325,85 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         await _history.DidNotReceive().EndNightAsync(Arg.Any<DateTime?>());
     }
 
+    [Fact]
+    public async Task Advance_WhenTheNextItemWillNotPreload_SaysSoRatherThanLosingIt()
+    {
+        using var logger = new RecordingLoggerService();
+        using var sut = CreateServiceLoggingTo(logger);
+
+        // What BASS raises for the track after this one: the file is there and will not open.
+        _audio.PreloadNextAsync(Arg.Any<Uri>())
+            .Returns(Task.FromException(new InvalidOperationException("Failed to create preload stream")));
+
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(title: "Second"), false));
+
+        await sut.AdvanceAsync();
+
+        // Preloading is nobody's await, so this used to be a bare discard: the exception sat on an
+        // unobserved task until a garbage collection, and the DJ heard about it when the room did.
+        var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
+        Assert.Equal("Failed to prepare the next item", reported.Message);
+        Assert.IsType<InvalidOperationException>(reported.Exception);
+    }
+
+    [Fact]
+    public async Task WhenATrackEndsAndTheAdvanceFails_SaysSoRatherThanLosingIt()
+    {
+        using var logger = new RecordingLoggerService();
+        using var sut = CreateServiceLoggingTo(logger);
+
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(title: "Second"), false));
+        await sut.AdvanceAsync();
+
+        // A locked history file, which is what filing the finished track runs into.
+        _history.AddAsync(Arg.Any<QueueHistoryEntry>())
+            .Returns(Task.FromException(new InvalidOperationException("history.sqlite is locked")));
+
+        _playbackEnded.OnNext(RxUnit.Default);
+
+        var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
+        Assert.Equal("Failed to move on to the next item in the queue", reported.Message);
+        Assert.IsType<InvalidOperationException>(reported.Exception);
+    }
+
+    [Fact]
+    public async Task WhenTheApplicationClosesAsATrackEnds_TheCloseIsNotReportedAsAFailure()
+    {
+        using var logger = new RecordingLoggerService();
+        var sut = CreateServiceLoggingTo(logger);
+
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(title: "Second"), false));
+        await sut.AdvanceAsync();
+
+        // The window closing in the moment the track ends. The end-of-track callback has already
+        // started, and the gate it is about to wait on is gone by the time it gets there: an
+        // ordinary close, which used to read as an ERROR line and fail the smoke test's log scan.
+        var closing = false;
+        using var closeWhileTheCallbackRuns = sut.WhenIsPlayingChanged.Subscribe(_ =>
+        {
+            if (closing)
+            {
+                sut.Dispose();
+            }
+        });
+        closing = true;
+
+        _playbackEnded.OnNext(RxUnit.Default);
+
+        Assert.Empty(logger.Errors);
+        sut.Dispose();
+    }
+
     /// <summary>A second service on a clock a test can move, sharing this fixture's doubles.</summary>
     private QueueConsumptionService CreateServiceOn(TimeProvider time) =>
         new(_audio, _queue, _history, _settingsStore, new NoOpLoggerService(), time);
+
+    /// <summary>A second service that keeps what it reports, sharing this fixture's doubles.</summary>
+    private QueueConsumptionService CreateServiceLoggingTo(ILoggerService logger) =>
+        new(_audio, _queue, _history, _settingsStore, logger, TimeProvider.System);
 
     [Fact]
     public async Task ACountdownThatHasExpired_StopsTicking_WhileTheHistoryWriteIsStillGoing()

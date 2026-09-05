@@ -25,6 +25,12 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     /// <summary>How often a countdown says how far along it is. Not how accurate its end is.</summary>
     private static readonly TimeSpan CountdownTick = TimeSpan.FromMilliseconds(100);
 
+    /// <summary>What the room is told when the evening cannot move on by itself.</summary>
+    private const string AdvanceFailed = "Failed to move on to the next item in the queue";
+
+    /// <summary>What it is told when the dance after this one will not open.</summary>
+    private const string PreloadFailed = "Failed to prepare the next item";
+
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly CompositeDisposable _globalDisposables = [];
     private CompositeDisposable? _itemDisposables;
@@ -36,6 +42,9 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly Subject<Unit> _itemCompleted = new();
 
     private bool _itemFinishedNaturally;
+
+    /// <summary>Set the moment the application starts closing, and never put down again.</summary>
+    private volatile bool _closing;
 
     /// <summary>The quiet between two dances, while it is running. Nothing else is.</summary>
     // Captured when the item starts, since the history entry is only built once it ends.
@@ -312,8 +321,30 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _itemFinishedNaturally = true;
         _isPlaying.OnNext(false);
         // Fire-and-forget advance: the gate ensures serialization
-        _ = AdvanceAsync();
+        RunUnawaited(AdvanceFailed, AdvanceAsync);
     }
+
+    /// <summary>Starts work nothing awaits, and tells the DJ when it fails for a reason.</summary>
+    /// <remarks>
+    /// Closing the application is not one. An end-of-track callback or a countdown tick that had
+    /// already started when <see cref="Dispose" /> returned still reaches
+    /// <see cref="AdvanceAsync" />, whose first act is to wait on a gate that is gone by then, so a
+    /// perfectly ordinary close raises <see cref="ObjectDisposedException" /> here. Reported, that
+    /// is an ERROR line on every shutdown and a toast on the way out, and the smoke test judges a
+    /// run by whether the log has any. Swallowed only while this service is being torn down, and
+    /// only that exception: the same thing at any other moment is a real failure and is reported.
+    /// </remarks>
+    private void RunUnawaited(string whatFailed, Func<Task> work) =>
+        _loggerService.RunUnawaited(whatFailed, async () =>
+        {
+            try
+            {
+                await work();
+            }
+            catch (ObjectDisposedException) when (_closing)
+            {
+            }
+        });
 
     /// <summary>Counts a delay, a message or a gap down, and advances once when it runs out.</summary>
     /// <remarks>
@@ -354,7 +385,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 countdown.Dispose();
                 _elapsed.OnNext(duration);
                 _itemFinishedNaturally = true;
-                _ = AdvanceAsync();
+                RunUnawaited(AdvanceFailed, AdvanceAsync);
             },
             null,
             CountdownTick,
@@ -372,7 +403,11 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             _ => null
         };
 
-        _ = uri != null ? _audio.PreloadNextAsync(uri) : _audio.ClearPreloadAsync();
+        // Reported rather than dropped: this is where a next track that will not open first says
+        // so, minutes before the room is waiting on it.
+        RunUnawaited(
+            PreloadFailed,
+            () => uri != null ? _audio.PreloadNextAsync(uri) : _audio.ClearPreloadAsync());
     }
 
     private async Task RecordCurrentItemAsync(CompletionStatus status)
@@ -475,6 +510,9 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     /// </remarks>
     public void Dispose()
     {
+        // First, so that anything already on its way here can tell an ordinary close from a fault.
+        _closing = true;
+
         _itemDisposables?.Dispose();
         _itemDisposables = null;
         _globalDisposables.Dispose();

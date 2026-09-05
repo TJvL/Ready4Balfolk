@@ -2,6 +2,7 @@ using System;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using ReactiveUI.Avalonia.Reactive;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Wizard;
 
@@ -12,12 +13,13 @@ public partial class WelcomeStepView : ReactiveUserControl<WelcomeStepViewModel>
         InitializeComponent();
     }
 
-    private async void OnSourceLinkClick(object? sender, RoutedEventArgs e)
-    {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is not null)
+    private void OnSourceLinkClick(object? sender, RoutedEventArgs e) =>
+        Handlers.Run("Failed to open the dance list website", async () =>
         {
-            await topLevel.Launcher.LaunchUriAsync(new Uri(WelcomeStepViewModel.DanceListSourceUrl));
-        }
-    }
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel is not null)
+            {
+                await topLevel.Launcher.LaunchUriAsync(new Uri(WelcomeStepViewModel.DanceListSourceUrl));
+            }
+        });
 }

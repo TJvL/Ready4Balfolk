@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ReactiveUI.Avalonia.Reactive;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Review;
 
@@ -22,6 +23,12 @@ namespace Ready4Balfolk.UI.Views.Review;
 /// </remarks>
 public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
 {
+    // What the DJ is told when the file behind a row turns out not to be one BASS can open, which
+    // is the ordinary case here rather than the exceptional one: this queue is where those land.
+    private const string PreviewFailed = "Failed to preview the track";
+    private const string StopFailed = "Failed to stop the preview";
+    private const string SeekFailed = "Failed to move through the preview";
+
     public ReviewView()
     {
         InitializeComponent();
@@ -97,17 +104,17 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         }
         else if (e.Key is Key.Space && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
         {
-            _ = ViewModel.TogglePreviewAsync(selected);
+            Handlers.Run(PreviewFailed, () => ViewModel.TogglePreviewAsync(selected));
         }
         else if (e.Key is Key.Escape)
         {
-            _ = ViewModel.StopPreviewAsync();
+            Handlers.Run(StopFailed, ViewModel.StopPreviewAsync);
         }
         else if (e.Key is Key.Left or Key.Right && ViewModel.IsPreviewing)
         {
             // Only while something is playing, so they stay ordinary editing keys the rest of the
             // time: a typo in the middle of a title still has to be reachable.
-            _ = ViewModel.SeekByAsync(TimeSpan.FromSeconds(e.Key is Key.Left ? -5 : 5));
+            Handlers.Run(SeekFailed, () => ViewModel.SeekByAsync(TimeSpan.FromSeconds(e.Key is Key.Left ? -5 : 5)));
         }
         else if (e.Key is Key.Up or Key.Down)
         {
@@ -191,11 +198,11 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
     private static string TextOf(Control field) =>
         field is TextBox box ? box.Text ?? string.Empty : string.Empty;
 
-    private async void OnPreviewClick(object? sender, RoutedEventArgs e)
+    private void OnPreviewClick(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { Tag: ReviewRowViewModel row } && ViewModel is { } viewModel)
         {
-            await viewModel.TogglePreviewAsync(row);
+            Handlers.Run(PreviewFailed, () => viewModel.TogglePreviewAsync(row));
         }
     }
 
@@ -242,6 +249,8 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         }
 
         var ratio = Math.Clamp(e.GetPosition(bar).X / bar.Bounds.Width, 0, 1);
-        _ = viewModel.SeekPreviewAsync(TimeSpan.FromSeconds(ratio * viewModel.PreviewDurationSeconds));
+        Handlers.Run(
+            SeekFailed,
+            () => viewModel.SeekPreviewAsync(TimeSpan.FromSeconds(ratio * viewModel.PreviewDurationSeconds)));
     }
 }
