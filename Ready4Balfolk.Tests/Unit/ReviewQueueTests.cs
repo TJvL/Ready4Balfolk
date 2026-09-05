@@ -44,6 +44,21 @@ public sealed class ReviewQueueTests
         Assert.Empty(queue);
     }
 
+    /// <summary>
+    /// Nothing can be answered about a file that is not there: the preview will not play and the
+    /// tags cannot be written. A kept row waits for its drive, not for a person.
+    /// </summary>
+    [Fact]
+    public void ATrackThatCannotBeReached_IsNotInTheQueue()
+    {
+        var queue = Build(
+        [
+            Entry("/music/a.mp3", [1], slug: null, originalDance: null) with { IsAvailable = false }
+        ]);
+
+        Assert.Empty(queue);
+    }
+
     [Fact]
     public void TheLeastConfidentComesFirst()
     {

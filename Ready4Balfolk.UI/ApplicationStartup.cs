@@ -48,6 +48,7 @@ internal sealed class ApplicationStartup(
     PresentationWebServer webServer,
     NavigationService navigation,
     ConfirmationService confirmationOwner,
+    MissingFolderPromptService missingFolders,
     FilePickerService pickers,
     TrackEditorService trackEditor,
     TimeProvider time) : IDisposable
@@ -81,6 +82,10 @@ internal sealed class ApplicationStartup(
         desktop.MainWindow = mainWindow;
 
         confirmationOwner.SetOwner(mainWindow);
+        // Exiting is the third answer to a scan that found a folder with no music in it, and the
+        // application is already being asked a question, so it does not ask a second one on the way
+        // out. It still saves what a window has to be open to be asked for.
+        missingFolders.SetExit(() => CloseAsync(mainWindow));
         pickers.SetOwner(mainWindow);
         trackEditor.SetOwner(mainWindow);
 
@@ -238,6 +243,12 @@ internal sealed class ApplicationStartup(
             return;
         }
 
+        await CloseAsync(mainWindow);
+    }
+
+    /// <summary>Saves what only an open window can answer for, and closes for real.</summary>
+    private async Task CloseAsync(MainWindow mainWindow)
+    {
         // Saved while everything is still open, because a closed window has no bounds to read.
         var isMaximized = mainWindow.WindowState == AvaloniaWindowState.Maximized;
         var bounds = mainWindow.Bounds;

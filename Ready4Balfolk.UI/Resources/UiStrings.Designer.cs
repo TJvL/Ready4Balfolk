@@ -1178,6 +1178,37 @@ public static class UiStrings
     public static string Toolbar_ReviewCount =>
         ResourceManager.GetString("Toolbar_ReviewCount", Culture)!;
 
+    public static string Toolbar_UnavailableCount =>
+        ResourceManager.GetString("Toolbar_UnavailableCount", Culture)!;
+
+    public static string Toolbar_UnavailableTip =>
+        ResourceManager.GetString("Toolbar_UnavailableTip", Culture)!;
+
+    // Missing folders
+    public static string MissingFolders_Title =>
+        ResourceManager.GetString("MissingFolders_Title", Culture)!;
+
+    public static string MissingFolders_Message =>
+        ResourceManager.GetString("MissingFolders_Message", Culture)!;
+
+    public static string MissingFolders_Unreadable =>
+        ResourceManager.GetString("MissingFolders_Unreadable", Culture)!;
+
+    public static string MissingFolders_Empty =>
+        ResourceManager.GetString("MissingFolders_Empty", Culture)!;
+
+    public static string MissingFolders_Consequence =>
+        ResourceManager.GetString("MissingFolders_Consequence", Culture)!;
+
+    public static string MissingFolders_KeepThem =>
+        ResourceManager.GetString("MissingFolders_KeepThem", Culture)!;
+
+    public static string MissingFolders_ForgetThem =>
+        ResourceManager.GetString("MissingFolders_ForgetThem", Culture)!;
+
+    public static string MissingFolders_Exit =>
+        ResourceManager.GetString("MissingFolders_Exit", Culture)!;
+
     public static string Wizard_Review_Title =>
         ResourceManager.GetString("Wizard_Review_Title", Culture)!;
 

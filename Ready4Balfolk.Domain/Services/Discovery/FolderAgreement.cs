@@ -64,8 +64,10 @@ public static class FolderAgreement
         DeclaredDiscovery declared)
     {
         var scannedPaths = scanned.Select(file => file.File.FullName).ToHashSet(StringComparer.Ordinal);
+        // A row whose file could not be reached does not get a vote. Otherwise the tracks on a dead
+        // drive decide the dance of the ones that are still there.
         var knownSlugsByFolder = known.Values
-            .Where(entry => entry.DanceSlug is not null && !scannedPaths.Contains(entry.Path))
+            .Where(entry => entry.IsAvailable && entry.DanceSlug is not null && !scannedPaths.Contains(entry.Path))
             .GroupBy(entry => KeyFor(entry.Path, rootPath), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Select(entry => entry.DanceSlug!).ToList(), StringComparer.Ordinal);
 
@@ -116,7 +118,8 @@ public static class FolderAgreement
         string rootPath) =>
         AgreedDance([
             .. known.Values
-                .Where(entry => entry.DanceSlug is not null
+                .Where(entry => entry.IsAvailable
+                    && entry.DanceSlug is not null
                     && !string.Equals(entry.Path, path, StringComparison.Ordinal)
                     && string.Equals(KeyFor(entry.Path, rootPath), folderKey, StringComparison.Ordinal))
                 .Select(entry => entry.DanceSlug!)

@@ -117,6 +117,23 @@ public sealed class FolderAgreementTests
         Assert.Null(FolderAgreement.AgreedDanceAround(path, "Mazurkas", known, Root));
     }
 
+    /// <summary>
+    /// A row whose file cannot be reached is kept, not consulted: the tracks on a drive that did
+    /// not mount must not decide the dance of the ones that are still there.
+    /// </summary>
+    [Fact]
+    public void AgreedDanceAround_ARowThatIsNotAvailable_IsNotAVoice()
+    {
+        var sibling = Path.Combine(Root, "Mazurkas", "one.mp3");
+        var known = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
+        {
+            [sibling] = Entry(sibling, "mazurka") with { IsAvailable = false }
+        };
+
+        Assert.Null(FolderAgreement.AgreedDanceAround(
+            Path.Combine(Root, "Mazurkas", "new.mp3"), "Mazurkas", known, Root));
+    }
+
     [Fact]
     public void AgreedDanceAround_UnresolvedSiblings_AreNotVoices()
     {

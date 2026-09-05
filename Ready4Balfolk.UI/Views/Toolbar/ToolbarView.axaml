@@ -61,6 +61,19 @@
             </StackPanel>
         </Button>
 
+        <!-- What the library is keeping but cannot reach. Not a button: there is nothing to press,
+             only something to know, and it goes away by itself when the files come back. -->
+        <Border AutomationProperties.AutomationId="toolbar.unavailable"
+                IsVisible="{Binding HasUnavailable}"
+                ToolTip.Tip="{x:Static res:UiStrings.Toolbar_UnavailableTip}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="8,2"
+                VerticalAlignment="Center">
+            <TextBlock Text="{Binding UnavailableText}" FontSize="11" FontWeight="SemiBold" />
+        </Border>
+
         <!-- What is being served, and how a phone gets to it. Only while it is actually being
              served: a toolbar that said "remote" over a server that never bound would send a hall
              to an address nothing answers. -->

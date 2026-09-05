@@ -21,6 +21,7 @@ namespace Ready4Balfolk.Tests.ViewModels;
 public sealed class ToolbarViewModelTests : IDisposable
 {
     private readonly BehaviorSubject<int> _inReview = new(0);
+    private readonly BehaviorSubject<int> _unavailable = new(0);
     private readonly BehaviorSubject<ApplicationSettings> _settings = new(new ApplicationSettings());
     private readonly PresentationWebServer _webServer;
     private readonly ToolbarViewModel _sut;
@@ -29,6 +30,7 @@ public sealed class ToolbarViewModelTests : IDisposable
     {
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.InReviewCount.Returns(_inReview);
+        trackStore.UnavailableCount.Returns(_unavailable);
 
         var settingsStore = Substitute.For<ISettingsStore>();
         settingsStore.Current.Returns(_ => _settings.Value);
@@ -87,6 +89,36 @@ public sealed class ToolbarViewModelTests : IDisposable
     }
 
     [Fact]
+    public void NothingUnavailable_SaysNothing()
+    {
+        Assert.False(_sut.HasUnavailable);
+        Assert.Equal(string.Empty, _sut.UnavailableText);
+    }
+
+    /// <summary>
+    /// A library the application is keeping but cannot reach has to say so somewhere, or a dead
+    /// NAS reads as a library that is simply smaller than it was.
+    /// </summary>
+    [Fact]
+    public void TracksTheLibraryCannotReach_AreSaidOutLoud()
+    {
+        _unavailable.OnNext(19_400);
+
+        Assert.True(_sut.HasUnavailable);
+        Assert.Contains("19", _sut.UnavailableText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WhenTheyComeBack_TheToolbarGoesQuietAgain()
+    {
+        _unavailable.OnNext(12);
+        _unavailable.OnNext(0);
+
+        Assert.False(_sut.HasUnavailable);
+        Assert.Equal(string.Empty, _sut.UnavailableText);
+    }
+
+    [Fact]
     public void WithNoServer_TheToolbarSaysNothingAboutWhatIsServed()
     {
         // What is actually being served, not what a switch was set to: this server was never
@@ -107,6 +139,7 @@ public sealed class ToolbarViewModelTests : IDisposable
     {
         _sut.Dispose();
         _inReview.Dispose();
+        _unavailable.Dispose();
         _settings.Dispose();
         _webServer.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }

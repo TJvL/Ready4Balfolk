@@ -129,6 +129,13 @@ public static class ReviewQueueBuilder
 
         foreach (var entry in entries.Values)
         {
+            if (!entry.IsAvailable)
+            {
+                // Kept, but not reachable. Nothing can be answered about a file that is not there:
+                // the preview will not play and the tags cannot be written.
+                continue;
+            }
+
             var forTrack = approvals.GetValueOrDefault(LibraryKey.For(entry.ContentHash), []);
             var review = ReviewGate.Evaluate(entry, forTrack, dances, allowDancesOutsideTheList);
 

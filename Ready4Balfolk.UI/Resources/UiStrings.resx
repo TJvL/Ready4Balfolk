@@ -1289,6 +1289,37 @@
   <data name="Toolbar_ReviewCount" xml:space="preserve">
     <value>{0} tracks waiting</value>
   </data>
+  <data name="Toolbar_UnavailableCount" xml:space="preserve">
+    <value>{0} tracks unavailable</value>
+  </data>
+  <data name="Toolbar_UnavailableTip" xml:space="preserve">
+    <value>Tracks the library is keeping but cannot reach. They cannot be queued or reviewed, and they come back on their own once a scan finds their files again.</value>
+  </data>
+  <data name="MissingFolders_Title" xml:space="preserve">
+    <value>Folders with no music in them</value>
+  </data>
+  <data name="MissingFolders_Message" xml:space="preserve">
+    <value>The library holds tracks in these folders, and this scan found no music in them.</value>
+  </data>
+  <data name="MissingFolders_Unreadable" xml:space="preserve">
+    <value>{0} could not be read: {1}
+It holds {2} tracks in the library.</value>
+  </data>
+  <data name="MissingFolders_Empty" xml:space="preserve">
+    <value>{0} holds {1} tracks in the library, and no music was found in it.</value>
+  </data>
+  <data name="MissingFolders_Consequence" xml:space="preserve">
+    <value>Continue without them keeps those {0} tracks, marked unavailable, and they come back by themselves when a later scan finds their files. Continue deletes them from the library along with everything you have approved about them. Exit writes nothing.</value>
+  </data>
+  <data name="MissingFolders_KeepThem" xml:space="preserve">
+    <value>Continue without them</value>
+  </data>
+  <data name="MissingFolders_ForgetThem" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="MissingFolders_Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
   <data name="Wizard_Review_Title" xml:space="preserve">
     <value>What is waiting for you</value>
   </data>
