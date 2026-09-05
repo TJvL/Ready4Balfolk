@@ -14,7 +14,7 @@ public partial class MusicDirectoryStepView : ReactiveUserControl<MusicDirectory
     }
 
     private void OnBrowseClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run("Failed to choose the music directory", async () =>
+        Handlers.Run(UiStrings.Settings_MusicDirectoryChooseFailed, async () =>
         {
             var path = await App.Services.GetRequiredService<IFilePickerService>()
                 .PickFolderAsync(UiStrings.Settings_SelectMusicDirectory);

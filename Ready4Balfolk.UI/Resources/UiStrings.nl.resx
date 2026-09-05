@@ -1334,4 +1334,51 @@
   <data name="Discovery_DanceListHint" xml:space="preserve">
     <value>De dansenlijst waar elk nummer mee vergeleken wordt. Hij is gedeeld, dus een ontbrekende dans stel je daar voor in plaats van hem hier toe te voegen. Je nummers die daarop wachten gaan je bibliotheek in zodra de lijst de naam kent.</value>
   </data>
+
+  <!-- What a handler could not do -->
+  <data name="DanceList_UpdateFromFileFailed" xml:space="preserve">
+    <value>De dansenlijst kon niet uit dat bestand bijgewerkt worden</value>
+  </data>
+  <data name="DanceList_OpenSiteFailed" xml:space="preserve">
+    <value>De website van de dansenlijst kon niet geopend worden</value>
+  </data>
+  <data name="Wizard_DanceList_ImportFailed" xml:space="preserve">
+    <value>De dansenlijst kon niet geïmporteerd worden</value>
+  </data>
+  <data name="Settings_MusicDirectoryChooseFailed" xml:space="preserve">
+    <value>De muziekmap kon niet gekozen worden</value>
+  </data>
+  <data name="Settings_EndOfNightChooseFailed" xml:space="preserve">
+    <value>De slotmuziek van de avond kon niet gekozen worden</value>
+  </data>
+  <data name="Settings_ExportLogFailed" xml:space="preserve">
+    <value>Het logbestand kon niet geëxporteerd worden</value>
+  </data>
+  <data name="Queue_MoveItemFailed" xml:space="preserve">
+    <value>Het item kon niet verplaatst worden</value>
+  </data>
+  <data name="QueueToolbar_AddMessageFailed" xml:space="preserve">
+    <value>Het bericht kon niet toegevoegd worden</value>
+  </data>
+  <data name="History_ReadNightsFailed" xml:space="preserve">
+    <value>De bewaarde avonden konden niet gelezen worden</value>
+  </data>
+  <data name="HistoryToolbar_ExportFailed" xml:space="preserve">
+    <value>De geschiedenis kon niet geëxporteerd worden</value>
+  </data>
+  <data name="Toolbar_DisplayAddressFailed" xml:space="preserve">
+    <value>Het adres van de schermpagina kon niet getoond worden</value>
+  </data>
+  <data name="Toolbar_RemoteAddressFailed" xml:space="preserve">
+    <value>Het adres van de afstandsbediening kon niet getoond worden</value>
+  </data>
+  <data name="Review_PreviewFailed" xml:space="preserve">
+    <value>Het nummer kon niet beluisterd worden</value>
+  </data>
+  <data name="Review_StopPreviewFailed" xml:space="preserve">
+    <value>Het beluisteren kon niet gestopt worden</value>
+  </data>
+  <data name="Review_SeekPreviewFailed" xml:space="preserve">
+    <value>Er kon niet door het nummer gespoeld worden</value>
+  </data>
 </root>

@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ReactiveUI.Avalonia.Reactive;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Review;
@@ -23,12 +24,6 @@ namespace Ready4Balfolk.UI.Views.Review;
 /// </remarks>
 public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
 {
-    // What the DJ is told when the file behind a row turns out not to be one BASS can open, which
-    // is the ordinary case here rather than the exceptional one: this queue is where those land.
-    private const string PreviewFailed = "Failed to preview the track";
-    private const string StopFailed = "Failed to stop the preview";
-    private const string SeekFailed = "Failed to move through the preview";
-
     public ReviewView()
     {
         InitializeComponent();
@@ -104,17 +99,19 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         }
         else if (e.Key is Key.Space && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
         {
-            Handlers.Run(PreviewFailed, () => ViewModel.TogglePreviewAsync(selected));
+            // A file BASS will not open is the ordinary case here rather than the exceptional one:
+            // this queue is where those land, so the DJ is told rather than shown a closed window.
+            Handlers.Run(UiStrings.Review_PreviewFailed, () => ViewModel.TogglePreviewAsync(selected));
         }
         else if (e.Key is Key.Escape)
         {
-            Handlers.Run(StopFailed, ViewModel.StopPreviewAsync);
+            Handlers.Run(UiStrings.Review_StopPreviewFailed, ViewModel.StopPreviewAsync);
         }
         else if (e.Key is Key.Left or Key.Right && ViewModel.IsPreviewing)
         {
             // Only while something is playing, so they stay ordinary editing keys the rest of the
             // time: a typo in the middle of a title still has to be reachable.
-            Handlers.Run(SeekFailed, () => ViewModel.SeekByAsync(TimeSpan.FromSeconds(e.Key is Key.Left ? -5 : 5)));
+            Handlers.Run(UiStrings.Review_SeekPreviewFailed, () => ViewModel.SeekByAsync(TimeSpan.FromSeconds(e.Key is Key.Left ? -5 : 5)));
         }
         else if (e.Key is Key.Up or Key.Down)
         {
@@ -202,7 +199,7 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
     {
         if (sender is Control { Tag: ReviewRowViewModel row } && ViewModel is { } viewModel)
         {
-            Handlers.Run(PreviewFailed, () => viewModel.TogglePreviewAsync(row));
+            Handlers.Run(UiStrings.Review_PreviewFailed, () => viewModel.TogglePreviewAsync(row));
         }
     }
 
@@ -250,7 +247,7 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
 
         var ratio = Math.Clamp(e.GetPosition(bar).X / bar.Bounds.Width, 0, 1);
         Handlers.Run(
-            SeekFailed,
+            UiStrings.Review_SeekPreviewFailed,
             () => viewModel.SeekPreviewAsync(TimeSpan.FromSeconds(ratio * viewModel.PreviewDurationSeconds)));
     }
 }

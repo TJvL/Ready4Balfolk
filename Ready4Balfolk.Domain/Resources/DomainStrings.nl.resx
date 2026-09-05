@@ -96,6 +96,12 @@
   <data name="Queue_CannotPlay" xml:space="preserve">
     <value>Kon {0} niet afspelen: het bestand ontbreekt of is onleesbaar. Er wordt doorgegaan.</value>
   </data>
+  <data name="Queue_AdvanceFailed" xml:space="preserve">
+    <value>Kon niet doorgaan naar het volgende item in de wachtrij</value>
+  </data>
+  <data name="Queue_PreloadFailed" xml:space="preserve">
+    <value>Kon het volgende item niet klaarzetten</value>
+  </data>
   <data name="DanceList_InvalidJson" xml:space="preserve">
     <value>Dat is geen dansenlijst: het bestand is geen leesbare JSON.</value>
   </data>

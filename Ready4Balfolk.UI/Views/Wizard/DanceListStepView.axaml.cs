@@ -20,7 +20,7 @@ public partial class DanceListStepView : ReactiveUserControl<DanceListStepViewMo
     /// reach BigBalfolkList. The same reader takes it as a download would.
     /// </summary>
     private void OnImportClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run("Failed to import the dance list", async () =>
+        Handlers.Run(UiStrings.Wizard_DanceList_ImportFailed, async () =>
         {
             var path = await App.Services.GetRequiredService<IFilePickerService>()
                 .PickFileToOpenAsync(UiStrings.Wizard_DanceList_Import, FileKind.Json);
@@ -32,7 +32,7 @@ public partial class DanceListStepView : ReactiveUserControl<DanceListStepViewMo
         });
 
     private void OnSourceLinkClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run("Failed to open the dance list website", async () =>
+        Handlers.Run(UiStrings.DanceList_OpenSiteFailed, async () =>
         {
             var topLevel = TopLevel.GetTopLevel(this);
             if (topLevel is not null)

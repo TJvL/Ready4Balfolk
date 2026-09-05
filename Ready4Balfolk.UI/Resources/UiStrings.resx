@@ -1409,4 +1409,51 @@
   <data name="Discovery_DanceListHint" xml:space="preserve">
     <value>The dance list every track is matched against. It is shared, so a dance missing from it is proposed there rather than added here, and your tracks waiting on one go into your library the moment it carries the name.</value>
   </data>
+
+  <!-- What a handler could not do -->
+  <data name="DanceList_UpdateFromFileFailed" xml:space="preserve">
+    <value>Failed to update the dance list from a file</value>
+  </data>
+  <data name="DanceList_OpenSiteFailed" xml:space="preserve">
+    <value>Failed to open the dance list website</value>
+  </data>
+  <data name="Wizard_DanceList_ImportFailed" xml:space="preserve">
+    <value>Failed to import the dance list</value>
+  </data>
+  <data name="Settings_MusicDirectoryChooseFailed" xml:space="preserve">
+    <value>Failed to choose the music directory</value>
+  </data>
+  <data name="Settings_EndOfNightChooseFailed" xml:space="preserve">
+    <value>Failed to choose the end-of-night track</value>
+  </data>
+  <data name="Settings_ExportLogFailed" xml:space="preserve">
+    <value>Failed to export the log</value>
+  </data>
+  <data name="Queue_MoveItemFailed" xml:space="preserve">
+    <value>Failed to move the queue item</value>
+  </data>
+  <data name="QueueToolbar_AddMessageFailed" xml:space="preserve">
+    <value>Failed to add the message</value>
+  </data>
+  <data name="History_ReadNightsFailed" xml:space="preserve">
+    <value>Failed to read the nights on file</value>
+  </data>
+  <data name="HistoryToolbar_ExportFailed" xml:space="preserve">
+    <value>Failed to export queue history</value>
+  </data>
+  <data name="Toolbar_DisplayAddressFailed" xml:space="preserve">
+    <value>Failed to show the display address</value>
+  </data>
+  <data name="Toolbar_RemoteAddressFailed" xml:space="preserve">
+    <value>Failed to show the remote address</value>
+  </data>
+  <data name="Review_PreviewFailed" xml:space="preserve">
+    <value>Failed to preview the track</value>
+  </data>
+  <data name="Review_StopPreviewFailed" xml:space="preserve">
+    <value>Failed to stop the preview</value>
+  </data>
+  <data name="Review_SeekPreviewFailed" xml:space="preserve">
+    <value>Failed to move through the preview</value>
+  </data>
 </root>

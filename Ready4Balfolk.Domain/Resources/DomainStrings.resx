@@ -96,6 +96,12 @@
   <data name="Queue_CannotPlay" xml:space="preserve">
     <value>Could not play {0}: the file is missing or cannot be read. Moving on.</value>
   </data>
+  <data name="Queue_AdvanceFailed" xml:space="preserve">
+    <value>Failed to move on to the next item in the queue</value>
+  </data>
+  <data name="Queue_PreloadFailed" xml:space="preserve">
+    <value>Failed to prepare the next item</value>
+  </data>
   <data name="DanceList_InvalidJson" xml:space="preserve">
     <value>That is not a dance list: the file is not readable JSON.</value>
   </data>

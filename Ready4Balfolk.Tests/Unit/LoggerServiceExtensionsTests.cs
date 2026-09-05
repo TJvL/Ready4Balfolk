@@ -1,83 +1,12 @@
 using System.IO.Abstractions;
 using NSubstitute;
 using Ready4Balfolk.Domain.Services.Logging;
-using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Unit;
 
-/// <summary>
-/// The one thing standing between a file BASS will not open and a closed application.
-/// </summary>
-/// <remarks>
-/// Every handler that cannot await its own work goes through this, so what it does with an
-/// exception is the whole of the fix: report it where the person is shown it, and let nothing
-/// escape to the process-level handler, which on the UI thread ends the evening.
-/// </remarks>
+/// <summary>Writing a failure down where the DJ is shown it, and never throwing doing it.</summary>
 public sealed class LoggerServiceExtensionsTests
 {
-    [Fact]
-    public async Task RunUnawaited_WorkThrowsAfterAnAwait_ReportsItAndNothingEscapes()
-    {
-        using var logger = new RecordingLoggerService();
-        var context = new RecordingSynchronizationContext();
-        var previous = SynchronizationContext.Current;
-
-        // Set while the work is started, because an async void sends what it could not return to
-        // whichever context was current when it began. That is the route this has to close.
-        SynchronizationContext.SetSynchronizationContext(context);
-        try
-        {
-            logger.RunUnawaited("Failed to preview the track", async () =>
-            {
-                await Task.Yield();
-                throw new InvalidOperationException("Failed to create stream");
-            });
-        }
-        finally
-        {
-            SynchronizationContext.SetSynchronizationContext(previous);
-        }
-
-        var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
-
-        Assert.Equal("Failed to preview the track", reported.Message);
-        Assert.IsType<InvalidOperationException>(reported.Exception);
-        Assert.Empty(context.Escaped);
-    }
-
-    [Fact]
-    public async Task RunUnawaited_WorkThrowsBeforeItReturnsATask_ReportsIt()
-    {
-        using var logger = new RecordingLoggerService();
-
-        // Nothing on the returned task could catch this one: there is no returned task. It is the
-        // reason the work is wrapped rather than handed a SafeFireAndForget handler.
-        logger.RunUnawaited(
-            "Failed to export the log",
-            () => throw new IOException("the folder cannot be written"));
-
-        var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
-
-        Assert.Equal("Failed to export the log", reported.Message);
-        Assert.IsType<IOException>(reported.Exception);
-    }
-
-    [Fact]
-    public async Task RunUnawaited_WorkSucceeds_ReportsNothing()
-    {
-        using var logger = new RecordingLoggerService();
-        var ran = new TaskCompletionSource();
-
-        logger.RunUnawaited("Failed to preview the track", () =>
-        {
-            ran.SetResult();
-            return Task.CompletedTask;
-        });
-
-        await ran.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        Assert.Empty(logger.Errors);
-    }
-
     [Fact]
     public void Report_WhenTheReportItselfCannotBeMade_DoesNotThrow()
     {
@@ -124,40 +53,6 @@ public sealed class LoggerServiceExtensionsTests
         finally
         {
             directory.Delete(recursive: true);
-        }
-    }
-
-    /// <summary>Catches what an async void could not return, which is where the crash came from.</summary>
-    private sealed class RecordingSynchronizationContext : SynchronizationContext
-    {
-        private readonly List<Exception> _escaped = [];
-
-        public IReadOnlyList<Exception> Escaped
-        {
-            get
-            {
-                lock (_escaped)
-                {
-                    return [.. _escaped];
-                }
-            }
-        }
-
-        public override void Post(SendOrPostCallback d, object? state)
-        {
-            ArgumentNullException.ThrowIfNull(d);
-
-            try
-            {
-                d(state);
-            }
-            catch (Exception exception)
-            {
-                lock (_escaped)
-                {
-                    _escaped.Add(exception);
-                }
-            }
         }
     }
 }

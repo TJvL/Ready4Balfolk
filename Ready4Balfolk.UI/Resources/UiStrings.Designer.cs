@@ -1271,4 +1271,35 @@ public static class UiStrings
         ResourceManager.GetString("Discovery_DanceListUrl", Culture)!;
     public static string Discovery_DanceListHint =>
         ResourceManager.GetString("Discovery_DanceListHint", Culture)!;
+
+    public static string DanceList_UpdateFromFileFailed =>
+        ResourceManager.GetString("DanceList_UpdateFromFileFailed", Culture)!;
+    public static string DanceList_OpenSiteFailed =>
+        ResourceManager.GetString("DanceList_OpenSiteFailed", Culture)!;
+    public static string Wizard_DanceList_ImportFailed =>
+        ResourceManager.GetString("Wizard_DanceList_ImportFailed", Culture)!;
+    public static string Settings_MusicDirectoryChooseFailed =>
+        ResourceManager.GetString("Settings_MusicDirectoryChooseFailed", Culture)!;
+    public static string Settings_EndOfNightChooseFailed =>
+        ResourceManager.GetString("Settings_EndOfNightChooseFailed", Culture)!;
+    public static string Settings_ExportLogFailed =>
+        ResourceManager.GetString("Settings_ExportLogFailed", Culture)!;
+    public static string Queue_MoveItemFailed =>
+        ResourceManager.GetString("Queue_MoveItemFailed", Culture)!;
+    public static string QueueToolbar_AddMessageFailed =>
+        ResourceManager.GetString("QueueToolbar_AddMessageFailed", Culture)!;
+    public static string History_ReadNightsFailed =>
+        ResourceManager.GetString("History_ReadNightsFailed", Culture)!;
+    public static string HistoryToolbar_ExportFailed =>
+        ResourceManager.GetString("HistoryToolbar_ExportFailed", Culture)!;
+    public static string Toolbar_DisplayAddressFailed =>
+        ResourceManager.GetString("Toolbar_DisplayAddressFailed", Culture)!;
+    public static string Toolbar_RemoteAddressFailed =>
+        ResourceManager.GetString("Toolbar_RemoteAddressFailed", Culture)!;
+    public static string Review_PreviewFailed =>
+        ResourceManager.GetString("Review_PreviewFailed", Culture)!;
+    public static string Review_StopPreviewFailed =>
+        ResourceManager.GetString("Review_StopPreviewFailed", Culture)!;
+    public static string Review_SeekPreviewFailed =>
+        ResourceManager.GetString("Review_SeekPreviewFailed", Culture)!;
 }

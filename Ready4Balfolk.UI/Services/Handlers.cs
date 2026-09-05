@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.UI.Services;
@@ -21,7 +22,7 @@ internal static class Handlers
 {
     /// <summary>Runs what a handler cannot await, and says so when it fails.</summary>
     public static void Run(string whatFailed, Func<Task> work) =>
-        Logger().RunUnawaited(whatFailed, work);
+        new UnawaitedWork(Logger()).Start(whatFailed, work);
 
     /// <summary>The logger, or nothing when the container is already gone.</summary>
     /// <remarks>

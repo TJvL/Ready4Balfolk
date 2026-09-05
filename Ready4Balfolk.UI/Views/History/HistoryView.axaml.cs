@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Threading;
 using ReactiveUI.Avalonia.Reactive;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.History;
@@ -24,7 +25,7 @@ public partial class HistoryView : ReactiveUserControl<HistoryViewModel>
                 // The nights on file are read when somebody looks at them, rather than on every
                 // track that finishes: the list only changes when a night is opened or filed.
                 Handlers.Run(
-                    "Failed to read the nights on file",
+                    UiStrings.History_ReadNightsFailed,
                     () => ViewModel?.RefreshNightsAsync() ?? Task.CompletedTask);
                 ScrollToLatest();
             });

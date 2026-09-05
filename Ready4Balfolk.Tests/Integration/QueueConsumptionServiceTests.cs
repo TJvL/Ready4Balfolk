@@ -5,6 +5,7 @@ using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
@@ -343,7 +344,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         // Preloading is nobody's await, so this used to be a bare discard: the exception sat on an
         // unobserved task until a garbage collection, and the DJ heard about it when the room did.
         var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
-        Assert.Equal("Failed to prepare the next item", reported.Message);
+        Assert.Equal(DomainStrings.Queue_PreloadFailed, reported.Message);
         Assert.IsType<InvalidOperationException>(reported.Exception);
     }
 
@@ -364,7 +365,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         _playbackEnded.OnNext(RxUnit.Default);
 
         var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
-        Assert.Equal("Failed to move on to the next item in the queue", reported.Message);
+        Assert.Equal(DomainStrings.Queue_AdvanceFailed, reported.Message);
         Assert.IsType<InvalidOperationException>(reported.Exception);
     }
 

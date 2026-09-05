@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using ReactiveUI.Avalonia.Reactive;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Discovery;
@@ -29,7 +30,7 @@ public partial class DiscoveryView : ReactiveUserControl<DiscoveryViewModel>
     }
 
     private void OnDanceListClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run("Failed to open the dance list website", async () =>
+        Handlers.Run(UiStrings.DanceList_OpenSiteFailed, async () =>
         {
             if (TopLevel.GetTopLevel(this) is { } topLevel)
             {

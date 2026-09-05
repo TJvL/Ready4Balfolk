@@ -21,7 +21,7 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
     /// is the whole of the setting.
     /// </summary>
     private void OnBrowseEndOfNightClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run("Failed to choose the end-of-night track", async () =>
+        Handlers.Run(UiStrings.Settings_EndOfNightChooseFailed, async () =>
         {
             var path = await App.Services.GetRequiredService<IFilePickerService>()
                 .PickFileToOpenAsync(UiStrings.Settings_EndOfNightPickerTitle, FileKind.Audio);
@@ -37,7 +37,7 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
     /// answer here, not an exceptional one: a stick that was pulled, a folder that is read-only.
     /// </summary>
     private void OnExportLogClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run("Failed to export the log", async () =>
+        Handlers.Run(UiStrings.Settings_ExportLogFailed, async () =>
         {
             var path = await App.Services.GetRequiredService<IFilePickerService>()
                 .PickWhereToSaveAsync(

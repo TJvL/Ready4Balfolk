@@ -14,7 +14,7 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
     }
 
     private void OnExportClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run("Failed to export queue history", async () =>
+        Handlers.Run(UiStrings.HistoryToolbar_ExportFailed, async () =>
         {
             var path = await App.Services.GetRequiredService<IFilePickerService>()
                 .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportTitle, "queue_history", FileKind.Json);

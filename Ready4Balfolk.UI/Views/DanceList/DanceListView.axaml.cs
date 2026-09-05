@@ -18,7 +18,7 @@ public partial class DanceListView : ReactiveUserControl<DanceListViewModel>
     /// that never reaches the internet. It goes through the same reader a download does.
     /// </summary>
     private void OnUpdateFromFileClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run("Failed to update the dance list from a file", async () =>
+        Handlers.Run(UiStrings.DanceList_UpdateFromFileFailed, async () =>
         {
             var path = await App.Services.GetRequiredService<IFilePickerService>()
                 .PickFileToOpenAsync(UiStrings.DanceList_UpdateFromFileTip, FileKind.Json);

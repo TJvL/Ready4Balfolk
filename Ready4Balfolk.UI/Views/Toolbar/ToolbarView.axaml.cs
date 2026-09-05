@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.UI.Controls;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.QrCode;
 
@@ -27,13 +28,13 @@ public partial class ToolbarView : ReactiveUserControl<ToolbarViewModel>
     private void OnDisplayAddressClick(object? sender, RoutedEventArgs e)
     {
         Tooltips.Dismiss(sender);
-        Handlers.Run("Failed to show the display address", () => ShowAddressAsync(ViewModel?.DisplayAddress()));
+        Handlers.Run(UiStrings.Toolbar_DisplayAddressFailed, () => ShowAddressAsync(ViewModel?.DisplayAddress()));
     }
 
     private void OnRemoteAddressClick(object? sender, RoutedEventArgs e)
     {
         Tooltips.Dismiss(sender);
-        Handlers.Run("Failed to show the remote address", () => ShowAddressAsync(ViewModel?.RemoteAddress()));
+        Handlers.Run(UiStrings.Toolbar_RemoteAddressFailed, () => ShowAddressAsync(ViewModel?.RemoteAddress()));
     }
 
     /// <summary>Puts the address on screen as something a phone can be pointed at.</summary>

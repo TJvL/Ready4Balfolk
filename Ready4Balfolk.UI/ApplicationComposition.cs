@@ -117,7 +117,7 @@ public static class ApplicationComposition
     /// AsyncAwaitBestPractices calls a process-wide default exception handler in addition to the
     /// handler a call site passes, never instead of it. Every fire-and-forget in this
     /// application either passes a handler that says what it could not do, or goes through
-    /// <see cref="LoggerServiceExtensions.RunUnawaited"/>, which reports it itself and lets nothing
+    /// <see cref="Domain.Helpers.UnawaitedWork.Start"/>, which reports it itself and lets nothing
     /// escape. A default handler on top of that would give the DJ a second toast reading "Unhandled
     /// fire-and-forget exception" beside the one that says which thing failed, because
     /// <see cref="ApplicationStartup"/> groups notifications by message and these are two messages.

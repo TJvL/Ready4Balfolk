@@ -1,5 +1,6 @@
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.DependencyInjection;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI;
@@ -9,9 +10,9 @@ namespace Ready4Balfolk.Tests.Unit;
 
 /// <summary>Where the failure of work nobody awaits ends up, and how often.</summary>
 /// <remarks>
-/// One class, because both halves of the answer read the same static container: what a view
-/// handler resolves its logger from, and what a report the application did not ask for would come
-/// out of.
+/// One class, because it is one answer: what the mechanism itself does with an exception, what a
+/// view handler that leans on it resolves its logger from, and what a report the application did
+/// not ask for would come out of.
 /// </remarks>
 public sealed class UnawaitedWorkTests
 {
@@ -91,6 +92,103 @@ public sealed class UnawaitedWorkTests
         }
     }
 
+    [Fact]
+    public async Task Start_WorkThrowsAfterAnAwait_ReportsItAndNothingEscapes()
+    {
+        using var logger = new RecordingLoggerService();
+        var context = new RecordingSynchronizationContext();
+        var previous = SynchronizationContext.Current;
+
+        // Set while the work is started, because an async void sends what it could not return to
+        // whichever context was current when it began. That is the route this has to close.
+        SynchronizationContext.SetSynchronizationContext(context);
+        try
+        {
+            new UnawaitedWork(logger).Start("Failed to preview the track", async () =>
+            {
+                await Task.Yield();
+                throw new InvalidOperationException("Failed to create stream");
+            });
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+
+        var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Failed to preview the track", reported.Message);
+        Assert.IsType<InvalidOperationException>(reported.Exception);
+        Assert.Empty(context.Escaped);
+    }
+
+    [Fact]
+    public async Task Start_WorkThrowsBeforeItReturnsATask_ReportsIt()
+    {
+        using var logger = new RecordingLoggerService();
+
+        // Nothing on the returned task could catch this one: there is no returned task. It is the
+        // reason the work is wrapped rather than handed a SafeFireAndForget handler.
+        new UnawaitedWork(logger).Start(
+            "Failed to export the log",
+            () => throw new IOException("the folder cannot be written"));
+
+        var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Failed to export the log", reported.Message);
+        Assert.IsType<IOException>(reported.Exception);
+    }
+
+    [Fact]
+    public async Task Start_WorkSucceeds_ReportsNothing()
+    {
+        using var logger = new RecordingLoggerService();
+        var ran = new TaskCompletionSource();
+
+        new UnawaitedWork(logger).Start("Failed to preview the track", () =>
+        {
+            ran.SetResult();
+            return Task.CompletedTask;
+        });
+
+        await ran.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.Empty(logger.Errors);
+    }
+
     private static ServiceProvider Containing(ILoggerService logger) =>
         new ServiceCollection().AddSingleton(logger).BuildServiceProvider();
+
+    /// <summary>Catches what an async void could not return, which is where the crash came from.</summary>
+    private sealed class RecordingSynchronizationContext : SynchronizationContext
+    {
+        private readonly List<Exception> _escaped = [];
+
+        public IReadOnlyList<Exception> Escaped
+        {
+            get
+            {
+                lock (_escaped)
+                {
+                    return [.. _escaped];
+                }
+            }
+        }
+
+        public override void Post(SendOrPostCallback d, object? state)
+        {
+            ArgumentNullException.ThrowIfNull(d);
+
+            try
+            {
+                d(state);
+            }
+            catch (Exception exception)
+            {
+                lock (_escaped)
+                {
+                    _escaped.Add(exception);
+                }
+            }
+        }
+    }
 }

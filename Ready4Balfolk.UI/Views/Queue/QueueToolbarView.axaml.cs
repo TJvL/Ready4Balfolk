@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.UI.Controls;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Dialogs.Message;
 
@@ -20,7 +21,7 @@ public partial class QueueToolbarView : ReactiveUserControl<QueueViewModel>
     {
         Tooltips.Dismiss(sender);
 
-        Handlers.Run("Failed to add the message", async () =>
+        Handlers.Run(UiStrings.QueueToolbar_AddMessageFailed, async () =>
         {
             var topLevel = TopLevel.GetTopLevel(this);
             if (topLevel is not Window owner)

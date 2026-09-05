@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Queue;
@@ -108,7 +109,7 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         var data = new DataTransfer();
         data.Add(item);
 
-        Handlers.Run("Failed to move the queue item", async () =>
+        Handlers.Run(UiStrings.Queue_MoveItemFailed, async () =>
         {
             await DragDrop.DoDragDropAsync(pressArgs, data, DragDropEffects.Move);
             HideDropIndicator();
