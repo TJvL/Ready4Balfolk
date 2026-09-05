@@ -5,6 +5,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Queue;
 
@@ -82,7 +84,7 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         _dragStartArgs = e;
     }
 
-    private async void OnQueuePointerMoved(object? sender, PointerEventArgs e)
+    private void OnQueuePointerMoved(object? sender, PointerEventArgs e)
     {
         if (_dragStartPoint == null || _dragStartIndex < 0)
         {
@@ -107,8 +109,11 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         var data = new DataTransfer();
         data.Add(item);
 
-        await DragDrop.DoDragDropAsync(pressArgs, data, DragDropEffects.Move);
-        HideDropIndicator();
+        Handlers.Run(UiStrings.Queue_MoveItemFailed, async () =>
+        {
+            await DragDrop.DoDragDropAsync(pressArgs, data, DragDropEffects.Move);
+            HideDropIndicator();
+        });
     }
 
     private void OnQueuePointerReleased(object? sender, PointerReleasedEventArgs e)

@@ -76,6 +76,12 @@ public static class DomainStrings
     public static string Queue_CannotPlay =>
         ResourceManager.GetString("Queue_CannotPlay", Culture)!;
 
+    public static string Queue_AdvanceFailed =>
+        ResourceManager.GetString("Queue_AdvanceFailed", Culture)!;
+
+    public static string Queue_PreloadFailed =>
+        ResourceManager.GetString("Queue_PreloadFailed", Culture)!;
+
     public static string DanceList_InvalidJson =>
         ResourceManager.GetString("DanceList_InvalidJson", Culture)!;
 
