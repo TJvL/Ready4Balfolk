@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -22,6 +23,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly ISettingsStore _settingsStore;
     private readonly ILoggerService _loggerService;
     private readonly TimeProvider _time;
+    private readonly IScheduler _advanceScheduler;
     private readonly UnawaitedWork _unawaited;
 
     /// <summary>How often a countdown says how far along it is. Not how accurate its end is.</summary>
@@ -56,13 +58,21 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     public IObservable<bool> WhenIsPlayingChanged => _isPlaying.AsObservable();
     public IObservable<Unit> WhenItemCompleted => _itemCompleted.AsObservable();
 
+    /// <remarks>
+    /// <c>advanceScheduler</c> is where an advance is run from. Everything else that touches the
+    /// queue is driven from the UI thread, and the two callers that start an advance on their own
+    /// are not on it: a track ending arrives on the audio library's callback thread and a countdown
+    /// running out on a timer thread. Both are put on here, so the queue only ever changes in one
+    /// place.
+    /// </remarks>
     public QueueConsumptionService(
         IAudioPlaybackService audio,
         IQueueService queue,
         IQueueHistoryStore history,
         ISettingsStore settingsStore,
         ILoggerService loggerService,
-        TimeProvider time)
+        TimeProvider time,
+        IScheduler advanceScheduler)
     {
         _audio = audio;
         _queue = queue;
@@ -70,6 +80,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _settingsStore = settingsStore;
         _loggerService = loggerService;
         _time = time;
+        _advanceScheduler = advanceScheduler;
 
         // Closing the application is not a failure. An end-of-track callback or a countdown tick
         // that had already started when Dispose returned still reaches AdvanceAsync, whose first
@@ -325,11 +336,24 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
     private void OnTrackEnded()
     {
-        _itemFinishedNaturally = true;
         _isPlaying.OnNext(false);
+        AdvanceBecauseTheItemRanOut();
+    }
+
+    /// <summary>Advances from a callback that is not on the thread the queue is driven from.</summary>
+    /// <remarks>
+    /// Both callers are somewhere else: a track ending arrives on the audio library's callback
+    /// thread, a countdown running out on a timer thread. Dequeuing from either while the DJ is
+    /// dropping a row or a phone is removing one is how the queue shifts under a request that is
+    /// already on its way, and why "it ran out" is set here rather than at the callback: read on
+    /// the same thread that acts on it, it cannot land in the middle of somebody else's advance.
+    /// </remarks>
+    private void AdvanceBecauseTheItemRanOut() => _advanceScheduler.Schedule(() =>
+    {
+        _itemFinishedNaturally = true;
         // Fire-and-forget advance: the gate ensures serialization
         _unawaited.Start(DomainStrings.Queue_AdvanceFailed, AdvanceAsync);
-    }
+    });
 
     /// <summary>Counts a delay, a message or a gap down, and advances once when it runs out.</summary>
     /// <remarks>
@@ -369,8 +393,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
                 countdown.Dispose();
                 _elapsed.OnNext(duration);
-                _itemFinishedNaturally = true;
-                _unawaited.Start(DomainStrings.Queue_AdvanceFailed, AdvanceAsync);
+                AdvanceBecauseTheItemRanOut();
             },
             null,
             CountdownTick,

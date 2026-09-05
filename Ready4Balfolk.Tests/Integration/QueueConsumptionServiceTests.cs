@@ -1,3 +1,5 @@
+using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Microsoft.Extensions.Time.Testing;
@@ -66,7 +68,8 @@ public sealed class QueueConsumptionServiceTests : IDisposable
             TimeProvider.System);
 
         _sut = new QueueConsumptionService(
-            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), TimeProvider.System);
+            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), TimeProvider.System,
+            ImmediateScheduler.Instance);
     }
 
     [Fact]
@@ -398,13 +401,77 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         sut.Dispose();
     }
 
+    /// <summary>A scheduler that keeps what it is handed until a test lets it go.</summary>
+    /// <remarks>
+    /// It stands for the UI thread being busy: work put on it is waiting, which is what makes
+    /// "the queue was not touched yet" something a test can assert rather than race against.
+    /// </remarks>
+    private sealed class HeldScheduler : IScheduler
+    {
+        private readonly List<Action> _waiting = [];
+
+        public DateTimeOffset Now => DateTimeOffset.UtcNow;
+
+        public int Waiting => _waiting.Count;
+
+        public void RunAll()
+        {
+            var due = _waiting.ToArray();
+            _waiting.Clear();
+            foreach (var work in due)
+            {
+                work();
+            }
+        }
+
+        public IDisposable Schedule<TState>(TState state, Func<IScheduler, TState, IDisposable> action)
+        {
+            _waiting.Add(() => action(this, state));
+            return Disposable.Empty;
+        }
+
+        public IDisposable Schedule<TState>(
+            TState state, TimeSpan dueTime, Func<IScheduler, TState, IDisposable> action) =>
+            Schedule(state, action);
+
+        public IDisposable Schedule<TState>(
+            TState state, DateTimeOffset dueTime, Func<IScheduler, TState, IDisposable> action) =>
+            Schedule(state, action);
+    }
+
+    [Fact]
+    public async Task ATrackEnding_DoesNotDequeueOnTheThreadTheCallbackArrivedOn()
+    {
+        // The end-of-track callback comes from the audio library's own thread and the countdown
+        // from a timer thread, while everything else that touches the queue runs on the UI thread.
+        // A dequeue from either of those is what moves the queue under a removal already in flight.
+        var held = new HeldScheduler();
+        using var sut = new QueueConsumptionService(
+            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), TimeProvider.System,
+            held);
+
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(title: "Second"), false));
+        await sut.AdvanceAsync();
+
+        _playbackEnded.OnNext(RxUnit.Default);
+
+        Assert.Equal(1, _queue.Count);
+        Assert.Equal(1, held.Waiting);
+
+        held.RunAll();
+        Assert.Equal(0, _queue.Count);
+    }
+
     /// <summary>A second service on a clock a test can move, sharing this fixture's doubles.</summary>
     private QueueConsumptionService CreateServiceOn(TimeProvider time) =>
-        new(_audio, _queue, _history, _settingsStore, new NoOpLoggerService(), time);
+        new(_audio, _queue, _history, _settingsStore, new NoOpLoggerService(), time,
+            ImmediateScheduler.Instance);
 
     /// <summary>A second service that keeps what it reports, sharing this fixture's doubles.</summary>
     private QueueConsumptionService CreateServiceLoggingTo(ILoggerService logger) =>
-        new(_audio, _queue, _history, _settingsStore, logger, TimeProvider.System);
+        new(_audio, _queue, _history, _settingsStore, logger, TimeProvider.System,
+            ImmediateScheduler.Instance);
 
     [Fact]
     public async Task ACountdownThatHasExpired_StopsTicking_WhileTheHistoryWriteIsStillGoing()

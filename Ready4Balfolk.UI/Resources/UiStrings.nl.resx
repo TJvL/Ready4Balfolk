@@ -249,6 +249,9 @@
   <data name="Queue_CutoffPaused" xml:space="preserve">
     <value>limiet gepauzeerd voor de stop</value>
   </data>
+  <data name="Queue_ItemAlreadyGone" xml:space="preserve">
+    <value>Die regel stond al niet meer in de wachtrij</value>
+  </data>
   <data name="Settings_MaxQueueItems" xml:space="preserve">
     <value>Maximaal aantal wachtrij-items</value>
   </data>

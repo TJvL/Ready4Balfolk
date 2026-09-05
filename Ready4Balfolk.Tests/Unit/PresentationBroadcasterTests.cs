@@ -154,16 +154,17 @@ public sealed class PresentationBroadcasterTests : IDisposable
     }
 
     [Fact]
-    public void QueueSnapshot_NumbersTheRowsAndMarksTheAutomaticOne()
+    public void QueueSnapshot_NamesTheRowsAndMarksTheAutomaticOne()
     {
-        // The remote sends an index back to move or remove a row, so the numbering is the contract
-        // rather than a display detail.
+        // The remote sends a row's name back to move or remove it, so what identifies a row is the
+        // contract rather than where it happens to sit in this snapshot.
         var track = new TrackQueueItem(TestData.CreateTrack(), RandomlyAdded: false);
-        _queueItems.AddRange([track, new AutoTrackQueueItem(track)]);
+        var auto = new AutoTrackQueueItem(track);
+        _queueItems.AddRange([track, auto]);
 
         var snapshot = _sut.QueueSnapshot;
 
-        Assert.Equal([0, 1], snapshot.Select(entry => entry.Index));
+        Assert.Equal([track.Id.ToString(), auto.Id.ToString()], snapshot.Select(entry => entry.Id));
         Assert.Equal([false, true], snapshot.Select(entry => entry.IsAuto));
     }
 

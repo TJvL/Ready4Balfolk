@@ -73,6 +73,24 @@ public sealed class QueueService : IQueueService, IDisposable
 
     public IQueueItem? Peek() => _sourceList.Count > 0 ? _sourceList.Items[0] : null;
 
+    public int IndexOf(QueueItemId id) => IndexOf(_sourceList.Items, id);
+
+    private static int IndexOf(IEnumerable<IQueueItem> list, QueueItemId id)
+    {
+        var index = 0;
+        foreach (var item in list)
+        {
+            if (item.Id == id)
+            {
+                return index;
+            }
+
+            index++;
+        }
+
+        return -1;
+    }
+
     public QueueAddResult Enqueue(IQueueItem item)
     {
         QueueAddResult result = null!;
@@ -130,16 +148,30 @@ public sealed class QueueService : IQueueService, IDisposable
         return null;
     }
 
+    /// <summary>Takes the top row off, in one edit.</summary>
+    /// <remarks>
+    /// Reading and removing were two calls, which is two change sets and a moment in between where
+    /// the queue a subscriber sees is not the queue this method thinks it has.
+    /// </remarks>
     public IQueueItem? Dequeue()
     {
-        if (_sourceList.Count == 0)
+        IQueueItem? item = null;
+        _sourceList.Edit(list =>
         {
-            return null;
+            if (list.Count == 0)
+            {
+                return;
+            }
+
+            item = list[0];
+            list.RemoveAt(0);
+        });
+
+        if (item is not null)
+        {
+            _ = _loggerService.DebugAsync($"Dequeue: {item.GetType().Name}");
         }
 
-        var item = _sourceList.Items[0];
-        _sourceList.RemoveAt(0);
-        _ = _loggerService.DebugAsync($"Dequeue: {item.GetType().Name}");
         return item;
     }
 
@@ -176,33 +208,62 @@ public sealed class QueueService : IQueueService, IDisposable
         return result;
     }
 
-    public bool Move(int oldIndex, int newIndex)
+    // Which row, and where it goes, are answered inside the same edit: the caller's idea of where
+    // the row was is a snapshot, and a dance ending anywhere in between would otherwise move the
+    // one below it.
+    public QueueChangeResult Move(QueueItemId id, int newIndex)
     {
-        var item = _sourceList.Items[oldIndex];
-        if (!_guard.CanMove(item))
+        var result = QueueChangeResult.Gone;
+        _sourceList.Edit(list =>
         {
-            return false;
-        }
+            var oldIndex = IndexOf(list, id);
+            if (oldIndex < 0)
+            {
+                return;
+            }
 
-        if (!IsPinnedToTail(item) && FirstPinnedIndex([.. _sourceList.Items]) is { } pinnedIndex)
-        {
-            // Removing the item first shifts everything after it down by one.
-            newIndex = Math.Min(newIndex, oldIndex < pinnedIndex ? pinnedIndex - 1 : pinnedIndex);
-        }
+            var item = list[oldIndex];
+            if (!_guard.CanMove(item) || newIndex < 0 || newIndex >= list.Count)
+            {
+                result = QueueChangeResult.Refused;
+                return;
+            }
 
-        _sourceList.Move(oldIndex, newIndex);
-        return true;
+            if (!IsPinnedToTail(item) && FirstPinnedIndex(list) is { } pinnedIndex)
+            {
+                // Removing the item first shifts everything after it down by one.
+                newIndex = Math.Min(newIndex, oldIndex < pinnedIndex ? pinnedIndex - 1 : pinnedIndex);
+            }
+
+            list.Move(oldIndex, newIndex);
+            result = QueueChangeResult.Done;
+        });
+
+        return result;
     }
 
-    public bool RemoveAt(int index)
+    public QueueChangeResult Remove(QueueItemId id)
     {
-        if (!_guard.CanRemove(_sourceList.Items[index]))
+        var result = QueueChangeResult.Gone;
+        _sourceList.Edit(list =>
         {
-            return false;
-        }
+            var index = IndexOf(list, id);
+            if (index < 0)
+            {
+                return;
+            }
 
-        _sourceList.RemoveAt(index);
-        return true;
+            if (!_guard.CanRemove(list[index]))
+            {
+                result = QueueChangeResult.Refused;
+                return;
+            }
+
+            list.RemoveAt(index);
+            result = QueueChangeResult.Done;
+        });
+
+        return result;
     }
 
     public bool Clear()
@@ -259,11 +320,28 @@ public sealed class QueueService : IQueueService, IDisposable
             return;
         }
 
+        // The guard answers in positions against the snapshot above, and the queue can move on
+        // while it is answering: a dance ending shifts every row up, and the positions it named
+        // then point at rows it never looked at. Name the rows here, and look each one up again
+        // inside the edit, because taking one out shifts the rest below it as well.
+        var doomed = new List<QueueItemId>(indices.Count);
+        foreach (var index in indices)
+        {
+            if (index >= 0 && index < items.Count)
+            {
+                doomed.Add(items[index].Id);
+            }
+        }
+
         _sourceList.Edit(list =>
         {
-            foreach (var i in indices)
+            foreach (var id in doomed)
             {
-                list.RemoveAt(i);
+                var index = IndexOf(list, id);
+                if (index >= 0)
+                {
+                    list.RemoveAt(index);
+                }
             }
         });
     }

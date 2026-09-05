@@ -7,7 +7,7 @@
   var t = null;          /* bound after the config load */
   var connection = null;
   var delaySeconds = 30;
-  var openRow = -1;
+  var openRow = null;    /* the id of the open row, not its position: the list renumbers itself */
   var queue = [];
   var searchTimer = null;
 
@@ -40,10 +40,11 @@
   }
 
   /* Hands a refused command straight back rather than pretending it worked: the queue guard's own
-     wording is better than anything invented here. */
+     wording is better than anything invented here. The exception is a queue that moved on: that is
+     not the queue saying no, it is this list being out of date, and the words for it are ours. */
   function report(result, okMessage) {
     if (result && result.accepted === false) {
-      toast(result.reason || "", true);
+      toast(result.queueChanged ? t("queueMovedOn") : (result.reason || ""), true);
       return;
     }
     if (okMessage) toast(okMessage);
@@ -104,7 +105,7 @@
 
     queue.forEach(function (entry, index) {
       var row = document.createElement("div");
-      row.className = "qrow" + (openRow === index ? " is-open" : "");
+      row.className = "qrow" + (openRow === entry.id ? " is-open" : "");
 
       var main = document.createElement("button");
       main.type = "button";
@@ -117,7 +118,7 @@
         (entry.durationSeconds ? window.R4B.mmss(entry.durationSeconds) : "-") + "</span>";
 
       main.addEventListener("click", function () {
-        openRow = openRow === index ? -1 : index;
+        openRow = openRow === entry.id ? null : entry.id;
         renderQueue(queue);
       });
 
@@ -139,11 +140,11 @@
         if (!button || button.disabled) return;
 
         var move = button.getAttribute("data-move");
-        if (move === "up") send("MoveUp", index);
-        if (move === "down") send("MoveDown", index);
+        if (move === "up") send("MoveUp", entry.id);
+        if (move === "down") send("MoveDown", entry.id);
         if (move === "remove") {
-          openRow = -1;
-          send("RemoveAt", index, t("removed"));
+          openRow = null;
+          send("Remove", entry.id, t("removed"));
         }
       });
 

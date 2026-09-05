@@ -184,7 +184,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         var index = IndexOfSelected();
         if (index > 0)
         {
-            MoveItem(index, index - 1);
+            MoveItem(item.Id, index - 1);
             RxSchedulers.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
         }
     }
@@ -201,7 +201,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         var index = IndexOfSelected();
         if (index >= 0 && index < _queuedItems.Count - 1)
         {
-            MoveItem(index, index + 1);
+            MoveItem(item.Id, index + 1);
             RxSchedulers.MainThreadScheduler.Schedule(item, (_, i) => { SelectedItem = i; return Disposable.Empty; });
         }
     }
@@ -374,20 +374,16 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 
     private static bool IsPinnedToTail(IQueueItem item) => item is AutoTrackQueueItem or EndOfNightQueueItem;
 
-    // Queue items are records with value equality and duplicates are allowed
-    // (e.g. two StopQueueItems), so the selected item must be located by
-    // reference identity: IndexOf would return the first equal instance.
-    private int IndexOfSelected()
-    {
-        var selected = SelectedItem;
-        if (selected is null)
-        {
-            return -1;
-        }
+    // Duplicates are ordinary (two stops, say) and describe the same thing, so the selected row is
+    // found by its own identity rather than by what it says.
+    private int IndexOfSelected() => SelectedItem is { } selected ? IndexOf(selected.Id) : -1;
 
+    /// <summary>Where that row sits in the list the DJ is looking at, or -1 when it is not in it.</summary>
+    private int IndexOf(QueueItemId id)
+    {
         for (var i = 0; i < _queuedItems.Count; i++)
         {
-            if (ReferenceEquals(_queuedItems[i], selected))
+            if (_queuedItems[i].Id == id)
             {
                 return i;
             }
@@ -398,36 +394,46 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 
     public void DeleteSelectedItem()
     {
-        if (SelectedItem is null)
+        if (SelectedItem is { } selected)
         {
-            return;
-        }
-
-        var index = IndexOfSelected();
-        if (index >= 0)
-        {
-            _queueService.RemoveAt(index);
+            Report(_queueService.Remove(selected.Id));
         }
     }
 
-    public void MoveItem(int oldIndex, int newIndex)
+    /// <summary>Moves a row, named rather than numbered, to a position.</summary>
+    /// <remarks>
+    /// The row is the one the DJ picked up; the position is read from the list as it is now, at the
+    /// moment of the drop. A dance ending in between changes what is at that position, which is a
+    /// hair's breadth of a race and the queue's own business, but it can never change which row is
+    /// being moved.
+    /// </remarks>
+    public void MoveItem(QueueItemId id, int newIndex)
     {
-        if (oldIndex < 0 || oldIndex >= _queuedItems.Count)
-        {
-            return;
-        }
-
         if (newIndex < 0 || newIndex >= _queuedItems.Count)
         {
             return;
         }
 
-        if (oldIndex == newIndex)
+        // A row dropped back onto the position it already holds asks for nothing. A row that has
+        // gone is at no position at all, so it still goes through and is reported as gone.
+        if (IndexOf(id) == newIndex)
         {
             return;
         }
 
-        _queueService.Move(oldIndex, newIndex);
+        Report(_queueService.Move(id, newIndex));
+    }
+
+    /// <summary>
+    /// Says so when the row somebody acted on had already left the queue, rather than doing nothing
+    /// and letting them press it again.
+    /// </summary>
+    private void Report(QueueChangeResult result)
+    {
+        if (result == QueueChangeResult.Gone)
+        {
+            _notificationService.Show(UiStrings.Queue_ItemAlreadyGone, NotificationSeverity.Information);
+        }
     }
 
     public void PinAutoTrack(AutoTrackQueueItem item)
