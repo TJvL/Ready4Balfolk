@@ -288,6 +288,46 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ARuleAnsweringAgain_ReplacesAnotherRulesAnswerAndNotAPersonsOwn()
+    {
+        // Every scan, every retag and every newly declared pattern writes what the rules answered.
+        // A rule may take a rule's answer back; a hand correction is the one thing here that cannot
+        // be worked out again, and it stays exactly as the person left it.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2])], Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Dance, "mazurka")], Token);
+        await _sut.ApproveAsync([ByRule([2], TrackField.Dance, "plinn")], Token);
+
+        await _sut.ApproveAsync(
+            [ByRule([1], TrackField.Dance, "scottish"), ByRule([2], TrackField.Dance, "scottish")], Token);
+
+        var approvals = await _sut.ApprovalsAsync(Token);
+        var byHand = Assert.Single(approvals[LibraryKey.For([1])]);
+        Assert.Equal("mazurka", byHand.Value);
+        Assert.Equal(ApprovalKind.Individual, byHand.Kind);
+        Assert.Null(byHand.Rule);
+        Assert.Equal("scottish", Assert.Single(approvals[LibraryKey.For([2])]).Value);
+    }
+
+    [Fact]
+    public async Task ARuleWritingOverAPersonsAnswer_DoesNotBecomeWhenTheyAgreed()
+    {
+        // The retag that comes with the rule's write is what has to bring the track back for
+        // reconfirmation. Taking the rule's write time as the moment the person agreed is what used
+        // to make it pass silently instead.
+        var entry = Entry("/music/a.mp3", [1]);
+        await _sut.WriteAsync([entry], Token);
+        await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Dance, "mazurka")], Token);
+
+        var retagged = entry with { LastWriteUtc = entry.LastWriteUtc.AddHours(3) };
+        await _sut.WriteAsync([retagged], Token);
+        await _sut.ApproveAsync(
+            [ByRule([1], TrackField.Dance, "scottish") with { FileWriteUtc = retagged.LastWriteUtc }], Token);
+
+        var approval = Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+        Assert.Equal(entry.LastWriteUtc, approval.FileWriteUtc);
+    }
+
+    [Fact]
     public async Task AByRuleApproval_RemembersWhichRuleDidIt()
     {
         await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);

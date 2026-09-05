@@ -35,9 +35,10 @@ public enum ApprovalKind
 /// </para>
 /// <para>
 /// Keyed on the content hash, which covers the audio alone, so a retag or a rename keeps the
-/// approval. The dance is stored as the text that was agreed to rather than as a slug: a value the
-/// published list does not know yet is exactly what parks a track, and keeping the text is what lets
-/// a later import of the list release it without anybody being asked twice.
+/// approval. The dance is stored as the slug when the published list knows the value, because the
+/// slug is the identity and the names on it are a flat set of equals the list may re-spell. Text is
+/// kept only for a value the list does not know yet: that is exactly what parks a track, and keeping
+/// it is what lets a later import of the list release it without anybody being asked twice.
 /// </para>
 /// </remarks>
 public sealed record TrackApproval

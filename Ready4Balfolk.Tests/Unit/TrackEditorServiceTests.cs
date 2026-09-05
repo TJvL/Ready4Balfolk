@@ -1,4 +1,5 @@
 using NSubstitute;
+using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
@@ -16,7 +17,9 @@ public sealed class TrackEditorServiceTests
 
     public TrackEditorServiceTests()
     {
-        _sut = new TrackEditorService(Substitute.For<IDanceListStore>(), _libraryIndex, _trackStore);
+        var danceListStore = Substitute.For<IDanceListStore>();
+        danceListStore.Index.Returns(DanceListIndex.Build(TestData.CreateSimpleDanceList()));
+        _sut = new TrackEditorService(danceListStore, _libraryIndex, _trackStore);
     }
 
     [Fact]
@@ -34,6 +37,23 @@ public sealed class TrackEditorServiceTests
                 answers != null && answers.Count == 1 && answers.Contains(new FieldAnswer(TrackField.Title, "Corrected"))),
             Arg.Any<CancellationToken>());
         await _trackStore.Received(1).RefreshLibraryAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ACorrectedDance_IsWrittenDownAsTheDanceItMeans()
+    {
+        // The dialog hands over the name the person read, which is what "changed" is decided on.
+        // What is written down is the slug: the list may re-spell a dance, and a correction stored
+        // as a name follows the name rather than the dance.
+        var track = TestData.CreateTrack();
+
+        await _sut.ApplyAsync(track, "Schottische", track.Artist, track.Title);
+
+        await _libraryIndex.Received(1).ApproveIndividuallyAsync(
+            Arg.Any<IReadOnlyCollection<string>>(),
+            Arg.Is<IReadOnlyCollection<FieldAnswer>>(answers =>
+                answers != null && answers.Contains(new FieldAnswer(TrackField.Dance, "scottish"))),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

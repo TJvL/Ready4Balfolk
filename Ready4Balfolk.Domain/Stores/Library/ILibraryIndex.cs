@@ -34,7 +34,12 @@ public interface ILibraryIndex : IDisposable
     /// </remarks>
     Task<IReadOnlyDictionary<string, IReadOnlyList<TrackApproval>>> ApprovalsAsync(CancellationToken token = default);
 
-    /// <summary>Records what was agreed to, replacing any earlier answer for the same field.</summary>
+    /// <summary>Records what the rules answered, replacing any earlier answer a rule gave.</summary>
+    /// <remarks>
+    /// A field somebody answered themselves is left exactly as it stands, value and write time
+    /// both. Every scan, every retag and every newly declared pattern comes through here, and an
+    /// approval a person gave is the one thing in the index that cannot be worked out again.
+    /// </remarks>
     Task ApproveAsync(IReadOnlyCollection<TrackApproval> approvals, CancellationToken token = default);
 
     /// <summary>

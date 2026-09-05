@@ -45,7 +45,10 @@ public sealed class ReviewViewModelTests : IDisposable
             [
                 TestData.CreateDance("mazurka", names: ["Mazurka"]),
                 TestData.CreateDance("bourree-2-temps", names: ["Bourrée 2 temps"]),
-                TestData.CreateDance("bourree-3-temps", names: ["Bourrée 3 temps"])
+                TestData.CreateDance("bourree-3-temps", names: ["Bourrée 3 temps"]),
+                // Two names for one dance, so what is written down can be told apart from what
+                // was typed.
+                TestData.CreateDance("scottish", names: ["Scottish", "Schottische"])
             ]
         };
         var danceListStore = Substitute.For<IDanceListStore>();
@@ -143,8 +146,26 @@ public sealed class ReviewViewModelTests : IDisposable
         await _sut.ApproveCommand.Execute(row);
 
         Assert.Equal(3, _approved.Count(entry => entry.Path == row.Path));
-        Assert.Contains(_approved, entry => entry.Field == TrackField.Dance && entry.Value == "Mazurka");
+        Assert.Contains(_approved, entry => entry.Field == TrackField.Dance && entry.Value == "mazurka");
         Assert.True(row.IsApproved);
+    }
+
+    [Fact]
+    public async Task AnAnswerIsWrittenDownAsTheDanceItMeans()
+    {
+        // The slug, not the name that was typed. The published list is free to re-spell a dance and
+        // to drop a spelling, and an answer stored as a name follows the name rather than the dance.
+        await Refresh();
+        var row = _sut.Rows[0];
+        row.Dance = "Schottische";
+        row.Artist = "Naragonia";
+        row.Title = "Le badaud";
+
+        await _sut.ApproveCommand.Execute(row);
+
+        Assert.Contains(_approved, entry => entry.Field == TrackField.Dance && entry.Value == "scottish");
+        Assert.True(row.IsApproved);
+        Assert.False(row.IsParked);
     }
 
     [Fact]
@@ -269,7 +290,7 @@ public sealed class ReviewViewModelTests : IDisposable
 
         // The dance and nothing else: an artist and a title are per track, so they still want
         // confirming one at a time.
-        Assert.Equal(2, _approved.Count(entry => entry.Field == TrackField.Dance && entry.Value == "Mazurka"));
+        Assert.Equal(2, _approved.Count(entry => entry.Field == TrackField.Dance && entry.Value == "mazurka"));
         Assert.DoesNotContain(_approved, entry => entry.Field == TrackField.Artist);
         Assert.All(_sut.Rows.Where(candidate => candidate.IsShared), candidate => Assert.False(candidate.IsApproved));
 

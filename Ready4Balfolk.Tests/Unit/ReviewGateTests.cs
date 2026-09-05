@@ -100,10 +100,21 @@ public sealed class ReviewGateTests
     [Fact]
     public void ASlugIsAsGoodAsAName()
     {
-        // A rule approves whatever text it read; the editor approves the slug picked off the list.
+        // What was agreed to is the slug whenever the list knew the value, and the raw text when it
+        // did not. Both have to read as the same answer here.
         var review = Evaluate(Entry(), Approved(TrackField.Dance, "mazurka"), Approved(TrackField.Artist, "Naragonia"), Approved(TrackField.Title, "Le badaud"));
 
         Assert.True(review.IsInLibrary);
+    }
+
+    [Fact]
+    public void AnApprovedSlug_ReadsAsTheListSpellsIt()
+    {
+        // A slug is an identity, not something to put in front of a person: the box the DJ answers
+        // in has to say "Mazurka", whichever of the dance's names was agreed to.
+        var review = Evaluate(Entry(), Approved(TrackField.Dance, "mazurka"));
+
+        Assert.Equal("Mazurka", review.Dance.Value);
     }
 
     [Fact]
