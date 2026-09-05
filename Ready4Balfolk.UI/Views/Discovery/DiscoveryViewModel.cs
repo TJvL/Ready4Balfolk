@@ -211,7 +211,11 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         try
         {
             await _libraryIndex.OpenAsync();
-            var snapshot = await _libraryIndex.SnapshotByPathAsync();
+            // Reachable rows only. A rule is measured so that somebody can vouch for it, and a
+            // measurement over files that are not there is a number about a library nobody has.
+            var snapshot = (await _libraryIndex.SnapshotByPathAsync())
+                .Where(pair => pair.Value.IsAvailable)
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
             var root = _settingsStore.Current.MusicDirectoryPath;
 
             _fileNames = [.. snapshot.Keys.Select(Path.GetFileName).OfType<string>()];

@@ -7,6 +7,7 @@ using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
+using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
@@ -29,6 +30,11 @@ public sealed class TrackStoreTests : IDisposable
     private readonly ILoggerService _loggerService;
     private readonly ITrackDiscoveryService _discoveryService;
     private readonly ILibraryIndex _libraryIndex;
+    private readonly IDanceListStore _danceListStore;
+    private readonly IMissingFolderPrompt _missingFolderPrompt;
+    // What the scan asked about, and what it was told. One list per question, latest last.
+    private readonly List<IReadOnlyList<MissingLibraryFolder>> _asked = [];
+    private MissingFolderAnswer _answer = MissingFolderAnswer.KeepThem;
     private Dictionary<string, LibraryEntry> _indexSnapshot = [];
     // A BehaviorSubject as the real store is: it replays its current list to a new subscriber, and
     // the store's Skip(1) is there to drop exactly that replay. A bare Subject makes the first real
@@ -61,7 +67,8 @@ public sealed class TrackStoreTests : IDisposable
         _danceIndex = DanceListIndex.Build(danceList);
         _danceLists = new BehaviorSubject<DanceList>(danceList);
 
-        var danceListStore = Substitute.For<IDanceListStore>();
+        _danceListStore = Substitute.For<IDanceListStore>();
+        var danceListStore = _danceListStore;
         danceListStore.Current.Returns(danceList);
         danceListStore.Index.Returns(_ => _danceIndex);
         danceListStore.Observe().Returns(_danceLists);
@@ -92,15 +99,28 @@ public sealed class TrackStoreTests : IDisposable
 
                 return Task.CompletedTask;
             });
-        _libraryIndex.DeleteMissingAsync(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
+        _libraryIndex.DeleteMissingAsync(
+                Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {
-                var present = call.Arg<IReadOnlyCollection<string>>()!.ToHashSet(StringComparer.Ordinal);
+                var present = call.ArgAt<IReadOnlyCollection<string>>(0).ToHashSet(StringComparer.Ordinal);
+                var kept = call.ArgAt<IReadOnlyCollection<string>>(1).ToHashSet(StringComparer.Ordinal);
                 lock (_indexSnapshot)
                 {
-                    foreach (var gone in _indexSnapshot.Keys.Where(path => !present.Contains(path)).ToList())
+                    foreach (var (path, entry) in _indexSnapshot.ToList())
                     {
-                        _indexSnapshot.Remove(gone);
+                        if (present.Contains(path))
+                        {
+                            _indexSnapshot[path] = entry with { IsAvailable = true };
+                        }
+                        else if (kept.Contains(path))
+                        {
+                            _indexSnapshot[path] = entry with { IsAvailable = false };
+                        }
+                        else
+                        {
+                            _indexSnapshot.Remove(path);
+                        }
                     }
                 }
 
@@ -118,8 +138,23 @@ public sealed class TrackStoreTests : IDisposable
             });
         _libraryIndex.ApprovalsAsync(Arg.Any<CancellationToken>()).Returns(_ => Approved());
 
-        _sut = new TrackStore(_loggerService, discoveryService, danceListStore, _libraryIndex, _fileSystem);
+        // Answers whatever the test told it to. The default is the one a scan takes when nobody is
+        // there to answer: keep what cannot be reached rather than delete it.
+        _missingFolderPrompt = Substitute.For<IMissingFolderPrompt>();
+        _missingFolderPrompt
+            .AskAsync(Arg.Any<IReadOnlyList<MissingLibraryFolder>>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                _asked.Add(call.ArgAt<IReadOnlyList<MissingLibraryFolder>>(0));
+                return _answer;
+            });
+
+        _sut = NewStore();
     }
+
+    /// <summary>Another store over the same index and the same disk, which is the next start.</summary>
+    private TrackStore NewStore() => new(
+        _loggerService, _discoveryService, _danceListStore, _libraryIndex, _fileSystem, _missingFolderPrompt);
 
     private IFileSystemWatcher CreateWatcher(string path)
     {
@@ -487,7 +522,8 @@ public sealed class TrackStoreTests : IDisposable
         var releaseTheLoad = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var rebuildRan = false;
 
-        _libraryIndex.DeleteMissingAsync(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
+        _libraryIndex.DeleteMissingAsync(
+                Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
             .Returns(async _ =>
             {
                 loadIsInside.TrySetResult();
@@ -543,6 +579,137 @@ public sealed class TrackStoreTests : IDisposable
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));
         await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
         Assert.DoesNotContain(_sut.Current, t => t.FileInfo.Name == "a.mp3");
+    }
+
+    [Fact]
+    public async Task AFolderThatLostAllItsMusic_IsNotReconciledAwayWithoutAsking()
+    {
+        // The failure this exists for: the music directory is a mount point that has not mounted,
+        // so it is there and empty. Every row and every approval used to go, and approvals are the
+        // one thing a rescan cannot work out again.
+        CreateFile(_dirA, "a.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        _fileSystem.File.Delete(_fileSystem.Path.Combine(_dirA.FullName, "a.mp3"));
+
+        var unavailable = 0;
+        using var restarted = NewStore();
+        using var counting = restarted.UnavailableCount.Subscribe(count => unavailable = count);
+        await restarted.ApplyAsync(_configuration);
+
+        var asked = Assert.Single(_asked);
+        var folder = Assert.Single(asked);
+        Assert.Equal(_dirA.FullName, folder.Path);
+        Assert.Equal(1, folder.TrackCount);
+
+        lock (_indexSnapshot)
+        {
+            var kept = Assert.Single(_indexSnapshot).Value;
+            Assert.False(kept.IsAvailable);
+        }
+
+        // Kept, but in nothing: not the library, and counted where somebody can see it.
+        Assert.Empty(restarted.Current);
+        await WaitUntilAsync(() => unavailable == 1);
+    }
+
+    [Fact]
+    public async Task AnsweringExit_WritesNothingAtAll()
+    {
+        CreateFile(_dirA, "a.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        _fileSystem.File.Delete(_fileSystem.Path.Combine(_dirA.FullName, "a.mp3"));
+        _libraryIndex.ClearReceivedCalls();
+        _answer = MissingFolderAnswer.Exit;
+
+        using var restarted = NewStore();
+        await restarted.ApplyAsync(_configuration);
+
+        Assert.Single(_asked);
+        await _libraryIndex.DidNotReceive().DeleteMissingAsync(
+            Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>());
+
+        lock (_indexSnapshot)
+        {
+            Assert.True(Assert.Single(_indexSnapshot).Value.IsAvailable);
+        }
+    }
+
+    [Fact]
+    public async Task AnsweringContinue_ReconcilesTheFolderAwayAsItAlwaysDid()
+    {
+        CreateFile(_dirA, "a.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        _fileSystem.File.Delete(_fileSystem.Path.Combine(_dirA.FullName, "a.mp3"));
+        _answer = MissingFolderAnswer.ForgetThem;
+
+        using var restarted = NewStore();
+        await restarted.ApplyAsync(_configuration);
+
+        Assert.Single(_asked);
+        lock (_indexSnapshot)
+        {
+            Assert.Empty(_indexSnapshot);
+        }
+    }
+
+    [Fact]
+    public async Task AFolderThatComesBack_IsAvailableAgainWithoutBeingAskedTwice()
+    {
+        CreateFile(_dirA, "a.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        var path = _fileSystem.Path.Combine(_dirA.FullName, "a.mp3");
+        _fileSystem.File.Delete(path);
+
+        using var whileItIsGone = NewStore();
+        await whileItIsGone.ApplyAsync(_configuration);
+        lock (_indexSnapshot)
+        {
+            Assert.False(Assert.Single(_indexSnapshot).Value.IsAvailable);
+        }
+
+        // The drive comes back. Nothing has to be answered a second time: the file being there is
+        // the whole of the answer.
+        _fileSystem.File.WriteAllText(path, "audio");
+        var unavailable = -1;
+        using var mounted = NewStore();
+        using var counting = mounted.UnavailableCount.Subscribe(count => unavailable = count);
+        await mounted.ApplyAsync(_configuration);
+
+        await WaitUntilAsync(() => mounted.Current.Count == 1);
+        Assert.Single(_asked);
+        Assert.Equal(0, unavailable);
+        lock (_indexSnapshot)
+        {
+            Assert.True(Assert.Single(_indexSnapshot).Value.IsAvailable);
+        }
+    }
+
+    [Fact]
+    public async Task AFolderThatStillHoldsMusic_IsOrdinaryHousekeepingAndAsksNothing()
+    {
+        CreateFile(_dirA, "a.mp3");
+        CreateFile(_dirA, "b.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 2);
+
+        _fileSystem.File.Delete(_fileSystem.Path.Combine(_dirA.FullName, "b.mp3"));
+
+        using var restarted = NewStore();
+        await restarted.ApplyAsync(_configuration);
+
+        Assert.Empty(_asked);
+        lock (_indexSnapshot)
+        {
+            Assert.Equal(["/music/a/a.mp3"], _indexSnapshot.Keys);
+        }
     }
 
     /// <summary>Applies a change to one part of the configuration, keeping the rest.</summary>

@@ -1214,6 +1214,37 @@
   <data name="Toolbar_ReviewCount" xml:space="preserve">
     <value>{0} nummers wachten</value>
   </data>
+  <data name="Toolbar_UnavailableCount" xml:space="preserve">
+    <value>{0} nummers onbereikbaar</value>
+  </data>
+  <data name="Toolbar_UnavailableTip" xml:space="preserve">
+    <value>Nummers die de bibliotheek bewaart maar niet kan bereiken. Ze kunnen niet in de wachtrij en niet nagekeken worden, en ze komen vanzelf terug zodra een scan hun bestanden weer vindt.</value>
+  </data>
+  <data name="MissingFolders_Title" xml:space="preserve">
+    <value>Mappen zonder muziek erin</value>
+  </data>
+  <data name="MissingFolders_Message" xml:space="preserve">
+    <value>De bibliotheek kent nummers in deze mappen, en deze scan vond er geen muziek.</value>
+  </data>
+  <data name="MissingFolders_Unreadable" xml:space="preserve">
+    <value>{0} kon niet gelezen worden: {1}
+De bibliotheek kent er {2} nummers.</value>
+  </data>
+  <data name="MissingFolders_Empty" xml:space="preserve">
+    <value>{0} bevat {1} nummers in de bibliotheek, en er is geen muziek in gevonden.</value>
+  </data>
+  <data name="MissingFolders_Consequence" xml:space="preserve">
+    <value>Doorgaan zonder deze bewaart die {0} nummers als onbereikbaar, en ze komen vanzelf terug zodra een latere scan hun bestanden vindt. Doorgaan verwijdert ze uit de bibliotheek, samen met alles wat je erover hebt goedgekeurd. Afsluiten schrijft niets weg.</value>
+  </data>
+  <data name="MissingFolders_KeepThem" xml:space="preserve">
+    <value>Doorgaan zonder deze</value>
+  </data>
+  <data name="MissingFolders_ForgetThem" xml:space="preserve">
+    <value>Doorgaan</value>
+  </data>
+  <data name="MissingFolders_Exit" xml:space="preserve">
+    <value>Afsluiten</value>
+  </data>
   <data name="Wizard_Review_Title" xml:space="preserve">
     <value>Wat op jou wacht</value>
   </data>

@@ -12,6 +12,7 @@ using ReactiveUI.Avalonia.Reactive.Splat;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Dances;
+using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
@@ -183,6 +184,8 @@ public static class ApplicationComposition
         services.AddSingleton<IFilePickerService>(sp => sp.GetRequiredService<FilePickerService>());
         services.AddSingleton<ConfirmationService>();
         services.AddSingleton<IConfirmationService>(sp => sp.GetRequiredService<ConfirmationService>());
+        services.AddSingleton<MissingFolderPromptService>();
+        services.AddSingleton<IMissingFolderPrompt>(sp => sp.GetRequiredService<MissingFolderPromptService>());
 
         // The embedded server. It builds its own container and is handed these same instances by
         // AddForwardedHostServices, so nothing here is ever constructed twice.

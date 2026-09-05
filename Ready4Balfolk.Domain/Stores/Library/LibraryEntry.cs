@@ -20,6 +20,17 @@ public sealed record LibraryEntry
 
     public required DateTime LastWriteUtc { get; init; }
 
+    /// <summary>
+    /// Whether the file was there the last time a scan looked for it.
+    /// </summary>
+    /// <remarks>
+    /// Per path, because one audio can live on a local disk and on a NAS at once and only one of
+    /// the two goes away with the mount. False is a row kept on purpose: the user was asked and
+    /// said to keep it, so it stays out of the library, the review queue, folder agreement and
+    /// anything playable until a scan or the watcher finds the file again.
+    /// </remarks>
+    public bool IsAvailable { get; init; } = true;
+
     public required TimeSpan Duration { get; init; }
 
     public required AudioFormat Format { get; init; }

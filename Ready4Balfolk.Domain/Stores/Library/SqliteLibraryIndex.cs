@@ -127,7 +127,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                        t.dance_kind, t.dance_detail, t.dance_reason,
                        t.artist_kind, t.artist_detail, t.artist_reason,
                        t.title_kind, t.title_detail, t.title_reason,
-                       t.custom_tag_names
+                       t.custom_tag_names, p.available
                 FROM track_paths p
                 JOIN tracks t ON t.content_hash = p.content_hash;
                 """;
@@ -152,7 +152,8 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
                     TitleFrom = ReadSource(reader, 16),
                     CustomTagNames = reader.IsDBNull(19)
                         ? []
-                        : System.Text.Json.JsonSerializer.Deserialize<string[]>(reader.GetString(19)) ?? []
+                        : System.Text.Json.JsonSerializer.Deserialize<string[]>(reader.GetString(19)) ?? [],
+                    IsAvailable = reader.GetInt32(20) != 0
                 };
 
                 entries[entry.Path] = entry;
@@ -218,13 +219,17 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
 
             await using var pathCommand = connection.CreateCommand();
             pathCommand.Transaction = (SqliteTransaction)transaction;
+            // available = 1 unconditionally: nothing is written here that was not just read off the
+            // disk, so a row that was being kept as unavailable is reachable again. That is what
+            // makes the watcher clear the flag for a file that comes back on its own.
             pathCommand.CommandText = """
-                INSERT INTO track_paths (path, content_hash, file_size, last_write_utc)
-                VALUES ($path, $hash, $size, $written)
+                INSERT INTO track_paths (path, content_hash, file_size, last_write_utc, available)
+                VALUES ($path, $hash, $size, $written, 1)
                 ON CONFLICT(path) DO UPDATE SET
                     content_hash = excluded.content_hash,
                     file_size = excluded.file_size,
-                    last_write_utc = excluded.last_write_utc;
+                    last_write_utc = excluded.last_write_utc,
+                    available = 1;
                 """;
             var pathPath = pathCommand.Parameters.Add("$path", SqliteType.Text);
             var pathHash = pathCommand.Parameters.Add("$hash", SqliteType.Blob);
@@ -451,8 +456,13 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         }
     }
 
-    public async Task DeleteMissingAsync(IReadOnlyCollection<string> existingPaths, CancellationToken token = default)
+    public async Task DeleteMissingAsync(
+        IReadOnlyCollection<string> existingPaths,
+        IReadOnlyCollection<string> unavailablePaths,
+        CancellationToken token = default)
     {
+        ArgumentNullException.ThrowIfNull(unavailablePaths);
+
         await _gate.WaitAsync(token);
         try
         {
@@ -461,18 +471,29 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
 
             // A temporary table rather than a giant IN clause: a music directory can hold more paths
             // than SQLite will accept as parameters.
-            await ExecuteAsync(connection, "CREATE TEMP TABLE IF NOT EXISTS present (path TEXT PRIMARY KEY);", token,
-                (SqliteTransaction)transaction);
+            await ExecuteAsync(connection,
+                "CREATE TEMP TABLE IF NOT EXISTS present (path TEXT PRIMARY KEY, found INTEGER NOT NULL);",
+                token, (SqliteTransaction)transaction);
             await ExecuteAsync(connection, "DELETE FROM present;", token, (SqliteTransaction)transaction);
 
             await using (var insert = connection.CreateCommand())
             {
                 insert.Transaction = (SqliteTransaction)transaction;
-                insert.CommandText = "INSERT OR IGNORE INTO present (path) VALUES ($path);";
+                insert.CommandText = "INSERT OR IGNORE INTO present (path, found) VALUES ($path, $found);";
                 var path = insert.Parameters.Add("$path", SqliteType.Text);
+                var found = insert.Parameters.Add("$found", SqliteType.Integer);
+
+                found.Value = 1;
                 foreach (var existing in existingPaths)
                 {
                     path.Value = existing;
+                    await insert.ExecuteNonQueryAsync(token);
+                }
+
+                found.Value = 0;
+                foreach (var kept in unavailablePaths)
+                {
+                    path.Value = kept;
                     await insert.ExecuteNonQueryAsync(token);
                 }
             }
@@ -480,6 +501,13 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             await ExecuteAsync(connection,
                 "DELETE FROM track_paths WHERE path NOT IN (SELECT path FROM present);", token,
                 (SqliteTransaction)transaction);
+
+            // What was found is reachable again, whatever it was last time; what the user said to
+            // keep is not. Both directions in one statement, so a folder coming back needs nothing
+            // more than the scan that finds it.
+            await ExecuteAsync(connection,
+                "UPDATE track_paths SET available = (SELECT found FROM present WHERE present.path = track_paths.path);",
+                token, (SqliteTransaction)transaction);
 
             // An audio nothing points at any more is gone, along with whatever was decided about it.
             await ExecuteAsync(connection,
@@ -595,7 +623,9 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         try
         {
             await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
-            command.CommandText = "SELECT COUNT(*) FROM track_paths;";
+            // Reachable rows only. A progress line that counted a dead NAS's twenty thousand would
+            // sit above the number of files there are to read and never move.
+            command.CommandText = "SELECT COUNT(*) FROM track_paths WHERE available <> 0;";
             return Convert.ToInt32(await command.ExecuteScalarAsync(token), provider: null);
         }
         finally
@@ -667,7 +697,11 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             path           TEXT    PRIMARY KEY,
             content_hash   BLOB    NOT NULL,
             file_size      INTEGER NOT NULL,
-            last_write_utc INTEGER NOT NULL
+            last_write_utc INTEGER NOT NULL,
+            -- Whether the file was there the last time a scan looked. Per path, because one audio
+            -- can sit on a local disk and on a NAS at once and only one of the two goes away with
+            -- the mount. A row is only ever 0 because somebody was asked and said to keep it.
+            available      INTEGER NOT NULL DEFAULT 1
         );
         CREATE INDEX IF NOT EXISTS ix_track_paths_hash ON track_paths (content_hash);
         CREATE INDEX IF NOT EXISTS ix_tracks_unresolved ON tracks (dance_slug) WHERE dance_slug IS NULL;

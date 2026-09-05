@@ -22,9 +22,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly ITrackDiscoveryService _discoveryService;
     private readonly IDanceListStore _danceListStore;
     private readonly ILibraryIndex _libraryIndex;
+    private readonly IMissingFolderPrompt _missingFolderPrompt;
     private readonly SourceList<Track> _tracks = new();
     private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly BehaviorSubject<int> _inReviewCount = new(0);
+    private readonly BehaviorSubject<int> _unavailableCount = new(0);
     private readonly Subject<string> _fileVanished = new();
     private readonly IDisposable _danceListSubscription;
     private readonly LibraryWatcher _watcher;
@@ -50,13 +52,15 @@ public sealed class TrackStore : ITrackStore, IDisposable
         ITrackDiscoveryService discoveryService,
         IDanceListStore danceListStore,
         ILibraryIndex libraryIndex,
-        IFileSystem fileSystem)
+        IFileSystem fileSystem,
+        IMissingFolderPrompt missingFolderPrompt)
     {
         _loggerService = loggerService;
         _discoveryService = discoveryService;
         _danceListStore = danceListStore;
         _libraryIndex = libraryIndex;
         _fileSystem = fileSystem;
+        _missingFolderPrompt = missingFolderPrompt;
         _watcher = new LibraryWatcher(fileSystem);
         _watcherSubscription = _watcher.Changes.Subscribe(OnFileChanged);
 
@@ -85,6 +89,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
     public IReadOnlyList<Track> Current => _tracks.Items.ToList();
 
     public IObservable<int> InReviewCount => _inReviewCount.AsObservable();
+
+    public IObservable<int> UnavailableCount => _unavailableCount.AsObservable();
 
     public IObservable<string> WhenTrackFileVanished => _fileVanished.AsObservable();
 
@@ -189,17 +195,76 @@ public sealed class TrackStore : ITrackStore, IDisposable
             _tracks.Dispose();
             _isLoading.Dispose();
             _inReviewCount.Dispose();
+            _unavailableCount.Dispose();
             _loadGate.Dispose();
         }
     }
 
-    private static ICollection<IFileInfo> DiscoverFiles(IDirectoryInfo directory)
+    /// <summary>What a walk of the music directory found, and where it can vouch for that.</summary>
+    /// <param name="Files">Every audio file the walk actually saw.</param>
+    /// <param name="DirectoriesWithMusic">
+    /// The folders that were read and gave up at least one audio file. A folder that read back
+    /// empty is not among them: emptied and not-mounted-yet look identical from here, so an empty
+    /// read proves nothing either way.
+    /// </param>
+    /// <param name="UnreadableDirectories">
+    /// The folders that would not open, and what the filesystem said. Kept so the question put to
+    /// the user can quote the reason rather than speculate about it.
+    /// </param>
+    private sealed record LibraryWalk(
+        ICollection<IFileInfo> Files,
+        IReadOnlySet<string> DirectoriesWithMusic,
+        IReadOnlyDictionary<string, string> UnreadableDirectories);
+
+    /// <summary>Walks the music directory a folder at a time, remembering which ones it could read.</summary>
+    /// <remarks>
+    /// A folder at a time rather than <see cref="SearchOption.AllDirectories"/>, because the point
+    /// is not only the files: it is knowing which folders the walk can speak for. One recursive
+    /// enumeration reports a subtree that would not open and a subtree that is genuinely empty as
+    /// the same nothing, and reconciling on that is what deletes an unmounted library.
+    /// </remarks>
+    private LibraryWalk DiscoverFiles(IDirectoryInfo directory)
     {
-        return
-        [
-            ..SupportedAudioFormats.Extensions
-                .SelectMany(ext => directory.EnumerateFiles($"*{ext}", SearchOption.AllDirectories))
-        ];
+        var files = new List<IFileInfo>();
+        var withMusic = new HashSet<string>(StringComparer.Ordinal);
+        var unreadable = new Dictionary<string, string>(StringComparer.Ordinal);
+        var pending = new Queue<IDirectoryInfo>();
+        pending.Enqueue(directory);
+
+        while (pending.Count > 0)
+        {
+            var current = pending.Dequeue();
+            IFileInfo[] here;
+            IDirectoryInfo[] below;
+
+            try
+            {
+                here = [.. current.EnumerateFiles().Where(file => SupportedAudioFormats.IsSupported(file.Name))];
+                below = [.. current.EnumerateDirectories()];
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // A folder that would not open says nothing about what is under it. Walked past
+                // rather than reported as empty, which is what would cost every row below it.
+                _ = _loggerService.WarningAsync(
+                    $"Could not read '{current.FullName}': {exception.Message}");
+                unreadable[current.FullName] = exception.Message;
+                continue;
+            }
+
+            if (here.Length > 0)
+            {
+                files.AddRange(here);
+                withMusic.Add(current.FullName);
+            }
+
+            foreach (var child in below)
+            {
+                pending.Enqueue(child);
+            }
+        }
+
+        return new LibraryWalk(files, withMusic, unreadable);
     }
 
     private async Task LoadDirectoryAsync(IDirectoryInfo directory, bool reread, CancellationToken cancellationToken)
@@ -237,9 +302,10 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         if (!directory.Exists)
         {
+            // Not a reason to stop: a mount point that has not mounted can be gone altogether, and
+            // what the index holds under it is exactly what must not be thrown away unasked.
             _ = _loggerService.WarningAsync(
                 $"Music directory '{directory.FullName}' does not exist.");
-            return;
         }
 
         _isLoading.OnNext(true);
@@ -250,8 +316,36 @@ public sealed class TrackStore : ITrackStore, IDisposable
             // lets an unchanged startup open no audio files at all.
             var known = await _libraryIndex.SnapshotByPathAsync(cancellationToken);
 
-            var audioFiles = DiscoverFiles(directory);
+            var walk = DiscoverFiles(directory);
+            var audioFiles = walk.Files;
             _ = _loggerService.DebugAsync($"Found {audioFiles.Count} audio files to load");
+
+            // Asked before a single row is written, so answering "exit" really does leave the index
+            // as it was. Everything the question needs is already in hand: what the walk found, and
+            // what the index holds.
+            var missing = MissingFolders.Detect(
+                known.Keys, walk.DirectoriesWithMusic, walk.UnreadableDirectories, directory.FullName);
+            IReadOnlyCollection<string> keptUnavailable = [];
+
+            if (missing.Count > 0)
+            {
+                await _loggerService.WarningAsync(
+                    $"{missing.Count:N0} folders hold indexed tracks and no music was found in them; asking");
+
+                switch (await _missingFolderPrompt.AskAsync(missing, cancellationToken))
+                {
+                    case MissingFolderAnswer.Exit:
+                        await _loggerService.InfoAsync(
+                            "Library scan abandoned at the user's word; the index is untouched");
+                        return;
+                    case MissingFolderAnswer.KeepThem:
+                        keptUnavailable = MissingFolders.PathsIn(known.Keys, missing);
+                        break;
+                    case MissingFolderAnswer.ForgetThem:
+                    default:
+                        break;
+                }
+            }
 
             var scanned = new ConcurrentBag<ScannedFile>();
             // Everything that has been read, kept for the folder pass once the scan is complete.
@@ -308,11 +402,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
             // Written again, because folder agreement changed some of them after the fact.
             await _libraryIndex.WriteAsync([.. written.Select(ScannedFileMapping.ToEntry)], cancellationToken);
             await _libraryIndex.ApproveAsync([.. written.SelectMany(ScannedFileMapping.ByRuleApprovals)], cancellationToken);
-            await _libraryIndex.DeleteMissingAsync([.. audioFiles.Select(file => file.FullName)], cancellationToken);
+            await _libraryIndex.DeleteMissingAsync(
+                [.. audioFiles.Select(file => file.FullName)], keptUnavailable, cancellationToken);
 
             // Watching starts before the library is published, so a file dropped in during the last
             // moments of a scan is noticed rather than waiting for the next start.
-            if (!cancellationToken.IsCancellationRequested && !_disposed)
+            if (!cancellationToken.IsCancellationRequested && !_disposed && directory.Exists)
             {
                 // Not on a store that is going away, and not for a load that has been superseded.
                 _watcher.Watch(directory);
@@ -375,8 +470,14 @@ public sealed class TrackStore : ITrackStore, IDisposable
         var approvals = await _libraryIndex.ApprovalsAsync(cancellationToken);
         var dances = _danceListStore.Index;
 
+        // Rows kept because a folder could not be read are not part of the library: nothing about
+        // them can be played, queued or answered until their files are back. They are counted
+        // instead, so the state is never mistaken for a library that is simply smaller than it was.
+        var reachable = entries.Values.Where(entry => entry.IsAvailable).ToList();
+        _unavailableCount.OnNext(entries.Count - reachable.Count);
+
         var inLibrary = new List<Track>();
-        foreach (var entry in entries.Values)
+        foreach (var entry in reachable)
         {
             var review = ReviewGate.Evaluate(
                 entry,
@@ -411,7 +512,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         // In the library or in review, never both: what the gate held back IS the review count,
         // whichever of its three reasons applied.
-        _inReviewCount.OnNext(entries.Count - inLibrary.Count);
+        _inReviewCount.OnNext(reachable.Count - inLibrary.Count);
     }
 
     private IObservable<Track> LoadTrackObservable(
