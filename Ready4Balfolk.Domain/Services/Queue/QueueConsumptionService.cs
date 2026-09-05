@@ -3,6 +3,7 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Resources;
@@ -21,6 +22,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly ISettingsStore _settingsStore;
     private readonly ILoggerService _loggerService;
     private readonly TimeProvider _time;
+    private readonly UnawaitedWork _unawaited;
 
     /// <summary>How often a countdown says how far along it is. Not how accurate its end is.</summary>
     private static readonly TimeSpan CountdownTick = TimeSpan.FromMilliseconds(100);
@@ -36,6 +38,9 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly Subject<Unit> _itemCompleted = new();
 
     private bool _itemFinishedNaturally;
+
+    /// <summary>Set the moment the application starts closing, and never put down again.</summary>
+    private volatile bool _closing;
 
     /// <summary>The quiet between two dances, while it is running. Nothing else is.</summary>
     // Captured when the item starts, since the history entry is only built once it ends.
@@ -65,6 +70,17 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _settingsStore = settingsStore;
         _loggerService = loggerService;
         _time = time;
+
+        // Closing the application is not a failure. An end-of-track callback or a countdown tick
+        // that had already started when Dispose returned still reaches AdvanceAsync, whose first
+        // act is to wait on a gate that is gone by then, so a perfectly ordinary close raises
+        // ObjectDisposedException. Reported, that is an ERROR line on every shutdown and a toast
+        // on the way out, and the smoke test judges a run by whether the log has any. Passed over
+        // only while this service is being torn down, and only that exception: the same thing at
+        // any other moment is a real failure and is reported.
+        _unawaited = new UnawaitedWork(
+            loggerService,
+            exception => exception is ObjectDisposedException && _closing);
 
         // The consumption service manages all advancement, so auto-advance is disabled on audio
         _audio.AutoAdvance = false;
@@ -312,7 +328,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _itemFinishedNaturally = true;
         _isPlaying.OnNext(false);
         // Fire-and-forget advance: the gate ensures serialization
-        _ = AdvanceAsync();
+        _unawaited.Start(DomainStrings.Queue_AdvanceFailed, AdvanceAsync);
     }
 
     /// <summary>Counts a delay, a message or a gap down, and advances once when it runs out.</summary>
@@ -354,7 +370,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 countdown.Dispose();
                 _elapsed.OnNext(duration);
                 _itemFinishedNaturally = true;
-                _ = AdvanceAsync();
+                _unawaited.Start(DomainStrings.Queue_AdvanceFailed, AdvanceAsync);
             },
             null,
             CountdownTick,
@@ -372,7 +388,11 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             _ => null
         };
 
-        _ = uri != null ? _audio.PreloadNextAsync(uri) : _audio.ClearPreloadAsync();
+        // Reported rather than dropped: this is where a next track that will not open first says
+        // so, minutes before the room is waiting on it.
+        _unawaited.Start(
+            DomainStrings.Queue_PreloadFailed,
+            () => uri != null ? _audio.PreloadNextAsync(uri) : _audio.ClearPreloadAsync());
     }
 
     private async Task RecordCurrentItemAsync(CompletionStatus status)
@@ -475,6 +495,9 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     /// </remarks>
     public void Dispose()
     {
+        // First, so that anything already on its way here can tell an ordinary close from a fault.
+        _closing = true;
+
         _itemDisposables?.Dispose();
         _itemDisposables = null;
         _globalDisposables.Dispose();
