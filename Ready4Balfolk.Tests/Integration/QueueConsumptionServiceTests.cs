@@ -88,6 +88,38 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task AdvanceAsync_ForAnItemThatIsNoLongerPlaying_IsRefused()
+    {
+        var first = new TrackQueueItem(TestData.CreateTrack("Mazurka"), false);
+        var second = new TrackQueueItem(TestData.CreateTrack("Waltz"), false);
+        _queue.Enqueue(first);
+        _queue.Enqueue(second);
+        await _sut.AdvanceAsync();
+        await _sut.AdvanceAsync();
+
+        // A skip decided on while the first dance was playing, arriving after it ran out.
+        var advanced = await _sut.AdvanceAsync(first);
+
+        Assert.False(advanced);
+        Assert.Equal(second, _sut.CurrentItem);
+    }
+
+    [Fact]
+    public async Task AdvanceAsync_ForTheItemThatIsPlaying_MovesOn()
+    {
+        var first = new TrackQueueItem(TestData.CreateTrack("Mazurka"), false);
+        var second = new TrackQueueItem(TestData.CreateTrack("Waltz"), false);
+        _queue.Enqueue(first);
+        _queue.Enqueue(second);
+        await _sut.AdvanceAsync();
+
+        var advanced = await _sut.AdvanceAsync(first);
+
+        Assert.True(advanced);
+        Assert.Equal(second, _sut.CurrentItem);
+    }
+
+    [Fact]
     public async Task AdvanceAsync_EmptyQueue_ClearsCurrentItem()
     {
         await _sut.AdvanceAsync();

@@ -62,7 +62,11 @@ public sealed class RemoteHub(
     public Task Restart() => dispatcher.InvokeAsync(consumptionService.RestartAsync);
 
     /// <summary>Skips the current item. The page holds a button down to get here.</summary>
-    public Task Skip() => dispatcher.InvokeAsync(consumptionService.AdvanceAsync);
+    /// <remarks>
+    /// The result is swallowed inside the lambda rather than returned from it: handed back, the
+    /// Func&lt;T&gt; overload wins over Func&lt;Task&gt; and the skip is no longer waited for.
+    /// </remarks>
+    public Task Skip() => dispatcher.InvokeAsync(async () => { await consumptionService.AdvanceAsync(); });
 
     public Task<CommandResultDto> QueueRandom() => dispatcher.InvokeAsync(() =>
     {

@@ -643,6 +643,9 @@
   <data name="Playback_AudioUnavailable" xml:space="preserve">
     <value>Audio unavailable</value>
   </data>
+  <data name="Playback_AnswerTooLate" xml:space="preserve">
+    <value>The evening had already moved on, so nothing was changed.</value>
+  </data>
 
   <!-- Track Catalog -->
   <data name="TrackCatalog_ColumnDance" xml:space="preserve">

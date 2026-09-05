@@ -240,7 +240,7 @@ public sealed class QueueViewModelTests : IDisposable
     public void ClearQueue_WithoutConfirmation_DoesNotClear()
     {
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>()).Returns(false);
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
 
         _sut.ClearQueueCommand.Execute().Subscribe();

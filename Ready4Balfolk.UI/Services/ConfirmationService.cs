@@ -1,7 +1,9 @@
 using System;
 using System.Reactive.Disposables;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 
 namespace Ready4Balfolk.UI.Services;
@@ -39,12 +41,18 @@ public class ConfirmationService : IConfirmationService
     }
 
     public async Task<bool> ConfirmAsync(string title, string message,
-        string confirmText = "Yes", string cancelText = "No")
+        string confirmText = "Yes", string cancelText = "No",
+        CancellationToken cancellationToken = default)
     {
         var owner = CurrentOwner;
         if (owner is null)
         {
             return true;
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return false;
         }
 
         var vm = new ConfirmationDialogViewModel
@@ -58,7 +66,13 @@ public class ConfirmationService : IConfirmationService
         {
             DataContext = vm
         };
+
+        // A question left standing over a dance that has already ended has no right answer, so it
+        // goes away with the dance rather than waiting to be answered wrongly.
+        using var withdrawal = cancellationToken.Register(
+            () => Dispatcher.UIThread.Post(() => dialog.Close()));
+
         await dialog.ShowDialog(owner);
-        return vm.DialogResult == true;
+        return !cancellationToken.IsCancellationRequested && vm.DialogResult == true;
     }
 }

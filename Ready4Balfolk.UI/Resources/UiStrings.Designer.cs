@@ -546,6 +546,9 @@ public static class UiStrings
     public static string Playback_AudioUnavailable =>
         ResourceManager.GetString("Playback_AudioUnavailable", Culture)!;
 
+    public static string Playback_AnswerTooLate =>
+        ResourceManager.GetString("Playback_AnswerTooLate", Culture)!;
+
     // Track Catalog
     public static string TrackCatalog_ColumnDance =>
         ResourceManager.GetString("TrackCatalog_ColumnDance", Culture)!;

@@ -367,7 +367,7 @@ public sealed class ReviewViewModelTests : IDisposable
     public async Task ALargeFolderIsConfirmedBeforeItIsAnswered()
     {
         // A keystroke that answers two thousand tracks without saying so is not a bulk confirm.
-        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(false);
         _libraryIndex.SnapshotByPathAsync(Arg.Any<CancellationToken>()).Returns(_ => Enumerable.Range(0, 40).ToDictionary(
             i => $"/music/Big/{i}.mp3",
@@ -378,7 +378,7 @@ public sealed class ReviewViewModelTests : IDisposable
         await _sut.ApproveFolderCommand.Execute(_sut.Rows[0]);
 
         await _confirmations.Received().ConfirmAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
         Assert.Empty(_approved);
     }
 
