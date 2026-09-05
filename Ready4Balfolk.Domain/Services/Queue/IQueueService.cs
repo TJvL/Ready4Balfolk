@@ -11,11 +11,19 @@ public interface IQueueService
     IReadOnlyList<IQueueItem> Items { get; }
     IQueueItem? Peek();
 
+    /// <summary>Where that row is now, or -1 when it is no longer queued.</summary>
+    int IndexOf(QueueItemId id);
+
     QueueAddResult Enqueue(IQueueItem item);
     IQueueItem? Dequeue();
     QueueAddResult InsertAt(int index, IQueueItem item);
-    bool Move(int oldIndex, int newIndex);
-    bool RemoveAt(int index);
+
+    /// <summary>Moves that row to a position, whatever position it is in when this arrives.</summary>
+    QueueChangeResult Move(QueueItemId id, int newIndex);
+
+    /// <summary>Takes that row out, and only that row.</summary>
+    QueueChangeResult Remove(QueueItemId id);
+
     bool Clear();
     bool RemoveWhere(Func<IQueueItem, bool> predicate);
 }

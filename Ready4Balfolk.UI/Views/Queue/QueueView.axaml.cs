@@ -12,12 +12,14 @@ namespace Ready4Balfolk.UI.Views.Queue;
 
 public partial class QueueView : ReactiveUserControl<QueueViewModel>
 {
+    // The row being dragged travels by name. Its position is only where it happened to be when the
+    // drag started, and a dance ending mid-drag makes that a different row.
     private static readonly DataFormat<string> QueueDragFormat =
-        DataFormat.CreateStringApplicationFormat("QueueDragIndex");
+        DataFormat.CreateStringApplicationFormat("QueueDragItem");
 
     private Point? _dragStartPoint;
     private PointerPressedEventArgs? _dragStartArgs;
-    private int _dragStartIndex = -1;
+    private QueueItemId? _dragStartId;
     private bool _dropAbove;
 
     public QueueView()
@@ -74,19 +76,20 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         // Neither of the entries pinned to the bottom is the user's to drag: the queue guard would
         // refuse the move anyway, and a drag that does nothing reads as a bug.
         var listBoxItem = FindParent<ListBoxItem>(e.Source as Control);
-        if (listBoxItem?.DataContext is AutoTrackQueueItem or EndOfNightQueueItem or null)
+        if (listBoxItem?.DataContext is not IQueueItem item
+            || item is AutoTrackQueueItem or EndOfNightQueueItem)
         {
             return;
         }
 
-        _dragStartIndex = QueueListBox.IndexFromContainer(listBoxItem);
+        _dragStartId = item.Id;
         _dragStartPoint = e.GetPosition(QueueListBox);
         _dragStartArgs = e;
     }
 
     private void OnQueuePointerMoved(object? sender, PointerEventArgs e)
     {
-        if (_dragStartPoint == null || _dragStartIndex < 0)
+        if (_dragStartPoint == null || _dragStartId is not { } draggedId)
         {
             return;
         }
@@ -99,15 +102,13 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
             return;
         }
 
-        var index = _dragStartIndex;
         var pressArgs = _dragStartArgs!;
         _dragStartPoint = null;
         _dragStartArgs = null;
-        _dragStartIndex = -1;
+        _dragStartId = null;
 
-        var item = DataTransferItem.Create(QueueDragFormat, index.ToString(System.Globalization.CultureInfo.InvariantCulture));
         var data = new DataTransfer();
-        data.Add(item);
+        data.Add(DataTransferItem.Create(QueueDragFormat, draggedId.ToString()));
 
         Handlers.Run(UiStrings.Queue_MoveItemFailed, async () =>
         {
@@ -120,7 +121,7 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
     {
         _dragStartPoint = null;
         _dragStartArgs = null;
-        _dragStartIndex = -1;
+        _dragStartId = null;
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)
@@ -162,13 +163,11 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
     {
         HideDropIndicator();
 
-        var indexStr = e.DataTransfer.TryGetValue(QueueDragFormat);
-        if (indexStr is null || e.Source is not Control source)
+        var dragged = e.DataTransfer.TryGetValue(QueueDragFormat);
+        if (!QueueItemId.TryParse(dragged, out var draggedId) || e.Source is not Control source)
         {
             return;
         }
-
-        var oldIndex = int.Parse(indexStr, System.Globalization.CultureInfo.InvariantCulture);
 
         var targetItem = FindParent<ListBoxItem>(source);
         if (targetItem == null)
@@ -179,7 +178,7 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         var newIndex = QueueListBox.IndexFromContainer(targetItem);
         if (newIndex >= 0)
         {
-            ViewModel?.MoveItem(oldIndex, newIndex);
+            ViewModel?.MoveItem(draggedId, newIndex);
         }
     }
 

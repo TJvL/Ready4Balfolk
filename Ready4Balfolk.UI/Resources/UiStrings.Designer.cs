@@ -232,6 +232,9 @@ public static class UiStrings
     public static string Queue_CutoffPaused =>
         ResourceManager.GetString("Queue_CutoffPaused", Culture)!;
 
+    public static string Queue_ItemAlreadyGone =>
+        ResourceManager.GetString("Queue_ItemAlreadyGone", Culture)!;
+
     public static string Settings_MaxQueueItems =>
         ResourceManager.GetString("Settings_MaxQueueItems", Culture)!;
 
@@ -542,6 +545,9 @@ public static class UiStrings
 
     public static string Playback_AudioUnavailable =>
         ResourceManager.GetString("Playback_AudioUnavailable", Culture)!;
+
+    public static string Playback_AnswerTooLate =>
+        ResourceManager.GetString("Playback_AnswerTooLate", Culture)!;
 
     // Track Catalog
     public static string TrackCatalog_ColumnDance =>

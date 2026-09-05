@@ -324,6 +324,9 @@
   <data name="Queue_CutoffPaused" xml:space="preserve">
     <value>limit paused for the stop</value>
   </data>
+  <data name="Queue_ItemAlreadyGone" xml:space="preserve">
+    <value>That row had already left the queue</value>
+  </data>
   <data name="Settings_MaxQueueItems" xml:space="preserve">
     <value>Maximum Queue Items</value>
   </data>
@@ -639,6 +642,9 @@
   </data>
   <data name="Playback_AudioUnavailable" xml:space="preserve">
     <value>Audio unavailable</value>
+  </data>
+  <data name="Playback_AnswerTooLate" xml:space="preserve">
+    <value>The evening had already moved on, so nothing was changed.</value>
   </data>
 
   <!-- Track Catalog -->

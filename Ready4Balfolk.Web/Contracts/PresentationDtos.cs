@@ -38,9 +38,13 @@ public sealed record PresentationSnapshotDto(
 /// <remarks>
 /// <c>IsAuto</c> marks an automatically added track, which the desktop refuses to remove or reorder;
 /// the remote disables its actions for the same reason.
+///
+/// <c>Id</c> rather than a position, because the list a phone is looking at is up to half a second
+/// behind the queue and a dance ending renumbers every row in it. The position a row is drawn at is
+/// where it sits in this list; what the phone sends back is which row it meant.
 /// </remarks>
 public sealed record QueueEntryDto(
-    int Index,
+    string Id,
     string Kind,
     string Primary,
     string Artist,
@@ -48,11 +52,11 @@ public sealed record QueueEntryDto(
     double? DurationSeconds,
     bool IsAuto)
 {
-    public static QueueEntryDto From(IQueueItem item, int index)
+    public static QueueEntryDto From(IQueueItem item)
     {
         var mapped = PresentationStateService.Map(item);
         return new QueueEntryDto(
-            index,
+            item.Id.ToString(),
             mapped.Kind.ToString(),
             mapped.Primary,
             mapped.Artist,
@@ -66,7 +70,16 @@ public sealed record QueueEntryDto(
 public sealed record TrackHitDto(string Id, string Dance, string Artist, string Title, double DurationSeconds);
 
 /// <summary>The result of a command the remote sent.</summary>
-public sealed record CommandResultDto(bool Accepted, string? Reason = null)
+/// <remarks>
+/// <paramref name="QueueChanged"/> is the refusal the phone has to word for itself. The reason a
+/// rule gives is written on the computer and travels as text; "the row you tapped is not there any
+/// more" is not a rule saying no, it is this phone's list being out of date, and the page says so in
+/// its own language and redraws.
+/// </remarks>
+public sealed record CommandResultDto(bool Accepted, string? Reason = null, bool QueueChanged = false)
 {
     public static readonly CommandResultDto Ok = new(true);
+
+    /// <summary>The row is gone: whoever asked was reading a queue that has since moved on.</summary>
+    public static readonly CommandResultDto Stale = new(false, null, true);
 }

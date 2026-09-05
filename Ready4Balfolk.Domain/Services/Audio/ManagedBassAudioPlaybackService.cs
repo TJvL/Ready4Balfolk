@@ -20,7 +20,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private readonly Subject<Unit> _playbackCleared = new();
     private readonly Subject<Unit> _playbackEnded = new();
     private readonly Subject<TimeSpan> _durationChanged = new();
-    private readonly BehaviorSubject<bool> _isAvailable = new(true);
+    private readonly AudioAvailability _availability;
     private readonly ILoggerService _loggerService;
     private readonly bool _useNoSoundDevice;
 
@@ -53,6 +53,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         bool useNoSoundDevice = false)
     {
         _loggerService = loggerService;
+        _availability = new AudioAvailability(loggerService);
         _useNoSoundDevice = useNoSoundDevice;
         _equalizerSettings = settingsStore.Current.Equalizer;
 
@@ -68,7 +69,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         _disposables.Add(_playbackCleared);
         _disposables.Add(_playbackEnded);
         _disposables.Add(_durationChanged);
-        _disposables.Add(_isAvailable);
+        _disposables.Add(_availability);
 
         InitializeBass();
     }
@@ -87,7 +88,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     public IObservable<Unit> WhenPlaybackEnded => _playbackEnded.AsObservable();
     public IObservable<TimeSpan> WhenProgressChanged { get; }
     public IObservable<TimeSpan> WhenDurationChanged => _durationChanged.AsObservable();
-    public IObservable<bool> WhenAvailabilityChanged => _isAvailable.AsObservable();
+    public IObservable<bool> WhenAvailabilityChanged => _availability.WhenChanged;
 
     public Task SelectAsync(Uri source)
     {
@@ -138,8 +139,10 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                         return;
                     }
 
-                    Bass.ChannelPlay(_channel);
-                    _playbackStarted.OnNext(Unit.Default);
+                    if (StartChannel())
+                    {
+                        _playbackStarted.OnNext(Unit.Default);
+                    }
                 }
                 finally
                 {
@@ -187,8 +190,11 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                     }
 
                     Bass.ChannelSetPosition(_channel, 0);
-                    Bass.ChannelPlay(_channel, true);
-                    _playbackRestarted.OnNext(Unit.Default);
+
+                    if (StartChannel(true))
+                    {
+                        _playbackRestarted.OnNext(Unit.Default);
+                    }
                 }
                 finally
                 {
@@ -229,7 +235,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
                 if (wasPlaying)
                 {
-                    Bass.ChannelPlay(_channel);
+                    StartChannel();
                 }
 
                 _ = _loggerService.DebugAsync(
@@ -392,8 +398,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
             if (!Bass.Init(device))
             {
                 _bassFailed = true;
-                _isAvailable.OnNext(false);
-                _ = _loggerService.CriticalAsync("Failed to initialize BASS audio",
+                _availability.NeverCameUp(
                     new InvalidOperationException($"Bass.Init failed: {Bass.LastError}"));
                 return;
             }
@@ -401,8 +406,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         catch (Exception ex)
         {
             _bassFailed = true;
-            _isAvailable.OnNext(false);
-            _ = _loggerService.CriticalAsync("Failed to initialize BASS audio", ex);
+            _availability.NeverCameUp(ex);
             return;
         }
 
@@ -547,6 +551,25 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         }
     }
 
+    /// <summary>Starts the current channel, and says whether sound is actually on its way.</summary>
+    /// <remarks>
+    /// A refused start is not this one track's problem: BASS says no when the device it was
+    /// initialised against has gone, which is what an interface unplugged mid-set looks like.
+    /// Announcing playback anyway left the desktop, the screens and the phone all showing a dance
+    /// while the hall was silent, and no end of track ever arrived to move the evening on.
+    /// </remarks>
+    private bool StartChannel(bool restart = false)
+    {
+        if (!Bass.ChannelPlay(_channel, restart))
+        {
+            _availability.Gone($"Bass.ChannelPlay failed: {Bass.LastError}");
+            return false;
+        }
+
+        _availability.Working();
+        return true;
+    }
+
     private void FreeChannel()
     {
         if (_channel == 0)
@@ -632,8 +655,10 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         var lengthInSeconds = Bass.ChannelBytes2Seconds(_channel, lengthInBytes);
         _durationChanged.OnNext(TimeSpan.FromSeconds(lengthInSeconds));
 
-        Bass.ChannelPlay(_channel);
-        _playbackStarted.OnNext(Unit.Default);
+        if (StartChannel())
+        {
+            _playbackStarted.OnNext(Unit.Default);
+        }
     }
 
     private TimeSpan GetPosition()

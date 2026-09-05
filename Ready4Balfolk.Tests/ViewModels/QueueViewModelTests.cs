@@ -34,6 +34,21 @@ public sealed class QueueViewModelTests : IDisposable
 
     private static readonly EndOfNightQueueItem EndOfNight = new("/audio/last-waltz.mp3", TimeSpan.FromMinutes(4));
 
+    /// <summary>The stand-in queue's own lookup, the same one the real service does by identity.</summary>
+    private int IndexOf(QueueItemId id)
+    {
+        var items = _queueSource.Items;
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (items[i].Id == id)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     public QueueViewModelTests()
     {
         var settings = new ApplicationSettings();
@@ -54,21 +69,32 @@ public sealed class QueueViewModelTests : IDisposable
             _queueSource.Insert(Math.Min(index, _queueSource.Count), ci.ArgAt<IQueueItem>(1));
             return QueueAddResult.Allow();
         });
-        _queueService.RemoveAt(Arg.Any<int>()).Returns(ci =>
+        _queueService.Remove(Arg.Any<QueueItemId>()).Returns(ci =>
         {
-            var index = ci.Arg<int>();
+            var index = IndexOf(ci.Arg<QueueItemId>());
+            if (index < 0)
+            {
+                return QueueChangeResult.Gone;
+            }
+
             _queueSource.RemoveAt(index);
-            return true;
+            return QueueChangeResult.Done;
         });
         _queueService.Clear().Returns(_ =>
         {
             _queueSource.Clear();
             return true;
         });
-        _queueService.Move(Arg.Any<int>(), Arg.Any<int>()).Returns(ci =>
+        _queueService.Move(Arg.Any<QueueItemId>(), Arg.Any<int>()).Returns(ci =>
         {
-            _queueSource.Move(ci.ArgAt<int>(0), ci.ArgAt<int>(1));
-            return true;
+            var index = IndexOf(ci.ArgAt<QueueItemId>(0));
+            if (index < 0)
+            {
+                return QueueChangeResult.Gone;
+            }
+
+            _queueSource.Move(index, ci.ArgAt<int>(1));
+            return QueueChangeResult.Done;
         });
         _queueService.RemoveWhere(Arg.Any<Func<IQueueItem, bool>>()).Returns(ci =>
         {
@@ -214,7 +240,7 @@ public sealed class QueueViewModelTests : IDisposable
     public void ClearQueue_WithoutConfirmation_DoesNotClear()
     {
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>()).Returns(false);
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
 
         _sut.ClearQueueCommand.Execute().Subscribe();
@@ -225,14 +251,15 @@ public sealed class QueueViewModelTests : IDisposable
     // --- MoveItem ---
 
     [Fact]
-    public void MoveItem_ValidIndices_Moves()
+    public void MoveItem_ValidTarget_Moves()
     {
-        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        var first = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        _queueSource.Add(first);
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("B"), false));
 
-        _sut.MoveItem(0, 1);
+        _sut.MoveItem(first.Id, 1);
 
-        _queueService.Received(1).Move(0, 1);
+        _queueService.Received(1).Move(first.Id, 1);
     }
 
     [Fact]
@@ -242,16 +269,65 @@ public sealed class QueueViewModelTests : IDisposable
         _queueSource.Add(auto);
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("B"), false));
 
-        _sut.MoveItem(0, 1);
+        _sut.MoveItem(auto.Id, 1);
 
         // QueueService.Move handles the guard check now
-        _queueService.Received(1).Move(0, 1);
+        _queueService.Received(1).Move(auto.Id, 1);
     }
 
-    // --- Selection with duplicate (value-equal) items ---
-    // Queue items are records, so two StopQueueItems are Equals; these tests
-    // pin down that the selected *instance* is moved/removed, not the first
-    // value-equal one.
+    [Fact]
+    public void MoveItem_DroppedOnThePositionItAlreadyHolds_AsksTheQueueForNothing()
+    {
+        var first = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        _queueSource.Add(first);
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("B"), false));
+
+        _sut.MoveItem(first.Id, 0);
+
+        // Picking a row up and putting it back down is not a change, and putting it to the queue
+        // would come back Done for a reorder the DJ never made.
+        _queueService.DidNotReceive().Move(Arg.Any<QueueItemId>(), Arg.Any<int>());
+    }
+
+    [Fact]
+    public void MoveItem_TheDraggedRowPlayedMidDrag_MovesNothingAndSaysSo()
+    {
+        // A drop that lands the instant the track it was dragged from ends. Read as a position, it
+        // would have picked up whichever row had moved into that slot.
+        var dragged = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        var innocent = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        _queueSource.Add(dragged);
+        _queueSource.Add(innocent);
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("C"), false));
+        _queueSource.Remove(dragged);
+
+        _sut.MoveItem(dragged.Id, 1);
+
+        Assert.Same(innocent, _sut.QueuedItems[0]);
+        _notification.Received(1).Show(Arg.Any<string>(), NotificationSeverity.Information);
+    }
+
+    [Fact]
+    public void DeleteSelectedItem_TheRowPlayedFirst_RemovesNothingAndSaysSo()
+    {
+        var selected = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        var innocent = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        _queueSource.Add(selected);
+        _queueSource.Add(innocent);
+        _sut.SelectedItem = selected;
+
+        // The track ends between the key press being read and the removal being asked for.
+        _queueSource.Remove(selected);
+
+        _sut.DeleteSelectedItem();
+
+        Assert.Same(innocent, Assert.Single(_sut.QueuedItems));
+        _notification.Received(1).Show(Arg.Any<string>(), NotificationSeverity.Information);
+    }
+
+    // --- Selection among rows that look alike ---
+    // Two stops read the same on screen and describe the same thing; these tests pin down that the
+    // one the DJ picked is the one that moves or goes, which is what the row's own identity buys.
 
     [Fact]
     public void MoveSelectedUp_DuplicateStops_MovesSelectedInstance()
@@ -265,7 +341,7 @@ public sealed class QueueViewModelTests : IDisposable
         _sut.SelectedItem = lastStop;
         _sut.MoveSelectedUp();
 
-        _queueService.Received(1).Move(3, 2);
+        _queueService.Received(1).Move(lastStop.Id, 2);
     }
 
     [Fact]
@@ -293,7 +369,7 @@ public sealed class QueueViewModelTests : IDisposable
         _sut.SelectedItem = lastStop;
         _sut.DeleteSelectedItem();
 
-        _queueService.Received(1).RemoveAt(2);
+        _queueService.Received(1).Remove(lastStop.Id);
     }
 
     // --- ItemCountText ---

@@ -15,7 +15,13 @@ public interface IQueueConsumptionService
     IObservable<bool> WhenIsPlayingChanged { get; }
     IObservable<Unit> WhenItemCompleted { get; }
 
-    Task AdvanceAsync();
+    /// <summary>Moves the evening on to the next item.</summary>
+    /// <param name="requestedFor">
+    /// What the caller decided about, or null to advance whatever happens to be playing. A request
+    /// naming an item that is no longer the current one is dropped.
+    /// </param>
+    /// <returns>False when the request was dropped because the evening had already moved on.</returns>
+    Task<bool> AdvanceAsync(IQueueItem? requestedFor = null);
     Task PlayPauseAsync();
     Task RestartAsync();
     Task SeekAsync(TimeSpan position);

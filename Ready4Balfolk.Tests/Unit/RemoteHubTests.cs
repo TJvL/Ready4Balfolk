@@ -160,47 +160,117 @@ public sealed class RemoteHubTests : IDisposable
 
     // --- Rearranging ---
 
-    [Fact]
-    public async Task MoveUp_FromTheTop_IsRefusedWithoutAskingTheQueue()
+    /// <summary>The queue behind the hub, holding whatever a test put in it.</summary>
+    /// <remarks>
+    /// The real service answers about rows, not positions, so the substitute does too: a mock that
+    /// returns a refusal for a row it was never given would be a contract nobody implements.
+    /// </remarks>
+    private void QueueHolds(params IQueueItem[] items)
     {
-        var result = await _sut.MoveUp(0);
+        _queueService.Items.Returns(items);
+        _queueService.IndexOf(Arg.Any<QueueItemId>())
+            .Returns(call => Array.FindIndex(items, item => item.Id == call.Arg<QueueItemId>()));
+        _queueService.Move(Arg.Any<QueueItemId>(), Arg.Any<int>()).Returns(call =>
+        {
+            var index = Array.FindIndex(items, item => item.Id == call.ArgAt<QueueItemId>(0));
+            var target = call.ArgAt<int>(1);
+            return index < 0
+                ? QueueChangeResult.Gone
+                : target >= 0 && target < items.Length ? QueueChangeResult.Done : QueueChangeResult.Refused;
+        });
+        _queueService.Remove(Arg.Any<QueueItemId>()).Returns(call =>
+            Array.Exists(items, item => item.Id == call.Arg<QueueItemId>())
+                ? QueueChangeResult.Done
+                : QueueChangeResult.Gone);
+    }
+
+    [Fact]
+    public async Task MoveUp_FromTheTop_IsRefusedWithAReason()
+    {
+        var top = new StopQueueItem();
+        QueueHolds(top, new StopQueueItem());
+
+        var result = await _sut.MoveUp(top.Id.ToString());
 
         Assert.False(result.Accepted);
-        _queueService.DidNotReceive().Move(Arg.Any<int>(), Arg.Any<int>());
+        Assert.False(result.QueueChanged);
+        Assert.NotNull(result.Reason);
     }
 
     [Fact]
     public async Task MoveUp_Elsewhere_MovesTowardsTheFront()
     {
-        _queueService.Move(2, 1).Returns(true);
+        var third = new StopQueueItem();
+        QueueHolds(new StopQueueItem(), new StopQueueItem(), third);
 
-        var result = await _sut.MoveUp(2);
+        var result = await _sut.MoveUp(third.Id.ToString());
 
         Assert.True(result.Accepted);
-        _queueService.Received(1).Move(2, 1);
+        _queueService.Received(1).Move(third.Id, 1);
     }
 
     [Fact]
     public async Task MoveDown_TheQueueRefuses_IsReportedAsARefusal()
     {
-        _queueService.Move(Arg.Any<int>(), Arg.Any<int>()).Returns(false);
+        var only = new StopQueueItem();
+        QueueHolds(only);
 
-        var result = await _sut.MoveDown(0);
+        var result = await _sut.MoveDown(only.Id.ToString());
 
         Assert.False(result.Accepted);
+        Assert.False(result.QueueChanged);
         Assert.NotNull(result.Reason);
     }
 
     [Fact]
-    public async Task RemoveAt_AlreadyGone_IsRefusedRatherThanThrowing()
+    public async Task MoveUp_TheRowPlayedWhileThePhoneWasLooking_MovesNothing()
     {
-        // Two phones on the same queue is the normal case, so an index can go stale mid-tap.
-        _queueService.RemoveAt(Arg.Any<int>()).Returns(false);
+        // The list on the phone is up to half a second old, so the top row ending mid-tap is
+        // ordinary. Sent as a position, "row two" would move whatever row two had become.
+        var played = new StopQueueItem();
+        var rest = new StopQueueItem();
+        QueueHolds(rest);
 
-        var result = await _sut.RemoveAt(3);
+        var result = await _sut.MoveUp(played.Id.ToString());
 
         Assert.False(result.Accepted);
-        Assert.NotNull(result.Reason);
+        Assert.True(result.QueueChanged);
+        _queueService.DidNotReceive().Move(Arg.Any<QueueItemId>(), Arg.Any<int>());
+    }
+
+    [Fact]
+    public async Task Remove_TheRowPlayedWhileThePhoneWasLooking_SaysTheQueueMovedOn()
+    {
+        // Not "connection lost", which is what a failed invoke used to read as, and not a refusal
+        // either: the connection is fine and the queue has simply moved past this row.
+        var played = new StopQueueItem();
+        QueueHolds(new StopQueueItem());
+
+        var result = await _sut.Remove(played.Id.ToString());
+
+        Assert.False(result.Accepted);
+        Assert.True(result.QueueChanged);
+    }
+
+    [Fact]
+    public async Task Remove_TheRowThatWasTapped_IsTheRowThatGoes()
+    {
+        var wanted = new StopQueueItem();
+        QueueHolds(new StopQueueItem(), wanted, new StopQueueItem());
+
+        var result = await _sut.Remove(wanted.Id.ToString());
+
+        Assert.True(result.Accepted);
+        _queueService.Received(1).Remove(wanted.Id);
+    }
+
+    [Fact]
+    public async Task Remove_SomethingThatIsNotARowAtAll_IsRefusedRatherThanThrowing()
+    {
+        var result = await _sut.Remove("not-an-id");
+
+        Assert.False(result.Accepted);
+        Assert.True(result.QueueChanged);
     }
 
     // --- Search ---

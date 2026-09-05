@@ -20,6 +20,7 @@ public sealed class QueueServiceTests : IDisposable
     private readonly BehaviorSubject<ApplicationSettings> _settingsSubject;
     private readonly BehaviorSubject<QueueHistory> _historySubject;
     private readonly Subject<string> _vanished;
+    private Func<IQueueItem?> _currentItem = () => null;
 
     public QueueServiceTests()
     {
@@ -43,7 +44,8 @@ public sealed class QueueServiceTests : IDisposable
         trackStore.WhenTrackFileVanished.Returns(_vanished);
 
         _sut = new QueueService(
-            settingsStore, historyStore, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService(),
+            settingsStore, historyStore, trackStore, () => _currentItem(), () => TimeSpan.Zero,
+            new NoOpLoggerService(),
             TimeProvider.System);
     }
 
@@ -118,18 +120,96 @@ public sealed class QueueServiceTests : IDisposable
         var track2 = new TrackQueueItem(TestData.CreateTrack("B"), false);
         _sut.Enqueue(track1);
         _sut.Enqueue(track2);
-        Assert.True(_sut.Move(0, 1));
+        Assert.Equal(QueueChangeResult.Done, _sut.Move(track1.Id, 1));
         Assert.Equal(track2, _sut.Items[0]);
         Assert.Equal(track1, _sut.Items[1]);
     }
 
     [Fact]
-    public void RemoveAt_RemovesItem()
+    public void Remove_RemovesItem()
     {
         var track = new TrackQueueItem(TestData.CreateTrack(), false);
         _sut.Enqueue(track);
-        Assert.True(_sut.RemoveAt(0));
+        Assert.Equal(QueueChangeResult.Done, _sut.Remove(track.Id));
         Assert.Equal(0, _sut.Count);
+    }
+
+    // --- A queue that shifted under the request ---
+
+    [Fact]
+    public void Remove_TheRowPlayedFirst_TakesNothingElseWithIt()
+    {
+        // The DJ presses Delete on the second row in the same moment the first one ends. Read as a
+        // position, "row one" is by then the row below the one they were looking at.
+        var playing = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        var wanted = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        var innocent = new TrackQueueItem(TestData.CreateTrack("C"), false);
+        _sut.Enqueue(playing);
+        _sut.Enqueue(wanted);
+        _sut.Enqueue(innocent);
+
+        _sut.Dequeue();
+
+        Assert.Equal(QueueChangeResult.Done, _sut.Remove(wanted.Id));
+        Assert.Same(innocent, Assert.Single(_sut.Items));
+    }
+
+    [Fact]
+    public void Remove_TheRowItselfPlayed_SaysTheQueueMovedOn()
+    {
+        var played = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        var rest = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        _sut.Enqueue(played);
+        _sut.Enqueue(rest);
+
+        _sut.Dequeue();
+
+        // Not a refusal: the queue has nothing against this row, it has moved past it, and the
+        // caller's list is the thing that is out of date.
+        Assert.Equal(QueueChangeResult.Gone, _sut.Remove(played.Id));
+        Assert.Same(rest, Assert.Single(_sut.Items));
+    }
+
+    [Fact]
+    public void Move_TheRowPlayedFirst_MovesTheRowThatWasAskedFor()
+    {
+        var playing = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        var wanted = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        var innocent = new TrackQueueItem(TestData.CreateTrack("C"), false);
+        _sut.Enqueue(playing);
+        _sut.Enqueue(wanted);
+        _sut.Enqueue(innocent);
+
+        _sut.Dequeue();
+
+        Assert.Equal(QueueChangeResult.Done, _sut.Move(wanted.Id, 1));
+        Assert.Same(innocent, _sut.Items[0]);
+        Assert.Same(wanted, _sut.Items[1]);
+    }
+
+    [Fact]
+    public void Move_TheRowItselfPlayed_SaysTheQueueMovedOn()
+    {
+        var played = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        _sut.Enqueue(played);
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
+
+        _sut.Dequeue();
+
+        Assert.Equal(QueueChangeResult.Gone, _sut.Move(played.Id, 0));
+    }
+
+    [Fact]
+    public void Move_PastTheEndOfTheQueue_IsRefusedRatherThanThrowing()
+    {
+        // What the phone's "down" button asks for when its list still has a row below this one.
+        var last = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _sut.Enqueue(last);
+
+        _sut.Dequeue();
+
+        Assert.Equal(QueueChangeResult.Refused, _sut.Move(last.Id, 1));
     }
 
     [Fact]
@@ -223,11 +303,12 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Move_Regular_CannotGoBelowAutoTrack()
     {
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        var first = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        _sut.Enqueue(first);
         _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
         _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("Auto"), true)));
 
-        Assert.True(_sut.Move(0, 2));
+        Assert.Equal(QueueChangeResult.Done, _sut.Move(first.Id, 2));
 
         Assert.IsType<AutoTrackQueueItem>(_sut.Items[^1]);
         Assert.Equal("A", ((TrackQueueItem)_sut.Items[1]).Track.Dance);
@@ -246,19 +327,19 @@ public sealed class QueueServiceTests : IDisposable
     }
 
     [Fact]
-    public void Move_AutoTrack_ReturnsFalse()
+    public void Move_AutoTrack_IsRefused()
     {
         var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
         _sut.Enqueue(auto);
-        Assert.False(_sut.Move(0, 0));
+        Assert.Equal(QueueChangeResult.Refused, _sut.Move(auto.Id, 0));
     }
 
     [Fact]
-    public void RemoveAt_AutoTrack_ReturnsFalse()
+    public void Remove_AutoTrack_IsRefused()
     {
         var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
         _sut.Enqueue(auto);
-        Assert.False(_sut.RemoveAt(0));
+        Assert.Equal(QueueChangeResult.Refused, _sut.Remove(auto.Id));
     }
 
     [Fact]
@@ -324,11 +405,12 @@ public sealed class QueueServiceTests : IDisposable
         var changeSetCount = 0;
         using var sub = _sut.Connect().Subscribe(_ => changeSetCount++);
 
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        _sut.Enqueue(track);
         Assert.True(changeSetCount >= 1);
 
         var before = changeSetCount;
-        _sut.RemoveAt(0);
+        _sut.Remove(track.Id);
         Assert.True(changeSetCount > before);
     }
 
@@ -397,6 +479,81 @@ public sealed class QueueServiceTests : IDisposable
         Assert.Equal(0, _sut.Count);
     }
 
+    // The guard is handed a snapshot and answers in positions counted against it, and working out
+    // the answer means asking what is playing. That question goes to the thing that takes finished
+    // dances off the queue, so the queue can move between the count and the removal. These two put
+    // the move in that window on purpose, which is the only way to make the race arrive every time.
+
+    [Fact]
+    public void Evict_TheQueueShrankWhileTheGuardWasThinking_TakesOutTheRowsItNamed()
+    {
+        var a = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        var b = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        var c = new TrackQueueItem(TestData.CreateTrack("C"), false);
+        var d = new TrackQueueItem(TestData.CreateTrack("D"), false);
+        _sut.Enqueue(a);
+        _sut.Enqueue(b);
+        _sut.Enqueue(c);
+        _sut.Enqueue(d);
+
+        var shifted = false;
+        _currentItem = () =>
+        {
+            if (!shifted)
+            {
+                shifted = true;
+                _sut.Dequeue();
+            }
+
+            return null;
+        };
+
+        _settingsSubject.OnNext(new ApplicationSettings() with
+        {
+            MaxQueueItems = 3
+        });
+
+        // The row over the limit is D, and D is what goes. As a position it was row three, which is
+        // off the end of the three rows left once A had played.
+        Assert.Equal<IQueueItem>([b, c], _sut.Items);
+    }
+
+    [Fact]
+    public void Evict_TheQueueWasReorderedWhileTheGuardWasThinking_LeavesTheInnocentRowAlone()
+    {
+        var a = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        var b = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        var c = new TrackQueueItem(TestData.CreateTrack("C"), false);
+        var d = new TrackQueueItem(TestData.CreateTrack("D"), false);
+        var e = new TrackQueueItem(TestData.CreateTrack("E"), false);
+        _sut.Enqueue(a);
+        _sut.Enqueue(b);
+        _sut.Enqueue(c);
+        _sut.Enqueue(d);
+        _sut.Enqueue(e);
+
+        var moved = false;
+        _currentItem = () =>
+        {
+            if (!moved)
+            {
+                moved = true;
+                _sut.Move(d.Id, 0);
+            }
+
+            return null;
+        };
+
+        _settingsSubject.OnNext(new ApplicationSettings() with
+        {
+            MaxQueueItems = 3
+        });
+
+        // D and E are the rows over the limit. Read as positions three and four, the drag would
+        // have cost C its place in the evening and left D sitting at the top.
+        Assert.Equal<IQueueItem>([a, b, c], _sut.Items);
+    }
+
     // --- End of the night ---
 
     private static EndOfNightQueueItem EndOfNight() => new("/audio/last-waltz.mp3", TimeSpan.FromMinutes(4));
@@ -427,21 +584,23 @@ public sealed class QueueServiceTests : IDisposable
     }
 
     [Fact]
-    public void RemoveAt_EndOfNight_ReopensTheEvening()
+    public void Remove_EndOfNight_ReopensTheEvening()
     {
-        _sut.Enqueue(EndOfNight());
+        var endOfNight = EndOfNight();
+        _sut.Enqueue(endOfNight);
 
-        Assert.True(_sut.RemoveAt(0));
+        Assert.Equal(QueueChangeResult.Done, _sut.Remove(endOfNight.Id));
         Assert.True(_sut.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false)).Allowed);
     }
 
     [Fact]
     public void Move_CannotPushARequestBelowTheEndOfNight()
     {
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        var request = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        _sut.Enqueue(request);
         _sut.Enqueue(EndOfNight());
 
-        Assert.True(_sut.Move(0, 1));
+        Assert.Equal(QueueChangeResult.Done, _sut.Move(request.Id, 1));
 
         Assert.IsType<EndOfNightQueueItem>(_sut.Items[^1]);
     }
@@ -449,10 +608,11 @@ public sealed class QueueServiceTests : IDisposable
     [Fact]
     public void Move_EndOfNightItself_IsRefused()
     {
+        var endOfNight = EndOfNight();
         _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
-        _sut.Enqueue(EndOfNight());
+        _sut.Enqueue(endOfNight);
 
-        Assert.False(_sut.Move(1, 0));
+        Assert.Equal(QueueChangeResult.Refused, _sut.Move(endOfNight.Id, 0));
     }
 
     public void Dispose()

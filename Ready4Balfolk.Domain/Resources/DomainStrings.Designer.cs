@@ -96,4 +96,7 @@ public static class DomainStrings
 
     public static string DanceList_Invalid =>
         ResourceManager.GetString("DanceList_Invalid", Culture)!;
+
+    public static string Audio_OutputGone =>
+        ResourceManager.GetString("Audio_OutputGone", Culture)!;
 }

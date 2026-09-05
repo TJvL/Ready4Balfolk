@@ -1,3 +1,4 @@
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using DynamicData;
 using NSubstitute;
@@ -15,6 +16,9 @@ namespace Ready4Balfolk.Tests.ViewModels;
 public sealed class PlaybackViewModelTests : IDisposable
 {
     private readonly PlaybackViewModel _sut;
+    private readonly IQueueConsumptionService _consumption;
+    private readonly IConfirmationService _confirmation;
+    private readonly INotificationService _notifications = Substitute.For<INotificationService>();
 
     private readonly BehaviorSubject<IQueueItem?> _currentItem = new(null);
     private readonly BehaviorSubject<TimeSpan> _elapsed = new(TimeSpan.Zero);
@@ -24,26 +28,28 @@ public sealed class PlaybackViewModelTests : IDisposable
 
     public PlaybackViewModelTests()
     {
-        var consumption = Substitute.For<IQueueConsumptionService>();
-        consumption.WhenCurrentItemChanged.Returns(_currentItem);
-        consumption.WhenElapsedChanged.Returns(_elapsed);
-        consumption.WhenTotalDurationChanged.Returns(_totalDuration);
-        consumption.WhenIsPlayingChanged.Returns(_isPlaying);
+        _consumption = Substitute.For<IQueueConsumptionService>();
+        _consumption.WhenCurrentItemChanged.Returns(_currentItem);
+        _consumption.WhenElapsedChanged.Returns(_elapsed);
+        _consumption.WhenTotalDurationChanged.Returns(_totalDuration);
+        _consumption.WhenIsPlayingChanged.Returns(_isPlaying);
+        _consumption.CurrentItem.Returns(_ => _currentItem.Value);
+        _consumption.AdvanceAsync(Arg.Any<IQueueItem?>()).Returns(true);
 
         var queue = Substitute.For<IQueueService>();
         queue.Connect().Returns(_queueSource.Connect());
         queue.Count.Returns(_ => _queueSource.Count);
 
-        var confirmation = Substitute.For<IConfirmationService>();
-        confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>()).Returns(true);
+        _confirmation = Substitute.For<IConfirmationService>();
+        _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
 
         var settingsStore = Substitute.For<ISettingsStore>();
         var settings = new ApplicationSettings();
         settingsStore.Current.Returns(settings);
         settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
 
-        _sut = new PlaybackViewModel(consumption, queue, confirmation, settingsStore, Substitute.For<IAudioPlaybackService>());
+        _sut = new PlaybackViewModel(_consumption, queue, _confirmation, _notifications, settingsStore, Substitute.For<IAudioPlaybackService>());
     }
 
     // --- Current item display ---
@@ -157,6 +163,109 @@ public sealed class PlaybackViewModelTests : IDisposable
 
     [Fact]
     public void ShowNextIcon_FalseWhenQueueEmpty() => Assert.False(_sut.ShowNextIcon);
+
+    // --- A confirmation answered after the dance it was about ended ---
+
+    [Fact]
+    public async Task Skip_ConfirmedAfterTheDanceEnded_LeavesTheNewOneAlone()
+    {
+        var playing = new TrackQueueItem(TestData.CreateTrack("Mazurka"), false);
+        _currentItem.OnNext(playing);
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("Waltz"), false));
+
+        var next = new TrackQueueItem(TestData.CreateTrack("Waltz"), false);
+        AnswerYesAfter(() => _currentItem.OnNext(next));
+
+        await _sut.NextOrClearCommand.Execute();
+
+        await _consumption.DidNotReceive().AdvanceAsync(Arg.Any<IQueueItem?>());
+        _notifications.Received(1).Show(Arg.Any<string>(), NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task Skip_AnsweredInTime_AdvancesTheItemItWasAbout()
+    {
+        var playing = new TrackQueueItem(TestData.CreateTrack("Mazurka"), false);
+        _currentItem.OnNext(playing);
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("Waltz"), false));
+
+        await _sut.NextOrClearCommand.Execute();
+
+        await _consumption.Received(1).AdvanceAsync(playing);
+        _notifications.DidNotReceive().Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>());
+    }
+
+    [Fact]
+    public async Task Skip_RefusedByTheService_SaysSo()
+    {
+        var playing = new TrackQueueItem(TestData.CreateTrack("Mazurka"), false);
+        _currentItem.OnNext(playing);
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("Waltz"), false));
+        _consumption.AdvanceAsync(Arg.Any<IQueueItem?>()).Returns(false);
+
+        await _sut.NextOrClearCommand.Execute();
+
+        _notifications.Received(1).Show(Arg.Any<string>(), NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task Restart_ConfirmedAfterTheDanceEnded_DoesNotRestartTheNewOne()
+    {
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Mazurka"), false));
+
+        var next = new TrackQueueItem(TestData.CreateTrack("Waltz"), false);
+        AnswerYesAfter(() => _currentItem.OnNext(next));
+
+        await _sut.RestartCommand.Execute();
+
+        await _consumption.DidNotReceive().RestartAsync();
+        _notifications.Received(1).Show(Arg.Any<string>(), NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task Seek_ConfirmedAfterTheDanceEnded_DoesNotSeekTheNewOne()
+    {
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Mazurka"), false));
+
+        var next = new TrackQueueItem(TestData.CreateTrack("Waltz"), false);
+        AnswerYesAfter(() => _currentItem.OnNext(next));
+
+        await _sut.SeekCommand.Execute(TimeSpan.FromSeconds(90));
+
+        await _consumption.DidNotReceive().SeekAsync(Arg.Any<TimeSpan>());
+        _notifications.Received(1).Show(Arg.Any<string>(), NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task AQuestionOnScreen_IsWithdrawnWhenTheDanceEnds()
+    {
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Mazurka"), false));
+
+        CancellationToken given = default;
+        var next = new TrackQueueItem(TestData.CreateTrack("Waltz"), false);
+        _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                given = call.Arg<CancellationToken>();
+                _currentItem.OnNext(next);
+                return false;
+            });
+
+        await _sut.RestartCommand.Execute();
+
+        Assert.True(given.IsCancellationRequested);
+    }
+
+    /// <summary>Says yes to the next question, after letting the evening move on underneath it.</summary>
+    private void AnswerYesAfter(Action whileTheQuestionIsUp) =>
+        _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                whileTheQuestionIsUp();
+                return true;
+            });
 
     public void Dispose()
     {
