@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 using ReactiveUI.Avalonia.Reactive.Splat;
+using ReactiveUI.Reactive;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Dances;
@@ -175,7 +176,16 @@ public static class ApplicationComposition
                 sp.GetRequiredService<ILoggerService>(),
                 sp.GetRequiredService<TimeProvider>());
         });
-        services.AddSingleton<IQueueConsumptionService, QueueConsumptionService>();
+        // The advance scheduler is the UI thread: a track ending and a countdown running out both
+        // arrive on a thread of their own, and the queue is driven from here.
+        services.AddSingleton<IQueueConsumptionService>(sp => new QueueConsumptionService(
+            sp.GetRequiredService<IAudioPlaybackService>(),
+            sp.GetRequiredService<IQueueService>(),
+            sp.GetRequiredService<IQueueHistoryStore>(),
+            sp.GetRequiredService<ISettingsStore>(),
+            sp.GetRequiredService<ILoggerService>(),
+            sp.GetRequiredService<TimeProvider>(),
+            RxSchedulers.MainThreadScheduler));
         services.AddSingleton<IEndOfNightAudio, EndOfNightAudio>();
         // Registered from the options when a run brought its own, which is how a scenario gets a
         // data directory of its own without the stores hanging off it being anything but real.

@@ -232,6 +232,9 @@ public static class UiStrings
     public static string Queue_CutoffPaused =>
         ResourceManager.GetString("Queue_CutoffPaused", Culture)!;
 
+    public static string Queue_ItemAlreadyGone =>
+        ResourceManager.GetString("Queue_ItemAlreadyGone", Culture)!;
+
     public static string Settings_MaxQueueItems =>
         ResourceManager.GetString("Settings_MaxQueueItems", Culture)!;
 

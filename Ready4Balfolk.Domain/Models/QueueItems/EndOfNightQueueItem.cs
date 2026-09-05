@@ -11,6 +11,7 @@ namespace Ready4Balfolk.Domain.Models.QueueItems;
 /// </remarks>
 public sealed record EndOfNightQueueItem(string FilePath, TimeSpan? Duration) : IQueueItem
 {
+    public QueueItemId Id { get; init; } = QueueItemId.New();
     public string Description => DomainStrings.EndOfNightQueueItem_Description;
     public bool RandomlyAdded => false;
 }

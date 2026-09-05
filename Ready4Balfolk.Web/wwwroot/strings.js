@@ -42,6 +42,7 @@
       moveDown: "Down",
       remove: "Remove",
       removed: "Removed",
+      queueMovedOn: "The queue moved on, have another look",
       autoAdded: "Added automatically",
 
       randomTrack: "Random track",
@@ -107,6 +108,7 @@
       moveDown: "Omlaag",
       remove: "Verwijderen",
       removed: "Verwijderd",
+      queueMovedOn: "De wachtrij is intussen opgeschoven, kijk even opnieuw",
       autoAdded: "Automatisch toegevoegd",
 
       randomTrack: "Willekeurig nummer",

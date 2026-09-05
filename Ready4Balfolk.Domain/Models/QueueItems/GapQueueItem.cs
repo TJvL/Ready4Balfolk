@@ -11,6 +11,7 @@ namespace Ready4Balfolk.Domain.Models.QueueItems;
 /// </remarks>
 public sealed record GapQueueItem(TimeSpan GapDuration) : IQueueItem
 {
+    public QueueItemId Id { get; init; } = QueueItemId.New();
     public string Description => DomainStrings.GapQueueItem_Description;
     public TimeSpan? Duration => GapDuration;
     public bool RandomlyAdded => false;

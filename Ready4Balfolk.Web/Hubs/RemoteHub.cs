@@ -108,20 +108,47 @@ public sealed class RemoteHub(
             : Enqueue(new TrackQueueItem(track, false));
     });
 
-    public Task<CommandResultDto> MoveUp(int index) => dispatcher.InvokeAsync(() =>
-        index > 0 && queueService.Move(index, index - 1)
-            ? CommandResultDto.Ok
-            : new CommandResultDto(false, "That item cannot move up"));
+    /// <summary>
+    /// Rearranging by the name of the row, never by the number it was drawn at.
+    /// </summary>
+    /// <remarks>
+    /// The list a phone is holding is up to half a second old and every dance that ends renumbers
+    /// it, so "row three" arriving here means whatever row three has become. A tap that arrives
+    /// after its row has gone is the ordinary case rather than an error, and it comes back as a
+    /// queue that has moved on, which the page can say and redraw for: it used to come back as a
+    /// failed invoke, and the page called a healthy connection lost.
+    /// </remarks>
+    public Task<CommandResultDto> MoveUp(string id) => Rearrange(id, -1, "That item cannot move up");
 
-    public Task<CommandResultDto> MoveDown(int index) => dispatcher.InvokeAsync(() =>
-        queueService.Move(index, index + 1)
-            ? CommandResultDto.Ok
-            : new CommandResultDto(false, "That item cannot move down"));
+    public Task<CommandResultDto> MoveDown(string id) => Rearrange(id, 1, "That item cannot move down");
 
-    public Task<CommandResultDto> RemoveAt(int index) => dispatcher.InvokeAsync(() =>
-        queueService.RemoveAt(index)
-            ? CommandResultDto.Ok
-            : new CommandResultDto(false, "That item is gone already"));
+    private Task<CommandResultDto> Rearrange(string id, int offset, string refusal) =>
+        dispatcher.InvokeAsync(() => QueueItemId.TryParse(id, out var itemId)
+            ? MoveNeighbour(itemId, offset, refusal)
+            : CommandResultDto.Stale);
+
+    private CommandResultDto MoveNeighbour(QueueItemId id, int offset, string refusal)
+    {
+        // Where the row is now is read here rather than sent from the phone. This runs where the
+        // queue is driven from, so nothing can move between finding the row and moving it.
+        var index = queueService.IndexOf(id);
+
+        return index < 0
+            ? CommandResultDto.Stale
+            : Answer(queueService.Move(id, index + offset), refusal);
+    }
+
+    public Task<CommandResultDto> Remove(string id) => dispatcher.InvokeAsync(() =>
+        QueueItemId.TryParse(id, out var itemId)
+            ? Answer(queueService.Remove(itemId), "That item cannot be removed")
+            : CommandResultDto.Stale);
+
+    private static CommandResultDto Answer(QueueChangeResult result, string refusal) => result switch
+    {
+        QueueChangeResult.Done => CommandResultDto.Ok,
+        QueueChangeResult.Gone => CommandResultDto.Stale,
+        _ => new CommandResultDto(false, refusal)
+    };
 
     /// <summary>
     /// Search rather than a full listing: the catalog is a sortable grid on a desk, and a phone gets
