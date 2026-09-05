@@ -21,6 +21,7 @@ public sealed class TrackCatalogViewModelTests : IDisposable
     private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly IQueueService _queueService = Substitute.For<IQueueService>();
     private readonly INotificationService _notifications = Substitute.For<INotificationService>();
+    private readonly ILibraryIndex _libraryIndex = Substitute.For<ILibraryIndex>();
     private readonly TrackCatalogViewModel _sut;
 
     public TrackCatalogViewModelTests()
@@ -36,7 +37,7 @@ public sealed class TrackCatalogViewModelTests : IDisposable
 
         _sut = new TrackCatalogViewModel(
             trackStore, _queueService, _notifications, new TrackEditorService(
-                Substitute.For<IDanceListStore>(), Substitute.For<ILibraryIndex>(), trackStore));
+                Substitute.For<IDanceListStore>(), _libraryIndex, trackStore));
     }
 
     private static async Task SettleAsync() => await Task.Delay(450);
@@ -118,6 +119,45 @@ public sealed class TrackCatalogViewModelTests : IDisposable
 
         _queueService.Received(1).Enqueue(Arg.Any<TrackQueueItem>());
         _notifications.DidNotReceive().Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>());
+    }
+
+    [Fact]
+    public async Task TakingAnAnswerBack_TakesItBackAndSaysWhereTheTrackWent()
+    {
+        // An answer given a week ago, long after the row that gave it was rebuilt out of the review
+        // queue. The catalogue is where a track that got through the gate still exists, so this is
+        // where taking its answer back has to live: nowhere else is there anything to press.
+        _libraryIndex.WithdrawIndividualApprovalsAsync(
+            Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>()).Returns(3);
+        _tracks.Add(TestData.CreateTrack(title: "Salamandre"));
+        await SettleAsync();
+        var track = _sut.Tracks[0];
+
+        await _sut.WithdrawTrackCommand.Execute(track);
+
+        await _libraryIndex.Received(1).WithdrawIndividualApprovalsAsync(
+            Arg.Is<IReadOnlyCollection<string>>(paths => paths.Contains(track.Track.FileInfo.FullName)),
+            Arg.Any<CancellationToken>());
+        _notifications.Received(1).Show(
+            Arg.Is<string>(said => said.Contains("Salamandre", StringComparison.Ordinal)),
+            NotificationSeverity.Information);
+    }
+
+    [Fact]
+    public async Task TakingBackAnAnswerNobodyGave_SaysSoRatherThanDoingNothingQuietly()
+    {
+        // The track is in the library on a rule or on its own tags. A menu entry that quietly does
+        // nothing reads as one that failed, and the DJ presses it again.
+        _libraryIndex.WithdrawIndividualApprovalsAsync(
+            Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>()).Returns(0);
+        _tracks.Add(TestData.CreateTrack(title: "Salamandre"));
+        await SettleAsync();
+
+        await _sut.WithdrawTrackCommand.Execute(_sut.Tracks[0]);
+
+        _notifications.Received(1).Show(
+            Arg.Is<string>(said => said.Contains("Salamandre", StringComparison.Ordinal)),
+            NotificationSeverity.Warning);
     }
 
     [Fact]

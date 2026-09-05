@@ -46,15 +46,10 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
         TitleSource = ReviewText.SourceOf(track.Entry.From(TrackField.Title), track.Review.Title);
 
         ReasonText = ReviewText.ReasonOf(track.Review.Reason);
-        StatusText = ReasonText;
 
-        // A row answered in an earlier sitting comes back through the queue rather than through
-        // MarkApproved, so the state is read off the review rather than remembered: without this a
-        // track parked on a dance the list does not carry looks untouched every time it is opened.
         AnswerFolderText = UiStrings.Review_ApproveFolder;
         IsInFolder = track.IsInFolder;
-        IsParked = track.Review.Reason is ReviewReason.UnknownDance;
-        State = IsParked ? ReviewRowState.Parked : ReviewRowState.Waiting;
+        ShowUnanswered();
 
         UnknownValue = track.UnknownValue;
         SharedBy = track.SharedBy;
@@ -298,6 +293,37 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
         // Short, because it shares a column with a button: the sentence explaining it lives under
         // the row, where there is width for one.
         StatusText = intoTheLibrary ? UiStrings.Review_Answered : UiStrings.Review_ParkedOnUnknownDance;
+    }
+
+    /// <summary>
+    /// Takes the answer back, so the row is a question again.
+    /// </summary>
+    /// <remarks>
+    /// The three values stay in their boxes, because a correction starts from what was answered
+    /// rather than from a blank row. What it lands on is what the queue would draw for a track with
+    /// no answer on it, park included: a row taken back has to read the same as the row a rebuild
+    /// puts in its place, or the two disagree about whether it is still a question.
+    /// </remarks>
+    public void MarkWithdrawn()
+    {
+        IsApproved = false;
+        ShowUnanswered();
+    }
+
+    /// <summary>
+    /// Puts the row the way the queue draws a track nothing has been answered about.
+    /// </summary>
+    /// <remarks>
+    /// Read off the review rather than remembered, and shared with the constructor: a row answered
+    /// in an earlier sitting comes back through the queue rather than through
+    /// <see cref="MarkApproved"/>, so a track parked on a dance the published list does not carry
+    /// would otherwise look untouched every time it is opened.
+    /// </remarks>
+    private void ShowUnanswered()
+    {
+        IsParked = Track.Review.Reason is ReviewReason.UnknownDance;
+        State = IsParked ? ReviewRowState.Parked : ReviewRowState.Waiting;
+        StatusText = ReasonText;
     }
 }
 

@@ -1036,6 +1036,18 @@ public static class UiStrings
     public static string TrackCatalog_EditTrack =>
         ResourceManager.GetString("TrackCatalog_EditTrack", Culture)!;
 
+    public static string TrackCatalog_WithdrawTrack =>
+        ResourceManager.GetString("TrackCatalog_WithdrawTrack", Culture)!;
+
+    public static string TrackCatalog_WithdrawTrackHint =>
+        ResourceManager.GetString("TrackCatalog_WithdrawTrackHint", Culture)!;
+
+    public static string TrackCatalog_WithdrawnTrack =>
+        ResourceManager.GetString("TrackCatalog_WithdrawnTrack", Culture)!;
+
+    public static string TrackCatalog_NothingToWithdraw =>
+        ResourceManager.GetString("TrackCatalog_NothingToWithdraw", Culture)!;
+
     public static string EditTrack_WindowTitle =>
         ResourceManager.GetString("EditTrack_WindowTitle", Culture)!;
 
@@ -1099,6 +1111,15 @@ public static class UiStrings
 
     public static string Review_ApproveFolder =>
         ResourceManager.GetString("Review_ApproveFolder", Culture)!;
+
+    public static string Review_Withdraw =>
+        ResourceManager.GetString("Review_Withdraw", Culture)!;
+
+    public static string Review_WithdrawHint =>
+        ResourceManager.GetString("Review_WithdrawHint", Culture)!;
+
+    public static string Review_Withdrawn =>
+        ResourceManager.GetString("Review_Withdrawn", Culture)!;
 
     public static string Review_Dance =>
         ResourceManager.GetString("Review_Dance", Culture)!;

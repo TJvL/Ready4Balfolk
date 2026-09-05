@@ -55,6 +55,22 @@ public interface ILibraryIndex : IDisposable
     Task ApproveIndividuallyAsync(
         IReadOnlyCollection<string> paths, IReadOnlyCollection<FieldAnswer> answers, CancellationToken token = default);
 
+    /// <summary>Takes back everything a person answered about the tracks at these paths.</summary>
+    /// <remarks>
+    /// The only way out of an individual approval, and what lets one be sticky in the first place:
+    /// nothing else may touch it, so a dance typed wrong would otherwise stand forever. Every field
+    /// of the track goes together, because the answer was one act over three boxes and half of it
+    /// left standing is a row that reads as answered on the artist and asks about the dance. Rows a
+    /// rule gave and nobody answered over are left where they stand, since a rule change is what
+    /// undoes those; a field an answer took over from a rule is a field the person answered, and it
+    /// goes with the rest.
+    /// </remarks>
+    /// <returns>
+    /// How many answers were taken back, so a caller can tell a track that has just left the library
+    /// from one that was never answered by hand and is still sitting there on its rules.
+    /// </returns>
+    Task<int> WithdrawIndividualApprovalsAsync(IReadOnlyCollection<string> paths, CancellationToken token = default);
+
     /// <summary>Forgets every row whose path is not in the set, after a scan has been through.</summary>
     /// <param name="existingPaths">What the scan found. These rows are marked available again.</param>
     /// <param name="unavailablePaths">

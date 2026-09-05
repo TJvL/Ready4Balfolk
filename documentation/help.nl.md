@@ -265,6 +265,15 @@ daadwerkelijk veranderde worden geraakt. De dans moet nog steeds een zijn die de
 lijst kent; een ontbrekende dans is een voorstel bij
 [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/), geen lokale uitzondering.
 
+### Een antwoord terugnemen
+
+Rechtsklik een nummer en kies **Mijn antwoord terugnemen** om het uit je bibliotheek en terug in
+Review te zetten, met je antwoord op elk veld ervan teruggenomen. Zo kom je terug op een vraag die
+je weken geleden beantwoordde, wanneer de regel die hem beantwoordde allang uit de rij verdwenen
+is. Het bestand zelf blijft ongemoeid, en wat al in de wachtrij van vanavond staat speelt gewoon
+door. Een nummer dat in je bibliotheek staat op een van je regels in plaats van op jouw antwoord
+heeft niets terug te nemen, en zegt dat ook: wijzig dan die regel.
+
 ### Schakel naar Danslijst
 
 Met de schakelknop in de werkbalk toont de rechterkolom de danslijst.
@@ -376,6 +385,7 @@ erger dan een dat eerlijk nog wacht.
 | Tab | tussen de drie velden van een nummer, rondlopend |
 | Enter | dit nummer beantwoorden en door naar het volgende dat wacht |
 | Shift+Enter | elk volledig nummer in deze map beantwoorden |
+| Ctrl+Z | het antwoord terugnemen op het nummer waar de cursor staat |
 | Shift+Spatie | het geselecteerde nummer beluisteren |
 | Escape | stoppen met luisteren |
 | Links, Rechts | vijf seconden springen, terwijl er iets speelt |
@@ -390,6 +400,18 @@ vraagt eerst.
 
 Kan een nummer niet beantwoord worden, dan knippert de regel rood in plaats van stilletjes niets te
 doen; een map vragen wijst elk nummer aan dat hem tegenhoudt.
+
+### Een antwoord terugnemen
+
+Een beantwoorde regel vraagt niets meer: zijn drie vakjes zijn dicht, dus wat je ziet is wat er is
+opgeschreven, en de knop die het antwoord gaf wordt **Antwoord terugnemen**. Die knop, of Ctrl+Z op
+de regel, haalt het nummer uit je bibliotheek en zet het terug in de rij met je antwoord op elk
+veld teruggenomen, zodat je het opnieuw kunt beantwoorden. Wat al in de wachtrij van vanavond staat
+speelt gewoon door.
+
+Dat is de snelle weg terug, zolang de regel nog voor je staat. Is de rij eenmaal opnieuw opgebouwd,
+dan staat een beantwoord nummer in je bibliotheek en heeft het hier geen regel meer: neem dat
+antwoord dan terug vanuit de [nummercatalogus](#nummercatalogus), waar het nummer nog wel staat.
 
 ### Kleuren
 

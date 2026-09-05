@@ -463,6 +463,50 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         }
     }
 
+    public async Task<int> WithdrawIndividualApprovalsAsync(
+        IReadOnlyCollection<string> paths, CancellationToken token = default)
+    {
+        if (paths.Count == 0)
+        {
+            return 0;
+        }
+
+        await _gate.WaitAsync(token);
+        try
+        {
+            var connection = await EnsureOpenLockedAsync(token);
+            await using var transaction = await connection.BeginTransactionAsync(token);
+            await using var command = connection.CreateCommand();
+            command.Transaction = (SqliteTransaction)transaction;
+
+            // By path onto the audio, the way the answer was given: one press answered both copies
+            // of a duplicated track, and one press takes both back. Every field of it goes, because
+            // the three boxes were one act. A row a rule gave and nobody answered over is left where
+            // it stands: the user vouched for the rule separately, and a rule change is what undoes
+            // that.
+            command.CommandText = $"""
+                DELETE FROM approvals
+                WHERE kind = {(int)ApprovalKind.Individual}
+                  AND content_hash IN (SELECT p.content_hash FROM track_paths p WHERE p.path = $path);
+                """;
+
+            var path = command.Parameters.Add("$path", SqliteType.Text);
+            var taken = 0;
+            foreach (var target in paths)
+            {
+                path.Value = target;
+                taken += await command.ExecuteNonQueryAsync(token);
+            }
+
+            await transaction.CommitAsync(token);
+            return taken;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public async Task DeleteMissingAsync(
         IReadOnlyCollection<string> existingPaths,
         IReadOnlyCollection<string> unavailablePaths,
