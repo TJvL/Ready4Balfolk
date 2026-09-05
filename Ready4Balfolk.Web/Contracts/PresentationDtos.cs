@@ -74,7 +74,8 @@ public sealed record TrackHitDto(string Id, string Dance, string Artist, string 
 /// <paramref name="QueueChanged"/> is the refusal the phone has to word for itself. The reason a
 /// rule gives is written on the computer and travels as text; "the row you tapped is not there any
 /// more" is not a rule saying no, it is this phone's list being out of date, and the page says so in
-/// its own language and redraws.
+/// its own language and redraws. A transport command about a dance that has since ended is the same
+/// thing about the top of the screen rather than the list, and comes back the same way.
 /// </remarks>
 public sealed record CommandResultDto(bool Accepted, string? Reason = null, bool QueueChanged = false)
 {

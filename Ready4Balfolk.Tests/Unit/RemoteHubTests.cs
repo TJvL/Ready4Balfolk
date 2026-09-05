@@ -77,9 +77,51 @@ public sealed class RemoteHubTests : IDisposable
     {
         // Never straight onto the threadpool thread SignalR handed it: the queue and the audio
         // engine underneath are driven from the UI thread.
-        await _sut.PlayPause();
+        _consumption.PlayPauseAsync().Returns(true);
 
+        var result = await _sut.PlayPause();
+
+        Assert.True(result.Accepted);
         await _consumption.Received(1).PlayPauseAsync();
+    }
+
+    /// <summary>
+    /// The phone is looking at a screen up to half a second old, so a tap can be about a dance that
+    /// has ended: during the moment between two there is nothing loaded, and after the last one
+    /// there is nothing at all. It comes back as a screen that has been passed rather than as a tap
+    /// that quietly played the finished dance again.
+    /// </summary>
+    [Fact]
+    public async Task PlayPause_AboutADanceThatHasEnded_ComesBackAsAScreenThatMovedOn()
+    {
+        _consumption.PlayPauseAsync().Returns(false);
+
+        var result = await _sut.PlayPause();
+
+        Assert.False(result.Accepted);
+        Assert.True(result.QueueChanged);
+    }
+
+    [Fact]
+    public async Task Restart_AboutADanceThatHasEnded_ComesBackAsAScreenThatMovedOn()
+    {
+        _consumption.RestartAsync().Returns(false);
+
+        var result = await _sut.Restart();
+
+        Assert.False(result.Accepted);
+        Assert.True(result.QueueChanged);
+        await _consumption.Received(1).RestartAsync();
+    }
+
+    [Fact]
+    public async Task Restart_WhileADanceIsPlaying_IsAccepted()
+    {
+        _consumption.RestartAsync().Returns(true);
+
+        var result = await _sut.Restart();
+
+        Assert.True(result.Accepted);
     }
 
     [Fact]

@@ -57,9 +57,26 @@ public sealed class RemoteHub(
         await base.OnConnectedAsync();
     }
 
-    public Task PlayPause() => dispatcher.InvokeAsync(consumptionService.PlayPauseAsync);
+    /// <summary>Holds what is on, and starts the evening when nothing is on at all.</summary>
+    /// <remarks>
+    /// The phone's buttons are drawn from a snapshot up to half a second old, so a tap can be about
+    /// a dance that has ended: during the moment between two dances there is nothing loaded to hold,
+    /// and after the last one there is nothing at all. Refused rather than acted on, and the answer
+    /// says the phone's screen has been passed, which the page words itself and redraws for.
+    /// </remarks>
+    public async Task<CommandResultDto> PlayPause() =>
+        await OnTheUiThread(consumptionService.PlayPauseAsync) ? CommandResultDto.Ok : CommandResultDto.Stale;
 
-    public Task Restart() => dispatcher.InvokeAsync(consumptionService.RestartAsync);
+    /// <inheritdoc cref="PlayPause" />
+    public async Task<CommandResultDto> Restart() =>
+        await OnTheUiThread(consumptionService.RestartAsync) ? CommandResultDto.Ok : CommandResultDto.Stale;
+
+    /// <summary>Runs work that hands back a task, and waits for the work rather than its start.</summary>
+    /// <remarks>
+    /// The generic dispatcher overload only waits for the call that makes the task, so without the
+    /// unwrap the phone would be told the answer before the command had run.
+    /// </remarks>
+    private Task<bool> OnTheUiThread(Func<Task<bool>> work) => dispatcher.InvokeAsync(work).Unwrap();
 
     /// <summary>Skips the current item. The page holds a button down to get here.</summary>
     /// <remarks>

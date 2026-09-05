@@ -157,20 +157,172 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     [Fact]
     public async Task PlayPauseAsync_DelegatesToAudio()
     {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+        _audio.ClearReceivedCalls();
+
         _audio.IsPlaying.Returns(true);
-        await _sut.PlayPauseAsync();
+        Assert.True(await _sut.PlayPauseAsync());
         await _audio.Received(1).PauseAsync();
 
         _audio.IsPlaying.Returns(false);
-        await _sut.PlayPauseAsync();
+        Assert.True(await _sut.PlayPauseAsync());
         await _audio.Received(1).PlayAsync();
     }
 
     [Fact]
     public async Task RestartAsync_DelegatesToAudio()
     {
-        await _sut.RestartAsync();
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+
+        Assert.True(await _sut.RestartAsync());
         await _audio.Received(1).RestartAsync();
+    }
+
+    /// <summary>Nothing has started yet, so the button that means play starts the evening.</summary>
+    [Fact]
+    public async Task PlayPauseAsync_WithNothingOnAndSomethingWaiting_StartsTheEvening()
+    {
+        var track = new TrackQueueItem(TestData.CreateTrack(), false);
+        _queue.Enqueue(track);
+
+        Assert.True(await _sut.PlayPauseAsync());
+
+        Assert.Equal(track, _sut.CurrentItem);
+        await _audio.Received(1).PlayAsync();
+    }
+
+    [Fact]
+    public async Task PlayPauseAsync_WithNothingOnAndNothingWaiting_IsRefused()
+    {
+        Assert.False(await _sut.PlayPauseAsync());
+
+        Assert.Null(_sut.CurrentItem);
+        await _audio.DidNotReceive().PlayAsync();
+    }
+
+    /// <summary>The floor is between two dances: there is nothing loaded to hold or to let go.</summary>
+    [Fact]
+    public async Task PlayPauseAsync_DuringAGap_IsRefused()
+    {
+        await StartAGapAsync();
+        _audio.ClearReceivedCalls();
+
+        Assert.False(await _sut.PlayPauseAsync());
+
+        Assert.IsType<GapQueueItem>(_sut.CurrentItem);
+        await _audio.DidNotReceive().PlayAsync();
+        await _audio.DidNotReceive().PauseAsync();
+    }
+
+    /// <summary>
+    /// The dance that just ended is not there to be played again while the floor is between two.
+    /// </summary>
+    [Fact]
+    public async Task RestartAsync_DuringAGap_IsRefused()
+    {
+        await StartAGapAsync();
+
+        Assert.False(await _sut.RestartAsync());
+
+        await _audio.DidNotReceive().RestartAsync();
+    }
+
+    [Fact]
+    public async Task SeekAsync_DuringAGap_IsRefused()
+    {
+        await StartAGapAsync();
+
+        Assert.False(await _sut.SeekAsync(TimeSpan.FromSeconds(30)));
+
+        await _audio.DidNotReceive().SeekAsync(Arg.Any<TimeSpan>());
+    }
+
+    /// <summary>After the last dance of the night there is no dance to act on at all.</summary>
+    [Fact]
+    public async Task RestartAsync_WithTheNightOver_IsRefused()
+    {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+        await _sut.AdvanceAsync();
+
+        Assert.False(await _sut.RestartAsync());
+
+        Assert.Null(_sut.CurrentItem);
+        await _audio.DidNotReceive().RestartAsync();
+    }
+
+    /// <summary>A stop, a delay or a message is the room being given time, not a dance.</summary>
+    [Fact]
+    public async Task RestartAsync_OnAStop_IsRefused()
+    {
+        _queue.Enqueue(new StopQueueItem());
+        await _sut.AdvanceAsync();
+
+        Assert.False(await _sut.RestartAsync());
+
+        await _audio.DidNotReceive().RestartAsync();
+    }
+
+    /// <summary>The closing music is a file playing, so the DJ can hold it like any dance.</summary>
+    [Fact]
+    public async Task PlayPauseAsync_OnTheEndOfTheNight_ActsOnIt()
+    {
+        _queue.Enqueue(new EndOfNightQueueItem(EndOfNightPath, TimeSpan.FromMinutes(4)));
+        await _sut.AdvanceAsync();
+        _audio.IsPlaying.Returns(true);
+
+        Assert.True(await _sut.PlayPauseAsync());
+
+        await _audio.Received(1).PauseAsync();
+    }
+
+    /// <summary>Nothing left to play means nothing left loaded either.</summary>
+    [Fact]
+    public async Task AdvanceAsync_WithNothingLeftToPlay_LetsTheFinishedDanceGo()
+    {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+        _audio.ClearReceivedCalls();
+
+        await _sut.AdvanceAsync();
+
+        Assert.Null(_sut.CurrentItem);
+        await _audio.Received().ClearAsync();
+    }
+
+    [Fact]
+    public async Task AdvanceAsync_WithAGapAsked_LetsTheFinishedDanceGo()
+    {
+        await StartAGapAsync();
+
+        // And the dance that is waiting is loaded again, since clearing took it with it.
+        await _audio.Received().ClearAsync();
+        await _audio.Received(2).PreloadNextAsync(Arg.Any<Uri>());
+    }
+
+    /// <summary>Runs a dance out with another waiting, which is what puts a gap on.</summary>
+    private async Task StartAGapAsync()
+    {
+        _settings = _settings with { GapBetweenTracksEnabled = true, GapBetweenTracksSeconds = 5 };
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(title: "Second"), false));
+
+        await _sut.AdvanceAsync();
+        _playbackEnded.OnNext(RxUnit.Default);
+
+        await WaitUntilAsync(() => _sut.CurrentItem is GapQueueItem);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        for (var attempt = 0; attempt < 100 && !condition(); attempt++)
+        {
+            await Task.Delay(20, TestContext.Current.CancellationToken);
+        }
+
+        Assert.True(condition());
     }
 
     [Fact]

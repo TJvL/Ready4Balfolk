@@ -26,6 +26,9 @@ public sealed class PlaybackViewModelTests : IDisposable
     private readonly BehaviorSubject<bool> _isPlaying = new(false);
     private readonly SourceList<IQueueItem> _queueSource = new();
 
+    /// <summary>An output that is there, which is what the buttons being offered at all depends on.</summary>
+    private readonly BehaviorSubject<bool> _audioAvailable = new(true);
+
     public PlaybackViewModelTests()
     {
         _consumption = Substitute.For<IQueueConsumptionService>();
@@ -35,6 +38,9 @@ public sealed class PlaybackViewModelTests : IDisposable
         _consumption.WhenIsPlayingChanged.Returns(_isPlaying);
         _consumption.CurrentItem.Returns(_ => _currentItem.Value);
         _consumption.AdvanceAsync(Arg.Any<IQueueItem?>()).Returns(true);
+        _consumption.PlayPauseAsync().Returns(true);
+        _consumption.RestartAsync().Returns(true);
+        _consumption.SeekAsync(Arg.Any<TimeSpan>()).Returns(true);
 
         var queue = Substitute.For<IQueueService>();
         queue.Connect().Returns(_queueSource.Connect());
@@ -49,7 +55,10 @@ public sealed class PlaybackViewModelTests : IDisposable
         settingsStore.Current.Returns(settings);
         settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
 
-        _sut = new PlaybackViewModel(_consumption, queue, _confirmation, _notifications, settingsStore, Substitute.For<IAudioPlaybackService>());
+        var audio = Substitute.For<IAudioPlaybackService>();
+        audio.WhenAvailabilityChanged.Returns(_audioAvailable);
+
+        _sut = new PlaybackViewModel(_consumption, queue, _confirmation, _notifications, settingsStore, audio);
     }
 
     // --- Current item display ---
@@ -164,6 +173,90 @@ public sealed class PlaybackViewModelTests : IDisposable
     [Fact]
     public void ShowNextIcon_FalseWhenQueueEmpty() => Assert.False(_sut.ShowNextIcon);
 
+    // --- What the transport buttons are offered for ---
+
+    /// <summary>
+    /// There is no stream behind the moment between two dances, so there is nothing to hold or to
+    /// start again: the buttons that act on one are not offered, and next is what moves the evening.
+    /// </summary>
+    [Fact]
+    public void DuringAGap_HoldingAndStartingAgainAreNotOffered()
+    {
+        var canPlayPause = true;
+        var canRestart = true;
+        using var playPause = _sut.PlayPauseCommand.CanExecute.Subscribe(value => canPlayPause = value);
+        using var restart = _sut.RestartCommand.CanExecute.Subscribe(value => canRestart = value);
+
+        _currentItem.OnNext(new GapQueueItem(TimeSpan.FromSeconds(10)));
+
+        Assert.False(canPlayPause);
+        Assert.False(canRestart);
+    }
+
+    /// <summary>Nothing has started yet, so play is what starts it.</summary>
+    [Fact]
+    public void WithNothingOnAndSomethingWaiting_PlayIsOffered()
+    {
+        var canPlayPause = false;
+        var canRestart = true;
+        using var playPause = _sut.PlayPauseCommand.CanExecute.Subscribe(value => canPlayPause = value);
+        using var restart = _sut.RestartCommand.CanExecute.Subscribe(value => canRestart = value);
+
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
+
+        Assert.True(canPlayPause);
+        Assert.False(canRestart);
+    }
+
+    [Fact]
+    public void WithNothingOnAndNothingWaiting_NeitherIsOffered()
+    {
+        var canPlayPause = true;
+        using var playPause = _sut.PlayPauseCommand.CanExecute.Subscribe(value => canPlayPause = value);
+
+        Assert.False(canPlayPause);
+    }
+
+    /// <summary>The closing music is a file playing, so it is held and started again like a dance.</summary>
+    [Fact]
+    public void OnTheEndOfTheNight_BothAreOffered()
+    {
+        var canPlayPause = false;
+        var canRestart = false;
+        using var playPause = _sut.PlayPauseCommand.CanExecute.Subscribe(value => canPlayPause = value);
+        using var restart = _sut.RestartCommand.CanExecute.Subscribe(value => canRestart = value);
+
+        _currentItem.OnNext(new EndOfNightQueueItem(EndOfNightPath, TimeSpan.FromMinutes(4)));
+
+        Assert.True(canPlayPause);
+        Assert.True(canRestart);
+    }
+
+    [Fact]
+    public async Task PlayPause_RefusedByTheService_SaysSo()
+    {
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Mazurka"), false));
+        _consumption.PlayPauseAsync().Returns(false);
+
+        await _sut.PlayPauseCommand.Execute();
+
+        _notifications.Received(1).Show(Arg.Any<string>(), NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task Restart_RefusedByTheService_SaysSo()
+    {
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Mazurka"), false));
+        _consumption.RestartAsync().Returns(false);
+
+        await _sut.RestartCommand.Execute();
+
+        _notifications.Received(1).Show(Arg.Any<string>(), NotificationSeverity.Warning);
+    }
+
+    // The path this platform's Uri accepts, which is what the closing music is queued with.
+    private static readonly string EndOfNightPath = Path.GetFullPath("/audio/last-waltz.mp3");
+
     // --- A confirmation answered after the dance it was about ended ---
 
     [Fact]
@@ -274,6 +367,7 @@ public sealed class PlaybackViewModelTests : IDisposable
         _elapsed.Dispose();
         _totalDuration.Dispose();
         _isPlaying.Dispose();
+        _audioAvailable.Dispose();
         _queueSource.Dispose();
     }
 }

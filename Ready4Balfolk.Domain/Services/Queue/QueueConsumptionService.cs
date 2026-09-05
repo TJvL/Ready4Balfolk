@@ -142,7 +142,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             // next, and the row a person is looking at does not move.
             if (ranOut && WaitsBeforeTheNextDance(finished) is { } gap)
             {
-                StartGap(gap);
+                await StartGapAsync(gap);
                 return true;
             }
 
@@ -166,8 +166,22 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         }
         else
         {
-            _currentItem.OnNext(null);
+            await NothingIsPlayingAsync();
         }
+    }
+
+    /// <summary>Nothing is on, and nothing is loaded either. The gate must be held.</summary>
+    /// <remarks>
+    /// The stream of the dance that just finished used to live on until the next one was selected,
+    /// which after the last dance of the night is never. What that left was a player holding a
+    /// finished track behind screens saying there was nothing on, and a Play or a Restart from the
+    /// phone put it through the hall with no current item, so nothing wrote it down and no screen
+    /// named it.
+    /// </remarks>
+    private async Task NothingIsPlayingAsync()
+    {
+        await _audio.ClearAsync();
+        _currentItem.OnNext(null);
     }
 
     /// <summary>How long the room is given before the next dance, or nothing.</summary>
@@ -193,35 +207,98 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     /// the gap, the item is over, and the evening advances to the dance that was waiting. What it
     /// never is is a row in the queue.
     /// </remarks>
-    private void StartGap(TimeSpan gap)
+    private async Task StartGapAsync(TimeSpan gap)
     {
         _ = _loggerService.DebugAsync($"A gap of {gap.TotalSeconds:0} seconds before the next dance");
+
+        // The dance that just ended is let go here, exactly as a delay lets it go. Left loaded it is
+        // still there to be played, and a Restart during the gap put the finished dance back through
+        // the hall while every screen said the floor was between two of them.
+        await _audio.ClearAsync();
 
         _itemFinishedNaturally = false;
         _currentItemStartedAt = _time.GetLocalNow().DateTime;
         _itemDisposables = [];
         _currentItem.OnNext(new GapQueueItem(gap));
         StartCountdown(gap);
+
+        // Clearing takes the coming dance's preloaded stream with it, so it is loaded again: the
+        // whole point of the gap is that what follows it starts the moment it runs out.
+        PreloadNext();
     }
 
-    public async Task PlayPauseAsync()
+    public async Task<bool> PlayPauseAsync()
     {
-        if (_audio.IsPlaying)
+        var current = _currentItem.Value;
+
+        if (AudioItems.IsAudio(current))
         {
-            await _audio.PauseAsync();
+            if (_audio.IsPlaying)
+            {
+                await _audio.PauseAsync();
+            }
+            else
+            {
+                await _audio.PlayAsync();
+            }
+
+            return true;
         }
-        else
+
+        // A gap, a delay, a stop or a message is the room being given time, and nothing is loaded
+        // behind one of those to hold or to let go: what ends it is the clock or a skip. With
+        // nothing on at all, this is the button somebody reaches for to begin.
+        return current == null && await StartTheEveningAsync();
+    }
+
+    /// <summary>Starts the first thing of an evening that nothing has started yet.</summary>
+    /// <remarks>
+    /// The one thing Play can honestly mean with nothing on: the same act the next button performs
+    /// in that state, so a DJ who reaches for the big button on the phone gets the music rather than
+    /// a tap that does nothing.
+    /// </remarks>
+    private async Task<bool> StartTheEveningAsync()
+    {
+        await _gate.WaitAsync();
+        try
         {
-            await _audio.PlayAsync();
+            // Read again under the gate: a dance can have started by itself while this was waiting,
+            // and starting a second one on top of it is the room hearing two at once.
+            if (_currentItem.Value != null || _queue.Peek() == null)
+            {
+                return false;
+            }
+
+            await StartTheNextItemAsync();
+            return true;
+        }
+        finally
+        {
+            _gate.Release();
         }
     }
 
-    public async Task RestartAsync() => await _audio.RestartAsync();
-
-    public async Task SeekAsync(TimeSpan position)
+    public async Task<bool> RestartAsync()
     {
+        if (!AudioItems.IsAudio(_currentItem.Value))
+        {
+            return false;
+        }
+
+        await _audio.RestartAsync();
+        return true;
+    }
+
+    public async Task<bool> SeekAsync(TimeSpan position)
+    {
+        if (!AudioItems.IsAudio(_currentItem.Value))
+        {
+            return false;
+        }
+
         await _audio.SeekAsync(position);
         _elapsed.OnNext(position);
+        return true;
     }
 
     public async Task ClearAsync()
@@ -231,8 +308,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         {
             await RecordCurrentItemAsync(CompletionStatus.Skipped);
             CleanupCurrentItem();
-            await _audio.ClearAsync();
-            _currentItem.OnNext(null);
+            await NothingIsPlayingAsync();
             _ = _loggerService.DebugAsync("Playback cleared");
         }
         finally
@@ -267,7 +343,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             next = _queue.Dequeue();
         }
 
-        _currentItem.OnNext(null);
+        await NothingIsPlayingAsync();
     }
 
     /// <summary>Starts one item. False when it is audio that would not open.</summary>

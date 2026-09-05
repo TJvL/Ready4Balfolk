@@ -41,10 +41,12 @@
 
   /* Hands a refused command straight back rather than pretending it worked: the queue guard's own
      wording is better than anything invented here. The exception is a queue that moved on: that is
-     not the queue saying no, it is this list being out of date, and the words for it are ours. */
-  function report(result, okMessage) {
+     not the queue saying no, it is this list being out of date, and the words for it are ours. A
+     caller with its own wording for that passes it in, since the top of the screen goes out of date
+     the same way the list does. */
+  function report(result, okMessage, movedOn) {
     if (result && result.accepted === false) {
-      toast(result.queueChanged ? t("queueMovedOn") : (result.reason || ""), true);
+      toast(result.queueChanged ? (movedOn || t("queueMovedOn")) : (result.reason || ""), true);
       return;
     }
     if (okMessage) toast(okMessage);
@@ -85,6 +87,13 @@
       ? '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'
       : '<path d="M7 4l13 8-13 8z"/>';
     text("ppLabel", snapshot.isPlaying ? t("pause") : t("play"));
+
+    /* Drawn from what is on rather than from whether anything is: there is no stream behind a gap,
+       a delay, a stop or a message to hold or to start again. With nothing on at all, play is what
+       starts the evening, so it stays lit as long as something is waiting in the queue. */
+    var isSound = current.kind === "Track" || current.kind === "EndOfNight";
+    id("pp").disabled = !(isSound || (!hasCurrent && next.kind !== "None"));
+    id("restart").disabled = !isSound;
 
     id("upnextText").innerHTML = next.kind !== "None"
       ? "<b>" + escapeHtml(primaryOf(next)) + "</b><br>" + escapeHtml(subtitleOf(next))
@@ -181,12 +190,12 @@
 
   /* ------------------------------------------------------------------ sending */
 
-  function send(method, arg, okMessage) {
+  function send(method, arg, okMessage, movedOn) {
     if (!connection) return Promise.resolve(null);
 
     var call = arg === undefined ? connection.invoke(method) : connection.invoke(method, arg);
     return call
-      .then(function (result) { report(result, okMessage); return result; })
+      .then(function (result) { report(result, okMessage, movedOn); return result; })
       .catch(function () {
         // A command refused because this phone is no longer let in is not a lost connection, and
         // the gate that has just come up says the true thing already.
@@ -252,8 +261,10 @@
       if (!button) return;
 
       switch (button.getAttribute("data-act")) {
-        case "playpause": send("PlayPause"); break;
-        case "restart": send("Restart", undefined, t("restarted")); break;
+        /* The wording for a refusal is this screen's own: what these two act on is the dance at the
+           top of it, and the computer says no when that dance is no longer the one playing. */
+        case "playpause": send("PlayPause", undefined, undefined, t("nowMovedOn")); break;
+        case "restart": send("Restart", undefined, t("restarted"), t("nowMovedOn")); break;
         case "random": send("QueueRandom", undefined, t("queued")); break;
         case "stop": send("QueueStop", undefined, t("queued")); break;
         case "endofnight": send("QueueEndOfNight", undefined, t("queued")); break;
