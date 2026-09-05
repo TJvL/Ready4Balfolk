@@ -167,12 +167,22 @@ public sealed class DanceListStore(
             $"Dance list in use: {list.Dances.Count} dances, {list.Tags.Count} tags, from {origin}");
     }
 
+    /// <summary>Writes the cached copy, all of it or none of it.</summary>
+    /// <remarks>
+    /// Written to a temporary file beside the real one and then moved over it, because a move
+    /// within a directory is atomic and a plain write is not: it truncates first, so a crash or a
+    /// flat battery part way through left half a file, which the next start cannot read and throws
+    /// away. In a hall with no network and nothing shipped to fall back on that is the whole dance
+    /// vocabulary gone.
+    /// </remarks>
     private async Task SaveAsync(string json)
     {
         try
         {
             dataDirectory.DirectoryInfoRoot.Create();
-            await fileSystem.File.WriteAllTextAsync(DanceListFilePath, json);
+            var temporaryPath = DanceListFilePath + ".tmp";
+            await fileSystem.File.WriteAllTextAsync(temporaryPath, json);
+            fileSystem.File.Move(temporaryPath, DanceListFilePath, overwrite: true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

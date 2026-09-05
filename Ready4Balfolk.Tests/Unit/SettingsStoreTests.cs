@@ -160,6 +160,106 @@ public sealed class SettingsStoreTests
         Assert.Equal(new ApplicationSettings(), store.Current);
     }
 
+    /// <summary>An unreadable file is kept, not written over on the next save.</summary>
+    /// <remarks>
+    /// It is a file the user is invited to edit by hand, and the only copy of what they had, so it
+    /// is moved aside under a fixed name they can be pointed at.
+    /// </remarks>
+    [Fact]
+    public void Current_CorruptFile_IsKeptBesideTheRealOne()
+    {
+        var fileSystem = new MockFileSystem();
+        fileSystem.Directory.CreateDirectory(Root);
+        fileSystem.File.WriteAllText(SettingsPathIn(fileSystem), "{ this is not json");
+
+        var (_, _) = Create(fileSystem);
+
+        Assert.False(fileSystem.File.Exists(SettingsPathIn(fileSystem)));
+        Assert.Equal(
+            "{ this is not json",
+            fileSystem.File.ReadAllText(SettingsPathIn(fileSystem) + ".corrupt"));
+    }
+
+    /// <summary>A second bad start does not throw over the file the first one kept.</summary>
+    [Fact]
+    public void Current_CorruptFileTwice_KeepsTheLatestUnderTheOneName()
+    {
+        var fileSystem = new MockFileSystem();
+        fileSystem.Directory.CreateDirectory(Root);
+        fileSystem.File.WriteAllText(SettingsPathIn(fileSystem), "first");
+        Create(fileSystem);
+        fileSystem.File.WriteAllText(SettingsPathIn(fileSystem), "second");
+
+        var (store, _) = Create(fileSystem);
+
+        Assert.Equal(new ApplicationSettings(), store.Current);
+        Assert.Equal("second", fileSystem.File.ReadAllText(SettingsPathIn(fileSystem) + ".corrupt"));
+    }
+
+    /// <summary>An enum member this build has never heard of costs that field and nothing else.</summary>
+    [Fact]
+    public void Current_UnknownEnumMember_KeepsTheRestOfTheFile()
+    {
+        var fileSystem = new MockFileSystem();
+        fileSystem.Directory.CreateDirectory(Root);
+        fileSystem.File.WriteAllText(
+            SettingsPathIn(fileSystem),
+            """{"MaxQueueItems":11,"SetupCompleted":true,"ApplicationTheme":"Chartreuse"}""");
+
+        var (store, _) = Create(fileSystem);
+
+        Assert.Equal(11, store.Current.MaxQueueItems);
+        Assert.True(store.Current.SetupCompleted);
+        Assert.True(fileSystem.File.Exists(SettingsPathIn(fileSystem)));
+    }
+
+    /// <summary>A field written by some other build is skipped rather than taken as corruption.</summary>
+    [Fact]
+    public void Current_UnknownField_KeepsTheRestOfTheFile()
+    {
+        var fileSystem = new MockFileSystem();
+        fileSystem.Directory.CreateDirectory(Root);
+        fileSystem.File.WriteAllText(
+            SettingsPathIn(fileSystem),
+            """{"MaxQueueItems":11,"SomethingThisBuildNeverHeardOf":"yes"}""");
+
+        var (store, _) = Create(fileSystem);
+
+        Assert.Equal(11, store.Current.MaxQueueItems);
+    }
+
+    /// <summary>A file another process is holding open does not take the application down with it.</summary>
+    /// <remarks>
+    /// The load runs in the constructor, during DI composition, so an IOException escaping it is
+    /// not a settings problem: it is the application never reaching a window.
+    /// </remarks>
+    [Fact]
+    public void Current_FileHeldOpenByAnotherProcess_StartsFromDefaultsAndLeavesItAlone()
+    {
+        var mock = new MockFileSystem();
+        mock.Directory.CreateDirectory(Root);
+        mock.File.WriteAllText(SettingsPathIn(mock), "{}");
+
+        var streams = Substitute.For<IFileStreamFactory>();
+        streams.New(Arg.Any<string>(), Arg.Any<FileMode>(), Arg.Any<FileAccess>())
+            .Returns(_ => throw new IOException("held open by another process"));
+
+        var fileSystem = Substitute.For<IFileSystem>();
+        fileSystem.File.Returns(mock.File);
+        fileSystem.FileStream.Returns(streams);
+        fileSystem.DirectoryInfo.Returns(mock.DirectoryInfo);
+
+        var directory = Substitute.For<IApplicationSettingsDirectory>();
+        directory.DirectoryInfoRoot.Returns(_ => mock.DirectoryInfo.New(Root));
+
+        using var store = new SettingsStore(directory, fileSystem, new NoOpLoggerService());
+
+        Assert.Equal(new ApplicationSettings(), store.Current);
+        // Unreadable now is not the same as unreadable content: the file may be perfectly good.
+        Assert.True(mock.File.Exists(SettingsPathIn(mock)));
+        Assert.False(mock.File.Exists(SettingsPathIn(mock) + ".corrupt"));
+    }
+
     [Fact]
     public async Task UpdateAsync_ConcurrentWriters_AllLandAndTheFileStaysReadable()
     {
