@@ -94,6 +94,14 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             _audio.WhenPlaybackRestarted.Subscribe(_ => _isPlaying.OnNext(true)));
         _globalDisposables.Add(
             _audio.WhenPlaybackCleared.Subscribe(_ => _isPlaying.OnNext(false)));
+
+        // An output that has gone is not playing, whatever was last heard. Said here rather than
+        // left to the playback screen, because this is what the screens and the phone read too, and
+        // all three showed a dance running while the hall was silent.
+        _globalDisposables.Add(
+            _audio.WhenAvailabilityChanged
+                .Where(available => !available)
+                .Subscribe(_ => _isPlaying.OnNext(false)));
     }
 
     public async Task AdvanceAsync()
