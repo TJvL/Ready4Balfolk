@@ -708,7 +708,7 @@ public sealed class TrackStoreTests : IDisposable
         Assert.Empty(_asked);
         lock (_indexSnapshot)
         {
-            Assert.Equal(["/music/a/a.mp3"], _indexSnapshot.Keys);
+            Assert.Equal([_fileSystem.Path.Combine(_dirA.FullName, "a.mp3")], _indexSnapshot.Keys);
         }
     }
 
