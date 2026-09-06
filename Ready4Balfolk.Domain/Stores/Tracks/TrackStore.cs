@@ -18,6 +18,22 @@ namespace Ready4Balfolk.Domain.Stores.Tracks;
 public sealed class TrackStore : ITrackStore, IDisposable
 {
     private const int MaxAmountOfFileReaderThreads = 32;
+
+    /// <summary>How quiet the watcher has to go before its reports are answered.</summary>
+    /// <remarks>
+    /// Long enough that a folder dropped in is one batch, short enough that a single file shows up
+    /// while the DJ is still looking at the screen.
+    /// </remarks>
+    public static readonly TimeSpan DefaultWatcherBatchQuiet = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>How long a batch may gather before it is answered whatever the watcher is doing.</summary>
+    /// <remarks>
+    /// Quiet alone is not a boundary while a copy is running: every file that lands pushes it out
+    /// again, so a folder being copied in over a minute reached the library in nothing but one
+    /// lump at the end of it. This is what makes the tracks arrive while the copy is still going.
+    /// </remarks>
+    public static readonly TimeSpan DefaultWatcherBatchAtMost = TimeSpan.FromSeconds(2);
+
     private readonly ILoggerService _loggerService;
     private readonly ITrackDiscoveryService _discoveryService;
     private readonly IDanceListStore _danceListStore;
@@ -28,6 +44,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly BehaviorSubject<int> _inReviewCount = new(0);
     private readonly BehaviorSubject<int> _unavailableCount = new(0);
     private readonly Subject<string> _fileVanished = new();
+    private readonly Subject<PathMove> _fileMoved = new();
     private readonly IDisposable _danceListSubscription;
     private readonly LibraryWatcher _watcher;
     private readonly IDisposable _watcherSubscription;
@@ -47,13 +64,27 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private bool _disposed;
     private readonly IFileSystem _fileSystem;
 
+    /// <param name="loggerService">Where the scanning and the watching say what they did.</param>
+    /// <param name="discoveryService">What reads a file and says what it holds.</param>
+    /// <param name="danceListStore">The dance list a resolved track is measured against.</param>
+    /// <param name="libraryIndex">Where what has been read and approved is kept.</param>
+    /// <param name="fileSystem">The disk the library is on.</param>
+    /// <param name="missingFolderPrompt">Who is asked about folders a scan could not find.</param>
+    /// <param name="watcherBatchQuiet">
+    /// How quiet the watcher has to go before a batch is answered, or the default.
+    /// </param>
+    /// <param name="watcherBatchAtMost">
+    /// How long a batch may gather while the watcher keeps talking, or the default.
+    /// </param>
     public TrackStore(
         ILoggerService loggerService,
         ITrackDiscoveryService discoveryService,
         IDanceListStore danceListStore,
         ILibraryIndex libraryIndex,
         IFileSystem fileSystem,
-        IMissingFolderPrompt missingFolderPrompt)
+        IMissingFolderPrompt missingFolderPrompt,
+        TimeSpan? watcherBatchQuiet = null,
+        TimeSpan? watcherBatchAtMost = null)
     {
         _loggerService = loggerService;
         _discoveryService = discoveryService;
@@ -61,8 +92,23 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _libraryIndex = libraryIndex;
         _fileSystem = fileSystem;
         _missingFolderPrompt = missingFolderPrompt;
-        _watcher = new LibraryWatcher(fileSystem);
-        _watcherSubscription = _watcher.Changes.Subscribe(OnFileChanged);
+        _watcher = new LibraryWatcher(fileSystem, loggerService);
+        // Answered together rather than one at a time. Copying an album in is one act, and every
+        // file of it used to be its own index write and its own rebuild of the whole published
+        // library, sorted and rebound on the UI thread while the DJ was working.
+        //
+        // Two boundaries: the watcher going quiet, and a ceiling on how long a batch may gather
+        // whether it does or not. On quiet alone a copy that keeps landing files pushes the
+        // boundary out with every one of them, and nothing at all reaches the library until the
+        // whole copy is over. Sample is silent when nothing has arrived, so an idle library
+        // closes no empty batches on a timer.
+        var changes = _watcher.Changes;
+        _watcherSubscription = changes
+            .Buffer(changes
+                .Throttle(watcherBatchQuiet ?? DefaultWatcherBatchQuiet)
+                .Merge(changes.Sample(watcherBatchAtMost ?? DefaultWatcherBatchAtMost)))
+            .Where(batch => batch.Count > 0)
+            .Subscribe(OnFilesChanged);
 
         // Skip(1): the store replays its current list to a new subscriber, and rebuilding an empty
         // library at construction is work with nothing to do.
@@ -93,6 +139,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
     public IObservable<int> UnavailableCount => _unavailableCount.AsObservable();
 
     public IObservable<string> WhenTrackFileVanished => _fileVanished.AsObservable();
+
+    public IObservable<PathMove> WhenTrackFileMoved => _fileMoved.AsObservable();
 
     /// <summary>Brings the library into line with what the settings now say.</summary>
     /// <remarks>
@@ -585,142 +633,275 @@ public sealed class TrackStore : ITrackStore, IDisposable
             DanceSlug = resolution.DanceSlug
         };
 
-    /// <summary>Decides what a change the watcher noticed is worth.</summary>
+    /// <summary>What one batch of watcher reports adds up to.</summary>
+    /// <remarks>
+    /// Worked out on the watcher's thread and acted on once, so that copying an album in is one
+    /// index write and one rebuild rather than one of each per file.
+    /// </remarks>
+    private sealed record WatchedBatch
+    {
+        /// <summary>Files to read, each with the path it takes the place of, if it takes one.</summary>
+        public List<(string Path, string? Replaces)> ToRead { get; } = [];
+
+        /// <summary>Files that are gone, whose queued entries go with them.</summary>
+        public List<string> Gone { get; } = [];
+
+        /// <summary>Folders that are gone, standing for every path underneath them.</summary>
+        public List<string> GoneFolders { get; } = [];
+
+        /// <summary>Folders that moved, from their old name to their new one.</summary>
+        public List<(string From, string To)> Moved { get; } = [];
+
+        public bool IsEmpty =>
+            ToRead.Count == 0 && Gone.Count == 0 && GoneFolders.Count == 0 && Moved.Count == 0;
+    }
+
+    /// <summary>Decides what the changes the watcher noticed are worth.</summary>
     /// <remarks>
     /// The watcher reports everything under the music directory; which of it matters is this
     /// store's business, not the watcher's.
     /// </remarks>
-    private void OnFileChanged(LibraryFileChange change)
+    private void OnFilesChanged(IList<LibraryFileChange> changes)
     {
-        switch (change.Kind)
+        var batch = new WatchedBatch();
+
+        foreach (var change in changes)
         {
-            case LibraryFileChangeKind.Appeared:
-                OnFileCreated(change.Path);
-                break;
-            case LibraryFileChangeKind.Vanished:
-                OnFileDeleted(change.Path);
-                break;
-            case LibraryFileChangeKind.Renamed:
-                OnFileRenamed(change.Path, change.PreviousPath!);
-                break;
-            default:
-                break;
+            switch (change.Kind)
+            {
+                case LibraryFileChangeKind.Appeared:
+                    if (SupportedAudioFormats.IsSupported(change.Path))
+                    {
+                        batch.ToRead.Add((change.Path, null));
+                    }
+
+                    break;
+                case LibraryFileChangeKind.Vanished:
+                    // A folder is one event for everything under it: nothing inside is reported
+                    // file by file, so tidying one up in a file manager used to leave every track
+                    // it held in the library, the pool and the random pick, pointing nowhere.
+                    if (SupportedAudioFormats.IsSupported(change.Path))
+                    {
+                        batch.Gone.Add(change.Path);
+                    }
+                    else
+                    {
+                        batch.GoneFolders.Add(change.Path);
+                    }
+
+                    break;
+                case LibraryFileChangeKind.Renamed:
+                    OnRenamed(change.Path, change.PreviousPath!, batch);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if (!batch.IsEmpty)
+        {
+            ApplyWatched(batch);
         }
     }
 
-    private void OnFileCreated(string path)
+    private static void OnRenamed(string path, string previousPath, WatchedBatch batch)
     {
-        if (!SupportedAudioFormats.IsSupported(path))
+        if (SupportedAudioFormats.IsSupported(path))
         {
+            // The audio is unchanged, so its content hash and everything approved about it are
+            // too. A rename is a path changing, not a track appearing.
+            batch.ToRead.Add((path, previousPath));
             return;
         }
 
-        try
-        {
-            IndexAndResolve(_fileSystem.FileInfo.New(path));
-        }
-        catch (Exception ex) when (ex is FormatException or IOException)
-        {
-            _ = _loggerService.ErrorAsync(ex.Message, ex);
-        }
-    }
-
-    private void OnFileDeleted(string path)
-    {
-        if (!SupportedAudioFormats.IsSupported(path))
-        {
-            return;
-        }
-
-        _fileVanished.OnNext(path);
-
-        var track = _tracks.Items.FirstOrDefault(t =>
-            string.Equals(t.FileInfo.FullName, path, StringComparison.Ordinal));
-        if (track != null)
-        {
-            _tracks.Remove(track);
-        }
-
-        // The index as well as the list, or the next rebuild resurrects the deleted file. Even when
-        // nothing published matched: a file still sitting in review has an index row too.
-        ForgetPath(path);
-    }
-
-    private void ForgetPath(string path) =>
-        Task.Run(async () =>
-        {
-            await _libraryIndex.DeletePathAsync(path);
-            await RefreshLibraryAsync();
-        }).SafeFireAndForget(exception =>
-            _loggerService.ErrorAsync("Failed to forget a file the watcher saw go", exception));
-
-    private void OnFileRenamed(string path, string previousPath)
-    {
-        var oldTrack = _tracks.Items.FirstOrDefault(t =>
-            string.Equals(t.FileInfo.FullName, previousPath, StringComparison.Ordinal));
-        if (oldTrack != null)
-        {
-            _tracks.Remove(oldTrack);
-        }
-
-        if (!SupportedAudioFormats.IsSupported(path))
+        if (SupportedAudioFormats.IsSupported(previousPath))
         {
             // Renamed out of the formats this reads: to the index that is the file going away.
-            ForgetPath(previousPath);
+            batch.Gone.Add(previousPath);
             return;
         }
 
-        try
-        {
-            // The audio is unchanged, so its content hash and everything approved about it are too.
-            // A rename is a path changing, not a track appearing.
-            IndexAndResolve(_fileSystem.FileInfo.New(path), previousPath);
-        }
-        catch (Exception ex) when (ex is FormatException or IOException)
-        {
-            _ = _loggerService.ErrorAsync(ex.Message, ex);
-        }
+        // Neither end is audio, so this is a folder being renamed or moved within the music
+        // directory. What is under it is never reported separately.
+        batch.Moved.Add((previousPath, path));
     }
 
     /// <summary>
-    /// Reads a file the watcher noticed and puts it in the index, silently.
+    /// Reads what the watcher noticed and puts the batch in the index, silently.
     /// </summary>
     /// <remarks>
     /// No dialog and no toast, whatever it turns out to be. The application runs in front of a room,
     /// and a tagging question during a bal is the worst possible moment to ask one.
     /// </remarks>
-    private void IndexAndResolve(IFileInfo fileInfo, string? replacesPath = null)
-    {
-        var root = _musicRoot ?? fileInfo.Directory!;
-        var evidence = _discoveryService.Gather(fileInfo, root);
-
-        // In order and once: written, approved by whatever rule answered it, and only then does the
-        // library get rebuilt, or the rebuild would run against a row that is not there yet. The
-        // old path of a rename goes after the write, so the audio's hash is never unreferenced and
-        // the approvals riding on it survive.
+    private void ApplyWatched(WatchedBatch batch) =>
         Task.Run(async () =>
         {
-            // What the rest of the folder turned out to be speaks for a dropped-in file exactly as
-            // it does during a scan; the watcher path once resolved blind and the same file got a
-            // different answer depending on who noticed it.
+            // What was already indexed when the batch closed, which is what a dropped-in file's
+            // folder is answered from.
             var known = await _libraryIndex.SnapshotByPathAsync();
-            var folderKey = evidence.FolderKey ?? string.Empty;
-            var agreed = FolderAgreement.AgreedDanceAround(
-                fileInfo.FullName, folderKey, known, root.FullName);
+            var root = _musicRoot;
 
-            var resolution = TrackInformationResolver.Resolve(evidence, _danceListStore.Index, _declared, agreed);
-            var scanned = new ScannedFile(fileInfo, evidence, resolution);
-
-            await _libraryIndex.WriteAsync([ScannedFileMapping.ToEntry(scanned)]);
-            await _libraryIndex.ApproveAsync([.. ScannedFileMapping.ByRuleApprovals(scanned)]);
-            if (replacesPath is not null)
+            var vanished = new List<string>(batch.Gone);
+            foreach (var folder in batch.GoneFolders)
             {
-                await _libraryIndex.DeletePathAsync(replacesPath);
+                vanished.AddRange(PathsUnder(known.Keys, folder));
+            }
+
+            // The index as well as the list, or the next rebuild resurrects what is gone. Even
+            // where nothing published matched: a file still sitting in review has an index row too.
+            //
+            // Gathered before anything is re-pointed, because these are the paths the events named
+            // and a row that is about to be forgotten must not be renamed out from under the
+            // delete by a folder that moved in the same window.
+            var forget = new List<string>(vanished);
+            foreach (var (_, replaces) in batch.ToRead)
+            {
+                if (replaces is not null)
+                {
+                    forget.Add(replaces);
+                }
+            }
+
+            var forgotten = forget.ToHashSet(StringComparer.Ordinal);
+            var entries = new List<LibraryEntry>();
+            var approvals = new List<TrackApproval>();
+            // Every file that was opened, kept whole for the folder pass: what the rest of a folder
+            // turned out to be cannot be decided a file at a time.
+            var read = new List<ScannedFile>();
+            // What the index has to re-point, and what everything else holding a path has to be
+            // told about. A file renamed on its own is in the second only: it is read again, and
+            // the row it writes is the answer to where it went.
+            var repoint = new List<PathMove>();
+            var moved = new List<PathMove>();
+
+            // A folder that moved still holds the same audio, so its rows move with it rather than
+            // being read again. The hash is what every approval hangs on and it cannot have
+            // changed, and opening a folder's worth of files to arrive back at hashes already in
+            // hand is not what to be doing halfway through an evening.
+            //
+            // Moved rather than written and deleted: a write says the file was just read off the
+            // disk and marks the row reachable, so a row being kept as unreachable would come back
+            // into the library at a path nobody has ever seen a file at.
+            foreach (var (from, to) in batch.Moved)
+            {
+                foreach (var path in PathsUnder(known.Keys, from))
+                {
+                    if (forgotten.Contains(path))
+                    {
+                        // Thrown away in the same window as the folder around it was tidied up.
+                        // Moving its row would rename it past the delete that is coming for it,
+                        // and a file the DJ deleted would be back in the library, in the pool and
+                        // in the random pick under the folder's new name, pointing at nothing.
+                        continue;
+                    }
+
+                    repoint.Add(new PathMove(path, string.Concat(to, path.AsSpan(from.Length))));
+                }
+            }
+
+            moved.AddRange(repoint);
+
+            foreach (var (path, replaces) in batch.ToRead)
+            {
+                if (replaces is not null && SupportedAudioFormats.IsSupported(replaces))
+                {
+                    // Read again, because a file renamed on its own may well have been retagged
+                    // as it was, but the queue still has to be told where it went.
+                    moved.Add(new PathMove(replaces, path));
+                }
+
+                var file = _fileSystem.FileInfo.New(path);
+
+                try
+                {
+                    var evidence = _discoveryService.Gather(file, root ?? file.Directory!);
+
+                    read.Add(new ScannedFile(
+                        file,
+                        evidence,
+                        TrackInformationResolver.Resolve(evidence, _danceListStore.Index, _declared)));
+                }
+                catch (Exception exception)
+                {
+                    // As wide as the scan's own handler, and for the same reason: a tag reader
+                    // throws whatever the file made it throw. One file nobody can read is not a
+                    // reason to drop the rest of the batch, and it is not something to put on
+                    // screen in front of a room either.
+                    await _loggerService.WarningAsync($"Could not read '{path}': {exception.Message}");
+                }
+            }
+
+            if (read.Count > 0)
+            {
+                // What the rest of the folder turned out to be speaks for a dropped-in file exactly
+                // as it does during a scan, the files that arrived alongside it included. The same
+                // pass over the whole batch and not one file at a time against the index alone: an
+                // album copied in is one batch, so answering each of its files as though the others
+                // were not there gave the same file a different answer depending on who noticed it.
+                var rescued = FolderAgreement.Apply(
+                    read,
+                    known,
+                    (root ?? read[0].File.Directory!).FullName,
+                    _danceListStore.Index,
+                    _declared);
+
+                if (rescued > 0)
+                {
+                    await _loggerService.DebugAsync($"Folder agreement resolved {rescued:N0} more tracks");
+                }
+
+                entries.AddRange(read.Select(ScannedFileMapping.ToEntry));
+                approvals.AddRange(read.SelectMany(ScannedFileMapping.ByRuleApprovals));
+            }
+
+            // A queued dance whose file has gone can never play, and finding that out when the
+            // room is waiting for it is the worst moment to find it out.
+            foreach (var path in vanished)
+            {
+                _fileVanished.OnNext(path);
+            }
+
+            // In order and once for the whole batch: re-pointed, written, approved by whatever
+            // rule answered them, and only then is what is gone forgotten, or the rebuild would
+            // run against rows that are not there yet. Deleting last is also what keeps the
+            // audio's hash referenced across a rename, so the approvals riding on it survive.
+            if (repoint.Count > 0)
+            {
+                await _libraryIndex.MovePathsAsync(repoint);
+            }
+
+            if (entries.Count > 0)
+            {
+                await _libraryIndex.WriteAsync(entries);
+            }
+
+            if (approvals.Count > 0)
+            {
+                await _libraryIndex.ApproveAsync(approvals);
+            }
+
+            if (forget.Count > 0)
+            {
+                await _libraryIndex.DeletePathsAsync(forget);
             }
 
             await RefreshLibraryAsync();
-        }).SafeFireAndForget(exception =>
-            _loggerService.ErrorAsync("Failed to index a file the watcher noticed", exception));
-    }
 
+            // Said once the library is right again, because everything that holds a path of its
+            // own has to be told where the file went: the queue captured its track when the DJ
+            // asked for it, and a rebuild does not reach into it.
+            foreach (var move in moved)
+            {
+                _fileMoved.OnNext(move);
+            }
+        }).SafeFireAndForget(exception =>
+            _loggerService.ErrorAsync("Failed to take in what the watcher noticed", exception));
+
+    /// <summary>Every known path under a folder, which is what one event about that folder covers.</summary>
+    private List<string> PathsUnder(IEnumerable<string> paths, string folder) =>
+        [.. paths.Where(path =>
+            path.Length > folder.Length
+            && path.StartsWith(folder, StringComparison.Ordinal)
+            && (path[folder.Length] == _fileSystem.Path.DirectorySeparatorChar
+                || path[folder.Length] == _fileSystem.Path.AltDirectorySeparatorChar))];
 }
