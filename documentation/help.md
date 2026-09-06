@@ -84,7 +84,7 @@ The playback panel shows what is currently playing and provides transport contro
 ### Now Playing Display
 
 - **Dance name**: Shown prominently at the top
-- **Artist and title**: Displayed below the dance name as "Artist: Title"
+- **Artist and title**: Displayed below the dance name as "Artist - Title", or in whatever shape the template for that line is set to
 - **Progress bar**: Shows the current position in the track, with elapsed time on the left and total duration on the right
 
 When a message item is playing, the display switches to message mode with auto-scrolling text.
@@ -493,8 +493,10 @@ end-of-the-night audio itself: it is what happens after the line, not something 
 
 ### How tracks are written on screen
 
-Four boxes, one per place the application writes a track as a line: the large line while something
-is playing, the line under it, a row of the queue and a row of the history. The placeholders are the
+Four boxes, one per place your own panels write a track as a line: the large line while something
+is playing, the line under it, a row of the queue and a row of the history. The screen the room
+reads is not one of them. It writes the artist and the title in a fixed shape of its own, so the
+hall reads the same thing whatever you set here. The placeholders are the
 ones the file name patterns use, read the other way round: `%d` the dance, `%a` the artist, `%t` the
 title. Everything else is written exactly as you type it, so `%t (%d)` gives "Salamandre (Mazurka)".
 
@@ -503,7 +505,7 @@ is the artist, not the artist and a dash left hanging, and a track that has none
 asks for writes nothing at all rather than a row of punctuation.
 
 The preview under the boxes shows what the four do to one track, so nothing has to be saved to find
-out. The change reaches every screen at once, including a track that is playing while you type.
+out. The change reaches all four at once, including a track that is playing while you type.
 
 The track overview keeps its columns. It is a table you sort by dance, by artist or by title, and a
 column is not a sentence.

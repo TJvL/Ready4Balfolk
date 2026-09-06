@@ -11,7 +11,9 @@ namespace Ready4Balfolk.UI.Views.Playback;
 
 public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
 {
+    /// <summary>What each of the two lines is doing, so it can be called off and restarted.</summary>
     private IDisposable? _trackInfoScroll;
+    private IDisposable? _messageScroll;
 
     /// <summary>Whether the press that is in flight started on the bar, so a drag from elsewhere
     /// does not land as a seek when the button comes up over it.</summary>
@@ -25,11 +27,14 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
         PlaybackProgressBar.PointerReleased += OnProgressBarPointerReleased;
         PlaybackProgressBar.PointerCaptureLost += (_, _) => _pressedOnTheBar = false;
 
-        TrackInfoCanvas.GetObservable(BoundsProperty)
-            .CombineLatest(TrackInfoPanel.GetObservable(BoundsProperty))
-            .Throttle(TimeSpan.FromMilliseconds(50))
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(_ => UpdateTrackInfoScroll());
+        WhenEitherIsResized(TrackInfoCanvas, TrackInfoPanel)
+            .Subscribe(_ => _trackInfoScroll = Slide(_trackInfoScroll, TrackInfoCanvas, TrackInfoPanel));
+
+        // The same treatment for the message line. It needs it more than the track line does: a
+        // track's artist and title are as long as a library makes them, and a message is as long as
+        // the DJ typed it.
+        WhenEitherIsResized(MessageCanvas, MessageTextBlock)
+            .Subscribe(_ => _messageScroll = Slide(_messageScroll, MessageCanvas, MessageTextBlock));
     }
 
     /// <summary>
@@ -68,27 +73,43 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
         }
     }
 
-    private void UpdateTrackInfoScroll()
+    /// <summary>
+    /// Fires whenever a line or the room it has to sit in is laid out afresh. Bounds carry where a
+    /// control sits as well as how big it is, so a move counts as much as a resize.
+    /// </summary>
+    private static IObservable<(Rect Room, Rect Line)> WhenEitherIsResized(Canvas room, Control line) =>
+        room.GetObservable(BoundsProperty)
+            .CombineLatest(line.GetObservable(BoundsProperty))
+            .Throttle(TimeSpan.FromMilliseconds(50))
+            .ObserveOn(RxSchedulers.MainThreadScheduler);
+
+    /// <summary>
+    /// Centres a line in the room it has, or slides it back and forth when it is wider than that.
+    /// </summary>
+    /// <returns>
+    /// What is sliding it, to be disposed when the line is measured again, or nothing when it fits
+    /// and nothing needs to move.
+    /// </returns>
+    private static IDisposable? Slide(IDisposable? sliding, Canvas room, Control line)
     {
-        _trackInfoScroll?.Dispose();
-        _trackInfoScroll = null;
+        sliding?.Dispose();
 
-        var canvasWidth = TrackInfoCanvas.Bounds.Width;
-        var panelWidth = TrackInfoPanel.Bounds.Width;
+        var roomWidth = room.Bounds.Width;
+        var lineWidth = line.Bounds.Width;
 
-        if (canvasWidth <= 0 || panelWidth <= 0)
+        if (roomWidth <= 0 || lineWidth <= 0)
         {
-            return;
+            return null;
         }
 
-        if (panelWidth <= canvasWidth)
+        if (lineWidth <= roomWidth)
         {
-            Canvas.SetLeft(TrackInfoPanel, (canvasWidth - panelWidth) / 2);
-            return;
+            Canvas.SetLeft(line, (roomWidth - lineWidth) / 2);
+            return null;
         }
 
         // Overflows: scroll back and forth
-        var overflow = panelWidth - canvasWidth;
+        var overflow = lineWidth - roomWidth;
         const double scrollSpeed = 50.0; // px/sec
         const double pauseSec = 2.0;
         var scrollSec = overflow / scrollSpeed;
@@ -96,7 +117,7 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
 
         var startTime = DateTimeOffset.UtcNow;
 
-        _trackInfoScroll = Observable.Interval(TimeSpan.FromMilliseconds(16))
+        return Observable.Interval(TimeSpan.FromMilliseconds(16))
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ =>
             {
@@ -110,7 +131,7 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
                             ? -overflow
                             : -overflow * (1 - ((t - pauseSec - scrollSec - pauseSec) / scrollSec));
 
-                Canvas.SetLeft(TrackInfoPanel, left);
+                Canvas.SetLeft(line, left);
             });
     }
 }
