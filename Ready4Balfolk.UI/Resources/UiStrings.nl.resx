@@ -280,7 +280,7 @@
     <value>Even tijd om de vloer leeg te laten lopen en opnieuw op te stellen, tussen de ene dans en de volgende, zonder dat er iets in de wachtrij verschijnt. Rond een pauze, een stop, een bericht of het einde van de avond komt er niets bij: die geven de zaal al tijd. De eindtijd telt ze mee.</value>
   </data>
   <data name="Settings_AutoQueueDescription" xml:space="preserve">
-    <value>Voegt automatisch een willekeurig nummer toe tijdens het afspelen. Wordt verwijderd bij handmatig toevoegen.</value>
+    <value>Voegt automatisch een willekeurig nummer toe tijdens het afspelen. Blijft onderaan staan, onder alles wat je zelf toevoegt.</value>
   </data>
   <data name="Settings_AllowDuplicates" xml:space="preserve">
     <value>Dubbele nummers in wachtrij toestaan in dezelfde sessie</value>
@@ -299,6 +299,15 @@
   </data>
   <data name="Settings_ThemeDescription" xml:space="preserve">
     <value>Kies tussen Automatisch (volgt systeem), Licht of Donker thema</value>
+  </data>
+  <data name="Settings_ThemeAuto" xml:space="preserve">
+    <value>Automatisch</value>
+  </data>
+  <data name="Settings_ThemeLight" xml:space="preserve">
+    <value>Licht</value>
+  </data>
+  <data name="Settings_ThemeDark" xml:space="preserve">
+    <value>Donker</value>
   </data>
   <data name="Settings_Language" xml:space="preserve">
     <value>Taal</value>

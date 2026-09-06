@@ -1,6 +1,7 @@
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Tests.Helpers;
+using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.Tests.Unit;
 
@@ -138,5 +139,18 @@ public sealed class AutoTrackRuleTests
             new TrackQueueItem(TestData.CreateTrack("A"), false)
         };
         Assert.Empty(sut.GetEvictionIndices(items));
+    }
+
+    // --- Settings description ---
+
+    [Fact]
+    public void SettingDescription_MatchesGetPreAddRemovalPredicate_TrackStaysRatherThanBeingRemoved()
+    {
+        // GetPreAddRemovalPredicate_Regular_ReturnsNull above is the behaviour: a manually
+        // added item never evicts the auto-track, it only ends up above it at the tail. The
+        // setting the DJ reads before turning this on must not claim the opposite.
+        var description = UiStrings.Settings_AutoQueueDescription;
+        Assert.DoesNotContain("removed", description, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("bottom", description, StringComparison.OrdinalIgnoreCase);
     }
 }
