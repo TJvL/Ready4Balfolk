@@ -52,6 +52,13 @@
             <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColor}" />
         </Style>
 
+        <!-- A field that has been answered is shut, and has to look it. Read-only leaves a box
+             looking exactly like one that can still be typed in, and the row would then read as an
+             invitation to correct something that would not be written down. -->
+        <Style Selector="TextBox.field[IsReadOnly=True]">
+            <Setter Property="Opacity" Value="0.6" />
+        </Style>
+
         <Style Selector="Border.rejected">
             <Style.Animations>
                 <Animation Duration="0:0:1" FillMode="Forward">
@@ -226,9 +233,17 @@
                                      is the whole point of showing four bourrées rather than one.
                                      Inline rather than in a popup, because a popup takes the focus
                                      off the box being typed into and the typing stops. -->
+                                <!-- Shut once the row is answered, so what is in the box is what
+                                     was written down. Editable, it read as a correction that had
+                                     been made while the stored answer still held the old value.
+                                     Read-only rather than disabled: a disabled box cannot be
+                                     focused, so answering the row dropped the caret out of the
+                                     queue and the keys stopped working on the row that had just
+                                     been answered. -->
                                 <TextBox Classes="field"
                                          AutomationProperties.AutomationId="review.dance"
                                          Text="{Binding Dance, Mode=TwoWay}"
+                                         IsReadOnly="{Binding IsApproved}"
                                          PlaceholderText="{x:Static res:UiStrings.Review_Dance}"
                                          LostFocus="OnDanceLostFocus" />
 
@@ -266,6 +281,7 @@
                                 <TextBox Classes="field"
                                          AutomationProperties.AutomationId="review.artist"
                                          Text="{Binding Artist, Mode=TwoWay}"
+                                         IsReadOnly="{Binding IsApproved}"
                                          PlaceholderText="{x:Static res:UiStrings.Review_Artist}" />
                                 <TextBlock Text="{Binding ArtistSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
@@ -274,15 +290,28 @@
                                 <TextBox Classes="field"
                                          AutomationProperties.AutomationId="review.title"
                                          Text="{Binding Title, Mode=TwoWay}"
+                                         IsReadOnly="{Binding IsApproved}"
                                          PlaceholderText="{x:Static res:UiStrings.Review_TitleField}" />
                                 <TextBlock Text="{Binding TitleSource}" FontSize="10" Opacity="0.6" />
                             </StackPanel>
 
                             <StackPanel Grid.Row="1" Grid.Column="3" Spacing="4" VerticalAlignment="Top">
+                                <!-- One place, two states: while the row is a question it asks, and
+                                     once it has been answered it offers the only thing left to do
+                                     with an answer. A button that still says "answer" over a row
+                                     that has been is the screen telling the DJ it was not. -->
                                 <Button AutomationProperties.AutomationId="review.approve"
                                         Content="{x:Static res:UiStrings.Review_Approve}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveCommand}"
                                         CommandParameter="{Binding}"
+                                        IsVisible="{Binding !IsApproved}"
+                                        Focusable="False" />
+                                <Button AutomationProperties.AutomationId="review.withdraw"
+                                        Content="{x:Static res:UiStrings.Review_Withdraw}"
+                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).WithdrawCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{x:Static res:UiStrings.Review_WithdrawHint}"
+                                        IsVisible="{Binding IsApproved}"
                                         Focusable="False" />
                             </StackPanel>
 

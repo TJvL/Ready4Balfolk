@@ -57,6 +57,39 @@ public sealed class TrackEditorServiceTests
     }
 
     [Fact]
+    public async Task Withdrawing_TakesTheAnswerBackAndPutsTheTrackOutOfTheLibrary()
+    {
+        // The lasting way back from an answer. The review queue drops every track already in the
+        // library and is rebuilt on every scan, so the row that gave the answer is gone by the next
+        // one; the track itself is still here, in the list of what got through the gate.
+        var track = TestData.CreateTrack();
+        _libraryIndex.WithdrawIndividualApprovalsAsync(
+            Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>()).Returns(3);
+
+        Assert.True(await _sut.WithdrawAsync(track));
+
+        await _libraryIndex.Received(1).WithdrawIndividualApprovalsAsync(
+            Arg.Is<IReadOnlyCollection<string>>(paths => paths.Contains(track.FileInfo.FullName)),
+            Arg.Any<CancellationToken>());
+        await _trackStore.Received(1).RefreshLibraryAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task WithdrawingATrackNobodyAnswered_SaysSoAndRebuildsNothing()
+    {
+        // In the library on a rule or on its own tags, so there is nothing of a person's to take
+        // back. Rebuilding anyway is a whole library re-read for a delete that removed nothing, and
+        // the caller still has to be able to say that the track has not moved.
+        var track = TestData.CreateTrack();
+        _libraryIndex.WithdrawIndividualApprovalsAsync(
+            Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>()).Returns(0);
+
+        Assert.False(await _sut.WithdrawAsync(track));
+
+        await _trackStore.DidNotReceive().RefreshLibraryAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task NothingChanged_WritesNothingAndRebuildsNothing()
     {
         var track = TestData.CreateTrack();

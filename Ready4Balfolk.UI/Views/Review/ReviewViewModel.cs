@@ -305,6 +305,15 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             return;
         }
 
+        if (row.IsApproved)
+        {
+            // Already answered, and an answered row's boxes are shut, so there is nothing new to
+            // write. Enter held down or a second click says no visibly instead of writing the same
+            // answer again and rebuilding the library behind it. Taking it back is what reopens it.
+            row.Reject();
+            return;
+        }
+
         if (!row.CanApprove)
         {
             // Something is missing, so there is nothing to agree to. Said by the row rather than by
@@ -316,7 +325,57 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         await ApproveRowAsync(row);
         await _trackStore.RefreshLibraryAsync();
 
-        Selected = NextAfter(row);
+        // Onto the next question, and back onto this row when the queue has none left. The keys
+        // work on the selected row, so selecting nothing would take the keyboard off the row that
+        // was just answered and leave taking it back to the mouse alone.
+        Selected = NextAfter(row) ?? row;
+    }
+
+    /// <summary>
+    /// Takes back an answer given here, which is the only way out of one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every field of the track together: the three boxes were one act, and half an answer left
+    /// standing is a row that reads as answered on the artist and asks about the dance. A field a
+    /// rule answered and nobody answered over is left alone, since a rule change is what undoes
+    /// that.
+    /// </para>
+    /// <para>
+    /// This is the quick way back, while the row is still on the screen that gave the answer. The
+    /// lasting one is in the catalogue, where a track that has been through the gate lives: this
+    /// queue is rebuilt on every scan and drops everything already in the library, so a row is not
+    /// something an answer can be taken back from a week later.
+    /// </para>
+    /// <para>
+    /// The track leaves the library with it, at once, because that is the whole point: it is a
+    /// question again and nothing may draw it. What is already in tonight's queue stays there and
+    /// still plays. The file is untouched, and taking a dance out of a set that is running is a
+    /// worse surprise than one whose label has just been taken back, so the DJ is told rather than
+    /// having the queue rearranged under them.
+    /// </para>
+    /// </remarks>
+    [ReactiveCommand]
+    private async Task WithdrawAsync(ReviewRowViewModel? row)
+    {
+        if (row is null || !row.IsApproved)
+        {
+            return;
+        }
+
+        await _libraryIndex.WithdrawIndividualApprovalsAsync([row.Path]);
+        row.MarkWithdrawn();
+
+        await _trackStore.RefreshLibraryAsync();
+
+        // It counts towards its folder again, and the keys stay on it: whoever took an answer back
+        // did it to give another one.
+        LabelFolder(row.Folder);
+        Selected = row;
+
+        _notifications.Show(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Review_Withdrawn, row.FileName),
+            NotificationSeverity.Information);
     }
 
     /// <summary>
@@ -390,7 +449,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         await _trackStore.RefreshLibraryAsync();
 
         LabelFolderButtons();
-        Selected = NextAfter(row);
+        Selected = NextAfter(row) ?? row;
     }
 
     /// <summary>The rows of a folder that are holding it up: waiting, and missing something.</summary>

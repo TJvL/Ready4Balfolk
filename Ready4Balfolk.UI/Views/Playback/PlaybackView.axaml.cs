@@ -49,7 +49,7 @@ public partial class PlaybackView : ReactiveUserControl<PlaybackViewModel>
         var wasPressed = _pressedOnTheBar;
         _pressedOnTheBar = false;
 
-        if (!wasPressed || ViewModel is not { HasTrack: true, Duration: > 0 } vm)
+        if (!wasPressed || ViewModel is not { HasAudioItem: true, Duration: > 0 } vm)
         {
             return;
         }

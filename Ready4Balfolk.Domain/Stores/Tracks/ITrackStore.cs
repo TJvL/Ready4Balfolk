@@ -1,5 +1,6 @@
 using DynamicData;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Stores.Library;
 
 namespace Ready4Balfolk.Domain.Stores.Tracks;
 
@@ -34,6 +35,15 @@ public interface ITrackStore : ILoadableStore
     /// what left the disk, and only the second one means an entry in the queue can never play.
     /// </remarks>
     IObservable<string> WhenTrackFileVanished { get; }
+
+    /// <summary>Where a track's file has just gone, when it went somewhere rather than away.</summary>
+    /// <remarks>
+    /// A folder tidied up in a file manager moves everything under it, and the library follows.
+    /// Anything holding a path of its own does not: the queue captured the track when the DJ asked
+    /// for it, so without this it keeps a path that is not there and the room finds out when it is
+    /// that track's turn.
+    /// </remarks>
+    IObservable<PathMove> WhenTrackFileMoved { get; }
 
     /// <summary>Brings the library into line with what the settings now say.</summary>
     /// <remarks>

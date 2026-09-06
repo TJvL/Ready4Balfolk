@@ -22,8 +22,21 @@ public interface IQueueConsumptionService
     /// </param>
     /// <returns>False when the request was dropped because the evening had already moved on.</returns>
     Task<bool> AdvanceAsync(IQueueItem? requestedFor = null);
-    Task PlayPauseAsync();
-    Task RestartAsync();
-    Task SeekAsync(TimeSpan position);
+
+    /// <summary>Holds the dance that is on, lets it go again, or starts an evening that has not.</summary>
+    /// <returns>
+    /// False when there was nothing to act on: the floor is between two dances, waiting on a stop or
+    /// a message, or the night is over and the queue is empty.
+    /// </returns>
+    Task<bool> PlayPauseAsync();
+
+    /// <summary>Starts the dance that is playing again from the top.</summary>
+    /// <returns>False when what is on is not a file playing, so there is nothing to start again.</returns>
+    Task<bool> RestartAsync();
+
+    /// <summary>Moves through the dance that is playing.</summary>
+    /// <returns>False when what is on is not a file playing, so there is nothing to move through.</returns>
+    Task<bool> SeekAsync(TimeSpan position);
+
     Task ClearAsync();
 }

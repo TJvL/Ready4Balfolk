@@ -262,6 +262,15 @@ what you change is saved as your own answer, and only the fields you actually ch
 The dance still has to be one the published list knows; a missing dance is a proposal at
 [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/), not a local override.
 
+### Taking an answer back
+
+Right-click a track and choose **Take my answer back** to put it out of your library and back in
+Review, with your answer to every one of its fields taken back. It is the way back to a question
+you answered weeks ago, when the row that answered it is long gone from the queue. The file itself
+is not touched, and anything already in tonight's queue keeps playing. A track that is in your
+library on one of your rules rather than on an answer of yours has nothing to take back, and says
+so: change the rule instead.
+
 ### Toggle to Dance List
 
 Use the toggle button in the toolbar to switch the right panel to the dance list.
@@ -366,6 +375,7 @@ one that is honestly still waiting.
 | Tab | between the three fields of a track, wrapping round |
 | Enter | answer this track and move to the next one waiting |
 | Shift+Enter | answer every track in this folder that is complete |
+| Ctrl+Z | take back the answer on the track the cursor is in |
 | Shift+Space | listen to the selected track |
 | Escape | stop listening |
 | Left, Right | skip five seconds, while something is playing |
@@ -379,6 +389,17 @@ handful asks before it goes ahead.
 
 If a track cannot be answered, the row flashes red rather than doing nothing quietly; asking a
 folder points at every track holding it up.
+
+### Taking an answer back
+
+An answered row stops asking: its three boxes are shut, so what you see is what was written down,
+and the button that gave the answer becomes **Take it back**. Pressing it, or Ctrl+Z on the row,
+puts the track out of your library and back in the queue with your answer to every field taken
+back, so you can answer it again. What is already in tonight's queue keeps playing.
+
+That is the quick way back, while the row is still in front of you. Once the queue is rebuilt, an
+answered track is in your library and has no row here any more: take that answer back from the
+[track catalog](#track-catalog) instead, where the track still is.
 
 ### Colours
 

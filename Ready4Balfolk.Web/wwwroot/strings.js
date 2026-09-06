@@ -43,6 +43,7 @@
       remove: "Remove",
       removed: "Removed",
       queueMovedOn: "The queue moved on, have another look",
+      nowMovedOn: "That dance has ended, have another look",
       autoAdded: "Added automatically",
 
       randomTrack: "Random track",
@@ -109,6 +110,7 @@
       remove: "Verwijderen",
       removed: "Verwijderd",
       queueMovedOn: "De wachtrij is intussen opgeschoven, kijk even opnieuw",
+      nowMovedOn: "Die dans is intussen afgelopen, kijk even opnieuw",
       autoAdded: "Automatisch toegevoegd",
 
       randomTrack: "Willekeurig nummer",

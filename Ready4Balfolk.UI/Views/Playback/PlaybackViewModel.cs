@@ -43,22 +43,39 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool IsPlaying { get; set; }
     [Reactive] public partial bool ShowNextIcon { get; set; }
     [Reactive] public partial bool HasCurrentItem { get; set; }
+    /// <summary>Whether what is on is a file playing, which is what these three buttons act on.</summary>
+    [Reactive] public partial bool HasAudioItem { get; set; }
     [Reactive] public partial bool IsAudioUnavailable { get; set; }
 
+    /// <summary>Play holds what is on, and with nothing on at all it starts the evening.</summary>
     private IObservable<bool> CanPlayPause =>
-        this.WhenAnyValue(x => x.HasTrack, x => x.IsAudioUnavailable, (has, unavailable) => has && !unavailable);
+        this.WhenAnyValue(
+            x => x.HasAudioItem,
+            x => x.HasCurrentItem,
+            x => x.ShowNextIcon,
+            x => x.IsAudioUnavailable,
+            (audio, current, next, unavailable) => (audio || (!current && next)) && !unavailable);
 
     private IObservable<bool> CanRestart =>
-        this.WhenAnyValue(x => x.HasTrack, x => x.IsAudioUnavailable, (has, unavailable) => has && !unavailable);
+        this.WhenAnyValue(x => x.HasAudioItem, x => x.IsAudioUnavailable, (has, unavailable) => has && !unavailable);
 
     private IObservable<bool> CanNextOrClear =>
         this.WhenAnyValue(x => x.ShowNextIcon, x => x.HasCurrentItem, (next, current) => next || current);
 
     private IObservable<bool> CanSeek =>
-        this.WhenAnyValue(x => x.HasTrack, x => x.IsAudioUnavailable, (has, unavailable) => has && !unavailable);
+        this.WhenAnyValue(x => x.HasAudioItem, x => x.IsAudioUnavailable, (has, unavailable) => has && !unavailable);
 
     [ReactiveCommand(CanExecute = nameof(CanPlayPause))]
-    private async Task PlayPause() => await _consumptionService.PlayPauseAsync();
+    private async Task PlayPause()
+    {
+        // Enabled from a state that can have passed between the button being drawn and the click
+        // landing: a dance that ran out leaves nothing to hold, and the DJ is told rather than left
+        // pressing again.
+        if (!await _consumptionService.PlayPauseAsync())
+        {
+            ReportTooLate();
+        }
+    }
 
     [ReactiveCommand(CanExecute = nameof(CanRestart))]
     private async Task Restart()
@@ -68,7 +85,10 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        await _consumptionService.RestartAsync();
+        if (!await _consumptionService.RestartAsync())
+        {
+            ReportTooLate();
+        }
     }
 
     [ReactiveCommand(CanExecute = nameof(CanNextOrClear))]
@@ -214,6 +234,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     private void OnCurrentItemChanged(IQueueItem? item)
     {
         HasCurrentItem = item != null;
+        HasAudioItem = AudioItems.IsAudio(item);
 
         if (item == null)
         {
@@ -306,7 +327,10 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        await _consumptionService.SeekAsync(position);
+        if (!await _consumptionService.SeekAsync(position))
+        {
+            ReportTooLate();
+        }
     }
 
     public void Dispose() => _disposables.Dispose();

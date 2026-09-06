@@ -75,6 +75,19 @@ public sealed class ReviewViewModelTests : IDisposable
                 return Task.CompletedTask;
             });
 
+        _libraryIndex.WithdrawIndividualApprovalsAsync(
+                Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var taken = 0;
+                foreach (var path in call.Arg<IReadOnlyCollection<string>>()!)
+                {
+                    taken += _approved.RemoveAll(entry => entry.Path == path);
+                }
+
+                return Task.FromResult(taken);
+            });
+
         _preview.WhenPreviewChanged.Returns(Observable.Never<string?>());
         _preview.WhenProgressChanged.Returns(Observable.Never<TimeSpan>());
         _preview.WhenDurationChanged.Returns(Observable.Never<TimeSpan>());
@@ -514,6 +527,148 @@ public sealed class ReviewViewModelTests : IDisposable
         Assert.Equal(before + 1, missing.RejectedCount);
     }
 
+    [Fact]
+    public async Task AnAnswerCanBeTakenBack()
+    {
+        // A dance typed wrong is otherwise permanent: nothing overwrites an individual approval, by
+        // design, so the only way out of one has to be a person asking for it.
+        await Refresh();
+        var row = _sut.Rows[0];
+        await ApproveFirstAsync();
+
+        await _sut.WithdrawCommand.Execute(row);
+
+        await _libraryIndex.Received().WithdrawIndividualApprovalsAsync(
+            Arg.Is<IReadOnlyCollection<string>>(paths => paths.Contains(row.Path)), Arg.Any<CancellationToken>());
+        Assert.False(row.IsApproved);
+        Assert.False(row.IsParked);
+        Assert.Equal(ReviewRowState.Waiting, row.State);
+        Assert.Equal(row.ReasonText, row.StatusText);
+    }
+
+    [Fact]
+    public async Task TakingAnAnswerBack_PutsTheTrackOutOfTheLibraryAtOnce()
+    {
+        // It is a question again, so nothing may draw it. Waiting for some other row to be answered
+        // would leave it playable on an answer nobody stands behind any more.
+        await Refresh();
+        var row = _sut.Rows[0];
+        await ApproveFirstAsync();
+        _trackStore.ClearReceivedCalls();
+
+        await _sut.WithdrawCommand.Execute(row);
+
+        await _trackStore.Received().RefreshLibraryAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AnAnswerTakenBack_IsGivenAgainWithTheCorrectionOnIt()
+    {
+        // The whole point of taking one back: the row opens, the correction is typed, and what is
+        // written down is the corrected answer rather than the one that was mistyped.
+        await Refresh();
+        var row = _sut.Rows[0];
+        await ApproveFirstAsync();
+
+        await _sut.WithdrawCommand.Execute(row);
+        row.Dance = "Schottische";
+        await _sut.ApproveCommand.Execute(row);
+
+        Assert.True(row.IsApproved);
+        var dance = Assert.Single(_approved, entry => entry.Path == row.Path && entry.Field == TrackField.Dance);
+        Assert.Equal("scottish", dance.Value);
+    }
+
+    [Fact]
+    public async Task TakingAnAnswerBack_LetsTheFolderCountItAgain()
+    {
+        // It is one of the folder's questions again, so the button that answers the folder has to
+        // say so: a count that still reads nought is a folder that cannot be answered in one act.
+        await Refresh();
+        var row = _sut.Rows.First(candidate => candidate.Folder == "Naragonia");
+        await _sut.ApproveFolderCommand.Execute(row);
+        Assert.Equal(0, row.AnswerableInFolder);
+
+        await _sut.WithdrawCommand.Execute(row);
+
+        Assert.Equal(1, row.AnswerableInFolder);
+    }
+
+    [Fact]
+    public async Task AnsweringAnAnsweredRowAgain_WritesNothingAndSaysSo()
+    {
+        // Enter held down, or a second click. An answered row has nothing new to say, so it refuses
+        // visibly rather than writing the same answer again and rebuilding the library behind it.
+        await Refresh();
+        var row = _sut.Rows[0];
+        await ApproveFirstAsync();
+        var written = _approved.Count;
+        _trackStore.ClearReceivedCalls();
+
+        await _sut.ApproveCommand.Execute(row);
+
+        Assert.Equal(written, _approved.Count);
+        Assert.Equal(1, row.RejectedCount);
+        await _trackStore.DidNotReceive().RefreshLibraryAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task TakingAnAnswerBackOnAParkedRow_LeavesItParked()
+    {
+        // A track answered in an earlier sitting, on a dance the published list does not carry,
+        // comes back through the queue parked. Park is read off the track's own review, so a row
+        // taken back has to land where a rebuild would draw it: landing on waiting makes the row
+        // claim to be a question the queue does not think is one, and the keys then stop on it and
+        // the folder count offers to answer it.
+        _libraryIndex.ApprovalsAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+            new Dictionary<string, IReadOnlyList<TrackApproval>>(StringComparer.Ordinal)
+            {
+                [LibraryKey.For([1])] =
+                [
+                    Answered([1], TrackField.Dance, "Rond de Landéda"),
+                    Answered([1], TrackField.Artist, "Naragonia"),
+                    Answered([1], TrackField.Title, "Something")
+                ]
+            });
+        await Refresh();
+        var row = _sut.Rows.First(candidate => candidate.State is ReviewRowState.Parked);
+
+        await _sut.ApproveCommand.Execute(row);
+        await _sut.WithdrawCommand.Execute(row);
+
+        Assert.True(row.IsParked);
+        Assert.Equal(ReviewRowState.Parked, row.State);
+    }
+
+    [Fact]
+    public async Task AnsweringTheLastQuestion_LeavesTheKeysOnTheRowJustAnswered()
+    {
+        // Every key on this screen works on the selected row, so selecting nothing once the queue
+        // runs out takes the keyboard off the one row an answer could still be taken back from.
+        await Refresh();
+
+        foreach (var row in _sut.Rows.ToList())
+        {
+            row.Dance = "Mazurka";
+            row.Artist = "Naragonia";
+            row.Title = "Le badaud";
+            await _sut.ApproveCommand.Execute(row);
+        }
+
+        Assert.Same(_sut.Rows[^1], _sut.Selected);
+    }
+
+    [Fact]
+    public async Task TakingBackARowNobodyAnswered_DoesNothing()
+    {
+        await Refresh();
+
+        await _sut.WithdrawCommand.Execute(_sut.Rows[0]);
+
+        await _libraryIndex.DidNotReceive().WithdrawIndividualApprovalsAsync(
+            Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>());
+    }
+
     private async Task Refresh() => await _sut.RefreshCommand.Execute();
 
     private async Task ApproveFirstAsync()
@@ -532,6 +687,15 @@ public sealed class ReviewViewModelTests : IDisposable
             ["/music/Naragonia/b.mp3"] = Entry("/music/Naragonia/b.mp3", [2], "Scottiche"),
             ["/music/TREF/c.mp3"] = Entry("/music/TREF/c.mp3", [3])
         };
+
+    private static TrackApproval Answered(byte[] hash, TrackField field, string value) => new()
+    {
+        ContentHash = hash,
+        Field = field,
+        Value = value,
+        Kind = ApprovalKind.Individual,
+        FileWriteUtc = Written
+    };
 
     private static LibraryEntry Entry(string path, byte[] hash, string? unknownDance = null) => new()
     {
