@@ -21,7 +21,7 @@ public interface IDanceListStore : ILoadableStore, IDisposable
 
     IObservable<DanceListStatus> ObserveStatus();
 
-    /// <summary>The cached copy if there is a usable one, otherwise the copy shipped with the app.</summary>
+    /// <summary>The cached copy if there is a usable one, otherwise no list at all: none is shipped.</summary>
     Task LoadAsync(CancellationToken token);
 
     /// <summary>Downloads the published list and takes it whole if it is newer.</summary>

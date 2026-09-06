@@ -898,7 +898,7 @@
     <value>Import a dances.json</value>
   </data>
   <data name="Wizard_DanceList_Detail" xml:space="preserve">
-    <value>A copy is shipped with the application, so this works with no internet. It is refreshed when Ready4Balfolk starts, and you can ask for a newer one at any time from the dance panel.</value>
+    <value>No copy comes with Ready4Balfolk. Fetch the list from BigBalfolkList once, or import a dances.json somebody carried in if this machine never goes online. It is kept on this computer afterwards, and the dance panel is where you ask for a newer one.</value>
   </data>
   <data name="DanceList_SearchWatermark" xml:space="preserve">
     <value>Search every spelling…</value>

@@ -823,7 +823,7 @@
     <value>Een dances.json importeren</value>
   </data>
   <data name="Wizard_DanceList_Detail" xml:space="preserve">
-    <value>Er wordt een kopie met de applicatie meegeleverd, dus dit werkt ook zonder internet. Bij het starten wordt hij ververst, en je kunt in het dansenpaneel altijd om een nieuwere vragen.</value>
+    <value>Er wordt geen kopie met Ready4Balfolk meegeleverd. Haal de lijst één keer op bij BigBalfolkList, of importeer een dances.json die iemand meegenomen heeft als deze machine nooit online komt. Daarna blijft hij op deze computer staan, en in het dansenpaneel vraag je om een nieuwere.</value>
   </data>
   <data name="DanceList_SearchWatermark" xml:space="preserve">
     <value>Zoek in elke schrijfwijze…</value>
