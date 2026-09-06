@@ -21,7 +21,6 @@ using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 using Ready4Balfolk.UI.Views.Presentation;
 using Ready4Balfolk.Web;
 using AvaloniaWindowState = Avalonia.Controls.WindowState;
@@ -228,17 +227,21 @@ internal sealed class ApplicationStartup(
         }
     }
 
+    /// <summary>Asks before the evening ends, through the same service as every other question.</summary>
+    /// <remarks>
+    /// Raising its own dialog here would have been the one place the rule about where return lands
+    /// did not apply, which is how leaving by accident got easier than leaving on purpose.
+    /// </remarks>
     private async Task HandleClosingAsync(MainWindow mainWindow)
     {
-        var dialogVm = new ConfirmationDialogViewModel
-        {
-            Title = UiStrings.App_ExitTitle,
-            Message = UiStrings.App_ExitMessage
-        };
-        var dialog = new ConfirmationDialogView { DataContext = dialogVm };
-        await dialog.ShowDialog(mainWindow);
+        var leave = await confirmations.ConfirmAsync(
+            UiStrings.App_ExitTitle,
+            UiStrings.App_ExitMessage,
+            UiStrings.Dialog_YesDefault,
+            UiStrings.Dialog_NoDefault,
+            ConfirmationStakes.Destructive);
 
-        if (dialogVm.DialogResult != true)
+        if (!leave)
         {
             return;
         }
@@ -341,7 +344,10 @@ internal sealed class ApplicationStartup(
             UiStrings.App_UnfinishedNightTitle,
             message,
             UiStrings.App_UnfinishedNightStartFresh,
-            UiStrings.App_UnfinishedNightCarryOn);
+            UiStrings.App_UnfinishedNightCarryOn,
+            // Neither answer loses an entry and nothing is playing yet, so the one that gets the
+            // evening started stays under the return key.
+            ConfirmationStakes.Reversible);
 
         if (startFresh)
         {

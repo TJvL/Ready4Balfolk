@@ -48,7 +48,7 @@ public sealed class PlaybackViewModelTests : IDisposable
 
         _confirmation = Substitute.For<IConfirmationService>();
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>()).Returns(true);
 
         var settingsStore = Substitute.For<ISettingsStore>();
         var settings = new ApplicationSettings();
@@ -337,7 +337,7 @@ public sealed class PlaybackViewModelTests : IDisposable
         CancellationToken given = default;
         var next = new TrackQueueItem(TestData.CreateTrack("Waltz"), false);
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {
                 given = call.Arg<CancellationToken>();
@@ -350,10 +350,22 @@ public sealed class PlaybackViewModelTests : IDisposable
         Assert.True(given.IsCancellationRequested);
     }
 
+    [Fact]
+    public async Task AQuestionAboutTheFloor_AsksWithTheKeyboardOnTheSafeAnswer()
+    {
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack("Mazurka"), false));
+
+        await _sut.RestartCommand.Execute();
+
+        await _confirmation.Received(1).ConfirmAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            ConfirmationStakes.Destructive, Arg.Any<CancellationToken>());
+    }
+
     /// <summary>Says yes to the next question, after letting the evening move on underneath it.</summary>
     private void AnswerYesAfter(Action whileTheQuestionIsUp) =>
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>())
             .Returns(_ =>
             {
                 whileTheQuestionIsUp();

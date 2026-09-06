@@ -433,7 +433,10 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
                     answerable.Count,
                     row.FolderText),
                 UiStrings.Review_ApproveFolderYes,
-                UiStrings.Review_ApproveFolderNo))
+                UiStrings.Review_ApproveFolderNo,
+                // Approving takes nothing away and every row can be answered again afterwards, so
+                // the yes stays where the hand already is.
+                ConfirmationStakes.Reversible))
         {
             return;
         }

@@ -210,7 +210,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     private async Task ClearQueue()
     {
         if (!await _confirmationService.ConfirmAsync(UiStrings.QueueToolbar_ClearQueueTitle, UiStrings.QueueToolbar_ClearQueueMessage, UiStrings.QueueToolbar_ClearButton,
-                UiStrings.QueueToolbar_CancelButton))
+                UiStrings.QueueToolbar_CancelButton, ConfirmationStakes.Destructive))
         {
             return;
         }

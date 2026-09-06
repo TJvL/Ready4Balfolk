@@ -452,7 +452,10 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
                 UiStrings.Settings_LanguageRestartTitle,
                 UiStrings.Settings_LanguageRestartMessage,
                 UiStrings.Dialog_Restart,
-                UiStrings.Dialog_Cancel);
+                UiStrings.Dialog_Cancel,
+                // Restarting tears the application down, which is not something to walk into from a
+                // dropdown that was opened by accident.
+                ConfirmationStakes.Destructive);
 
             if (!confirmed)
             {

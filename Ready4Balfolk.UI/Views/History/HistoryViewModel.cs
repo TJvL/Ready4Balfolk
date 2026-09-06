@@ -77,7 +77,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
     [ReactiveCommand(CanExecute = nameof(TonightHasSomethingInIt))]
     private async Task StartNewNight()
     {
-        if (!await _confirmationService.ConfirmAsync(UiStrings.HistoryToolbar_NewNightTitle, UiStrings.HistoryToolbar_NewNightMessage, UiStrings.HistoryToolbar_NewNightButton, UiStrings.HistoryToolbar_CancelButton))
+        if (!await _confirmationService.ConfirmAsync(UiStrings.HistoryToolbar_NewNightTitle, UiStrings.HistoryToolbar_NewNightMessage, UiStrings.HistoryToolbar_NewNightButton, UiStrings.HistoryToolbar_CancelButton, ConfirmationStakes.Destructive))
         {
             return;
         }
@@ -94,7 +94,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        if (!await _confirmationService.ConfirmAsync(UiStrings.HistoryToolbar_DeleteNightTitle, UiStrings.HistoryToolbar_DeleteNightMessage, UiStrings.HistoryToolbar_DeleteButton, UiStrings.HistoryToolbar_CancelButton))
+        if (!await _confirmationService.ConfirmAsync(UiStrings.HistoryToolbar_DeleteNightTitle, UiStrings.HistoryToolbar_DeleteNightMessage, UiStrings.HistoryToolbar_DeleteButton, UiStrings.HistoryToolbar_CancelButton, ConfirmationStakes.Destructive))
         {
             return;
         }

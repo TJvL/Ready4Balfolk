@@ -94,7 +94,7 @@ public sealed class ReviewViewModelTests : IDisposable
 
         // Says yes, so a folder answer is tested rather than the dialog: the dialog has its own
         // test below.
-        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>())
             .Returns(true);
 
         var trackStoreForDiscovery = Substitute.For<ITrackStore>();
@@ -401,7 +401,7 @@ public sealed class ReviewViewModelTests : IDisposable
     public async Task ALargeFolderIsConfirmedBeforeItIsAnswered()
     {
         // A keystroke that answers two thousand tracks without saying so is not a bulk confirm.
-        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>())
             .Returns(false);
         _libraryIndex.SnapshotByPathAsync(Arg.Any<CancellationToken>()).Returns(_ => Enumerable.Range(0, 40).ToDictionary(
             i => $"/music/Big/{i}.mp3",
@@ -412,8 +412,27 @@ public sealed class ReviewViewModelTests : IDisposable
         await _sut.ApproveFolderCommand.Execute(_sut.Rows[0]);
 
         await _confirmations.Received().ConfirmAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>());
         Assert.Empty(_approved);
+    }
+
+    [Fact]
+    public async Task ALargeFolderIsAskedAboutWithoutMakingYesHardToGive()
+    {
+        // Approving takes nothing away, so this is the question where return may still say yes.
+        _confirmations.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+        _libraryIndex.SnapshotByPathAsync(Arg.Any<CancellationToken>()).Returns(_ => Enumerable.Range(0, 40).ToDictionary(
+            i => $"/music/Big/{i}.mp3",
+            i => Entry($"/music/Big/{i}.mp3", [(byte)i]),
+            StringComparer.Ordinal));
+
+        await Refresh();
+        await _sut.ApproveFolderCommand.Execute(_sut.Rows[0]);
+
+        await _confirmations.Received().ConfirmAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            ConfirmationStakes.Reversible, Arg.Any<CancellationToken>());
     }
 
     [Fact]

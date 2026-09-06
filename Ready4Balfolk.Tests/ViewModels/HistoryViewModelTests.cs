@@ -27,7 +27,7 @@ public sealed class HistoryViewModelTests : IDisposable
 
         _confirmation = Substitute.For<IConfirmationService>();
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>()).Returns(true);
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>()).Returns(true);
 
         var settingsStore = Substitute.For<ISettingsStore>();
         var settings = new ApplicationSettings();
@@ -159,7 +159,7 @@ public sealed class HistoryViewModelTests : IDisposable
     public void StartNewNight_WithoutConfirmation_KeepsTheNightRunning()
     {
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>()).Returns(false);
 
         _historySubject.OnNext(new QueueHistory(DateTime.Now, [
             new TrackHistoryEntry("/tmp/a.mp3", "M", "A", "T",
@@ -169,6 +169,21 @@ public sealed class HistoryViewModelTests : IDisposable
         _sut.StartNewNightCommand.Execute().Subscribe();
 
         _historyStore.DidNotReceive().EndNightAsync();
+    }
+
+    [Fact]
+    public async Task StartNewNight_AsksWithTheKeyboardOnTheSafeAnswer()
+    {
+        _historySubject.OnNext(new QueueHistory(DateTime.Now, [
+            new TrackHistoryEntry("/tmp/a.mp3", "M", "A", "T",
+                TimeSpan.FromMinutes(1), false, CompletionStatus.Finished)
+        ]));
+
+        _sut.StartNewNightCommand.Execute().Subscribe();
+
+        await _confirmation.Received(1).ConfirmAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            ConfirmationStakes.Destructive, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -185,10 +200,26 @@ public sealed class HistoryViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteNight_AsksWithTheKeyboardOnTheSafeAnswer()
+    {
+        // Return pressed over this dialog used to delete the night it was asking about.
+        _historySubject.OnNext(new QueueHistory(DateTime.Now, [
+            new TrackHistoryEntry("/tmp/a.mp3", "M", "A", "T",
+                TimeSpan.FromMinutes(1), false, CompletionStatus.Finished)
+        ]));
+
+        _sut.DeleteNightCommand.Execute().Subscribe();
+
+        await _confirmation.Received(1).ConfirmAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            ConfirmationStakes.Destructive, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public void DeleteNight_WithoutConfirmation_KeepsIt()
     {
         _confirmation.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>()).Returns(false);
 
         _historySubject.OnNext(new QueueHistory(DateTime.Now, [
             new TrackHistoryEntry("/tmp/a.mp3", "M", "A", "T",
