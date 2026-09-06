@@ -154,6 +154,28 @@ public sealed class RemoteHubTests : IDisposable
     }
 
     [Fact]
+    public async Task QueueMessage_AtTheDesktopsLimit_IsQueued()
+    {
+        var result = await _sut.QueueMessage(new string('a', 60));
+
+        Assert.True(result.Accepted);
+        _queueService.Received(1).Enqueue(Arg.Any<MessageQueueItem>());
+    }
+
+    [Fact]
+    public async Task QueueMessage_LongerThanTheDesktopDialogAllows_IsRefusedWithAReason()
+    {
+        // The desktop dialog stops the DJ at 60 characters; the phone talks to this hub directly and
+        // is not what enforces that. A caller that skips the page's own textarea limit, or the page's
+        // JavaScript entirely, must find the same wall here.
+        var result = await _sut.QueueMessage(new string('a', 61));
+
+        Assert.False(result.Accepted);
+        Assert.NotNull(result.Reason);
+        _queueService.DidNotReceive().Enqueue(Arg.Any<IQueueItem>());
+    }
+
+    [Fact]
     public async Task QueueTrack_UnknownId_IsRefusedRatherThanThrowing()
     {
         // The library can change under a phone that has been showing a stale search result.
