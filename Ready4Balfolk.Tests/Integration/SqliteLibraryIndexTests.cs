@@ -402,10 +402,35 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: null)], Token);
         await _sut.ApproveIndividuallyAsync(["/music/a.mp3"], [new FieldAnswer(TrackField.Dance, "Mazurka")], Token);
 
-        await _sut.DeletePathAsync("/music/a.mp3", Token);
+        await _sut.DeletePathsAsync(["/music/a.mp3"], Token);
 
         Assert.Empty(await _sut.SnapshotByPathAsync(Token));
         Assert.Empty(await _sut.ApprovalsAsync(Token));
+    }
+
+    [Fact]
+    public async Task DeletingAWholeFolderOfPaths_ForgetsThemAllAndLeavesTheRest()
+    {
+        // A folder sent to the recycle bin is every path under it in one call, which is the one
+        // place the watcher's batch is certain to be large.
+        await _sut.WriteAsync(
+            [Entry("/music/album/a.mp3", [1]), Entry("/music/album/b.mp3", [2]), Entry("/music/c.mp3", [3])],
+            Token);
+
+        await _sut.DeletePathsAsync(["/music/album/a.mp3", "/music/album/b.mp3"], Token);
+
+        var snapshot = await _sut.SnapshotByPathAsync(Token);
+        Assert.Equal(["/music/c.mp3"], snapshot.Keys);
+    }
+
+    [Fact]
+    public async Task DeletingNoPaths_DoesNotThrow()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+
+        await _sut.DeletePathsAsync([], Token);
+
+        Assert.Equal(["/music/a.mp3"], (await _sut.SnapshotByPathAsync(Token)).Keys);
     }
 
     [Fact]
@@ -417,11 +442,66 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.ApproveIndividuallyAsync(["/music/old.mp3"], [new FieldAnswer(TrackField.Dance, "Mazurka")], Token);
 
         await _sut.WriteAsync([Entry("/music/new.mp3", [1], slug: null)], Token);
-        await _sut.DeletePathAsync("/music/old.mp3", Token);
+        await _sut.DeletePathsAsync(["/music/old.mp3"], Token);
 
         var snapshot = await _sut.SnapshotByPathAsync(Token);
         Assert.Equal(["/music/new.mp3"], snapshot.Keys);
         Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+    }
+
+    [Fact]
+    public async Task MovingAPath_KeepsARowThatCouldNotBeReachedUnreachable()
+    {
+        // A folder renamed while the drive it lived on is still away. Writing the row at its new
+        // path would mark it reachable, and dead paths would walk back into the library; the row
+        // moves instead, and being unreachable is as true of it at the new path as at the old.
+        await _sut.WriteAsync([Entry("/music/nas/a.mp3", [1])], Token);
+        await _sut.DeleteMissingAsync([], ["/music/nas/a.mp3"], Token);
+
+        await _sut.MovePathsAsync([new PathMove("/music/nas/a.mp3", "/music/NAS/a.mp3")], Token);
+
+        var snapshot = await _sut.SnapshotByPathAsync(Token);
+        Assert.Equal(["/music/NAS/a.mp3"], snapshot.Keys);
+        Assert.False(snapshot["/music/NAS/a.mp3"].IsAvailable);
+    }
+
+    [Fact]
+    public async Task MovingAPath_KeepsWhatWasDecidedAboutTheTrack()
+    {
+        // The audio is untouched, so the hash every approval hangs on is untouched, and nothing
+        // has to be opened again to work that out.
+        await _sut.WriteAsync([Entry("/music/album/a.mp3", [1], slug: null)], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/album/a.mp3"], [new FieldAnswer(TrackField.Dance, "Mazurka")], Token);
+
+        await _sut.MovePathsAsync([new PathMove("/music/album/a.mp3", "/music/Naragonia/a.mp3")], Token);
+
+        var snapshot = await _sut.SnapshotByPathAsync(Token);
+        Assert.Equal(["/music/Naragonia/a.mp3"], snapshot.Keys);
+        Assert.Equal([1], snapshot["/music/Naragonia/a.mp3"].ContentHash);
+        Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+    }
+
+    [Fact]
+    public async Task MovingAPathOntoAnother_LeavesOneRowThere()
+    {
+        // A file dragged over one that was already indexed. One path, one row, which is what a
+        // scan would conclude as well.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2])], Token);
+
+        await _sut.MovePathsAsync([new PathMove("/music/a.mp3", "/music/b.mp3")], Token);
+
+        var snapshot = await _sut.SnapshotByPathAsync(Token);
+        Assert.Equal(["/music/b.mp3"], snapshot.Keys);
+        Assert.Equal([1], snapshot["/music/b.mp3"].ContentHash);
+    }
+
+    [Fact]
+    public async Task MovingNothing_DoesNotThrow()
+    {
+        await _sut.MovePathsAsync([], Token);
+
+        Assert.Empty(await _sut.SnapshotByPathAsync(Token));
     }
 
     private static LibraryEntry Entry(string path, byte[] hash, string? slug = "mazurka")

@@ -1,8 +1,10 @@
 using System.Reactive.Linq;
 using DynamicData;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 
@@ -14,6 +16,7 @@ public sealed class QueueService : IQueueService, IDisposable
     private readonly IDisposable _settingsSubscription;
     private readonly IDisposable _historySubscription;
     private readonly IDisposable _librarySubscription;
+    private readonly IDisposable _libraryMoveSubscription;
     private readonly ILoggerService _loggerService;
     private IQueueGuard _guard;
 
@@ -44,6 +47,11 @@ public sealed class QueueService : IQueueService, IDisposable
         // finds out when the room is waiting for it. It goes the moment the file does, the same as
         // it goes from the catalogue.
         _librarySubscription = trackStore.WhenTrackFileVanished.Subscribe(ForgetTracksAt);
+
+        // A file that moved is not one that went: the DJ asked for that dance and it is still
+        // there. A queued entry holds the track it was given when it was queued, and nothing in a
+        // rebuilt library reaches into the queue, so this is the only thing that re-points it.
+        _libraryMoveSubscription = trackStore.WhenTrackFileMoved.Subscribe(RepointTracksAt);
     }
 
     /// <summary>Takes every queued entry that points at this file out of the queue.</summary>
@@ -57,6 +65,49 @@ public sealed class QueueService : IQueueService, IDisposable
             _ = _loggerService.InfoAsync($"Dropped a queued track whose file has gone: {path}");
         }
     }
+
+    /// <summary>Points every queued entry that was at this path at where the file is now.</summary>
+    private void RepointTracksAt(PathMove move)
+    {
+        var repointed = false;
+        _sourceList.Edit(list =>
+        {
+            for (var index = 0; index < list.Count; index++)
+            {
+                if (PathOf(list[index]) is not { } queued
+                    || !string.Equals(queued, move.From, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                // The row keeps its identity, because a record copy carries the id with it: the
+                // DJ's request stays where it is in the queue and the entry on screen does not
+                // move under their hand.
+                list[index] = Repointed(list[index], move.To);
+                repointed = true;
+            }
+        });
+
+        if (repointed)
+        {
+            _ = _loggerService.InfoAsync($"A queued track's file moved to: {move.To}");
+        }
+    }
+
+    private static IQueueItem Repointed(IQueueItem item, string path) => item switch
+    {
+        TrackQueueItem track => track with { Track = At(track.Track, path) },
+        AutoTrackQueueItem auto => auto with
+        {
+            TrackQueueItem = auto.TrackQueueItem with { Track = At(auto.TrackQueueItem.Track, path) }
+        },
+        _ => item
+    };
+
+    // The same filesystem the track was built against, which in a test is the one holding the
+    // fixture and never the real disk.
+    private static Track At(Track track, string path) =>
+        track with { FileInfo = track.FileInfo.FileSystem.FileInfo.New(path) };
 
     private static string? PathOf(IQueueItem item) => item switch
     {
@@ -351,6 +402,7 @@ public sealed class QueueService : IQueueService, IDisposable
         _settingsSubscription.Dispose();
         _historySubscription.Dispose();
         _librarySubscription.Dispose();
+        _libraryMoveSubscription.Dispose();
         _sourceList.Dispose();
     }
 }

@@ -6,6 +6,9 @@ namespace Ready4Balfolk.Domain.Stores.Library;
 /// <summary>One field a person answered, for approving a row in a single transaction.</summary>
 public readonly record struct FieldAnswer(TrackField Field, string Value);
 
+/// <summary>One indexed path that is now somewhere else, the file itself untouched.</summary>
+public readonly record struct PathMove(string From, string To);
+
 public interface ILibraryIndex : IDisposable
 {
     /// <summary>Opens the database and creates the schema if it is not there yet.</summary>
@@ -23,6 +26,15 @@ public interface ILibraryIndex : IDisposable
     /// by a scan, which is the whole reason the two are kept apart.
     /// </remarks>
     Task WriteAsync(IReadOnlyCollection<LibraryEntry> entries, CancellationToken token = default);
+
+    /// <summary>Re-points rows at where their files now are, in one transaction.</summary>
+    /// <remarks>
+    /// A folder that was renamed or moved holds the same audio at new paths. The row moves as it
+    /// stands, whether it could be reached included: writing it again through
+    /// <see cref="WriteAsync"/> would mark it reachable, and a row being kept as unreachable would
+    /// come back into the library pointing at a file nobody has seen.
+    /// </remarks>
+    Task MovePathsAsync(IReadOnlyCollection<PathMove> moves, CancellationToken token = default);
 
     /// <summary>
     /// What a person has agreed to, by content hash.
@@ -69,10 +81,16 @@ public interface ILibraryIndex : IDisposable
         CancellationToken token = default);
 
     /// <summary>
-    /// Forgets one path, for the watcher noticing a file go. An audio nothing points at any more is
-    /// gone along with what was decided about it, exactly as a full scan would conclude.
+    /// Forgets these paths in one transaction, for the watcher noticing files go. An audio nothing
+    /// points at any more is gone along with what was decided about it, exactly as a full scan
+    /// would conclude.
     /// </summary>
-    Task DeletePathAsync(string path, CancellationToken token = default);
+    /// <remarks>
+    /// A collection rather than a path, because one event about a folder stands for every indexed
+    /// path underneath it: the one place a batch is certain to be large is the last place to want
+    /// a transaction and an orphan sweep per row.
+    /// </remarks>
+    Task DeletePathsAsync(IReadOnlyCollection<string> paths, CancellationToken token = default);
 
     /// <summary>
     /// The values the user has said not to ask about again, folded for comparison.

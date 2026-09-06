@@ -4,10 +4,12 @@ using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
@@ -20,6 +22,7 @@ public sealed class QueueServiceTests : IDisposable
     private readonly BehaviorSubject<ApplicationSettings> _settingsSubject;
     private readonly BehaviorSubject<QueueHistory> _historySubject;
     private readonly Subject<string> _vanished;
+    private readonly Subject<PathMove> _moved;
     private Func<IQueueItem?> _currentItem = () => null;
 
     public QueueServiceTests()
@@ -40,8 +43,10 @@ public sealed class QueueServiceTests : IDisposable
         historyStore.Observe().Returns(_historySubject);
 
         _vanished = new Subject<string>();
+        _moved = new Subject<PathMove>();
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.WhenTrackFileVanished.Returns(_vanished);
+        trackStore.WhenTrackFileMoved.Returns(_moved);
 
         _sut = new QueueService(
             settingsStore, historyStore, trackStore, () => _currentItem(), () => TimeSpan.Zero,
@@ -64,6 +69,55 @@ public sealed class QueueServiceTests : IDisposable
         // waiting for it is the worst moment to find it out.
         Assert.Equal(1, _sut.Count);
         Assert.IsType<StopQueueItem>(_sut.Items[0]);
+    }
+
+    [Fact]
+    public void ATrackWhoseFileMoved_StaysInTheQueuePointingAtWhereItWent()
+    {
+        // The DJ tidies a folder up mid-evening. The library follows the files, and the queue was
+        // handed its track when the request was made, so without being told it keeps a path that
+        // is not there and the room finds out when it is that track's turn.
+        var track = TestData.CreateTrack();
+        var queued = new TrackQueueItem(track, false);
+        _sut.Enqueue(queued);
+        _sut.Enqueue(new StopQueueItem());
+
+        var moved = TidiedInto(track, "Naragonia");
+        _moved.OnNext(new PathMove(track.FileInfo.FullName, moved));
+
+        var item = Assert.IsType<TrackQueueItem>(_sut.Items[0]);
+        Assert.Equal(moved, item.Track.FileInfo.FullName);
+        // Its place and its identity, because the DJ's request did not change: only where the
+        // file is did.
+        Assert.Equal(queued.Id, item.Id);
+        Assert.Equal(2, _sut.Count);
+    }
+
+    [Fact]
+    public void TheAutoTrackWhoseFileMoved_IsRepointedToo()
+    {
+        // The preview of what plays next when nobody asks for anything, and it plays like any
+        // other track.
+        var track = TestData.CreateTrack();
+        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(track, true)));
+
+        var moved = TidiedInto(track, "Naragonia");
+        _moved.OnNext(new PathMove(track.FileInfo.FullName, moved));
+
+        var item = Assert.IsType<AutoTrackQueueItem>(_sut.Items[0]);
+        Assert.Equal(moved, item.TrackQueueItem.Track.FileInfo.FullName);
+    }
+
+    /// <summary>Where a track's file ends up when its folder is tidied up under it.</summary>
+    /// <remarks>
+    /// Built from the path the fixture's own filesystem produced, because a path spelled out here
+    /// is a different string on Windows and the assertion compares them.
+    /// </remarks>
+    private static string TidiedInto(Track track, string folder)
+    {
+        var fileSystem = track.FileInfo.FileSystem;
+        return fileSystem.Path.Combine(
+            fileSystem.Path.GetDirectoryName(track.FileInfo.FullName)!, folder, track.FileInfo.Name);
     }
 
     // --- Basic ops ---
