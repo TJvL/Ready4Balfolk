@@ -19,12 +19,17 @@ namespace Ready4Balfolk.UI.Views.Presentation;
 /// </remarks>
 public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisposable
 {
+    /// <summary>
+    /// Fixed, unlike the four templates in the settings: those shape the panels the DJ reads, and
+    /// this is the room's screen.
+    /// </summary>
+    private const string TrackLineTemplate = "%a - %t";
+
     private readonly CompositeDisposable _disposables = [];
 
     // Current item properties
     [Reactive] public partial string CurrentDance { get; set; }
-    [Reactive] public partial string CurrentArtist { get; set; }
-    [Reactive] public partial string CurrentTitle { get; set; }
+    [Reactive] public partial string CurrentTrack { get; set; }
     [Reactive] public partial bool HasCurrentItem { get; set; }
     [Reactive] public partial bool IsMessageMode { get; set; }
     [Reactive] public partial TimeSpan Duration { get; set; }
@@ -33,14 +38,12 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
 
     // Next item properties
     [Reactive] public partial string NextDance { get; set; }
-    [Reactive] public partial string NextArtist { get; set; }
-    [Reactive] public partial string NextTitle { get; set; }
+    [Reactive] public partial string NextTrack { get; set; }
     [Reactive] public partial bool HasNextItem { get; set; }
 
     // The dance waiting behind a pause, shown under it rather than instead of it.
     [Reactive] public partial string BehindDance { get; set; }
-    [Reactive] public partial string BehindArtist { get; set; }
-    [Reactive] public partial string BehindTitle { get; set; }
+    [Reactive] public partial string BehindTrack { get; set; }
     [Reactive] public partial bool HasBehindItem { get; set; }
 
     public PresentationDisplayViewModel(IPresentationStateService presentationState)
@@ -48,14 +51,11 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         ArgumentNullException.ThrowIfNull(presentationState);
 
         CurrentDance = "";
-        CurrentArtist = "";
-        CurrentTitle = "";
+        CurrentTrack = "";
         NextDance = "";
-        NextArtist = "";
-        NextTitle = "";
+        NextTrack = "";
         BehindDance = "";
-        BehindArtist = "";
-        BehindTitle = "";
+        BehindTrack = "";
         CurrentTimeLeft = "";
 
         presentationState.WhenStateChanged
@@ -79,8 +79,7 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         HasCurrentItem = state.HasCurrent;
         IsMessageMode = state.Current.Kind is PresentationItemKind.Message;
         CurrentDance = Label(state.Current);
-        CurrentArtist = state.Current.Artist;
-        CurrentTitle = state.Current.Title;
+        CurrentTrack = TrackLine(state.Current);
 
         if (!state.HasCurrent)
         {
@@ -95,22 +94,19 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         // or find a partner, and it is exactly then that the floor wants to know what for.
         HasBehindItem = state.HasBehind;
         BehindDance = state.Behind.Primary;
-        BehindArtist = state.Behind.Artist;
-        BehindTitle = state.Behind.Title;
+        BehindTrack = TrackLine(state.Behind);
 
         // A queued announcement is billed as "Message" with its text beneath, rather than shouting
         // the whole announcement in the next-up slot before its turn.
         if (state.Next.Kind is PresentationItemKind.Message)
         {
             NextDance = UiStrings.Presentation_Message;
-            NextArtist = state.Next.Primary;
-            NextTitle = "";
+            NextTrack = state.Next.Primary;
             return;
         }
 
         NextDance = Label(state.Next);
-        NextArtist = state.Next.Artist;
-        NextTitle = state.Next.Title;
+        NextTrack = TrackLine(state.Next);
     }
 
     /// <summary>
@@ -126,6 +122,16 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         PresentationItemKind.EndOfNight => UiStrings.Presentation_EndOfNight,
         _ => item.Primary
     };
+
+    /// <summary>The small line: who plays it and what it is called, as one line of text.</summary>
+    /// <remarks>
+    /// One line rather than three controls side by side. A row of artist, separator and title
+    /// cannot wrap, so at the size a hall reads from it runs off both edges of the screen, and the
+    /// separator has to be hidden by hand for every track that has no title. The template does both:
+    /// it writes the whole line, and a field with nothing in it takes its separator with it.
+    /// </remarks>
+    private static string TrackLine(PresentationItem item) =>
+        TrackTextTemplate.Render(TrackLineTemplate, string.Empty, item.Artist, item.Title);
 
     private static string FormatTimeLeft(TimeSpan remaining) =>
         $"{(int)remaining.TotalMinutes}:{remaining.Seconds:D2}";

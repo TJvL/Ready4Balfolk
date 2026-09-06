@@ -37,10 +37,14 @@
                     <Border.RenderTransform>
                         <TranslateTransform />
                     </Border.RenderTransform>
+                    <!--Wrapped, because a notification is not always a sentence somebody wrote to
+                        fit: several of them end in whatever the operating system or a server had to
+                        say, and the reason is the half that would be cut off.-->
                     <TextBlock AutomationProperties.AutomationId="notification.message"
                                Text="{Binding Message}"
                                Foreground="{DynamicResource NotificationTextBrush}"
-                               FontSize="14" />
+                               FontSize="14"
+                               TextWrapping="Wrap" />
                 </Border>
             </DataTemplate>
         </ItemsControl.ItemTemplate>

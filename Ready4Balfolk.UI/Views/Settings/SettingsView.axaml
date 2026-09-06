@@ -69,7 +69,8 @@
                                    HorizontalAlignment="Left" />
                     <TextBlock Text="{x:Static res:UiStrings.Settings_DelayDescription}"
                                FontSize="11"
-                               Opacity="0.6" />
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Spacing="8">
@@ -100,7 +101,8 @@
                     <TextBlock
                         Text="{x:Static res:UiStrings.Settings_AutoQueueDescription}"
                         FontSize="11"
-                        Opacity="0.6" />
+                        Opacity="0.6"
+                        TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Spacing="8">
@@ -245,7 +247,8 @@
 
                     <TextBlock Text="{x:Static res:UiStrings.Settings_TemplatePreview}"
                                FontSize="11"
-                               Opacity="0.6" />
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
                     <TextBlock AutomationProperties.AutomationId="settings.template-preview"
                                Text="{Binding TemplatePreview}"
                                TextWrapping="Wrap"
@@ -280,7 +283,8 @@
                                    Focusable="False" />
                     <TextBlock Text="{x:Static res:UiStrings.Settings_PresentationDescription}"
                                FontSize="11"
-                               Opacity="0.6" />
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
                 </StackPanel>
 
                 <!-- Presentation in a browser -->
@@ -326,7 +330,8 @@
                                     IsVisible="{Binding WebServerAddresses, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
                             <TextBlock Text="{x:Static res:UiStrings.Settings_WebServerAddresses}"
                                        FontSize="11"
-                                       Opacity="0.6" />
+                                       Opacity="0.6"
+                                       TextWrapping="Wrap" />
                             <SelectableTextBlock Text="{Binding WebServerAddresses}" FontSize="12" />
                         </StackPanel>
 
@@ -381,7 +386,8 @@
                               Focusable="False" />
                     <TextBlock Text="{x:Static res:UiStrings.Settings_ThemeDescription}"
                                FontSize="11"
-                               Opacity="0.6" />
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Spacing="8">
@@ -400,7 +406,8 @@
                     </ComboBox>
                     <TextBlock Text="{x:Static res:UiStrings.Settings_LanguageDescription}"
                                FontSize="11"
-                               Opacity="0.6" />
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Spacing="8">
@@ -433,7 +440,8 @@
                             Focusable="False" />
                     <TextBlock Text="{x:Static res:UiStrings.Settings_ExportLogDescription}"
                                FontSize="11"
-                               Opacity="0.6" />
+                               Opacity="0.6"
+                               TextWrapping="Wrap" />
                 </StackPanel>
 
             </StackPanel>

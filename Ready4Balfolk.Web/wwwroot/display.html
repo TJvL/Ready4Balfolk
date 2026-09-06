@@ -9,7 +9,10 @@
 <body class="display-page">
 
   <!-- The 1920x1080 grid of PresentationWindow.axaml, with every size written as its XAML
-       pixel value over 1920. A container query does here what the Viewbox does there. -->
+       pixel value over 1920. A container query does here what the outer Viewbox does there. The
+       inner ones, which shrink a half whose text has wrapped, have no equivalent: type on this
+       page is sized off the container's width, so a narrower window and a 4:3 projector leave a
+       half more height per line of text, not less. -->
   <main class="screen" id="screen">
     <section class="screen-row">
       <div class="pres-current" data-when="current">
