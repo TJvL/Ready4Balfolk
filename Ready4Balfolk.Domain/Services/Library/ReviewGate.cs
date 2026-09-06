@@ -120,6 +120,16 @@ public static class ReviewGate
         };
     }
 
+    /// <summary>Whether an answer of this dance reaches the library, or waits for the list.</summary>
+    /// <remarks>
+    /// The same question <see cref="Evaluate"/> asks, for a screen that has just written an answer
+    /// and has to say what became of it before the library has been read again. Answering it there
+    /// out of the published list alone said "parked" to a DJ whose track had gone in.
+    /// </remarks>
+    public static bool ReachesTheLibrary(
+        string dance, DanceListIndex dances, bool allowDancesOutsideTheList) =>
+        allowDancesOutsideTheList || SlugFor(dance, dances) is not null;
+
     private static ReviewReason Decide(
         LibraryEntry entry,
         IReadOnlyList<TrackApproval> approvals,
