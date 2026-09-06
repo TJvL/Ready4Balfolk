@@ -93,7 +93,29 @@ public sealed class TrackStoreTests : IDisposable
                 {
                     foreach (var entry in call.Arg<IReadOnlyCollection<LibraryEntry>>()!)
                     {
-                        _indexSnapshot[entry.Path] = entry;
+                        // Reachable, whatever the entry says, because that is what the real one
+                        // writes: available = 1 in the insert and in the conflict update alike.
+                        // Nothing reaches a write without having just been read off the disk.
+                        _indexSnapshot[entry.Path] = entry with { IsAvailable = true };
+                    }
+                }
+
+                return Task.CompletedTask;
+            });
+        _libraryIndex.MovePathsAsync(Arg.Any<IReadOnlyCollection<PathMove>>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                lock (_indexSnapshot)
+                {
+                    foreach (var (from, to) in call.Arg<IReadOnlyCollection<PathMove>>()!)
+                    {
+                        if (_indexSnapshot.Remove(from, out var entry))
+                        {
+                            // The row as it stands at a new path, which is the whole difference
+                            // from writing it: nothing about it was read again, so nothing about
+                            // it changes, whether it could be reached included.
+                            _indexSnapshot[to] = entry with { Path = to };
+                        }
                     }
                 }
 
@@ -126,12 +148,15 @@ public sealed class TrackStoreTests : IDisposable
 
                 return Task.CompletedTask;
             });
-        _libraryIndex.DeletePathAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _libraryIndex.DeletePathsAsync(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {
                 lock (_indexSnapshot)
                 {
-                    _indexSnapshot.Remove(call.Arg<string>()!);
+                    foreach (var path in call.Arg<IReadOnlyCollection<string>>()!)
+                    {
+                        _indexSnapshot.Remove(path);
+                    }
                 }
 
                 return Task.CompletedTask;
@@ -153,8 +178,14 @@ public sealed class TrackStoreTests : IDisposable
     }
 
     /// <summary>Another store over the same index and the same disk, which is the next start.</summary>
-    private TrackStore NewStore() => new(
-        _loggerService, _discoveryService, _danceListStore, _libraryIndex, _fileSystem, _missingFolderPrompt);
+    /// <remarks>
+    /// The batching windows are the store's own defaults unless a test says otherwise. A test
+    /// about what happens while a copy is still running says otherwise, or it would sit through
+    /// the real two seconds of it.
+    /// </remarks>
+    private TrackStore NewStore(TimeSpan? batchQuiet = null, TimeSpan? batchAtMost = null) => new(
+        _loggerService, _discoveryService, _danceListStore, _libraryIndex, _fileSystem, _missingFolderPrompt,
+        batchQuiet, batchAtMost);
 
     private IFileSystemWatcher CreateWatcher(string path)
     {
@@ -171,19 +202,36 @@ public sealed class TrackStoreTests : IDisposable
     private void CreateFile(IDirectoryInfo directory, string name) =>
         _fileSystem.File.WriteAllText(_fileSystem.Path.Combine(directory.FullName, name), "audio");
 
+    /// <summary>The store's current watcher on a directory, which is the one events come from.</summary>
+    private IFileSystemWatcher WatcherOn(IDirectoryInfo directory)
+    {
+        lock (_watchers)
+        {
+            return _watchers.Last(w => string.Equals(w.Path, directory.FullName, StringComparison.Ordinal)).Watcher;
+        }
+    }
+
     /// <summary>Writes a file and raises Created on the store's current watcher for its directory.</summary>
     private void CreateFileAndNotify(IDirectoryInfo directory, string name)
     {
         CreateFile(directory, name);
+        Notify(directory, name);
+    }
 
-        IFileSystemWatcher watcher;
-        lock (_watchers)
-        {
-            watcher = _watchers.Last(w => string.Equals(w.Path, directory.FullName, StringComparison.Ordinal)).Watcher;
-        }
-
+    /// <summary>Raises Created for a file that is already on the disk.</summary>
+    private void Notify(IDirectoryInfo directory, string name)
+    {
+        var watcher = WatcherOn(directory);
         watcher.Created += Raise.Event<FileSystemEventHandler>(
             watcher, new FileSystemEventArgs(WatcherChangeTypes.Created, directory.FullName, name));
+    }
+
+    /// <summary>A subfolder of the music directory, which is how a library is really arranged.</summary>
+    private IDirectoryInfo Subfolder(IDirectoryInfo parent, string name)
+    {
+        var folder = _fileSystem.DirectoryInfo.New(_fileSystem.Path.Combine(parent.FullName, name));
+        folder.Create();
+        return folder;
     }
 
     [Fact]
@@ -230,11 +278,7 @@ public sealed class TrackStoreTests : IDisposable
         await WaitUntilAsync(() => _sut.Current.Count == 1);
 
         _fileSystem.File.Delete(_fileSystem.Path.Combine(_dirA.FullName, "a.mp3"));
-        IFileSystemWatcher watcher;
-        lock (_watchers)
-        {
-            watcher = _watchers.Last(w => string.Equals(w.Path, _dirA.FullName, StringComparison.Ordinal)).Watcher;
-        }
+        var watcher = WatcherOn(_dirA);
 
         watcher.Deleted += Raise.Event<FileSystemEventHandler>(
             watcher, new FileSystemEventArgs(WatcherChangeTypes.Deleted, _dirA.FullName, "a.mp3"));
@@ -247,6 +291,286 @@ public sealed class TrackStoreTests : IDisposable
             }
         });
         await WaitUntilAsync(() => _sut.Current.Count == 0);
+    }
+
+    [Fact]
+    public async Task AFolderThatWentAway_TakesTheTracksUnderItWithIt()
+    {
+        // A folder is one event for everything under it: nothing inside is reported file by file.
+        // Tidying one up in a file manager left every track it held in the library, in the pool
+        // and in the random pick, pointing at a path that is not there, until the next restart.
+        var album = Subfolder(_dirA, "album");
+        CreateFile(album, "a.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        var vanished = new List<string>();
+        using var vanishing = _sut.WhenTrackFileVanished.Subscribe(vanished.Add);
+
+        _fileSystem.Directory.Delete(album.FullName, recursive: true);
+        var watcher = WatcherOn(_dirA);
+        watcher.Deleted += Raise.Event<FileSystemEventHandler>(
+            watcher, new FileSystemEventArgs(WatcherChangeTypes.Deleted, _dirA.FullName, "album"));
+
+        await WaitUntilAsync(() =>
+        {
+            lock (_indexSnapshot)
+            {
+                return _indexSnapshot.Count == 0;
+            }
+        });
+        await WaitUntilAsync(() => _sut.Current.Count == 0);
+
+        // And the queue is told, or a dance nobody can play sits in it waiting for its turn.
+        Assert.Equal([_fileSystem.Path.Combine(album.FullName, "a.mp3")], vanished);
+    }
+
+    [Fact]
+    public async Task AFolderThatWasRenamed_TakesItsTracksWithItWithoutReadingThemAgain()
+    {
+        var album = Subfolder(_dirA, "album");
+        CreateFile(album, "a.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        var renamed = _fileSystem.Path.Combine(_dirA.FullName, "Naragonia");
+        _fileSystem.Directory.Move(album.FullName, renamed);
+        _discoveryService.ClearReceivedCalls();
+
+        var reported = new List<PathMove>();
+        using var moving = _sut.WhenTrackFileMoved.Subscribe(reported.Add);
+
+        var watcher = WatcherOn(_dirA);
+        watcher.Renamed += Raise.Event<RenamedEventHandler>(
+            watcher, new RenamedEventArgs(WatcherChangeTypes.Renamed, _dirA.FullName, "Naragonia", "album"));
+
+        var moved = _fileSystem.Path.Combine(renamed, "a.mp3");
+        await WaitUntilAsync(() => _sut.Current.Any(track =>
+            string.Equals(track.FileInfo.FullName, moved, StringComparison.Ordinal)));
+
+        lock (_indexSnapshot)
+        {
+            Assert.Equal([moved], _indexSnapshot.Keys);
+        }
+
+        // The audio did not change, so nothing had to be opened to work out that this is the same
+        // track: the hash everything approved hangs on is the one already in hand.
+        _discoveryService.DidNotReceiveWithAnyArgs().Gather(default!, default!);
+
+        // And where it went is said out loud, because the queue holds the track it was handed when
+        // the DJ asked for it and no rebuild of the library reaches into it.
+        Assert.Equal(
+            [new PathMove(_fileSystem.Path.Combine(album.FullName, "a.mp3"), moved)],
+            reported);
+    }
+
+    [Fact]
+    public async Task AFolderThatWasRenamed_LeavesARowNobodyCanReachOutOfTheLibrary()
+    {
+        // The rows the DJ said to keep when the NAS was not there. Moving them by writing them
+        // again marks every one of them reachable, so renaming a folder puts dead paths back into
+        // the library, the pool and the random pick and drops the count that says they are missing
+        // to nothing: the same symptom the watcher is here to fix, from a folder that only moved.
+        var nas = Subfolder(_dirA, "nas");
+        CreateFile(nas, "a.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        _fileSystem.File.Delete(_fileSystem.Path.Combine(nas.FullName, "a.mp3"));
+
+        var unavailable = 0;
+        var rebuilds = 0;
+        using var restarted = NewStore();
+        using var counting = restarted.UnavailableCount.Subscribe(count =>
+        {
+            unavailable = count;
+            Interlocked.Increment(ref rebuilds);
+        });
+
+        // The scan finds the folder empty, asks, and is told to keep what is in it.
+        await restarted.ApplyAsync(_configuration);
+        await WaitUntilAsync(() => unavailable == 1);
+        var before = Volatile.Read(ref rebuilds);
+
+        // A different name and not a different case, because half the machines this runs on would
+        // call that the same folder.
+        var renamed = _fileSystem.Path.Combine(_dirA.FullName, "archive");
+        _fileSystem.Directory.Move(nas.FullName, renamed);
+        var watcher = WatcherOn(_dirA);
+        watcher.Renamed += Raise.Event<RenamedEventHandler>(
+            watcher, new RenamedEventArgs(WatcherChangeTypes.Renamed, _dirA.FullName, "archive", "nas"));
+
+        var moved = _fileSystem.Path.Combine(renamed, "a.mp3");
+        await WaitUntilAsync(() =>
+        {
+            lock (_indexSnapshot)
+            {
+                return _indexSnapshot.ContainsKey(moved);
+            }
+        });
+
+        lock (_indexSnapshot)
+        {
+            Assert.False(_indexSnapshot[moved].IsAvailable);
+        }
+
+        // And the library that was rebuilt on the back of it agrees: still nothing to play, still
+        // one row somewhere visible saying so.
+        await WaitUntilAsync(() => Volatile.Read(ref rebuilds) > before);
+        Assert.Empty(restarted.Current);
+        Assert.Equal(1, unavailable);
+    }
+
+    [Fact]
+    public async Task FilesThatKeepArriving_ReachTheLibraryBeforeTheCopyIsOver()
+    {
+        // Quiet on its own is no boundary while a copy is running: every file that lands pushes it
+        // out again, so a folder copied in over a minute used to reach the library in one lump at
+        // the end of it and the DJ watching the count saw a library that had noticed nothing.
+        var quiet = TimeSpan.FromMilliseconds(200);
+        using var store = NewStore(quiet, TimeSpan.FromMilliseconds(400));
+        CreateFile(_dirA, "a.mp3");
+        _configuration = _configuration with { MusicDirectoryPath = _dirA.FullName };
+        await store.ApplyAsync(_configuration);
+        await WaitUntilAsync(() => store.Current.Count == 1);
+
+        // Written first and reported one at a time afterwards, so the copy is nothing but a stream
+        // of events that never pauses for as long as the batch would like.
+        for (var i = 0; i < 40; i++)
+        {
+            CreateFile(_dirA, $"b{i}.mp3");
+        }
+
+        using var copying = new CancellationTokenSource();
+        var copy = Task.Run(async () =>
+        {
+            // Round and round until the test has what it is waiting for: a copy that stops is a
+            // copy whose quiet window expires, and then nothing is being proved.
+            for (var i = 0; !copying.IsCancellationRequested; i++)
+            {
+                Notify(_dirA, $"b{i % 40}.mp3");
+                await Task.Delay(quiet / 4, CancellationToken.None);
+            }
+        }, CancellationToken.None);
+
+        await WaitUntilAsync(() => store.Current.Count > 1);
+
+        await copying.CancelAsync();
+        await copy;
+    }
+
+    [Fact]
+    public async Task FilesThatArriveTogether_AreOneWriteAndOneRebuild()
+    {
+        // Copying an album in is one act. Answering it file by file was an index write and a full
+        // rebuild of the published library each, sorted and rebound on the UI thread, while the
+        // DJ was working.
+        CreateFile(_dirA, "a.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        _libraryIndex.ClearReceivedCalls();
+
+        CreateFileAndNotify(_dirA, "b.mp3");
+        CreateFileAndNotify(_dirA, "c.mp3");
+        CreateFileAndNotify(_dirA, "d.mp3");
+
+        await WaitUntilAsync(() => _sut.Current.Count == 4);
+
+        Assert.Single(
+            _libraryIndex.ReceivedCalls(),
+            call => call.GetMethodInfo().Name == nameof(ILibraryIndex.WriteAsync));
+    }
+
+    [Fact]
+    public async Task FilesThatArriveTogether_SpeakForEachOther()
+    {
+        // A folder of ten mazurkas dropped in at once is one batch, and answering each of its
+        // files as though the others were not there is the divergence the folder pass exists to
+        // close: the same album resolved after a restart, where the scan does see the whole
+        // folder, and left the DJ with a review screen full of tracks that had already been
+        // answered by their own siblings.
+        CreateFile(_dirA, "a.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        // The one that names nothing arrives first, so nothing about this rests on the order the
+        // events happened to come in.
+        CreateFileAndNotify(_dirA, "b.mp3");
+        CreateFileAndNotify(_dirA, "Mazurka - c.mp3");
+
+        await WaitUntilAsync(() => _sut.Current.Count == 3);
+
+        var quiet = _fileSystem.Path.Combine(_dirA.FullName, "b.mp3");
+        lock (_indexSnapshot)
+        {
+            Assert.Equal("mazurka", _indexSnapshot[quiet].DanceSlug);
+        }
+    }
+
+    [Fact]
+    public async Task AFileDeletedWhileItsFolderMoved_IsForgottenRatherThanMovedWithIt()
+    {
+        // Both in the same window: one track thrown away, and the folder around it tidied up.
+        // Re-pointing the deleted row first renames it past the delete that is coming for it, and
+        // the track the DJ got rid of is back in the library under the folder's new name, pointing
+        // at a file that is not there, which is the defect this whole change is here to fix.
+        var album = Subfolder(_dirA, "album");
+        CreateFile(album, "a.mp3");
+        CreateFile(album, "dud.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 2);
+
+        _fileSystem.File.Delete(_fileSystem.Path.Combine(album.FullName, "dud.mp3"));
+        var renamed = _fileSystem.Path.Combine(_dirA.FullName, "Naragonia");
+        _fileSystem.Directory.Move(album.FullName, renamed);
+
+        var watcher = WatcherOn(_dirA);
+        watcher.Deleted += Raise.Event<FileSystemEventHandler>(
+            watcher, new FileSystemEventArgs(WatcherChangeTypes.Deleted, album.FullName, "dud.mp3"));
+        watcher.Renamed += Raise.Event<RenamedEventHandler>(
+            watcher, new RenamedEventArgs(WatcherChangeTypes.Renamed, _dirA.FullName, "Naragonia", "album"));
+
+        // The published library is rebuilt as the batch's last act, so the track that really did
+        // move showing up there means every index write of that batch is behind us.
+        var moved = _fileSystem.Path.Combine(renamed, "a.mp3");
+        await WaitUntilAsync(() => _sut.Current.Any(track =>
+            string.Equals(track.FileInfo.FullName, moved, StringComparison.Ordinal)));
+
+        lock (_indexSnapshot)
+        {
+            Assert.Equal([moved], _indexSnapshot.Keys);
+        }
+
+        Assert.Single(_sut.Current);
+    }
+
+    [Fact]
+    public async Task AFolderThatWentAway_IsForgottenInOneCall()
+    {
+        // One event about a folder expands into every indexed path under it, so this is the one
+        // place the batch is guaranteed to be large. A transaction and an orphan sweep per path,
+        // on a database the review screen and the random pick read through the same gate, is the
+        // opposite of what the batching is for.
+        var album = Subfolder(_dirA, "album");
+        CreateFile(album, "a.mp3");
+        CreateFile(album, "b.mp3");
+        CreateFile(album, "c.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 3);
+
+        _libraryIndex.ClearReceivedCalls();
+
+        _fileSystem.Directory.Delete(album.FullName, recursive: true);
+        var watcher = WatcherOn(_dirA);
+        watcher.Deleted += Raise.Event<FileSystemEventHandler>(
+            watcher, new FileSystemEventArgs(WatcherChangeTypes.Deleted, _dirA.FullName, "album"));
+
+        await WaitUntilAsync(() => _sut.Current.Count == 0);
+
+        Assert.Single(
+            _libraryIndex.ReceivedCalls(),
+            call => call.GetMethodInfo().Name == nameof(ILibraryIndex.DeletePathsAsync));
     }
 
     [Fact]
