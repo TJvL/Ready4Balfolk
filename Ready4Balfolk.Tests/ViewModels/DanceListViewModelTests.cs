@@ -336,7 +336,7 @@ public sealed class DanceListViewModelTests : IDisposable
     // --- Where the list came from ---
 
     [Fact]
-    public void Origin_ShippedWithTheApplication_SaysSo() =>
+    public void Origin_NoListYet_SaysSo() =>
         Assert.Equal(UiStrings.DanceList_NoListYet, _sut.OriginText);
 
     [Fact]

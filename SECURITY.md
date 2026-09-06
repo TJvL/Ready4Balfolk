@@ -27,8 +27,9 @@ The remote is guarded by a six-digit PIN exchanged once for a token, with a per-
 five wrong attempts. The PIN protects against someone idly poking at the port, not against a
 determined attacker with time on the same network.
 
-**The dance list is fetched over HTTPS** from BigBalfolkList and replaced wholesale. A first run with
-no network uses the copy shipped inside the binary.
+**The dance list is fetched over HTTPS** from BigBalfolkList and replaced wholesale. No copy is
+shipped inside the binary, so a machine that never goes online gets its list from a `dances.json`
+the user imports, which is parsed and validated exactly like a downloaded one.
 
 ## Out of scope
 

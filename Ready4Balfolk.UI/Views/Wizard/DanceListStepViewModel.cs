@@ -25,9 +25,8 @@ public sealed partial class DanceListStepViewModel(
     : WizardStepViewModel
 {
     /// <summary>
-    /// How recently the list must have been fetched for this step to leave it alone. The
-    /// application refreshes at startup, and on a first run this step is reached seconds later:
-    /// without this it would ask BigBalfolkList for the same file twice in one minute.
+    /// How recently the list must have arrived, by fetch or by import, for the fetch button to
+    /// leave it alone.
     /// </summary>
     private static readonly TimeSpan RecentlyFetched = TimeSpan.FromMinutes(5);
 

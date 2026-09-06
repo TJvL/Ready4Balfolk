@@ -18,11 +18,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <!-- The published dance list, shipped so a first run with no network still has one. It is
-           replaced wholesale by a fetch; nothing merges into it. -->
-    </ItemGroup>
-
-    <ItemGroup>
       <EmbeddedResource Update="Resources\DomainStrings.resx">
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>DomainStrings.Designer.cs</LastGenOutput>
