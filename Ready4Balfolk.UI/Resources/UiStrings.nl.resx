@@ -1068,6 +1068,18 @@
   <data name="TrackCatalog_EditTrack" xml:space="preserve">
     <value>Nummer bewerken</value>
   </data>
+  <data name="TrackCatalog_WithdrawTrack" xml:space="preserve">
+    <value>Mijn antwoord terugnemen</value>
+  </data>
+  <data name="TrackCatalog_WithdrawTrackHint" xml:space="preserve">
+    <value>Haalt dit nummer uit de bibliotheek en zet het terug in de reviewrij, en neemt je antwoord op elk veld ervan terug. Het bestand zelf blijft ongemoeid.</value>
+  </data>
+  <data name="TrackCatalog_WithdrawnTrack" xml:space="preserve">
+    <value>{0} staat niet meer in de bibliotheek en wacht weer op je in review. Wat al in de wachtrij staat, speelt gewoon door.</value>
+  </data>
+  <data name="TrackCatalog_NothingToWithdraw" xml:space="preserve">
+    <value>Je hebt {0} nooit zelf beantwoord. Het staat in de bibliotheek op je regels of op zijn eigen tags, en dat neem je terug door die regel te wijzigen.</value>
+  </data>
   <data name="EditTrack_WindowTitle" xml:space="preserve">
     <value>Nummer bewerken</value>
   </data>
@@ -1122,7 +1134,7 @@
     <value>Er wacht niets. Nieuwe bestanden, opnieuw getagde bestanden en hernoemde bestanden komen hier vanzelf terug.</value>
   </data>
   <data name="Review_Keys" xml:space="preserve">
-    <value>Tab tussen de velden, omhoog en omlaag tussen de nummers. Enter beantwoordt er één, Shift+Enter de hele map. Shift+Spatie luistert, Escape stopt, en de pijltjes springen dan vijf seconden. Het minst zekere staat bovenaan, dus eerder stoppen laat je bibliotheek alsnog beter achter.</value>
+    <value>Tab tussen de velden, omhoog en omlaag tussen de nummers. Enter beantwoordt er één, Shift+Enter de hele map, Ctrl+Z neemt een antwoord terug. Shift+Spatie luistert, Escape stopt, en de pijltjes springen dan vijf seconden. Het minst zekere staat bovenaan, dus eerder stoppen laat je bibliotheek alsnog beter achter.</value>
   </data>
   <data name="Review_Waiting" xml:space="preserve">
     <value>{0} nummers wachten, in {1} mappen.</value>
@@ -1132,6 +1144,15 @@
   </data>
   <data name="Review_Approve" xml:space="preserve">
     <value>Beantwoorden (Enter)</value>
+  </data>
+  <data name="Review_Withdraw" xml:space="preserve">
+    <value>Antwoord terugnemen (Ctrl+Z)</value>
+  </data>
+  <data name="Review_WithdrawHint" xml:space="preserve">
+    <value>Zet dit nummer terug in review en uit de bibliotheek, en neemt je antwoord op elk veld ervan terug. Het bestand zelf blijft ongemoeid.</value>
+  </data>
+  <data name="Review_Withdrawn" xml:space="preserve">
+    <value>{0} wacht weer op je en staat niet meer in de bibliotheek. Wat al in de wachtrij staat, speelt gewoon door.</value>
   </data>
   <data name="Review_ApproveFolder" xml:space="preserve">
     <value>Hele map beantwoorden (Shift+Enter)</value>

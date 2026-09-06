@@ -1,9 +1,12 @@
 using System.IO.Abstractions;
 using NSubstitute;
+using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.Library;
+using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Integration;
 
@@ -384,6 +387,131 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.DeleteMissingAsync(["/music/a.mp3"], ["/music/nas/b.mp3"], Token);
 
         Assert.Equal(1, await _sut.CountIndexedAsync(Token));
+    }
+
+    [Fact]
+    public async Task Withdrawing_TakesBackEveryFieldThePersonAnswered()
+    {
+        // The answer was one act over three boxes, so taking it back is one act too: half of it
+        // left standing is a row that reads as answered on the artist and asks about the dance.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/a.mp3"],
+            [
+                new FieldAnswer(TrackField.Dance, "mazurka"),
+                new FieldAnswer(TrackField.Artist, "Naragonia"),
+                new FieldAnswer(TrackField.Title, "Le badaud")
+            ],
+            Token);
+
+        await _sut.WithdrawIndividualApprovalsAsync(["/music/a.mp3"], Token);
+
+        Assert.Empty(await _sut.ApprovalsAsync(Token));
+    }
+
+    [Fact]
+    public async Task ATrackWhoseAnswerIsTakenBack_IsWaitingForAPersonAgain()
+    {
+        // The whole round trip, and the reason taking one back cannot live on a review row alone:
+        // the queue is built from the index and drops everything already in the library, so an
+        // answered track has no row. What puts it back in the queue is the answer leaving the
+        // index, whichever screen asked for that and however long ago the answer was given.
+        var dances = DanceListIndex.Build(TestData.CreateSimpleDanceList());
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/a.mp3"],
+            [
+                new FieldAnswer(TrackField.Dance, "mazurka"),
+                new FieldAnswer(TrackField.Artist, "Artist"),
+                new FieldAnswer(TrackField.Title, "Title")
+            ],
+            Token);
+        Assert.Empty(await QueuedAsync(dances));
+
+        await _sut.WithdrawIndividualApprovalsAsync(["/music/a.mp3"], Token);
+
+        var group = Assert.Single(await QueuedAsync(dances));
+        Assert.Equal("/music/a.mp3", Assert.Single(group.Tracks).Path);
+    }
+
+    /// <summary>What the review screen would be showing, built the way the screen builds it.</summary>
+    /// <remarks>No music directory, because which folder a row falls under plays no part here.</remarks>
+    private async Task<IReadOnlyList<ReviewGroup>> QueuedAsync(DanceListIndex dances) =>
+        ReviewQueueBuilder.Build(
+            await _sut.SnapshotByPathAsync(Token),
+            await _sut.ApprovalsAsync(Token),
+            dances,
+            string.Empty);
+
+    [Fact]
+    public async Task Withdrawing_TakesBackAFieldTheAnswerTookOverFromARule()
+    {
+        // Answering a row writes all three of its fields as the person's own, so a field a rule had
+        // answered before them stops being the rule's the moment they answer. Taking the answer
+        // back takes back what the person owns, and that field is one of them: it is left with no
+        // approval at all until a scan reads the rules over the file again. Nothing here can put a
+        // rule's answer back, because nothing here remembers what it was.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+        await _sut.ApproveAsync([ByRule([1], TrackField.Artist, "Naragonia")], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/a.mp3"],
+            [
+                new FieldAnswer(TrackField.Dance, "mazurka"),
+                new FieldAnswer(TrackField.Artist, "Naragonia"),
+                new FieldAnswer(TrackField.Title, "Le badaud")
+            ],
+            Token);
+
+        await _sut.WithdrawIndividualApprovalsAsync(["/music/a.mp3"], Token);
+
+        Assert.Empty(await _sut.ApprovalsAsync(Token));
+    }
+
+    [Fact]
+    public async Task Withdrawing_SaysHowManyAnswersItTookBack()
+    {
+        // A track in the library on its rules alone has no answer to take back, and a caller that
+        // cannot tell the two apart has to claim a track left the library when it did not.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2])], Token);
+        await _sut.ApproveAsync([ByRule([2], TrackField.Artist, "Naragonia")], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/a.mp3"],
+            [new FieldAnswer(TrackField.Dance, "mazurka"), new FieldAnswer(TrackField.Title, "Le badaud")],
+            Token);
+
+        Assert.Equal(2, await _sut.WithdrawIndividualApprovalsAsync(["/music/a.mp3"], Token));
+        Assert.Equal(0, await _sut.WithdrawIndividualApprovalsAsync(["/music/b.mp3"], Token));
+    }
+
+    [Fact]
+    public async Task Withdrawing_LeavesARuleAnswerNobodyAnsweredOver()
+    {
+        // A rule is vouched for separately, and a rule change is what takes it back. Taking a hand
+        // answer back must not quietly revoke the rules along with it.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+        await _sut.ApproveAsync([ByRule([1], TrackField.Artist, "Naragonia")], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/a.mp3"], [new FieldAnswer(TrackField.Dance, "mazurka")], Token);
+
+        await _sut.WithdrawIndividualApprovalsAsync(["/music/a.mp3"], Token);
+
+        var approval = Assert.Single((await _sut.ApprovalsAsync(Token))[LibraryKey.For([1])]);
+        Assert.Equal(TrackField.Artist, approval.Field);
+        Assert.Equal(ApprovalKind.ByRule, approval.Kind);
+    }
+
+    [Fact]
+    public async Task WithdrawingLandsOnTheAudio_SoBothCopiesOfATrackLoseIt()
+    {
+        // The mirror of an approval landing on both: one press answered the audio, one press takes
+        // the audio back, or the copy that was not clicked keeps an answer nobody stands behind.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9]), Entry("/music/compilation/a.mp3", [9])], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/a.mp3"], [new FieldAnswer(TrackField.Dance, "mazurka")], Token);
+
+        await _sut.WithdrawIndividualApprovalsAsync(["/music/compilation/a.mp3"], Token);
+
+        Assert.Empty(await _sut.ApprovalsAsync(Token));
     }
 
     private static TrackApproval ByRule(byte[] hash, TrackField field, string value) => new()

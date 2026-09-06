@@ -31,6 +31,19 @@
                         <PathIcon Data="{StaticResource IconPencil}" Width="14" Height="14" />
                     </MenuItem.Icon>
                 </MenuItem>
+                <!-- Beside the pencil, because the two answer the same complaint: this is wrong,
+                     and either I know what it should say or I want to be asked about it again.
+                     The lasting way back from an answer, since the review queue drops a track the
+                     moment it is in the library and the row that gave the answer is gone by the
+                     next scan. -->
+                <MenuItem AutomationProperties.AutomationId="catalog.withdraw"
+                          Header="{x:Static res:UiStrings.TrackCatalog_WithdrawTrack}"
+                          ToolTip.Tip="{x:Static res:UiStrings.TrackCatalog_WithdrawTrackHint}"
+                          Command="{Binding WithdrawTrackCommand}">
+                    <MenuItem.Icon>
+                        <PathIcon Data="{StaticResource IconClose}" Width="14" Height="14" />
+                    </MenuItem.Icon>
+                </MenuItem>
             </ContextMenu>
         </DataGrid.ContextMenu>
         <DataGrid.Styles>
