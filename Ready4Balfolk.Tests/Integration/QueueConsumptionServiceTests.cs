@@ -12,6 +12,7 @@ using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
@@ -64,6 +65,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
 
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.WhenTrackFileVanished.Returns(Observable.Never<string>());
+        trackStore.WhenTrackFileMoved.Returns(Observable.Never<PathMove>());
 
         _queue = new QueueService(
             _settingsStore, _history, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService(),

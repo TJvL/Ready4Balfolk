@@ -20,7 +20,8 @@ namespace Ready4Balfolk.UI.Views.Review;
 /// <remarks>
 /// Two thousand mouse trips is the difference between an evening and never, so a row is answered
 /// without the hands leaving the keys: selecting one puts the caret where the typing has to start,
-/// Tab walks its three fields, Enter answers the row and Shift+Enter answers the folder.
+/// Tab walks its three fields, Enter answers the row, Shift+Enter answers the folder and Ctrl+Z
+/// takes an answer back.
 /// </remarks>
 public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
 {
@@ -72,6 +73,17 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
                 e.Handled = true;
                 return;
             }
+        }
+
+        // Undo, on the row the caret is in rather than on the selected row, and only while that row
+        // has been answered: on a row still being typed into, Ctrl+Z belongs to the box under the
+        // caret, and taking the selected row's answer back instead would undo somebody else's work
+        // and eat the keystroke the typist meant.
+        if (e.Key is Key.Z && e.KeyModifiers.HasFlag(KeyModifiers.Control) && typing.IsApproved)
+        {
+            ViewModel.WithdrawCommand.Execute(typing).Subscribe();
+            e.Handled = true;
+            return;
         }
 
         // An if-chain rather than a switch on the key: a switch over an enum invites "populate

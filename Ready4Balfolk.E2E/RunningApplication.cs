@@ -138,6 +138,18 @@ public sealed class RunningApplication : IAsyncDisposable
         return found!;
     }
 
+    /// <summary>Whether the thing with this automation id is showing inside one row.</summary>
+    /// <remarks>
+    /// The negative of <see cref="Within"/>, which fails when nothing is there: a row that shows one
+    /// button in place of another has to be readable both ways round.
+    /// </remarks>
+    public static bool IsShowingWithin(Control row, string automationId)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        return Screen.AllWith(row, automationId).Any(control => control.IsEffectivelyVisible);
+    }
+
     /// <summary>Clears a box inside one row and types this into it.</summary>
     public void TypeIntoWithin(Control row, string automationId, string text)
     {
@@ -237,6 +249,24 @@ public sealed class RunningApplication : IAsyncDisposable
         Settle();
     }
 
+    /// <summary>Right clicks a control, which is how a row's own menu is opened.</summary>
+    public void RightClick(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+
+        control.BringIntoView();
+        Settle();
+
+        var window = control.FindAncestorOfType<Window>() ?? Window;
+        var middle = new Point(control.Bounds.Width / 2, control.Bounds.Height / 2);
+        var inWindow = control.TranslatePoint(middle, window)
+                       ?? throw new InvalidOperationException("The control clicked on is not in its window.");
+
+        window.MouseDown(inWindow, MouseButton.Right);
+        window.MouseUp(inWindow, MouseButton.Right);
+        Settle();
+    }
+
     /// <summary>Whether these words are anywhere on screen.</summary>
     public bool SaysAnywhere(string text) =>
         Everywhere()
@@ -306,10 +336,13 @@ public sealed class RunningApplication : IAsyncDisposable
     }
 
     /// <summary>Presses a key, for the choices a keyboard makes better than a mouse.</summary>
-    public void Press(PhysicalKey key)
+    public void Press(PhysicalKey key) => Press(key, RawInputModifiers.None);
+
+    /// <summary>Presses a key with something held down, for the shortcuts that need one.</summary>
+    public void Press(PhysicalKey key, RawInputModifiers modifiers)
     {
-        Window.KeyPressQwerty(key, RawInputModifiers.None);
-        Window.KeyReleaseQwerty(key, RawInputModifiers.None);
+        Window.KeyPressQwerty(key, modifiers);
+        Window.KeyReleaseQwerty(key, modifiers);
         Settle();
     }
 

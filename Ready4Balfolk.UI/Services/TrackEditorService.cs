@@ -9,7 +9,7 @@ using Ready4Balfolk.UI.Views.Dialogs.EditTrack;
 
 namespace Ready4Balfolk.UI.Services;
 
-/// <summary>Opens the edit dialog for a library track and applies what was decided in it.</summary>
+/// <summary>What can be done about a library track's answer: changed here, or taken back.</summary>
 public sealed class TrackEditorService(
     IDanceListStore danceListStore,
     ILibraryIndex libraryIndex,
@@ -66,5 +66,34 @@ public sealed class TrackEditorService(
             await libraryIndex.ApproveIndividuallyAsync([track.FileInfo.FullName], answers);
             await trackStore.RefreshLibraryAsync();
         }
+    }
+
+    /// <summary>
+    /// Takes back the answer somebody gave this track, so it leaves the library and waits again.
+    /// </summary>
+    /// <remarks>
+    /// The lasting way out of an individual approval, and the reason it lives beside the library
+    /// rather than only in the review queue: that queue is rebuilt from the index on every scan and
+    /// drops everything already in the library, so a track answered last week has no row to press a
+    /// button on. Where it does still exist is here, in the list of what got through the gate.
+    /// </remarks>
+    /// <returns>
+    /// False when nothing was taken back, which is a track in the library on its rules or its tags
+    /// rather than on anything a person answered. Saying so is the caller's job: silently doing
+    /// nothing reads as the command having failed.
+    /// </returns>
+    public async Task<bool> WithdrawAsync(Track track)
+    {
+        var taken = await libraryIndex.WithdrawIndividualApprovalsAsync([track.FileInfo.FullName]);
+        if (taken == 0)
+        {
+            return false;
+        }
+
+        // The track is out of the library the moment the answer is, because that is the whole
+        // point: it is a question again and nothing may draw it. What is already in tonight's queue
+        // stays there and still plays.
+        await trackStore.RefreshLibraryAsync();
+        return true;
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -11,6 +12,7 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Tracks;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.TrackCatalog;
@@ -45,6 +47,40 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
         {
             await _trackEditor.EditAsync(row.Track);
         }
+    }
+
+    /// <summary>
+    /// Takes back the answer a person gave a track, which puts it out of the library and back in
+    /// review.
+    /// </summary>
+    /// <remarks>
+    /// Here because this is where a track that has been through the gate still exists: the review
+    /// queue is rebuilt from the index and drops everything already in the library, so the row that
+    /// was answered is gone by the next scan and an answer given last week has nothing left to press
+    /// a button on. Beside the pencil, because the two are the same question: this answer is wrong,
+    /// and either I know the right one or I want to be asked again.
+    /// </remarks>
+    [ReactiveCommand]
+    private async Task WithdrawTrackAsync(TrackViewModel? track)
+    {
+        if ((track ?? SelectedTrack) is not { } row)
+        {
+            return;
+        }
+
+        if (await _trackEditor.WithdrawAsync(row.Track))
+        {
+            _notificationService.Show(
+                string.Format(CultureInfo.CurrentCulture, UiStrings.TrackCatalog_WithdrawnTrack, row.Title),
+                NotificationSeverity.Information);
+            return;
+        }
+
+        // Nothing of this track was answered by hand, so nothing was taken back. Said out loud,
+        // because a command that quietly does nothing reads as one that failed.
+        _notificationService.Show(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.TrackCatalog_NothingToWithdraw, row.Title),
+            NotificationSeverity.Warning);
     }
 
     [ReactiveCommand]

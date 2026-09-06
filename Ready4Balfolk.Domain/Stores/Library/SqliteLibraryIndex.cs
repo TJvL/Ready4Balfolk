@@ -289,6 +289,61 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         }
     }
 
+    public async Task MovePathsAsync(IReadOnlyCollection<PathMove> moves, CancellationToken token = default)
+    {
+        ArgumentNullException.ThrowIfNull(moves);
+
+        if (moves.Count == 0)
+        {
+            return;
+        }
+
+        await _gate.WaitAsync(token);
+        try
+        {
+            var connection = await EnsureOpenLockedAsync(token);
+            await using var transaction = await connection.BeginTransactionAsync(token);
+
+            await using (var move = connection.CreateCommand())
+            {
+                move.Transaction = (SqliteTransaction)transaction;
+                // The path column and nothing else. The audio is untouched, so the hash the row is
+                // keyed by, its size, its write time and whether anybody could reach it are all
+                // still exactly as true as they were; an upsert would set available back to 1 and
+                // put a row that is being kept as unreachable back into the library.
+                //
+                // OR REPLACE covers something already being indexed where this row is going, which
+                // is a file that was overwritten: one path, one row, as a scan would leave it.
+                move.CommandText = "UPDATE OR REPLACE track_paths SET path = $to WHERE path = $from;";
+                var from = move.Parameters.Add("$from", SqliteType.Text);
+                var to = move.Parameters.Add("$to", SqliteType.Text);
+
+                foreach (var (fromPath, toPath) in moves)
+                {
+                    from.Value = fromPath;
+                    to.Value = toPath;
+                    await move.ExecuteNonQueryAsync(token);
+                }
+            }
+
+            // Only reachable when a replaced row was the last one pointing at its audio, and then
+            // it is the same conclusion every other write here draws: an audio nothing points at
+            // is gone, along with what was decided about it.
+            await ExecuteAsync(connection,
+                "DELETE FROM tracks WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
+                token, (SqliteTransaction)transaction);
+            await ExecuteAsync(connection,
+                "DELETE FROM approvals WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
+                token, (SqliteTransaction)transaction);
+
+            await transaction.CommitAsync(token);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public async Task<IReadOnlyDictionary<string, IReadOnlyList<TrackApproval>>> ApprovalsAsync(
         CancellationToken token = default)
     {
@@ -463,6 +518,50 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         }
     }
 
+    public async Task<int> WithdrawIndividualApprovalsAsync(
+        IReadOnlyCollection<string> paths, CancellationToken token = default)
+    {
+        if (paths.Count == 0)
+        {
+            return 0;
+        }
+
+        await _gate.WaitAsync(token);
+        try
+        {
+            var connection = await EnsureOpenLockedAsync(token);
+            await using var transaction = await connection.BeginTransactionAsync(token);
+            await using var command = connection.CreateCommand();
+            command.Transaction = (SqliteTransaction)transaction;
+
+            // By path onto the audio, the way the answer was given: one press answered both copies
+            // of a duplicated track, and one press takes both back. Every field of it goes, because
+            // the three boxes were one act. A row a rule gave and nobody answered over is left where
+            // it stands: the user vouched for the rule separately, and a rule change is what undoes
+            // that.
+            command.CommandText = $"""
+                DELETE FROM approvals
+                WHERE kind = {(int)ApprovalKind.Individual}
+                  AND content_hash IN (SELECT p.content_hash FROM track_paths p WHERE p.path = $path);
+                """;
+
+            var path = command.Parameters.Add("$path", SqliteType.Text);
+            var taken = 0;
+            foreach (var target in paths)
+            {
+                path.Value = target;
+                taken += await command.ExecuteNonQueryAsync(token);
+            }
+
+            await transaction.CommitAsync(token);
+            return taken;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public async Task DeleteMissingAsync(
         IReadOnlyCollection<string> existingPaths,
         IReadOnlyCollection<string> unavailablePaths,
@@ -533,8 +632,15 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         }
     }
 
-    public async Task DeletePathAsync(string path, CancellationToken token = default)
+    public async Task DeletePathsAsync(IReadOnlyCollection<string> paths, CancellationToken token = default)
     {
+        ArgumentNullException.ThrowIfNull(paths);
+
+        if (paths.Count == 0)
+        {
+            return;
+        }
+
         await _gate.WaitAsync(token);
         try
         {
@@ -545,8 +651,16 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             {
                 delete.Transaction = (SqliteTransaction)transaction;
                 delete.CommandText = "DELETE FROM track_paths WHERE path = $path;";
-                delete.Parameters.AddWithValue("$path", path);
-                await delete.ExecuteNonQueryAsync(token);
+                var path = delete.Parameters.Add("$path", SqliteType.Text);
+
+                // One transaction for the lot, and the orphan sweep below runs once at the end of
+                // it. A folder sent to the recycle bin is every path under it, and the review
+                // screen and the random pick are reading through the same gate.
+                foreach (var gone in paths)
+                {
+                    path.Value = gone;
+                    await delete.ExecuteNonQueryAsync(token);
+                }
             }
 
             // The same conclusion a full scan draws: an audio nothing points at any more is gone,
