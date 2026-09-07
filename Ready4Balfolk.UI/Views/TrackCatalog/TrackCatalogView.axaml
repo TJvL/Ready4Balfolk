@@ -9,6 +9,7 @@
              x:Class="Ready4Balfolk.UI.Views.TrackCatalog.TrackCatalogView"
              x:DataType="local:TrackCatalogViewModel">
     <controls:LoadingContainer IsLoading="{Binding IsLoading}">
+    <Panel>
     <DataGrid
         x:Name="TracksDataGrid"
         AutomationProperties.AutomationId="catalog.tracks"
@@ -99,5 +100,20 @@
                                 Width="100" />
         </DataGrid.Columns>
     </DataGrid>
+
+    <!-- What the blank grid means, since it looks the same whether nothing has been found, it is
+         all waiting behind review, or a search matched nothing. -->
+    <TextBlock AutomationProperties.AutomationId="catalog.empty"
+               Text="{Binding EmptyStateText}"
+               IsVisible="{Binding EmptyStateText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               MaxWidth="360"
+               TextAlignment="Center"
+               TextWrapping="Wrap"
+               FontSize="16"
+               Opacity="0.7"
+               IsHitTestVisible="False" />
+    </Panel>
     </controls:LoadingContainer>
 </UserControl>

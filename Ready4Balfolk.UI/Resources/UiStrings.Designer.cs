@@ -1057,6 +1057,18 @@ public static class UiStrings
     public static string TrackCatalog_NothingToWithdraw =>
         ResourceManager.GetString("TrackCatalog_NothingToWithdraw", Culture)!;
 
+    public static string TrackCatalog_EmptySearch =>
+        ResourceManager.GetString("TrackCatalog_EmptySearch", Culture)!;
+
+    public static string TrackCatalog_EmptyNoFolder =>
+        ResourceManager.GetString("TrackCatalog_EmptyNoFolder", Culture)!;
+
+    public static string TrackCatalog_EmptyReviewWaiting =>
+        ResourceManager.GetString("TrackCatalog_EmptyReviewWaiting", Culture)!;
+
+    public static string TrackCatalog_EmptyNoTracks =>
+        ResourceManager.GetString("TrackCatalog_EmptyNoTracks", Culture)!;
+
     public static string EditTrack_WindowTitle =>
         ResourceManager.GetString("EditTrack_WindowTitle", Culture)!;
 
