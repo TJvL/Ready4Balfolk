@@ -42,6 +42,14 @@ public sealed class RemoteHub(
     /// <summary>How many search results a phone screen is sent.</summary>
     private const int MaxSearchResults = 40;
 
+    /// <summary>The longest a message can be, matching the desktop dialog's own <c>MaxLength</c>.</summary>
+    /// <remarks>
+    /// The textarea on the phone page is a courtesy, not a guard: anybody on the venue wifi who has
+    /// the PIN can call this method directly with whatever a browser's dev tools, or nothing running
+    /// a browser at all, will send. This is the one place the limit actually holds.
+    /// </remarks>
+    private const int MaxMessageLength = 60;
+
     /// <summary>Rejects the connection outright unless it carries a token issued for the PIN.</summary>
     public override async Task OnConnectedAsync()
     {
@@ -117,9 +125,17 @@ public sealed class RemoteHub(
             : new CommandResultDto(false, "No end-of-the-night audio has been chosen at the computer"));
 
     public Task<CommandResultDto> QueueMessage(string text) => dispatcher.InvokeAsync(() =>
-        string.IsNullOrWhiteSpace(text)
-            ? new CommandResultDto(false, "A message needs some text")
-            : Enqueue(new MessageQueueItem(text.Trim())));
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return new CommandResultDto(false, "A message needs some text");
+        }
+
+        var trimmed = text.Trim();
+        return trimmed.Length > MaxMessageLength
+            ? new CommandResultDto(false, $"A message can be at most {MaxMessageLength} characters")
+            : Enqueue(new MessageQueueItem(trimmed));
+    });
 
     public Task<CommandResultDto> QueueTrack(string id) => dispatcher.InvokeAsync(() =>
     {
