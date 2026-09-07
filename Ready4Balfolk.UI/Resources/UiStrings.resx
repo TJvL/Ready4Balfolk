@@ -355,7 +355,7 @@
     <value>A moment for the floor to clear and re-form, taken between one dance and the next without anything appearing in the queue. Nothing is added around a delay, a stop, a message or the end of the night: those already give the room time. The finish time counts them.</value>
   </data>
   <data name="Settings_AutoQueueDescription" xml:space="preserve">
-    <value>Automatically adds a random track when playing. Removed when manually adding items.</value>
+    <value>Automatically adds a random track when playing. Stays at the bottom, below anything you add yourself.</value>
   </data>
   <data name="Settings_AllowDuplicates" xml:space="preserve">
     <value>Allow duplicate tracks in queue in the same session</value>
@@ -374,6 +374,15 @@
   </data>
   <data name="Settings_ThemeDescription" xml:space="preserve">
     <value>Choose between Auto (follows system), Light, or Dark theme</value>
+  </data>
+  <data name="Settings_ThemeAuto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Settings_ThemeLight" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Settings_ThemeDark" xml:space="preserve">
+    <value>Dark</value>
   </data>
   <data name="Settings_Language" xml:space="preserve">
     <value>Language</value>

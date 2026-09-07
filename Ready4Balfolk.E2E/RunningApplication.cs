@@ -185,6 +185,24 @@ public sealed class RunningApplication : IAsyncDisposable
     /// <summary>What a control says, for the assertions that read one directly.</summary>
     public static string Says(Control control) => Screen.Says(control);
 
+    /// <summary>Whether all the words a text block draws fit in the room it was given.</summary>
+    /// <remarks>
+    /// Its bounds are no use for this. A line too long for the space it has is arranged at the
+    /// width of that space and simply draws past both edges of it, so the control measures as
+    /// fitting while half of what it says is off the screen. What is compared is the text itself
+    /// against the room it was laid out in.
+    /// </remarks>
+    public static bool WordsFitWhereTheyAreDrawn(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+
+        var text = control as TextBlock
+                   ?? throw new InvalidOperationException("That control draws no text of its own.");
+
+        // A pixel of slack: a line that fills its room exactly is measured either way round.
+        return text.TextLayout.Width <= text.Bounds.Width + 1;
+    }
+
     /// <summary>Every row a list is showing, for the assertions that are about all of them.</summary>
     public IReadOnlyList<Control> Rows(string automationId) =>
         Find(automationId).GetVisualDescendants()
@@ -302,6 +320,17 @@ public sealed class RunningApplication : IAsyncDisposable
             $"Nothing on screen offers {text}. What is offered: {string.Join(" / ", offers.Select(Screen.Says))}");
 
         return match!;
+    }
+
+    /// <summary>Makes the window this wide, for what happens when there is not much room.</summary>
+    /// <remarks>
+    /// A DJ's window is whatever their screen gives them, and every panel in it is a fraction of
+    /// that: what fits on the machine a scenario was written on is not what fits on theirs.
+    /// </remarks>
+    public void TheWindowIsThisWide(double width)
+    {
+        Window.Width = width;
+        Settle();
     }
 
     /// <summary>Puts the evening further along, for the things that are minutes or hours away.</summary>

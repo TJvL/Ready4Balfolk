@@ -37,11 +37,11 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => application.TextOf("display.title").Contains("Salamandre", StringComparison.Ordinal),
+                () => application.TextOf("display.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the screen to show what is playing");
 
             Assert.Contains("Mazurka", application.TextOf("display.dance"), StringComparison.Ordinal);
-            Assert.Contains("La Belle", application.TextOf("display.next-title"), StringComparison.Ordinal);
+            Assert.Contains("La Belle", application.TextOf("display.next-track"), StringComparison.Ordinal);
         });
     }
 
@@ -82,7 +82,7 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
             application.Click("playback.skip");
 
             await application.WaitUntil(
-                () => application.TextOf("display.title").Contains("Salamandre", StringComparison.Ordinal),
+                () => application.TextOf("display.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the screen to show what is playing");
 
             application.Click("queue.delay");
@@ -96,12 +96,60 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
             // Schottische and the vocabulary calls it Scottish.
             Assert.Equal(UiStrings.Presentation_Delay, application.TextOf("display.next-dance"));
             Assert.Equal("Scottish", application.TextOf("display.behind-dance"));
-            Assert.Equal("La Belle", application.TextOf("display.behind-title"));
+            Assert.Equal("Trio Loubelya - La Belle", application.TextOf("display.behind-track"));
 
-            // The same picture in the hall's browser, which is the other screen a room reads.
+            // The same picture in the hall's browser, which is the other screen a room reads. It
+            // writes the artist and the title into boxes of their own rather than as one line, so
+            // what is read back below is the title on its own.
             await projector.WaitUntilItReads("behindPrimary", "Scottish");
 
             Assert.Equal("La Belle", await projector.Reads("behindTitle"));
+        });
+    }
+
+    /// <summary>A long name stays on the screen instead of running off both edges of it.</summary>
+    /// <remarks>
+    /// World: one dance whose artist and title are as long as a real library makes them, and a
+    /// screen switched on for the room.
+    /// Steps: queue it and start the evening.
+    /// Sees: the whole line inside the window, wrapped onto as many lines as it takes. The hall
+    /// reads this from the far wall and nobody standing there can scroll it sideways.
+    /// </remarks>
+    [Fact]
+    public async Task ALongNameStaysOnTheScreen()
+    {
+        const string artist = "Naragonia Quartet en Ambrozijn";
+        const string title = "Salamandre, live op het Boombalfestival";
+
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: artist, title: title)
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                PresentationDisplayCount = 1
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", title));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("display.track").Contains(title, StringComparison.Ordinal),
+                "the screen to show what is playing");
+
+            var line = application.Find("display.track");
+
+            Assert.True(
+                RunningApplication.WordsFitWhereTheyAreDrawn(line),
+                $"The track ran off the screen the dancers read: {RunningApplication.Says(line)} "
+                + $"was drawn in {line.Bounds}.");
         });
     }
 
@@ -131,7 +179,7 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
                 "the screen to say that nothing is playing");
 
             Assert.Equal(UiStrings.Presentation_NoTrackPlaying, application.TextOf("display.idle"));
-            Assert.False(application.IsShowing("display.title"), "A track name was left on the screen.");
+            Assert.False(application.IsShowing("display.track"), "A track name was left on the screen.");
         });
     }
 

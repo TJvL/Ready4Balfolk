@@ -84,7 +84,7 @@ Het afspeelpaneel toont wat er speelt en biedt de bedieningsknoppen.
 ### Nu spelen-weergave
 
 - **Dansnaam**: prominent bovenaan
-- **Artiest en titel**: daaronder als "Artiest: Titel"
+- **Artiest en titel**: daaronder als "Artiest - Titel", of in de vorm die het sjabloon voor die regel heeft
 - **Voortgangsbalk**: de positie in het nummer, met verstreken tijd links en totale duur rechts
 
 Speelt er een bericht, dan schakelt de weergave naar berichtmodus met automatisch scrollende tekst.
@@ -509,8 +509,10 @@ eindtijd weigert de slotmuziek zelf nooit: die hoort ná de grens, hij probeert 
 
 ### Hoe nummers op het scherm komen te staan
 
-Vier vakjes, een per plek waar het programma een nummer als regel schrijft: de grote regel terwijl er
-iets speelt, de regel eronder, een regel van de wachtrij en een regel van de geschiedenis. De
+Vier vakjes, een per plek waar je eigen panelen een nummer als regel schrijven: de grote regel
+terwijl er iets speelt, de regel eronder, een regel van de wachtrij en een regel van de
+geschiedenis. Het scherm dat de zaal leest hoort daar niet bij. Dat schrijft de artiest en de titel
+in een vaste vorm van zichzelf, dus de zaal leest hetzelfde wat je hier ook instelt. De
 plaatshouders zijn dezelfde als bij de bestandsnaampatronen, maar dan andersom gelezen: `%d` de dans,
 `%a` de artiest, `%t` de titel. Al het andere komt er letterlijk te staan zoals je het typt, dus
 `%t (%d)` geeft "Salamandre (Mazurka)".
@@ -520,7 +522,7 @@ nummer zonder titel is de artiest, niet de artiest met een bungelend streepje, e
 niets heeft van wat het sjabloon vraagt levert helemaal niets op in plaats van een regel leestekens.
 
 De voorbeeldregels onder de vakjes laten zien wat de vier met een nummer doen, zodat je niets hoeft
-op te slaan om erachter te komen. De wijziging is meteen op elk scherm te zien, ook op een nummer dat
+op te slaan om erachter te komen. De wijziging is meteen in alle vier te zien, ook op een nummer dat
 op dat moment speelt.
 
 Het nummeroverzicht houdt zijn kolommen. Dat is een tabel die je sorteert op dans, artiest of titel,

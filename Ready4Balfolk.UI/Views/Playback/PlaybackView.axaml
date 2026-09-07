@@ -43,14 +43,19 @@
                            IsVisible="{Binding !IsMessageMode}" />
 
                 <!-- Dance Name (message mode - scrolling) -->
+                <!-- A message is as long as the DJ typed it, and it is the one line on this panel
+                     the room is reading too, so it slides rather than showing its first half. The
+                     height follows the text: a canvas has none of its own, and a number here would
+                     be one written for one font at one size. -->
                 <Border Grid.Row="0"
                         ClipToBounds="True"
                         HorizontalAlignment="Stretch"
-                        Height="26"
+                        Height="{Binding #MessageTextBlock.Bounds.Height}"
                         Margin="0,0,0,8"
                         IsVisible="{Binding IsMessageMode}">
                     <Canvas x:Name="MessageCanvas" ClipToBounds="True">
                         <TextBlock x:Name="MessageTextBlock"
+                                   AutomationProperties.AutomationId="playback.message"
                                    Text="{Binding DanceName}"
                                    FontSize="18"
                                    FontWeight="Bold"
@@ -62,7 +67,7 @@
                 <Border Grid.Row="1"
                         ClipToBounds="True"
                         HorizontalAlignment="Stretch"
-                        Height="28"
+                        Height="{Binding #TrackInfoPanel.Bounds.Height}"
                         Margin="0,0,0,16"
                         IsVisible="{Binding HasTrack}">
                     <Canvas x:Name="TrackInfoCanvas" ClipToBounds="True">

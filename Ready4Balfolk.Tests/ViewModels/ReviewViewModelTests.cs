@@ -260,6 +260,48 @@ public sealed class ReviewViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task ADanceTheListDoesNotKnow_IsNotParkedWhileTheDoorIsOpen()
+    {
+        // The same answer as the row above, with the switch that says the DJ's own answer is
+        // enough. The track is in the library, and telling them it is parked sends them off to
+        // propose a dance at BigBalfolkList they did not need to propose.
+        _stored = _stored with { AllowDancesOutsideTheList = true };
+        await Refresh();
+        var row = _sut.Rows[0];
+        row.Dance = "Rond de Landéda";
+        row.Artist = "Naragonia";
+        row.Title = "Le badaud";
+
+        await _sut.ApproveCommand.Execute(row);
+
+        Assert.True(row.IsApproved);
+        Assert.False(row.IsParked);
+        Assert.Equal(ReviewRowState.Answered, row.State);
+    }
+
+    [Fact]
+    public async Task AFolderAnsweredWithDancesOutsideTheList_ReadsAsAnsweredWhileTheDoorIsOpen()
+    {
+        // A folder of one evening's tagging habit is where a wrong colour costs the most: every
+        // row of it would sit in amber over tracks that all went in.
+        _stored = _stored with { AllowDancesOutsideTheList = true };
+        await Refresh();
+        var row = _sut.Rows.First(candidate => candidate.Folder == "Naragonia");
+        foreach (var sibling in _sut.Rows.Where(candidate => candidate.Folder == "Naragonia"))
+        {
+            sibling.Dance = "Rond de Landéda";
+            sibling.Artist = "Naragonia";
+            sibling.Title = "Something";
+        }
+
+        await _sut.ApproveFolderCommand.Execute(row);
+
+        Assert.All(
+            _sut.Rows.Where(candidate => candidate.Folder == "Naragonia"),
+            candidate => Assert.Equal(ReviewRowState.Answered, candidate.State));
+    }
+
+    [Fact]
     public async Task AnsweringAFolder_TakesEveryTrackInIt()
     {
         await Refresh();

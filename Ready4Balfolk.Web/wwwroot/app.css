@@ -75,18 +75,26 @@ html, body {
   text-wrap: balance;
 }
 
+/* Artist, dash and title are three boxes on one row, and a row cannot wrap: a name as long as a
+   real library writes them is laid out at the width of the row and drawn off both edges of it, on
+   a screen nobody in the hall can scroll. Allowed to wrap, so the whole line stays on the screen
+   however long it is, and each wrapped line stays centred.
+   Room for the extra line comes out of the half this sits in, and the type is sized off the
+   container's width: a narrower window and a 4:3 projector both leave that half more height per
+   line of text than the 16:9 these sizes were drawn against, not less. */
 .pres-sub {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  overflow-wrap: anywhere;
   font-size: 3.75cqw;
   margin-top: 1.25cqw;
 }
 
-.pres-artist { color: var(--text-2); }
-.pres-dash { color: #cccccc; }
-.pres-title { color: #bbbbbb; }
+/* One grey for the whole line, as on the desktop window, where it is a single text block. */
+.pres-artist, .pres-dash, .pres-title { color: var(--text-2); }
 
-.pres-idle { color: #666666; font-size: 5cqw; }
+.pres-idle { color: #888888; font-size: 5cqw; }
 
 .screen-mid {
   display: grid;
@@ -129,18 +137,19 @@ html, body {
   margin-top: 0.83cqw;
 }
 
+/* Wrapping, and one grey, for the reason given at .pres-sub. */
 .pres-next-sub {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  overflow-wrap: anywhere;
   font-size: 2.92cqw;
   margin-top: 0.42cqw;
 }
 
-.pres-next-artist { color: #bbbbbb; }
-.pres-next-dash { color: #aaaaaa; }
-.pres-next-title { color: #999999; }
+.pres-next-artist, .pres-next-dash, .pres-next-title { color: #bbbbbb; }
 
-.pres-next-idle { color: #444444; font-size: 3.33cqw; }
+.pres-next-idle { color: #888888; font-size: 3.33cqw; }
 
 /* The dance a pause is for. Smaller than what is next, because it is not next yet. */
 .pres-behind { margin-top: 1.6cqw; }
@@ -155,16 +164,17 @@ html, body {
   margin-top: 0.6cqw;
 }
 
+/* Wrapping, and one grey, for the reason given at .pres-sub. */
 .pres-behind-sub {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  overflow-wrap: anywhere;
   font-size: 2.29cqw;
   margin-top: 0.42cqw;
 }
 
-.pres-behind-artist { color: #aaaaaa; }
-.pres-behind-dash { color: #999999; }
-.pres-behind-title { color: #888888; }
+.pres-behind-artist, .pres-behind-dash, .pres-behind-title { color: #aaaaaa; }
 
 /* A dropped socket must be obvious on a screen nobody is standing at, but it must not cover the
    dance name: SignalR reconnects by itself and the picture stays true meanwhile. */

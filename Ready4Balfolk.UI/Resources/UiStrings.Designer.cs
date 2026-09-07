@@ -283,6 +283,15 @@ public static class UiStrings
     public static string Settings_ThemeDescription =>
         ResourceManager.GetString("Settings_ThemeDescription", Culture)!;
 
+    public static string Settings_ThemeAuto =>
+        ResourceManager.GetString("Settings_ThemeAuto", Culture)!;
+
+    public static string Settings_ThemeLight =>
+        ResourceManager.GetString("Settings_ThemeLight", Culture)!;
+
+    public static string Settings_ThemeDark =>
+        ResourceManager.GetString("Settings_ThemeDark", Culture)!;
+
     public static string Settings_Language =>
         ResourceManager.GetString("Settings_Language", Culture)!;
 

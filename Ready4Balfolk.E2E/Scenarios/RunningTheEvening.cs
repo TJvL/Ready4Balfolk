@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -711,6 +712,57 @@ public sealed class RunningTheEvening(HeadlessSession session)
             await application.WaitUntil(
                 () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the message to have its time and the dance behind it to start");
+        });
+    }
+
+    /// <summary>A message longer than the panel slides, rather than showing half of it.</summary>
+    /// <remarks>
+    /// World: a library of one dance and auto queue off.
+    /// Steps: write a message far too long for the panel, with no time on it, and start it.
+    /// Sees: the line moving along under its own steam. The room is reading the whole announcement
+    /// off the screen, and the DJ has to be able to read the same thing to know it went out right.
+    /// </remarks>
+    [Fact]
+    public async Task ALongMessageSlidesSoTheDjCanReadAllOfIt()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.Click("queue.message");
+
+            await application.WaitUntil(
+                () => application.IsShowing("message.text"),
+                "the message to be asked for");
+
+            application.TypeInto(
+                "message.text",
+                "The bar closes at eleven, the last dance is at half past, "
+                + "and whoever left a blue coat on the radiator can collect it from the desk");
+            application.Click("message.ok");
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.IsShowing("playback.message"),
+                "the message to go up on the panel");
+
+            // Narrow, because a DJ's window is whatever their laptop gives them and the panel is a
+            // fraction of it. On a wide one this message fits and there is nothing to prove.
+            application.TheWindowIsThisWide(640);
+
+            // Left of nought is the line part way along its travel: it starts flush with the left
+            // edge, and only a line that does not fit is ever moved off it.
+            await application.WaitUntil(
+                () => Canvas.GetLeft(application.Find("playback.message")) < 0,
+                "the message to slide so the end of it can be read");
         });
     }
 

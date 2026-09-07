@@ -3,7 +3,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="using:Ready4Balfolk.UI.Views.Presentation"
-        xmlns:conv="using:Avalonia.Data.Converters"
         xmlns:res="using:Ready4Balfolk.UI.Resources"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
         x:Class="Ready4Balfolk.UI.Views.Presentation.PresentationWindow"
@@ -13,61 +12,74 @@
         MinWidth="400" MinHeight="300"
         Width="800" Height="600">
 
+    <!--The whole screen is drawn on a fixed surface and scaled to whatever the projector is, so
+        nothing below depends on the resolution or the aspect the hall turns out to have.-->
     <Viewbox Stretch="Uniform">
         <Grid Width="1920" Height="1080" RowDefinitions="*,Auto,*">
 
+            <!--Each half is scaled down when what it holds does not fit, and left alone when it
+                does. The sizes below are written for a dance name and a track on one line each;
+                wrapping keeps a long one on the screen sideways, and this keeps the wrapped block
+                inside its own half rather than over the progress bar or off the bottom edge.-->
+
             <!-- Current item (top half) -->
-            <Grid Grid.Row="0" VerticalAlignment="Center" Margin="80,20">
-                <StackPanel IsVisible="{Binding HasCurrentItem}"
-                            VerticalAlignment="Center"
-                            HorizontalAlignment="Center">
-                    <!-- Track display (non-message) -->
-                    <StackPanel IsVisible="{Binding !IsMessageMode}">
-                        <TextBlock AutomationProperties.AutomationId="display.dance"
+            <Viewbox Grid.Row="0"
+                     Stretch="Uniform"
+                     StretchDirection="DownOnly"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     Margin="80,20">
+                <!--A Viewbox measures with no width limit, so the line the text wraps at is this
+                    one: the 1920 surface less the margin on either side of it.-->
+                <Grid Width="1760">
+                    <StackPanel IsVisible="{Binding HasCurrentItem}"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center">
+                        <!-- Track display (non-message) -->
+                        <StackPanel IsVisible="{Binding !IsMessageMode}">
+                            <TextBlock AutomationProperties.AutomationId="display.dance"
+                                       Text="{Binding CurrentDance}"
+                                       Foreground="White"
+                                       FontSize="140"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,24" />
+                            <!--One line rather than a row of artist, separator and title: a row
+                                cannot wrap, and the view model writes the separator so that a
+                                track with no title does not end in a dangling dash.-->
+                            <TextBlock AutomationProperties.AutomationId="display.track"
+                                       Text="{Binding CurrentTrack}"
+                                       Foreground="#dddddd"
+                                       FontSize="72"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <!-- Message mode -->
+                        <TextBlock IsVisible="{Binding IsMessageMode}"
                                    Text="{Binding CurrentDance}"
                                    Foreground="White"
                                    FontSize="140"
                                    FontWeight="Bold"
-                                   HorizontalAlignment="Center"
                                    TextAlignment="Center"
-                                   TextWrapping="Wrap"
-                                   Margin="0,0,0,24" />
-                        <StackPanel Orientation="Horizontal"
-                                    HorizontalAlignment="Center">
-                            <TextBlock AutomationProperties.AutomationId="display.artist"
-                                       Text="{Binding CurrentArtist}"
-                                       Foreground="#dddddd"
-                                       FontSize="72" />
-                            <TextBlock Text=" - "
-                                       Foreground="#cccccc"
-                                       FontSize="72"
-                                       IsVisible="{Binding CurrentTitle, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
-                            <TextBlock AutomationProperties.AutomationId="display.title"
-                                       Text="{Binding CurrentTitle}"
-                                       Foreground="#bbbbbb"
-                                       FontSize="72" />
-                        </StackPanel>
+                                   TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <!-- Message mode -->
-                    <TextBlock IsVisible="{Binding IsMessageMode}"
-                               Text="{Binding CurrentDance}"
-                               Foreground="White"
-                               FontSize="140"
-                               FontWeight="Bold"
+                    <!-- No current item -->
+                    <TextBlock AutomationProperties.AutomationId="display.idle"
+                               IsVisible="{Binding !HasCurrentItem}"
+                               Text="{x:Static res:UiStrings.Presentation_NoTrackPlaying}"
+                               Foreground="#888888"
+                               FontSize="96"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
                                TextAlignment="Center"
                                TextWrapping="Wrap" />
-                </StackPanel>
-
-                <!-- No current item -->
-                <TextBlock AutomationProperties.AutomationId="display.idle"
-                           IsVisible="{Binding !HasCurrentItem}"
-                           Text="{x:Static res:UiStrings.Presentation_NoTrackPlaying}"
-                           Foreground="#666666"
-                           FontSize="96"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center" />
-            </Grid>
+                </Grid>
+            </Viewbox>
 
             <!-- Progress bar and remaining time (middle) -->
             <Grid Grid.Row="1" VerticalAlignment="Center" Margin="80,20">
@@ -92,84 +104,79 @@
             </Grid>
 
             <!-- Next item (bottom half) -->
-            <Grid Grid.Row="2" VerticalAlignment="Center" Margin="80,20">
-                <StackPanel IsVisible="{Binding HasNextItem}"
-                            VerticalAlignment="Center"
-                            HorizontalAlignment="Center">
-                    <TextBlock Text="{x:Static res:UiStrings.Presentation_Next}"
-                               Foreground="#888888"
-                               FontSize="56"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,16" />
-                    <TextBlock AutomationProperties.AutomationId="display.next-dance"
-                                   Text="{Binding NextDance}"
-                               Foreground="#dddddd"
-                               FontSize="96"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               TextAlignment="Center"
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,12" />
-                    <StackPanel Orientation="Horizontal"
+            <Viewbox Grid.Row="2"
+                     Stretch="Uniform"
+                     StretchDirection="DownOnly"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     Margin="80,20">
+                <Grid Width="1760">
+                    <StackPanel IsVisible="{Binding HasNextItem}"
+                                VerticalAlignment="Center"
                                 HorizontalAlignment="Center">
-                        <TextBlock Text="{Binding NextArtist}"
-                                   Foreground="#bbbbbb"
-                                   FontSize="56" />
-                        <TextBlock Text=" - "
-                                   Foreground="#aaaaaa"
-                                   FontSize="56"
-                                   IsVisible="{Binding NextTitle, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
-                        <TextBlock AutomationProperties.AutomationId="display.next-title"
-                                   Text="{Binding NextTitle}"
-                                   Foreground="#999999"
-                                   FontSize="56" />
-                    </StackPanel>
-
-                    <!-- What the pause is for. Under the delay rather than instead of it: the
-                         room is being told to make lines, and this is what for. -->
-                    <StackPanel IsVisible="{Binding HasBehindItem}"
-                                HorizontalAlignment="Center"
-                                Margin="0,20,0,0">
-                        <TextBlock Text="{x:Static res:UiStrings.Presentation_Then}"
+                        <TextBlock Text="{x:Static res:UiStrings.Presentation_Next}"
                                    Foreground="#888888"
-                                   FontSize="40"
+                                   FontSize="56"
                                    HorizontalAlignment="Center"
-                                   Margin="0,0,0,8" />
-                        <TextBlock AutomationProperties.AutomationId="display.behind-dance"
-                                   Text="{Binding BehindDance}"
-                                   Foreground="#cccccc"
-                                   FontSize="72"
+                                   Margin="0,0,0,16" />
+                        <TextBlock AutomationProperties.AutomationId="display.next-dance"
+                                   Text="{Binding NextDance}"
+                                   Foreground="#dddddd"
+                                   FontSize="96"
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
-                                   Margin="0,0,0,8" />
-                        <StackPanel Orientation="Horizontal"
-                                    HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding BehindArtist}"
-                                       Foreground="#aaaaaa"
-                                       FontSize="44" />
-                            <TextBlock Text=" - "
-                                       Foreground="#999999"
-                                       FontSize="44"
-                                       IsVisible="{Binding BehindTitle, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
-                            <TextBlock AutomationProperties.AutomationId="display.behind-title"
-                                       Text="{Binding BehindTitle}"
+                                   Margin="0,0,0,12" />
+                        <TextBlock AutomationProperties.AutomationId="display.next-track"
+                                   Text="{Binding NextTrack}"
+                                   Foreground="#bbbbbb"
+                                   FontSize="56"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap" />
+
+                        <!-- What the pause is for. Under the delay rather than instead of it: the
+                             room is being told to make lines, and this is what for. -->
+                        <StackPanel IsVisible="{Binding HasBehindItem}"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,20,0,0">
+                            <TextBlock Text="{x:Static res:UiStrings.Presentation_Then}"
                                        Foreground="#888888"
-                                       FontSize="44" />
+                                       FontSize="40"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,8" />
+                            <TextBlock AutomationProperties.AutomationId="display.behind-dance"
+                                       Text="{Binding BehindDance}"
+                                       Foreground="#cccccc"
+                                       FontSize="72"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,8" />
+                            <TextBlock AutomationProperties.AutomationId="display.behind-track"
+                                       Text="{Binding BehindTrack}"
+                                       Foreground="#aaaaaa"
+                                       FontSize="44"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
                         </StackPanel>
                     </StackPanel>
-                </StackPanel>
 
-                <!-- No next item -->
-                <TextBlock AutomationProperties.AutomationId="display.no-next"
-                           IsVisible="{Binding !HasNextItem}"
-                           Text="{x:Static res:UiStrings.Presentation_NoNextTrack}"
-                           Foreground="#444444"
-                           FontSize="64"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center" />
-            </Grid>
+                    <!-- No next item -->
+                    <TextBlock AutomationProperties.AutomationId="display.no-next"
+                               IsVisible="{Binding !HasNextItem}"
+                               Text="{x:Static res:UiStrings.Presentation_NoNextTrack}"
+                               Foreground="#888888"
+                               FontSize="64"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap" />
+                </Grid>
+            </Viewbox>
         </Grid>
     </Viewbox>
 </Window>
