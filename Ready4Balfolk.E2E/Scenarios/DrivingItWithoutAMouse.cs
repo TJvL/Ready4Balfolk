@@ -366,12 +366,14 @@ public sealed class DrivingItWithoutAMouse(HeadlessSession session)
 
             // The dice is only on the card once the card knows it has something to pick from, and
             // the pool arrives after the dance itself does. Waiting on the name alone found the
-            // button in the tree while it was still invisible, pressed nothing, and failed on the
-            // slower machine rather than this one.
+            // button in the tree while it was still invisible; waiting for it to be visible found
+            // it before it would answer for the keyboard. Both failed on the slower machine and
+            // neither here, so this waits for the state the next line actually needs.
             await application.WaitUntil(
                 () => application.IsShowing("dancelist.pick")
-                    && application.NameOf("dancelist.pick").Contains("Mazurka", StringComparison.Ordinal),
-                "the dice on the card to be there and named after its own dance");
+                    && application.NameOf("dancelist.pick").Contains("Mazurka", StringComparison.Ordinal)
+                    && application.CanTakeTheKeyboard("dancelist.pick"),
+                "the dice on the card to be there, named after its own dance, and ready for the keyboard");
 
             application.GiveTheKeyboardTo("dancelist.pick");
             application.Press(PhysicalKey.Space);

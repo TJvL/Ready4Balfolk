@@ -170,6 +170,20 @@ public sealed class RunningApplication : IAsyncDisposable
             .SelectMany(root => Screen.AllWith(root, automationId))
             .Any(control => control.IsEffectivelyVisible);
 
+    /// <summary>Whether the thing with this automation id would take the keyboard if offered it.</summary>
+    /// <remarks>
+    /// On screen is not the same as ready. A control that has only just appeared, because what it
+    /// is bound to has only just become true, is in the tree and drawn before it will answer
+    /// <see cref="InputElement.Focus" />, so a scenario that waits for it to be visible and then
+    /// gives it the keyboard races the layout pass and loses on a slower machine than the one it
+    /// was written on.
+    /// </remarks>
+    public bool CanTakeTheKeyboard(string automationId)
+    {
+        var control = Find(automationId);
+        return control.IsEffectivelyVisible && control.IsEffectivelyEnabled && control.Focusable;
+    }
+
     /// <summary>What the thing with this automation id says.</summary>
     public string TextOf(string automationId) => Screen.Says(Find(automationId));
 
