@@ -16,6 +16,10 @@ updates:
       nuget-minor-patch:
         update-types: ["minor", "patch"]
 
+  # This raises the actions a workflow "uses", and nothing else. The Flatpak builder container is
+  # out of its reach, and out of the "docker" ecosystem's too: that one reads Dockerfiles and
+  # Kubernetes manifests, and a workflow file is neither. The Flatpak runtime is raised by hand,
+  # in packaging/linux/io.github.tjvl.Ready4Balfolk.yml.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

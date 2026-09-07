@@ -11,10 +11,38 @@ on:
         type: string
 
 jobs:
+  # The builder container has to carry the same runtime the manifest builds against, or the build
+  # downloads a second one. Reading the version out of the manifest keeps the two from drifting:
+  # there is nothing here to forget to bump, and a runtime with no matching container image fails
+  # at the pull rather than quietly building against the wrong one.
+  runtime-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Read the runtime version from the manifest
+        id: read
+        run: |
+          set -euo pipefail
+          manifest=packaging/linux/io.github.tjvl.Ready4Balfolk.yml
+          version=$(sed -n 's/^runtime-version:[[:space:]]*//p' "$manifest" | tr -d "\"' ")
+          if [ -z "$version" ]; then
+            echo "no runtime-version in $manifest"
+            exit 1
+          fi
+          echo "runtime version $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
   flatpak:
+    needs: runtime-version
     runs-on: ubuntu-latest
     container:
-      image: bilelmoussaoui/flatpak-github-actions:freedesktop-24.08
+      # ghcr.io/flathub-infra is where the action's images are published now; the older
+      # bilelmoussaoui/flatpak-github-actions images on Docker Hub stop at freedesktop-24.08.
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-${{ needs.runtime-version.outputs.version }}
       options: --privileged
     steps:
       - name: Checkout
