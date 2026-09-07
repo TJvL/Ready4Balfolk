@@ -7,9 +7,12 @@ namespace Ready4Balfolk.Domain.Services.Logging;
 public sealed class FileLoggerService : ILoggerService, IDisposable
 {
     private const string LogFileName = "app.log";
+    private const string PreviousLogFileName = "app.log.1";
     private const long MaxFileSizeBytes = 512 * 1024;
 
     private readonly IFileInfo _logFile;
+    private readonly IFileInfo _previousLogFile;
+    private readonly string _userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly ReplaySubject<LogEntry> _errorSubject = new(bufferSize: 10);
 
@@ -21,6 +24,8 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
     {
         logDirectory.Create();
         _logFile = logDirectory.FileSystem.FileInfo.New(Path.Combine(logDirectory.FullName, LogFileName));
+        _previousLogFile =
+            logDirectory.FileSystem.FileInfo.New(Path.Combine(logDirectory.FullName, PreviousLogFileName));
     }
 
     public Task LogAsync(LogLevel logLevel, string message)
@@ -58,6 +63,12 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
         return LogAsync(LogLevel.Critical, $"{message}{Environment.NewLine}{exception}");
     }
 
+    /// <summary>Writes both halves of the log somewhere the DJ chose, without the DJ's name in it.</summary>
+    /// <remarks>
+    /// This is the copy that leaves the machine: the bug template asks for it in a public issue.
+    /// The file on disk is left exactly as it was written, because there is nobody to hide it from
+    /// on the machine it is about.
+    /// </remarks>
     public Task ExportAsync(string path)
     {
         return Task.Run(async () =>
@@ -66,10 +77,17 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
             try
             {
                 _logFile.Refresh();
-                if (_logFile.Exists)
+                _previousLogFile.Refresh();
+                if (!_logFile.Exists && !_previousLogFile.Exists)
                 {
-                    _logFile.CopyTo(path, overwrite: true);
+                    return;
                 }
+
+                // Oldest first, so the export reads as one run of time whichever side of a
+                // rotation the failure that prompted it fell on.
+                var text = await ReadOrEmptyAsync(_previousLogFile) + await ReadOrEmptyAsync(_logFile);
+                await _logFile.FileSystem.File.WriteAllTextAsync(
+                    path, LogPaths.WithoutUserProfile(text, _userProfile));
             }
             finally
             {
@@ -77,6 +95,9 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
             }
         });
     }
+
+    private static async Task<string> ReadOrEmptyAsync(IFileInfo file) =>
+        file.Exists ? await file.FileSystem.File.ReadAllTextAsync(file.FullName) : "";
 
     private async Task WriteLineAsync(string line)
     {
@@ -86,7 +107,11 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
             _logFile.Refresh();
             if (_logFile is { Exists: true, Length: >= MaxFileSizeBytes })
             {
-                _logFile.Delete();
+                // Kept as the previous log rather than thrown away. Half a megabyte of an evening
+                // fills in an hour, and the failure somebody exported the log for is as often as
+                // not on the far side of the boundary.
+                _logFile.FileSystem.File.Move(_logFile.FullName, _previousLogFile.FullName, overwrite: true);
+                _logFile.Refresh();
             }
 
             await File.AppendAllTextAsync(_logFile.FullName, line);

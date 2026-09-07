@@ -70,7 +70,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             // SQLite cannot open has lost them either way. Rebuilding beats an application that
             // starts with an empty library and an error toast forever.
             await loggerService.ErrorAsync(
-                $"Library index at {path} is unreadable and will be rebuilt", exception);
+                $"The library index ({DatabaseFileName}) is unreadable and will be rebuilt", exception);
 
             File.Delete(path);
             File.Delete(path + "-wal");
@@ -108,7 +108,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             throw;
         }
 
-        _ = loggerService.InfoAsync($"Library index opened at {path}");
+        _ = loggerService.InfoAsync($"Library index opened ({DatabaseFileName})");
         return connection;
     }
 

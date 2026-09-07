@@ -16,7 +16,9 @@ body:
       label: Log
       description: >-
         Settings has an "Export log" button. Paste the relevant part, or attach the file. The
-        lines marked [ERROR] and [CRITICAL] are the interesting ones.
+        lines marked [ERROR] and [CRITICAL] are the interesting ones. The exported copy writes
+        your home directory as "~" and names files rather than spelling out where they live, but
+        an error message can still name one in full, so have a look before pasting.
       render: text
 
   - type: input

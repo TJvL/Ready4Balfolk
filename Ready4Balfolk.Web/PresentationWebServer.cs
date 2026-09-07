@@ -182,7 +182,11 @@ public sealed class PresentationWebServer(
             LastError = null;
             Addresses = DescribeAddresses(options);
 
-            await logger.InfoAsync($"Presentation server listening on {string.Join(", ", Addresses)}")
+            // The port, not the addresses. Which interfaces this machine has is the DJ's home or
+            // the venue's network, and the settings panel is where somebody who needs an address
+            // reads one.
+            await logger.InfoAsync(
+                    $"Presentation server listening on port {options.Port} ({Addresses.Count} addresses)")
                 .ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IOException or SocketException)

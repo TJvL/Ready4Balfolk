@@ -249,17 +249,10 @@ public static class ReviewQueueBuilder
                 ? review with { Dance = review.Dance with { Value = null }, Reason = ReviewReason.Missing }
                 : review;
 
-    private static string FolderOf(string path, string musicRoot)
-    {
-        if (string.IsNullOrWhiteSpace(musicRoot) || Path.GetDirectoryName(path) is not { } directory)
-        {
-            return string.Empty;
-        }
-
-        var relative = Path.GetRelativePath(musicRoot, directory);
-
-        return relative is "." || relative.StartsWith("..", StringComparison.Ordinal) ? string.Empty : relative;
-    }
+    private static string FolderOf(string path, string musicRoot) =>
+        Path.GetDirectoryName(path) is { } directory
+            ? RelativePath.Below(musicRoot, directory) ?? string.Empty
+            : string.Empty;
 
     private static readonly TrackField[] AllFields = [TrackField.Dance, TrackField.Artist, TrackField.Title];
 }
