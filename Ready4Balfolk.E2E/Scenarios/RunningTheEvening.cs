@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -673,8 +674,9 @@ public sealed class RunningTheEvening(HeadlessSession session)
     /// <remarks>
     /// World: a library of one dance and auto queue off.
     /// Steps: queue a dance, write a message with a couple of seconds on it, and start the evening.
-    /// Sees: the message on the playback panel, and the dance behind it taking over when the
-    /// message has had its time.
+    /// Sees: the dialog growing for the delay it was asked for rather than squeezing it in, the
+    /// message on the playback panel, and the dance behind it taking over when the message has had
+    /// its time.
     /// </remarks>
     [Fact]
     public async Task DjPutsAMessageOnTheScreen()
@@ -698,7 +700,20 @@ public sealed class RunningTheEvening(HeadlessSession session)
                 "the message to be asked for");
 
             application.TypeInto("message.text", "Bar closes at eleven");
+
+            // Ticking the delay adds a label and a box, and the window has to find the room for
+            // them. On a fixed height it took the room off the bottom instead, which is where the
+            // OK button was.
+            var beforeTheDelay = application.HowTallTheWindowShowingItIs("message.ok");
             application.Click("message.timed");
+
+            Assert.True(
+                application.HowTallTheWindowShowingItIs("message.ok") > beforeTheDelay,
+                "The dialog stayed the same height after growing a delay to set.");
+            Assert.True(
+                application.TheWindowShowingItShowsTheWholeOfWhatItHolds("message.ok"),
+                "Part of the dialog is out of sight in a window that is not the size of it.");
+
             application.TypeInto("message.seconds", "2");
             application.Click("message.ok");
 
@@ -712,6 +727,53 @@ public sealed class RunningTheEvening(HeadlessSession session)
             await application.WaitUntil(
                 () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
                 "the message to have its time and the dance behind it to start");
+        });
+    }
+
+    /// <summary>The DJ writes an announcement without going looking for the box first.</summary>
+    /// <remarks>
+    /// World: a library of one dance and auto queue off.
+    /// Steps: ask for a message, type it without clicking anywhere, and press return.
+    /// Sees: the words in the box and the message on its way. The dialog opens with the caret where
+    /// the DJ is about to type, which mid evening is the difference between an announcement and a
+    /// hunt for the mouse, and return still sends it because OK is still the default.
+    /// </remarks>
+    [Fact]
+    public async Task DjTypesTheAnnouncementWithoutFindingTheBoxFirst()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.Click("queue.message");
+
+            await application.WaitUntil(
+                () => application.IsShowing("message.text"),
+                "the message to be asked for");
+
+            application.Type("Green scarf at the desk");
+
+            Assert.Equal("Green scarf at the desk", application.TextOf("message.text"));
+
+            application.Press(PhysicalKey.Enter);
+
+            await application.WaitUntil(
+                () => !application.IsShowing("message.text"),
+                "return to send the message the way OK does");
+
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.message").Contains("Green scarf at the desk", StringComparison.Ordinal),
+                "the message to go up on the panel");
         });
     }
 

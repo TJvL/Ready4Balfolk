@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia.Input;
 using Ready4Balfolk.UI.Resources;
 
@@ -434,6 +435,72 @@ public sealed class GettingMusicIntoTheLibrary(HeadlessSession session)
             await application.WaitUntil(
                 () => application.RowsOf("catalog.tracks").Count == 2,
                 "both tracks to reach the catalogue on one decision");
+        });
+    }
+
+    /// <summary>The DJ reads the whole of the question a folder answer asks.</summary>
+    /// <remarks>
+    /// World: a folder of twenty-six tracks all claiming a dance the published list does not carry.
+    /// Steps: open review and press the folder's own answer button.
+    /// Sees: the question in a window the size of the question. This is the longest thing the
+    /// confirmation ever says, it names a folder whose length nobody chose, and the Dutch of it is
+    /// longer again: on a fixed height the sentence saying nothing is filled in for them was the
+    /// one that fell off the bottom.
+    /// </remarks>
+    [Fact]
+    public async Task DjReadsTheWholeOfTheFolderQuestion()
+    {
+        using var world = ScenarioWorld.Create();
+
+        // One over the count the folder answer asks about first, which is the whole point of this
+        // one: below it there is no question to read.
+        for (var number = 1; number <= 26; number++)
+        {
+            world.WithTrack(
+                dance: "Mazurka van Pierre",
+                artist: "Naragonia",
+                title: $"Track {number:00}",
+                fileName: Path.Combine("Naragonia - Idiosyncrasie", $"{number:00}.mp3"));
+        }
+
+        world.WhereTheTagsAreTrusted().Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            application.Click("toolbar.review");
+
+            // By the folder's own button rather than by counting rows: a list this long is
+            // virtualised, so what is in the tree is the handful on screen.
+            var wholeFolder = string.Format(
+                CultureInfo.CurrentCulture, UiStrings.Review_ApproveFolderCount, 26);
+
+            await application.WaitUntil(
+                () => application.IsShowing("review.answer-folder")
+                      && string.Equals(application.TextOf("review.answer-folder"), wholeFolder, StringComparison.Ordinal),
+                "the folder to be waiting on a person, all twenty-six of it");
+
+            application.Click("review.answer-folder");
+
+            await application.WaitUntil(
+                () => application.IsShowing("dialog.confirm"),
+                "the folder answer to ask first");
+
+            // By the button rather than by the question, so that a dialog which has swallowed its
+            // own message is still found and still measured, rather than the step falling over
+            // looking for something that is not on screen and saying nothing about the height.
+            Assert.True(
+                application.TheWindowShowingItShowsTheWholeOfWhatItHolds("dialog.confirm"),
+                "Part of the longest question the application asks is out of sight.");
+
+            application.Click("dialog.cancel");
+
+            // No is no: none of the twenty-six was taken. Not that the folder is untouched, which
+            // it is not in general, since answering a folder says which of its rows it cannot
+            // answer for before it asks anything.
+            await application.WaitUntil(
+                () => !application.IsShowing("dialog.confirm")
+                      && string.Equals(application.TextOf("review.answer-folder"), wholeFolder, StringComparison.Ordinal),
+                "the question to go away with all twenty-six still waiting to be answered");
         });
     }
 }

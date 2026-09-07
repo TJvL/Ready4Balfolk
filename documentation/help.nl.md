@@ -619,7 +619,8 @@ schermpagina draait, **Afstandsbediening** als die er ook is. Ze volgen de serve
 dus een poort die al bezet is levert niets op in plaats van een belofte. Klik erop en het adres komt
 in beeld als QR-code waar je een telefoon op richt, met het adres eronder en bij de afstandsbediening
 de pincode ernaast. Zit de computer op meerdere netwerken, dan staan de andere adressen onder de
-code, want maar een daarvan is het netwerk waar de telefoon op zit.
+code, want maar een daarvan is het netwerk waar de telefoon op zit. **Escape** haalt de code weer
+weg, net als de sluitknop eronder.
 
 Beide worden aangezet in **Instellingen**. De afstandsbediening staat uit tot jij hem aanzet, en
 is beveiligd met een pincode: wie de pagina kan bereiken en de pincode kent, kan veranderen waar de

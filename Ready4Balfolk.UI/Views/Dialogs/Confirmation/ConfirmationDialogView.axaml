@@ -8,19 +8,26 @@
         x:DataType="confirmation:ConfirmationDialogViewModel"
         Title="{CompiledBinding Title}"
         Width="400"
-        Height="150"
+        SizeToContent="Height"
+        MaxHeight="600"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False">
     <Grid Margin="20" RowDefinitions="*,Auto">
-        <!-- Message -->
-        <TextBlock Grid.Row="0"
-                   Text="{CompiledBinding Message}"
-                   TextWrapping="Wrap"
-                   VerticalAlignment="Center" />
+        <!-- The window follows the question rather than the question being cut to fit the window:
+             a long track name, or a Dutch line that runs longer than the English, is still read to
+             the end. The cap is a stop on a window growing without limit, at the same figure the
+             missing folders dialog uses; past it the question scrolls, which is worse to read than
+             a taller window and better than a window with no bottom to it. Nothing the application
+             asks comes near it today. -->
+        <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Disabled">
+            <TextBlock Text="{CompiledBinding Message}"
+                       TextWrapping="Wrap" />
+        </ScrollViewer>
 
         <!-- Buttons -->
         <StackPanel Grid.Row="1"
+                    Margin="0,20,0,0"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="8">

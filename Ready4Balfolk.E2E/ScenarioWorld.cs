@@ -107,6 +107,8 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
     /// The dance goes in the comment, which is only meaningful alongside
     /// <see cref="WhereTheTagsAreTrusted"/>: a tag field speaks for a track field because the user
     /// said it does, never because the application assumed.
+    /// The file name may be a relative path, for the worlds whose music is in folders: a review row
+    /// is only part of a folder when there is a directory under the music root to be part of.
     /// </remarks>
     public ScenarioWorld WithTrack(string dance, string artist, string title, string fileName = "")
     {
@@ -114,6 +116,8 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
             ? $"{artist} - {title}.mp3"
             : fileName;
         var path = Path.Combine(MusicDirectory.FullName, name);
+
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
         File.Copy(Path.Combine(AppContext.BaseDirectory, "Media", "scale.mp3"), path, overwrite: true);
 

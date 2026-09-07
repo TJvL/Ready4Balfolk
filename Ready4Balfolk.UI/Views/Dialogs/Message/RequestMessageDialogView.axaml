@@ -9,18 +9,21 @@
         x:DataType="message:RequestMessageDialogViewModel"
         Title="{x:Static res:UiStrings.Dialog_RequestMessageTitle}"
         Width="450"
-        Height="220"
+        SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False">
-    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <!-- The window follows what it is showing. Ticking the delay adds a label and a box, and on a
+         fixed height that pushed the OK button out through the bottom edge. -->
+    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto">
         <!-- Message input -->
         <StackPanel Grid.Row="0" Spacing="4">
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Grid.Column="0" Text="{x:Static res:UiStrings.Dialog_MessageLabel}" />
                 <TextBlock Grid.Column="1" Text="{CompiledBinding CharacterCount}" Opacity="0.6" />
             </Grid>
-            <TextBox AutomationProperties.AutomationId="message.text"
+            <TextBox x:Name="MessageBox"
+                     AutomationProperties.AutomationId="message.text"
                      Text="{CompiledBinding Message}"
                      MaxLength="60"
                      PlaceholderText="{x:Static res:UiStrings.Dialog_MessageWatermark}" />
@@ -49,7 +52,8 @@
         </StackPanel>
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="4"
+        <StackPanel Grid.Row="3"
+                    Margin="0,20,0,0"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="8">
@@ -60,8 +64,7 @@
                     IsCancel="True" />
             <!-- The accent class is provided by FluentAvalonia at runtime, so these are false positives. -->
             <!-- ReSharper disable once Xaml.StyleClassNotFound -->
-            <Button x:Name="OkButton"
-                    AutomationProperties.AutomationId="message.ok"
+            <Button AutomationProperties.AutomationId="message.ok"
                     Content="{x:Static res:UiStrings.Dialog_OK}"
                     Command="{CompiledBinding OkCommand}"
                     MinWidth="80"
