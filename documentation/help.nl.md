@@ -619,7 +619,11 @@ schermpagina draait, **Afstandsbediening** als die er ook is. Ze volgen de serve
 dus een poort die al bezet is levert niets op in plaats van een belofte. Klik erop en het adres komt
 in beeld als QR-code waar je een telefoon op richt, met het adres eronder en bij de afstandsbediening
 de pincode ernaast. Zit de computer op meerdere netwerken, dan staan de andere adressen onder de
-code, want maar een daarvan is het netwerk waar de telefoon op zit.
+code, want maar een daarvan is het netwerk waar de telefoon op zit. Bovenaan staat een gok op welk
+netwerk dat is: een netwerk met een router erachter gaat voor een netwerk zonder, en een tunnel gaat
+achteraan. Het blijft een gok, dus bereikt de telefoon het niet, probeer dan de regel eronder. Zit de
+computer op geen enkel netwerk, dan is er niets wat een telefoon kan bereiken en zegt het venster
+dat, in plaats van een code te tekenen die de telefoon alleen naar zichzelf stuurt.
 
 Beide worden aangezet in **Instellingen**. De afstandsbediening staat uit tot jij hem aanzet, en
 is beveiligd met een pincode: wie de pagina kan bereiken en de pincode kent, kan veranderen waar de

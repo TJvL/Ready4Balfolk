@@ -773,6 +773,9 @@
   <data name="Settings_WebServerFailed" xml:space="preserve">
     <value>Mislukt: {0}</value>
   </data>
+  <data name="Settings_WebServerRunningNoAddress" xml:space="preserve">
+    <value>Actief, maar deze computer zit op geen enkel netwerk dat een ander apparaat kan bereiken. De pagina's openen alleen op deze computer, op {0}.</value>
+  </data>
   <data name="Settings_WebServerStopping" xml:space="preserve">
     <value>Wordt gestopt</value>
   </data>
@@ -1228,6 +1231,9 @@
   </data>
   <data name="Qr_OtherAddresses" xml:space="preserve">
     <value>Deze computer is ook bereikbaar op, als de telefoon op een ander netwerk zit:</value>
+  </data>
+  <data name="Qr_NoAddress" xml:space="preserve">
+    <value>Deze computer zit op geen enkel netwerk dat een ander apparaat kan bereiken, dus er is geen adres om een telefoon op te richten. Ga op de wifi van de zaal of sluit een kabel aan en open dit daarna opnieuw.</value>
   </data>
   <data name="Qr_Close" xml:space="preserve">
     <value>Sluiten</value>

@@ -742,6 +742,9 @@ public static class UiStrings
     public static string Settings_WebServerFailed =>
         ResourceManager.GetString("Settings_WebServerFailed", Culture)!;
 
+    public static string Settings_WebServerRunningNoAddress =>
+        ResourceManager.GetString("Settings_WebServerRunningNoAddress", Culture)!;
+
     public static string Settings_WebServerStopping =>
         ResourceManager.GetString("Settings_WebServerStopping", Culture)!;
 
@@ -1192,6 +1195,9 @@ public static class UiStrings
 
     public static string Qr_OtherAddresses =>
         ResourceManager.GetString("Qr_OtherAddresses", Culture)!;
+
+    public static string Qr_NoAddress =>
+        ResourceManager.GetString("Qr_NoAddress", Culture)!;
 
     public static string Qr_Close =>
         ResourceManager.GetString("Qr_Close", Culture)!;
