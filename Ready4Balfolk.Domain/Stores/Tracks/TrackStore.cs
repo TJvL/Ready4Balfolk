@@ -311,7 +311,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 // A folder that would not open says nothing about what is under it. Walked past
                 // rather than reported as empty, which is what would cost every row below it.
                 _ = _loggerService.WarningAsync(
-                    $"Could not read '{current.FullName}': {exception.Message}");
+                    $"Could not read '{LogPaths.Below(directory.FullName, current.FullName)}': {exception.Message}");
                 unreadable[current.FullName] = exception.Message;
                 continue;
             }
@@ -333,7 +333,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
     private async Task LoadDirectoryAsync(IDirectoryInfo directory, bool reread, CancellationToken cancellationToken)
     {
-        _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{directory.FullName}'");
+        _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{LogPaths.Name(directory.FullName)}'");
 
         await _loadGate.WaitAsync(CancellationToken.None);
         try
@@ -350,7 +350,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         {
             // Superseded mid-flight by a newer load. The expected end of this one, not a failure,
             // and the load that replaced it owns the result.
-            _ = _loggerService.DebugAsync($"Load of '{directory.FullName}' was superseded");
+            _ = _loggerService.DebugAsync($"Load of '{LogPaths.Name(directory.FullName)}' was superseded");
         }
         finally
         {
@@ -369,7 +369,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             // Not a reason to stop: a mount point that has not mounted can be gone altogether, and
             // what the index holds under it is exactly what must not be thrown away unasked.
             _ = _loggerService.WarningAsync(
-                $"Music directory '{directory.FullName}' does not exist.");
+                $"Music directory '{LogPaths.Name(directory.FullName)}' does not exist.");
         }
 
         _isLoading.OnNext(true);
@@ -607,7 +607,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
             .Defer(() => Observable.Start(() => LoadTrack(file, root, known, scanned, reread), TaskPoolScheduler.Default))
             .Catch<Track, Exception>(exception =>
             {
-                _ = _loggerService.WarningAsync($"Error loading {file.FullName}: {exception.Message}");
+                _ = _loggerService.WarningAsync(
+                    $"Error loading {LogPaths.Below(root.FullName, file.FullName)}: {exception.Message}");
                 return Observable.Empty<Track>();
             });
     }
@@ -861,7 +862,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
                     // throws whatever the file made it throw. One file nobody can read is not a
                     // reason to drop the rest of the batch, and it is not something to put on
                     // screen in front of a room either.
-                    await _loggerService.WarningAsync($"Could not read '{path}': {exception.Message}");
+                    await _loggerService.WarningAsync(
+                        $"Could not read '{LogPaths.Below(root?.FullName, path)}': {exception.Message}");
                 }
             }
 

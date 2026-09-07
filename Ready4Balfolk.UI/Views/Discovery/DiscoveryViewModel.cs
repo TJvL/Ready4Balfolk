@@ -10,6 +10,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
@@ -538,17 +539,8 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     }
 
     /// <summary>The folders between the music directory and a file, outermost first.</summary>
-    private static IReadOnlyList<string> SegmentsBetween(string path, string root)
-    {
-        if (string.IsNullOrWhiteSpace(root) || Path.GetDirectoryName(path) is not { } directory)
-        {
-            return [];
-        }
-
-        var relative = Path.GetRelativePath(root, directory);
-
-        return relative is "." || relative.StartsWith("..", StringComparison.Ordinal)
-            ? []
-            : [.. relative.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)];
-    }
+    private static IReadOnlyList<string> SegmentsBetween(string path, string root) =>
+        Path.GetDirectoryName(path) is { } directory && RelativePath.Below(root, directory) is { } relative
+            ? [.. relative.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)]
+            : [];
 }

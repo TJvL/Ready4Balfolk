@@ -110,7 +110,7 @@ public sealed class DanceListStore(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _ = loggerService.ErrorAsync($"Could not read {sourceFileInfo.FullName}", exception);
+            _ = loggerService.ErrorAsync($"Could not read {LogPaths.Name(sourceFileInfo.FullName)}", exception);
             return DanceListUpdate.Failed(exception.Message);
         }
     }

@@ -25,6 +25,7 @@ public sealed class QrCodeDialogViewModel : ReactiveObject
     {
         Title = title;
         Address = address;
+        HasCode = true;
         Pin = pin ?? string.Empty;
         HasPin = !string.IsNullOrEmpty(pin);
 
@@ -36,10 +37,27 @@ public sealed class QrCodeDialogViewModel : ReactiveObject
         Image = Draw(address);
     }
 
+    /// <summary>The same dialog on a machine that is on no network a phone could reach.</summary>
+    /// <remarks>
+    /// The page is being served and simply cannot be got at from another device. A code for
+    /// localhost would scan perfectly and take the phone to itself, so the dialog says what is
+    /// wrong instead: the DJ can plug in a cable or join the wifi and open it again.
+    /// </remarks>
+    public QrCodeDialogViewModel(string title)
+    {
+        Title = title;
+        Address = string.Empty;
+        Pin = string.Empty;
+        OtherAddresses = string.Empty;
+    }
+
     public string Title { get; }
 
     /// <summary>The address the code carries, written out for a camera that will not read it.</summary>
     public string Address { get; }
+
+    /// <summary>Whether there is an address to draw at all.</summary>
+    public bool HasCode { get; }
 
     public string Pin { get; }
 
@@ -49,7 +67,7 @@ public sealed class QrCodeDialogViewModel : ReactiveObject
 
     public bool HasOtherAddresses { get; }
 
-    public Bitmap Image { get; }
+    public Bitmap? Image { get; }
 
     /// <summary>
     /// The code itself, drawn here rather than fetched.

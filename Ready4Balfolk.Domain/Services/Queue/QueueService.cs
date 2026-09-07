@@ -62,7 +62,8 @@ public sealed class QueueService : IQueueService, IDisposable
 
         if (removed)
         {
-            _ = _loggerService.InfoAsync($"Dropped a queued track whose file has gone: {path}");
+            _ = _loggerService.InfoAsync(
+                $"Dropped a queued track whose file has gone: {LogPaths.Name(path)}");
         }
     }
 
@@ -90,7 +91,7 @@ public sealed class QueueService : IQueueService, IDisposable
 
         if (repointed)
         {
-            _ = _loggerService.InfoAsync($"A queued track's file moved to: {move.To}");
+            _ = _loggerService.InfoAsync($"A queued track's file moved to: {LogPaths.Name(move.To)}");
         }
     }
 

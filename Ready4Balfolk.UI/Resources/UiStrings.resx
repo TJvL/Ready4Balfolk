@@ -848,6 +848,9 @@
   <data name="Settings_WebServerFailed" xml:space="preserve">
     <value>Failed: {0}</value>
   </data>
+  <data name="Settings_WebServerRunningNoAddress" xml:space="preserve">
+    <value>Running, but this machine is on no network another device can reach. The pages open on this machine only, at {0}.</value>
+  </data>
   <data name="Settings_WebServerStopping" xml:space="preserve">
     <value>Stopping</value>
   </data>
@@ -1167,6 +1170,18 @@
   <data name="TrackCatalog_NothingToWithdraw" xml:space="preserve">
     <value>You never answered {0} yourself. It is in the library on your rules or its own tags, and changing a rule is what takes that back.</value>
   </data>
+  <data name="TrackCatalog_EmptySearch" xml:space="preserve">
+    <value>No track matches your search.</value>
+  </data>
+  <data name="TrackCatalog_EmptyNoFolder" xml:space="preserve">
+    <value>No music folder is set yet. Point Ready4Balfolk at one from the settings screen.</value>
+  </data>
+  <data name="TrackCatalog_EmptyReviewWaiting" xml:space="preserve">
+    <value>Nothing here yet, {0} tracks are waiting for you in review.</value>
+  </data>
+  <data name="TrackCatalog_EmptyNoTracks" xml:space="preserve">
+    <value>No tracks in the library yet.</value>
+  </data>
   <data name="EditTrack_WindowTitle" xml:space="preserve">
     <value>Edit track</value>
   </data>
@@ -1303,6 +1318,9 @@
   </data>
   <data name="Qr_OtherAddresses" xml:space="preserve">
     <value>This machine is also reachable at, if the phone is on another network:</value>
+  </data>
+  <data name="Qr_NoAddress" xml:space="preserve">
+    <value>This machine is on no network another device can reach, so there is no address to point a phone at. Join the hall's wifi or plug in a cable, then open this again.</value>
   </data>
   <data name="Qr_Close" xml:space="preserve">
     <value>Close</value>

@@ -189,8 +189,9 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
     /// <remarks>
     /// World: a library of one dance and auto queue off.
     /// Steps: play a dance, file the night, and export what is on screen.
-    /// Sees: a file holding the evening that ended, not the empty one that is running. An export
-    /// that could only ever write tonight is no use the morning after.
+    /// Sees: a file holding the evening that ended, not the empty one that is running, with no
+    /// path from the DJ's disk in it. An export that could only ever write tonight is no use the
+    /// morning after.
     /// </remarks>
     [Fact]
     public async Task DjExportsTheNightForTheOrganisers()
@@ -234,6 +235,12 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
             await application.WaitUntil(
                 () => File.Exists(export) && File.ReadAllText(export).Contains("Salamandre", StringComparison.Ordinal),
                 "the evening that ended to be written out");
+
+            // What goes to an organiser is the evening, not a description of the DJ's disk.
+            Assert.DoesNotContain(
+                world.MusicDirectory.FullName,
+                await File.ReadAllTextAsync(export, TestContext.Current.CancellationToken),
+                StringComparison.Ordinal);
         });
     }
 

@@ -1,10 +1,14 @@
+using System.Globalization;
 using System.IO.Abstractions.TestingHelpers;
+using System.Net;
+using System.Net.NetworkInformation;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Settings;
@@ -184,6 +188,54 @@ public sealed class SettingsViewModelTests : IDisposable
         Assert.Equal("", _sut.WebServerAddresses);
         Assert.False(_sut.IsWebServerBusy);
     }
+
+    /// <summary>
+    /// The panel prints what another device could type in, best guess first, and never an address
+    /// that only works on this machine.
+    /// </summary>
+    [Fact]
+    public async Task ARunningServer_PrintsTheAddressesAPhoneCouldUse()
+    {
+        await using var server = await RunningWebServer.StartAsync(
+            Bridge("172.17.0.1"), Wifi("192.168.1.42"));
+        using var panel = Panel(server.Server);
+
+        Assert.Equal(UiStrings.Settings_WebServerRunning, panel.WebServerStatus);
+        Assert.Equal(
+            $"http://192.168.1.42:{server.Port}{Environment.NewLine}http://172.17.0.1:{server.Port}",
+            panel.WebServerAddresses);
+    }
+
+    /// <summary>
+    /// A laptop on nothing at all. There is no address to hand anybody, so the line says that, and
+    /// says where the pages do open: the address block is empty and would otherwise leave the port
+    /// to be read off the spinner.
+    /// </summary>
+    [Fact]
+    public async Task ARunningServerWithNoAddress_SaysSoAndStillSaysWhereThePagesOpen()
+    {
+        await using var server = await RunningWebServer.StartAsync();
+        using var panel = Panel(server.Server);
+
+        Assert.Equal(
+            string.Format(
+                CultureInfo.CurrentCulture,
+                UiStrings.Settings_WebServerRunningNoAddress,
+                $"http://localhost:{server.Port}"),
+            panel.WebServerStatus);
+        Assert.Contains($"http://localhost:{server.Port}", panel.WebServerStatus, StringComparison.Ordinal);
+        Assert.Equal("", panel.WebServerAddresses);
+    }
+
+    private SettingsViewModel Panel(PresentationWebServer webServer) => new(
+        _settingsStore, new NoOpLoggerService(), _confirmations, webServer, _fileSystem);
+
+    private static NetworkAdapter Wifi(string address) =>
+        new(NetworkInterfaceType.Wireless80211, true, [IPAddress.Parse(address)]);
+
+    /// <summary>A container bridge or a virtual switch: an address, and no router behind it.</summary>
+    private static NetworkAdapter Bridge(string address) =>
+        new(NetworkInterfaceType.Ethernet, false, [IPAddress.Parse(address)]);
 
     // --- Changing the language ---
 

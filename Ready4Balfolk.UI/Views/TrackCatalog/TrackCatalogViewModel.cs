@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using DynamicData;
 using DynamicData.Binding;
@@ -11,6 +12,7 @@ using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
+using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
@@ -31,6 +33,16 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
     [ObservableAsProperty] public partial bool IsLoading { get; }
 
     [Reactive] public partial string SearchText { get; set; }
+
+    /// <summary>
+    /// What the empty grid means right now, or empty when there are rows to show.
+    /// </summary>
+    /// <remarks>
+    /// A blank DataGrid looks the same whether nothing has been discovered yet, everything found is
+    /// still waiting behind the review gate, or a search matched nothing: three different situations
+    /// asking for three different sentences.
+    /// </remarks>
+    [ObservableAsProperty] public partial string EmptyStateText { get; }
 
     /// <summary>The row the context menu acts on. The pencil passes its own row instead.</summary>
     [Reactive] public partial TrackViewModel? SelectedTrack { get; set; }
@@ -94,7 +106,7 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
     }
 
     public TrackCatalogViewModel(ITrackStore trackStore, IQueueService queueService,
-        INotificationService notificationService, TrackEditorService trackEditor)
+        INotificationService notificationService, TrackEditorService trackEditor, ISettingsStore settingsStore)
     {
         _queueService = queueService;
         _notificationService = notificationService;
@@ -106,18 +118,68 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
             .ToProperty(this, x => x.IsLoading);
         _isLoadingHelper.DisposeWith(_disposables);
 
+        // Shared, so the filter and the sentence below react to one and the same typed term at one
+        // and the same moment instead of running two throttles that can land in either order.
         var searchObservable = this.WhenAnyValue(x => x.SearchText)
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .DistinctUntilChanged();
+            .DistinctUntilChanged()
+            .Publish()
+            .RefCount();
+
+        // How many rows the grid is showing, which is the one part of the empty state that the
+        // grid itself reports.
+        var rowCount = new BehaviorSubject<int>(0);
 
         trackStore.Connect(searchObservable)
             .Transform(track => new TrackViewModel(track))
             .Sort(SortExpressionComparer<TrackViewModel>.Ascending(t => t.Dance))
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Bind(out _tracks)
-            .Subscribe()
+            .Subscribe(_ => rowCount.OnNext(_tracks.Count))
             .DisposeWith(_disposables);
+
+        // After the subscription that feeds it, so shutting the screen down stops the rows being
+        // counted before the thing counting them is gone.
+        rowCount.DisposeWith(_disposables);
+
+        // Recomputed from every input it reads, rather than from the grid's changeset alone:
+        // filtering an already empty result to empty again moves no row, so the grid publishes
+        // nothing, and that is exactly the first-run case where the DJ searches a catalog the
+        // review gate is holding everything back from.
+        _emptyStateTextHelper = rowCount
+            .CombineLatest(
+                searchObservable.StartWith(SearchText),
+                trackStore.InReviewCount,
+                settingsStore.Observe()
+                    .Select(settings => settings.MusicDirectoryPath)
+                    .StartWith(settingsStore.Current.MusicDirectoryPath),
+                DescribeEmptyGrid)
+            .DistinctUntilChanged(StringComparer.Ordinal)
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .ToProperty(this, x => x.EmptyStateText);
+        _emptyStateTextHelper.DisposeWith(_disposables);
     }
+
+    /// <summary>
+    /// The sentence for a blank grid, or nothing at all once there is a row to show.
+    /// </summary>
+    /// <remarks>
+    /// Order matters: a search is the DJ's own doing and gets its own answer regardless of what
+    /// else is true, an unset music folder is the one nothing else can explain, and only after both
+    /// of those is the review count the right thing to blame for an otherwise-empty library.
+    /// </remarks>
+    private static string DescribeEmptyGrid(
+        int rowCount, string searchText, int inReviewCount, string musicDirectoryPath) =>
+        (HasRows: rowCount > 0, IsSearching: searchText.Length > 0,
+            HasFolder: musicDirectoryPath.Length > 0, IsWaiting: inReviewCount > 0) switch
+        {
+            { HasRows: true } => "",
+            { IsSearching: true } => UiStrings.TrackCatalog_EmptySearch,
+            { HasFolder: false } => UiStrings.TrackCatalog_EmptyNoFolder,
+            { IsWaiting: true } => string.Format(
+                CultureInfo.CurrentCulture, UiStrings.TrackCatalog_EmptyReviewWaiting, inReviewCount),
+            _ => UiStrings.TrackCatalog_EmptyNoTracks,
+        };
 
     public void Dispose()
     {

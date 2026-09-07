@@ -341,12 +341,25 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     {
         var state = _webServer.State;
 
+        // Asked once. Every read of it enumerates the machine's adapters, and two reads a moment
+        // apart can disagree, which is a line that says there is no address over a block printing
+        // one.
+        var addresses = _webServer.Addresses;
+
         IsWebServerBusy = state is WebServerState.Starting or WebServerState.Stopping;
 
         WebServerStatus = state switch
         {
             WebServerState.Starting => UiStrings.Settings_WebServerStarting,
             WebServerState.Stopping => UiStrings.Settings_WebServerStopping,
+            // The pages are being served and no other device can get at them, so the one address
+            // that does work is spelled out: without it the panel says "only here" and prints
+            // nothing, leaving the port to be read off the spinner.
+            WebServerState.Running when addresses.Count == 0 && _webServer.BoundPort is { } port =>
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    UiStrings.Settings_WebServerRunningNoAddress,
+                    $"http://localhost:{port}"),
             WebServerState.Running => UiStrings.Settings_WebServerRunning,
             WebServerState.Failed => string.Format(
                 CultureInfo.CurrentCulture,
@@ -360,7 +373,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         };
 
         WebServerAddresses = state is WebServerState.Running
-            ? string.Join(Environment.NewLine, _webServer.Addresses)
+            ? string.Join(Environment.NewLine, addresses)
             : "";
     }
 

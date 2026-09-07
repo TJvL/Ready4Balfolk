@@ -773,6 +773,9 @@
   <data name="Settings_WebServerFailed" xml:space="preserve">
     <value>Mislukt: {0}</value>
   </data>
+  <data name="Settings_WebServerRunningNoAddress" xml:space="preserve">
+    <value>Actief, maar deze computer zit op geen enkel netwerk dat een ander apparaat kan bereiken. De pagina's openen alleen op deze computer, op {0}.</value>
+  </data>
   <data name="Settings_WebServerStopping" xml:space="preserve">
     <value>Wordt gestopt</value>
   </data>
@@ -1089,6 +1092,18 @@
   <data name="TrackCatalog_NothingToWithdraw" xml:space="preserve">
     <value>Je hebt {0} nooit zelf beantwoord. Het staat in de bibliotheek op je regels of op zijn eigen tags, en dat neem je terug door die regel te wijzigen.</value>
   </data>
+  <data name="TrackCatalog_EmptySearch" xml:space="preserve">
+    <value>Geen nummer komt overeen met je zoekopdracht.</value>
+  </data>
+  <data name="TrackCatalog_EmptyNoFolder" xml:space="preserve">
+    <value>Er is nog geen muziekmap ingesteld. Wijs Ready4Balfolk er een aan via het instellingenscherm.</value>
+  </data>
+  <data name="TrackCatalog_EmptyReviewWaiting" xml:space="preserve">
+    <value>Nog niets hier, {0} nummers wachten op je in review.</value>
+  </data>
+  <data name="TrackCatalog_EmptyNoTracks" xml:space="preserve">
+    <value>Nog geen nummers in de bibliotheek.</value>
+  </data>
   <data name="EditTrack_WindowTitle" xml:space="preserve">
     <value>Nummer bewerken</value>
   </data>
@@ -1228,6 +1243,9 @@
   </data>
   <data name="Qr_OtherAddresses" xml:space="preserve">
     <value>Deze computer is ook bereikbaar op, als de telefoon op een ander netwerk zit:</value>
+  </data>
+  <data name="Qr_NoAddress" xml:space="preserve">
+    <value>Deze computer zit op geen enkel netwerk dat een ander apparaat kan bereiken, dus er is geen adres om een telefoon op te richten. Ga op de wifi van de zaal of sluit een kabel aan en open dit daarna opnieuw.</value>
   </data>
   <data name="Qr_Close" xml:space="preserve">
     <value>Sluiten</value>

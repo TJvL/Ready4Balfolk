@@ -391,7 +391,7 @@ server on, moving its port or opening it to the network never needs a restart.
 
 | Implementation | Behaviour |
 |----------------|-----------|
-| `FileLoggerService` | Writes to `app.log` in the app-data directory. Deletes and restarts the file when it exceeds 512 KB. Uses `SemaphoreSlim` for thread-safe writes. Has a configurable `MinimumLevel`. |
+| `FileLoggerService` | Writes to `app.log` in the app-data directory. Moves it to `app.log.1` and starts over when it exceeds 512 KB. Uses `SemaphoreSlim` for thread-safe writes. Has a configurable `MinimumLevel`. Exporting writes both halves, oldest first, with the user profile directory written as `~`. |
 | `NoOpLoggerService` | Does nothing: used in tests. |
 
 **Format:** `2025-01-15 14:30:00.123 [INFO] message`

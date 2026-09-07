@@ -39,7 +39,7 @@ public partial class ToolbarView : ReactiveUserControl<ToolbarViewModel>
 
     /// <summary>Puts the address on screen as something a phone can be pointed at.</summary>
     /// <remarks>
-    /// Nothing at all when the server has no address to give, which is a server that is starting or
+    /// Nothing at all when there is no server behind the button, which is one that is starting or
     /// one that failed to bind: an empty code is worse than no code.
     /// </remarks>
     private async Task ShowAddressAsync(QrCodeDialogViewModel? address)

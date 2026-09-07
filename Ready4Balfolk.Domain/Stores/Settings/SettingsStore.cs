@@ -94,7 +94,8 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
             // One name, overwritten: a run of bad starts leaves one file to look at rather than a
             // pile of them, and asking for a free name is another thing that can throw.
             fileSystem.File.Move(path, path + CorruptSuffix, overwrite: true);
-            _ = loggerService.ErrorAsync($"The settings file was kept as {path + CorruptSuffix}");
+            _ = loggerService.ErrorAsync(
+                $"The settings file was kept as {LogPaths.Name(path) + CorruptSuffix}");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
