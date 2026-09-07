@@ -89,17 +89,7 @@ public sealed class TrackStoreTests : IDisposable
         _libraryIndex.WriteAsync(Arg.Any<IReadOnlyCollection<LibraryEntry>>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {
-                lock (_indexSnapshot)
-                {
-                    foreach (var entry in call.Arg<IReadOnlyCollection<LibraryEntry>>()!)
-                    {
-                        // Reachable, whatever the entry says, because that is what the real one
-                        // writes: available = 1 in the insert and in the conflict update alike.
-                        // Nothing reaches a write without having just been read off the disk.
-                        _indexSnapshot[entry.Path] = entry with { IsAvailable = true };
-                    }
-                }
-
+                RecordWrite(call.Arg<IReadOnlyCollection<LibraryEntry>>()!);
                 return Task.CompletedTask;
             });
         _libraryIndex.MovePathsAsync(Arg.Any<IReadOnlyCollection<PathMove>>(), Arg.Any<CancellationToken>())
@@ -197,6 +187,21 @@ public sealed class TrackStoreTests : IDisposable
         }
 
         return watcher;
+    }
+
+    /// <summary>What the fake index does with a write, wherever the write came from.</summary>
+    private void RecordWrite(IReadOnlyCollection<LibraryEntry> entries)
+    {
+        lock (_indexSnapshot)
+        {
+            foreach (var entry in entries)
+            {
+                // Reachable, whatever the entry says, because that is what the real one writes:
+                // available = 1 in the insert and in the conflict update alike. Nothing reaches a
+                // write without having just been read off the disk.
+                _indexSnapshot[entry.Path] = entry with { IsAvailable = true };
+            }
+        }
     }
 
     private void CreateFile(IDirectoryInfo directory, string name) =>
@@ -903,6 +908,161 @@ public sealed class TrackStoreTests : IDisposable
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));
         await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
         Assert.DoesNotContain(_sut.Current, t => t.FileInfo.Name == "a.mp3");
+    }
+
+    /// <summary>A batch write that ends because its scan was superseded is not a failure.</summary>
+    /// <remarks>
+    /// The scan's batch writes are started and never awaited, so what falls out of one is reported
+    /// by the handler the scan gave it. Picking another folder cancels the token those writes were
+    /// handed, the index throws out of the gate it waits on with it, and the DJ used to be told
+    /// "Failed to write a batch to the library index" for the ordinary end of a scan they replaced
+    /// themselves. Reporting it is not just noise in a log: an error is put on screen as a
+    /// notification, so the DJ is told mid-evening that something failed when nothing did.
+    /// </remarks>
+    [Fact]
+    public async Task ASupersededScan_SaysNothingAboutTheBatchWritesItsCancellationEnds()
+    {
+        CreateFile(_dirA, "a.mp3");
+        CreateFile(_dirB, "b.mp3");
+
+        var writeIsInFlight = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var writeWasCancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var holdTheFirstWrite = true;
+
+        _libraryIndex.WriteAsync(Arg.Any<IReadOnlyCollection<LibraryEntry>>(), Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                var entries = call.Arg<IReadOnlyCollection<LibraryEntry>>()!;
+                var token = call.ArgAt<CancellationToken>(1);
+
+                if (holdTheFirstWrite)
+                {
+                    // The first write of the scan is the unawaited one, and it is held here until
+                    // the scan is superseded so that it is still in flight when that happens.
+                    holdTheFirstWrite = false;
+                    writeIsInFlight.TrySetResult();
+
+                    var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    using (token.Register(() => cancelled.TrySetResult()))
+                    {
+                        await cancelled.Task;
+                    }
+
+                    writeWasCancelled.TrySetResult();
+
+                    // What the real index does: it waits on its gate with the token it was handed,
+                    // and that wait throws carrying exactly that token.
+                    token.ThrowIfCancellationRequested();
+                }
+
+                RecordWrite(entries);
+            });
+
+        var load = ApplyAsync(directory: _dirA);
+        await writeIsInFlight.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        // The DJ correcting the folder they picked, which is what cancels the scan in flight.
+        await ApplyAsync(directory: _dirB);
+        await load.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await writeWasCancelled.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        // Long enough for the handler on the held write to have run, since the assertion below is
+        // that it reported nothing and there is no event to wait for.
+        await Task.Delay(250, TestContext.Current.CancellationToken);
+
+        await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
+        await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));
+    }
+
+    /// <summary>
+    /// A cancellation the scan did not ask for is still a failure, and is still reported.
+    /// </summary>
+    /// <remarks>
+    /// The guard on passing a superseded scan over: only the token the scan handed out means "this
+    /// was meant to stop". Anything else cancelling underneath it is a fault, and swallowing every
+    /// cancellation would hide it as thoroughly as reporting one hides nothing.
+    /// </remarks>
+    [Fact]
+    public async Task AWriteCancelledBySomethingElse_IsStillReported()
+    {
+        CreateFile(_dirA, "a.mp3");
+
+        using var somethingElse = new CancellationTokenSource();
+        await somethingElse.CancelAsync();
+
+        var reported = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _loggerService.ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>())
+            .Returns(call =>
+            {
+                reported.TrySetResult(call.ArgAt<string>(0));
+                return Task.CompletedTask;
+            });
+
+        _libraryIndex.ApproveAsync(Arg.Any<IReadOnlyCollection<TrackApproval>>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromException(new OperationCanceledException(somethingElse.Token)));
+
+        await ApplyAsync(directory: _dirA);
+
+        var message = await reported.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal("Failed to record what the rules approved", message);
+    }
+
+    /// <summary>A rule change ended by the next rule change is not a failure either.</summary>
+    /// <remarks>
+    /// Changing the rules revokes what the old ones approved before rescanning, and that revoke is
+    /// awaited on the caller's own path rather than started and dropped. Changing the rules again
+    /// cancels the token it was handed, so it comes back cancelled, and an exception out of
+    /// ApplyAsync is reported by the caller as "Failed to apply the library settings": the DJ is
+    /// told a change failed because they made a better one before it finished.
+    /// </remarks>
+    [Fact]
+    public async Task ARuleChangeSupersededByTheNextOne_SaysNothingAboutTheRevokeItsCancellationEnds()
+    {
+        CreateFile(_dirA, "a.mp3");
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "a.mp3"));
+
+        var revokeIsInFlight = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var holdTheFirstRevoke = true;
+
+        _libraryIndex.RevokeRuleApprovalsAsync(Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                if (!holdTheFirstRevoke)
+                {
+                    return;
+                }
+
+                // The revoke of the first rule change is held here until that change is superseded,
+                // so that it is still in flight when that happens.
+                holdTheFirstRevoke = false;
+                var token = call.ArgAt<CancellationToken>(0);
+                revokeIsInFlight.TrySetResult();
+
+                var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                using (token.Register(() => cancelled.TrySetResult()))
+                {
+                    await cancelled.Task;
+                }
+
+                // What the real index does: it waits on its gate with the token it was handed, and
+                // that wait throws carrying exactly that token.
+                token.ThrowIfCancellationRequested();
+            });
+
+        var firstRuleChange = ApplyAsync(
+            discovery: new DiscoverySettings { UsesCustomDanceTag = true, CustomDanceTag = "DANCE" });
+        await revokeIsInFlight.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        // The DJ correcting the rule they just set, which is what cancels the change in flight.
+        await ApplyAsync(
+            discovery: new DiscoverySettings { UsesCustomDanceTag = true, CustomDanceTag = "STYLE" });
+
+        var escaped = await Record.ExceptionAsync(
+            () => firstRuleChange.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+
+        Assert.Null(escaped);
+        await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
     }
 
     [Fact]
