@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
 using DynamicData;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
@@ -192,8 +193,23 @@ public sealed class TrackStore : ITrackStore, IDisposable
             // Every approval a rule gave goes with the rules. The user vouched for the rule and not
             // for the two thousand files it touched, so fixing one greenlit by mistake has to undo
             // its work. What they answered one at a time is untouched.
-            await _libraryIndex.OpenAsync(token);
-            await _libraryIndex.RevokeRuleApprovalsAsync(token);
+            try
+            {
+                await _libraryIndex.OpenAsync(token);
+                await _libraryIndex.RevokeRuleApprovalsAsync(token);
+            }
+            catch (OperationCanceledException canceled) when (canceled.CancellationToken == token)
+            {
+                // The DJ changed the rules again before this change was through: the index waits on
+                // its gate with the token it was handed, so being superseded arrives here as a
+                // cancellation carrying exactly that token. It is the ordinary end of a rule change
+                // the DJ replaced themselves, and letting it out of ApplyAsync tells them a change
+                // they made twice failed once. Only this run's token counts: a cancellation from
+                // anywhere else is a fault, and it is left to escape and be reported.
+                _ = _loggerService.DebugAsync("Revoking the rule approvals was superseded");
+                return;
+            }
+
             await LoadDirectoryAsync(directory, reread: true, token);
             return;
         }
@@ -398,6 +414,20 @@ public sealed class TrackStore : ITrackStore, IDisposable
             var scanned = new ConcurrentBag<ScannedFile>();
             // Everything that has been read, kept for the folder pass once the scan is complete.
             var written = new List<ScannedFile>();
+            // The batch writes are started rather than awaited, so nothing on the scan's path is
+            // left to catch what falls out of them.
+            //
+            // A scan that has been superseded ends by having its token cancelled, and every write
+            // still in flight comes back cancelled with it: the index waits on its gate with the
+            // token it was handed. That is the ordinary end of a scan the DJ replaced by picking
+            // another folder or changing a rule, and reporting it puts an ERROR in the log and a
+            // toast on screen for something nobody did wrong. Only this scan's token counts:
+            // a cancellation carrying any other one came from somewhere this scan does not own,
+            // and passing that over would hide a real fault.
+            var batchWrites = new UnawaitedWork(
+                _loggerService,
+                exception => exception is OperationCanceledException canceled
+                    && canceled.CancellationToken == cancellationToken);
             var loaded = audioFiles.ToObservable()
                 .TakeUntil(_ => cancellationToken.IsCancellationRequested)
                 .Select(file => LoadTrackObservable(file, directory, known, scanned, reread))
@@ -422,12 +452,16 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
                 if (pending.Count > 0)
                 {
-                    _libraryIndex.WriteAsync([.. pending.Select(ScannedFileMapping.ToEntry)], cancellationToken).SafeFireAndForget(exception =>
-                        _loggerService.ErrorAsync("Failed to write a batch to the library index", exception));
+                    LibraryEntry[] entries = [.. pending.Select(ScannedFileMapping.ToEntry)];
+                    TrackApproval[] approvals = [.. pending.SelectMany(ScannedFileMapping.ByRuleApprovals)];
 
-                    _libraryIndex.ApproveAsync([.. pending.SelectMany(ScannedFileMapping.ByRuleApprovals)], cancellationToken)
-                        .SafeFireAndForget(exception =>
-                            _loggerService.ErrorAsync("Failed to record what the rules approved", exception));
+                    batchWrites.Start(
+                        "Failed to write a batch to the library index",
+                        () => _libraryIndex.WriteAsync(entries, cancellationToken));
+
+                    batchWrites.Start(
+                        "Failed to record what the rules approved",
+                        () => _libraryIndex.ApproveAsync(approvals, cancellationToken));
                 }
 
                 _ = _loggerService.DebugAsync($"Added batch of '{tracksBatch.Count:N0}' tracks");

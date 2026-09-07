@@ -679,10 +679,13 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             new FieldAnswer(TrackField.Title, row.Title.Trim())
         ]);
 
-        // A dance the published list has never heard of is not a local problem to patch around. The
-        // answer is kept, the track parks, and a proposal at BigBalfolkList is what releases it.
-        var known = _danceListStore.Index.ResolveSlug(typed) is not null;
-        row.MarkApproved(known);
+        // Asked of the gate rather than of the list alone, because parked is a promise that nothing
+        // here can release the track: a dance the published list has never heard of parks and waits
+        // for a proposal at BigBalfolkList, unless the DJ has said their own answer is enough, in
+        // which case it went straight in and saying otherwise sends them off to propose a dance
+        // they did not need to.
+        row.MarkApproved(ReviewGate.ReachesTheLibrary(
+            typed, _danceListStore.Index, _settingsStore.Current.AllowDancesOutsideTheList));
     }
 
     /// <summary>
