@@ -211,9 +211,13 @@ public sealed class PresentationWebServer(
             _running = options;
             LastError = null;
 
+            // The port and how many, never the addresses themselves. Which interfaces this
+            // machine has is the DJ's home or the venue's network, and the settings panel is where
+            // somebody who needs an address reads one. That none is reachable is worth saying,
+            // because it is why the QR code is not on offer.
             var addresses = Addresses;
             await logger.InfoAsync(addresses.Count > 0
-                    ? $"Presentation server listening on {string.Join(", ", addresses)}"
+                    ? $"Presentation server listening on port {options.Port} ({addresses.Count} addresses)"
                     : $"Presentation server listening on port {options.Port}, with no address another device can reach")
                 .ConfigureAwait(false);
         }

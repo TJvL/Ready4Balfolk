@@ -1,3 +1,4 @@
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 
@@ -35,18 +36,10 @@ public static class FolderAgreement
     }
 
     /// <summary>The folder grouping key an entry's path implies, matching the evidence's key.</summary>
-    public static string KeyFor(string path, string rootPath)
-    {
-        if (Path.GetDirectoryName(path) is not { } parent)
-        {
-            return string.Empty;
-        }
-
-        var relative = Path.GetRelativePath(rootPath, parent);
-        return relative is "." || relative.StartsWith("..", StringComparison.Ordinal)
-            ? string.Empty
-            : relative.Replace(Path.DirectorySeparatorChar, '/');
-    }
+    public static string KeyFor(string path, string rootPath) =>
+        Path.GetDirectoryName(path) is { } parent && RelativePath.Below(rootPath, parent) is { } relative
+            ? relative.Replace(Path.DirectorySeparatorChar, '/')
+            : string.Empty;
 
     /// <summary>
     /// Re-resolves the tracks a folder can now speak for, and reports how many were rescued.

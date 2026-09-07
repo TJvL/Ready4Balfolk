@@ -221,7 +221,7 @@ public sealed class LibraryWatcher(
     private void OnFailed(string root, Exception exception)
     {
         _ = loggerService.WarningAsync(
-            $"The watcher on '{root}' failed and is being started again: {exception.Message}");
+            $"The watcher on '{LogPaths.Name(root)}' failed and is being started again: {exception.Message}");
 
         // Off the watcher's own callback, because starting again disposes the watcher that is
         // raising this.
@@ -267,7 +267,8 @@ public sealed class LibraryWatcher(
         catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException)
         {
             _ = loggerService.WarningAsync(
-                $"The watcher on '{root}' could not be started and will be tried again: {exception.Message}");
+                $"The watcher on '{LogPaths.Name(root)}' could not be started and will be tried again: " +
+                $"{exception.Message}");
 
             // Whatever Start managed to attach before it threw belongs to a watcher that is not
             // running. Stop clears the root as well, and the retry only fires while it is set.

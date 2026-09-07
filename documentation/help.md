@@ -211,7 +211,7 @@ The night's own boundaries are lines in the list: where it began, and where it e
 
 - **Toggle to Queue**: Switch back to the queue view
 - **Which night**: Tonight, or any evening that has been filed. Everything else in this toolbar acts on the night you are looking at.
-- **Export History**: Save that night to a JSON file. Useful for keeping records of what was played at an event.
+- **Export History**: Save that night to a JSON file. Useful for keeping records of what was played at an event. It holds the dances, artists, titles and times, and not where the files sit on your disk, so it can go to an organiser as it is.
 - **New night**: Keep tonight and start a new one (with confirmation). Nothing is deleted: the evening is filed and the history starts empty. Use it after a soundcheck, or on any evening that did not end with the end-of-the-night audio.
 - **Delete**: Throw that night away (with confirmation). This cannot be undone, and it is how the file stays a size somebody chose.
 
@@ -545,7 +545,7 @@ Choose between three options:
 
 ### Export Log File
 
-Click to save the application log file. Useful for troubleshooting issues or submitting bug reports.
+Click to save the application log file. Useful for troubleshooting issues or submitting bug reports. The saved copy carries the current log and the one before it, and your home directory is written as `~` rather than spelled out. The text of an error message is written by whatever failed, though, and one of those can still name a file in full, so read the export before you paste it somewhere public.
 
 ---
 

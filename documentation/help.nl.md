@@ -212,7 +212,7 @@ Waar de avond begint en waar hij eindigt staan als regels in de lijst.
 
 - **Naar wachtrij**: terug naar de wachtrijweergave
 - **Welke avond**: vanavond, of een avond die is opgeborgen. De rest van deze werkbalk werkt op de avond waar je naar kijkt.
-- **Geschiedenis exporteren**: bewaart die avond als JSON. Handig als verslag van een avond.
+- **Geschiedenis exporteren**: bewaart die avond als JSON. Handig als verslag van een avond. Er staan de dansen, artiesten, titels en tijden in, en niet waar de bestanden op je schijf staan, dus je kunt het zo aan een organisator geven.
 - **Nieuwe avond**: bewaart deze avond en begint een nieuwe (met bevestiging). Er wordt niets verwijderd: de avond wordt opgeborgen en de geschiedenis begint leeg. Handig na een soundcheck, of op een avond die niet met het eindsignaal is afgesloten.
 - **Verwijderen**: gooit die avond weg (met bevestiging). Dit kan niet ongedaan worden gemaakt, en zo blijft het bestand een omvang die iemand gekozen heeft.
 
@@ -572,7 +572,9 @@ Drie keuzes:
 ### Logbestand exporteren
 
 Bewaart het logbestand van het programma. Nuttig bij het uitzoeken van problemen of het melden van
-een fout.
+een fout. De bewaarde kopie bevat het huidige logbestand en het vorige, en je thuismap staat er als
+`~` in plaats van voluit. De tekst van een foutmelding komt van wat er misging, en zo'n melding kan
+alsnog een bestand voluit noemen, dus lees de export door voordat je hem ergens openbaar plakt.
 
 ---
 

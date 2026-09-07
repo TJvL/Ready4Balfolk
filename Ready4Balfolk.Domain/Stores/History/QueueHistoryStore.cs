@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Microsoft.Data.Sqlite;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -39,6 +40,23 @@ public sealed class QueueHistoryStore(
         Converters =
         {
             new JsonStringEnumConverter()
+        }
+    };
+
+    /// <summary>The same night, without where the files are.</summary>
+    /// <remarks>
+    /// An export is a record of an evening for whoever asked for one, and a path says nothing
+    /// about the evening and everything about the DJ's disk. The payload in the database keeps it:
+    /// that is what the duplicate rule and the random picker read a played track back by.
+    /// </remarks>
+    private static readonly JsonSerializerOptions ExportJsonOptions = new(JsonOptions)
+    {
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver
+        {
+            Modifiers =
+            {
+                DropTrackFilePath
+            }
         }
     };
 
@@ -238,8 +256,8 @@ public sealed class QueueHistoryStore(
             var destination = fileSystem.FileInfo.New(destinationPath);
             destination.Directory?.Create();
             await using var stream = fileSystem.File.Create(destination.FullName);
-            await JsonSerializer.SerializeAsync(stream, night, JsonOptions);
-            _ = loggerService.InfoAsync($"Exported the night to {destination.FullName}");
+            await JsonSerializer.SerializeAsync(stream, night, ExportJsonOptions);
+            _ = loggerService.InfoAsync($"Exported the night to {LogPaths.Name(destination.FullName)}");
         }
         finally
         {
@@ -293,7 +311,7 @@ public sealed class QueueHistoryStore(
         }
 
         _connection = connection;
-        _ = loggerService.InfoAsync($"History opened at {path}");
+        _ = loggerService.InfoAsync($"History opened ({DatabaseFileName})");
         return connection;
     }
 
@@ -448,6 +466,21 @@ public sealed class QueueHistoryStore(
         await using var command = connection.CreateCommand();
         command.CommandText = sql;
         await command.ExecuteNonQueryAsync(token);
+    }
+
+    private static void DropTrackFilePath(JsonTypeInfo typeInfo)
+    {
+        if (typeInfo.Type != typeof(TrackHistoryEntry))
+        {
+            return;
+        }
+
+        var filePath = typeInfo.Properties
+            .FirstOrDefault(property => property.Name == nameof(TrackHistoryEntry.FilePath));
+        if (filePath is not null)
+        {
+            typeInfo.Properties.Remove(filePath);
+        }
     }
 
     /// <summary>The entry's kind, read back off the payload so the column cannot drift from it.</summary>

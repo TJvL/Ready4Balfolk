@@ -146,6 +146,31 @@ public sealed class QueueHistoryStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ExportAsync_LeavesOutWhereTheFilesAre()
+    {
+        await _sut.AddAsync(Track());
+        var nightId = _sut.Current.Id;
+
+        var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "history.json"));
+        await _sut.ExportAsync(nightId, exportFile.FullName);
+
+        // An export goes to an organiser. Dance, artist, title and times are the evening; a path
+        // is a description of the DJ's disk.
+        var content = await File.ReadAllTextAsync(exportFile.FullName, TestContext.Current.CancellationToken);
+        Assert.Contains("Mazurka", content, StringComparison.Ordinal);
+        Assert.Contains("\"track\"", content, StringComparison.Ordinal);
+        Assert.DoesNotContain(nameof(TrackHistoryEntry.FilePath), content, StringComparison.Ordinal);
+        Assert.DoesNotContain(TrackPath, content, StringComparison.Ordinal);
+
+        // And it is still in the database, because that is what the duplicate rule and the random
+        // picker recognise a played track by.
+        var reopened = await ReopenAsync();
+        Assert.Equal(
+            TrackPath,
+            Assert.IsType<TrackHistoryEntry>(reopened.Current.Entries[0]).FilePath);
+    }
+
+    [Fact]
     public async Task EndNightAsync_WithATime_FilesTheNightAtThatTimeRatherThanNow()
     {
         // A night nobody ended is noticed at the next start, which can be days later. Stamping it
@@ -233,8 +258,10 @@ public sealed class QueueHistoryStoreTests : IDisposable
         Assert.True(emissions.Count >= 2); // initial + update
     }
 
+    private const string TrackPath = "/tmp/test.mp3";
+
     private static TrackHistoryEntry Track() => new(
-        "/tmp/test.mp3", "Mazurka", "Artist", "Title",
+        TrackPath, "Mazurka", "Artist", "Title",
         TimeSpan.FromMinutes(3), false, CompletionStatus.Finished, DateTime.Now);
 
     /// <summary>A second store over the same directory, which is what a restart amounts to.</summary>
