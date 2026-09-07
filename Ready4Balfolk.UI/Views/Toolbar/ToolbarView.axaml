@@ -12,8 +12,7 @@
         <Button AutomationProperties.AutomationId="toolbar.exit"
                 Click="OnExitClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Exit}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconLogin}"
                                     Text="{x:Static res:UiStrings.Toolbar_ExitLabel}"
                                     IconSize="16" />
@@ -24,8 +23,7 @@
         <Button AutomationProperties.AutomationId="toolbar.help"
                 Click="OnHelpClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Help}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconHelp}"
                                     Text="{x:Static res:UiStrings.Toolbar_HelpLabel}"
                                     IconSize="16" />
@@ -33,17 +31,18 @@
         <Button AutomationProperties.AutomationId="toolbar.settings"
                 Click="OnSettingsClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Settings}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconSettings}"
                                     Text="{x:Static res:UiStrings.Toolbar_SettingsLabel}"
                                     IconSize="16" />
         </Button>
+        <!-- Named here rather than by the label inside it: this button carries a count
+             beside its label, so the label is not the whole of its content. -->
         <Button AutomationProperties.AutomationId="toolbar.review"
+                AutomationProperties.Name="{x:Static res:UiStrings.Toolbar_ReviewLabel}"
                 Click="OnReviewClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Review}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <StackPanel Orientation="Horizontal" Spacing="6">
                 <!-- A tick, not the book the tagging button carries: with button text off, two
                      identical icons side by side are two buttons nobody can tell apart. -->
@@ -81,8 +80,7 @@
                 Click="OnDisplayAddressClick"
                 IsVisible="{Binding IsServingDisplay}"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_DisplayServedTip}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconMonitor}"
                                     Text="{x:Static res:UiStrings.Toolbar_DisplayServed}"
                                     IconSize="16" />
@@ -91,8 +89,7 @@
                 Click="OnRemoteAddressClick"
                 IsVisible="{Binding IsServingRemote}"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_RemoteServedTip}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconPhone}"
                                     Text="{x:Static res:UiStrings.Toolbar_RemoteServed}"
                                     IconSize="16" />

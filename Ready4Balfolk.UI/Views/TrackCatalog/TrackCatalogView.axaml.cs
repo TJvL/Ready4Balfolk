@@ -1,6 +1,7 @@
 using System;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using ReactiveUI.Avalonia.Reactive;
 
@@ -14,6 +15,25 @@ public partial class TrackCatalogView : ReactiveUserControl<TrackCatalogViewMode
     public TrackCatalogView()
     {
         InitializeComponent();
+
+        // Tunnelled, the way the queue takes its own keys: the grid reads Enter as a step down
+        // the rows, and here it is the answer to "this one", which is the whole reason a person
+        // walked the list with the arrows in the first place.
+        TracksDataGrid.AddHandler(KeyDownEvent, OnTracksKeyDown, RoutingStrategies.Tunnel);
+    }
+
+    /// <summary>Enter puts the highlighted track in the queue, the way a double click does.</summary>
+    private void OnTracksKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not Key.Enter
+            || e.KeyModifiers is not KeyModifiers.None
+            || TracksDataGrid.SelectedItem is not TrackViewModel track)
+        {
+            return;
+        }
+
+        ViewModel?.EnqueueTrackCommand.Execute(track).Subscribe();
+        e.Handled = true;
     }
 
     private void DataGridSorting(object? sender, DataGridColumnEventArgs e)

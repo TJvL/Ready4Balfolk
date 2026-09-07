@@ -52,6 +52,44 @@ Het hoofdscherm bestaat uit twee kolommen:
 
 Met de schakelknoppen bovenaan elk paneel wissel je per kolom van weergave.
 
+### Het toetsenbord
+
+Het hoofdscherm is zonder muis te bedienen. Elke knop, elk vinkje, elk vak en elke lijst erop
+neemt het toetsenbord aan, dus Tab loopt door het paneel waar je bent en Spatie of Enter drukt in
+wat je bereikt hebt. De danskaarten herhalen de tags die een dans draagt, en die kopieën slaat Tab
+als enige over: de balk links draagt elke tag één keer en neemt het toetsenbord wel aan, dus langs
+een paar honderd kopieën lopen van wat die balk al biedt is alleen maar een omweg.
+
+Deze vier werken overal op het hoofdscherm:
+
+| | |
+|---|---|
+| Spatie | afspelen of pauzeren |
+| Ctrl+Rechts | de volgende dans, of leegmaken wat er op staat |
+| Ctrl+Links | deze dans opnieuw beginnen |
+| Ctrl+F | naar het zoekvak van de bibliotheek, over wat er al in staat |
+
+Dat vak hoort bij de bibliotheek, dus staat de danslijst in de rechterkolom als je Ctrl+F drukt,
+dan komt de bibliotheek eerst terug: de danslijst sluit, en waar je in die lijst was blijft niet
+bewaard.
+
+Heeft je toetsenbord mediatoetsen, dan doen afspelen/pauzeren, volgende en vorige dezelfde eerste
+drie dingen, en niets anders op het scherm pakt er ooit een af.
+
+Deze horen bij de lijst waar je in staat:
+
+| | |
+|---|---|
+| Omhoog, Omlaag | door de bibliotheek lopen, of door de wachtrij |
+| Enter | in de bibliotheek, het gemarkeerde nummer in de wachtrij zetten |
+| Delete | in de wachtrij, het geselecteerde item eruit halen |
+| Ctrl+Omhoog, Ctrl+Omlaag | in de wachtrij, het geselecteerde item omhoog of omlaag |
+
+Spatie en Ctrl met een pijl horen eerst bij waar je in typt of op staat: een spatie in het zoekvak
+is een spatie, een spatie op een knop waar je naartoe getabd bent drukt die knop in, en Ctrl+Rechts
+in een vak loopt nog steeds per woord. Instellingen, help en de reviewwachtrij hebben helemaal geen
+afspeeltoetsen; review heeft een eigen toetsenbord, beschreven onder [Review](#het-toetsenbord-1).
+
 ---
 
 ## Werkbalk
@@ -382,7 +420,7 @@ erger dan een dat eerlijk nog wacht.
 | | |
 |---|---|
 | Omhoog, Omlaag | tussen nummers |
-| Tab | tussen de drie velden van een nummer, rondlopend |
+| Tab | door de drie velden van een nummer en dan zijn knoppen, en na de laatste de rij uit |
 | Enter | dit nummer beantwoorden en door naar het volgende dat wacht |
 | Shift+Enter | elk volledig nummer in deze map beantwoorden |
 | Ctrl+Z | het antwoord terugnemen op het nummer waar de cursor staat |

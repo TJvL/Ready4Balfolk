@@ -196,6 +196,9 @@ public static class UiStrings
     public static string Settings_QueueCutoff =>
         ResourceManager.GetString("Settings_QueueCutoff", Culture)!;
 
+    public static string Settings_QueueCutoffTime =>
+        ResourceManager.GetString("Settings_QueueCutoffTime", Culture)!;
+
     public static string Settings_QueueCutoffGrace =>
         ResourceManager.GetString("Settings_QueueCutoffGrace", Culture)!;
 
@@ -255,6 +258,9 @@ public static class UiStrings
 
     public static string Settings_GapBetweenTracks =>
         ResourceManager.GetString("Settings_GapBetweenTracks", Culture)!;
+
+    public static string Settings_GapBetweenTracksLength =>
+        ResourceManager.GetString("Settings_GapBetweenTracksLength", Culture)!;
 
     public static string Settings_GapBetweenTracksSeconds =>
         ResourceManager.GetString("Settings_GapBetweenTracksSeconds", Culture)!;
@@ -495,6 +501,9 @@ public static class UiStrings
         ResourceManager.GetString("HistoryToolbar_ExportTitle", Culture)!;
 
     // Playback
+    public static string Playback_ProgressName =>
+        ResourceManager.GetString("Playback_ProgressName", Culture)!;
+
     public static string Playback_RestartTrack =>
         ResourceManager.GetString("Playback_RestartTrack", Culture)!;
 
@@ -864,6 +873,9 @@ public static class UiStrings
     public static string DanceList_PickThisDance =>
         ResourceManager.GetString("DanceList_PickThisDance", Culture)!;
 
+    public static string DanceList_PickDanceName =>
+        ResourceManager.GetString("DanceList_PickDanceName", Culture)!;
+
     public static string DanceList_NoTrackForDance =>
         ResourceManager.GetString("DanceList_NoTrackForDance", Culture)!;
 
@@ -1011,6 +1023,9 @@ public static class UiStrings
 
     public static string Discovery_LevelDepth =>
         ResourceManager.GetString("Discovery_LevelDepth", Culture)!;
+
+    public static string Discovery_LevelRole =>
+        ResourceManager.GetString("Discovery_LevelRole", Culture)!;
 
     public static string Discovery_LevelValue =>
         ResourceManager.GetString("Discovery_LevelValue", Culture)!;
@@ -1186,6 +1201,9 @@ public static class UiStrings
 
     public static string Qr_RemoteTitle =>
         ResourceManager.GetString("Qr_RemoteTitle", Culture)!;
+
+    public static string Qr_ImageName =>
+        ResourceManager.GetString("Qr_ImageName", Culture)!;
 
     public static string Qr_Pin =>
         ResourceManager.GetString("Qr_Pin", Culture)!;

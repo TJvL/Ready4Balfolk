@@ -49,6 +49,10 @@ public sealed partial class FolderLevelViewModel(FolderLevelPreview preview, Fol
     public IReadOnlyList<string> Values { get; } = [.. preview.Values.Select(entry => string.Format(
             CultureInfo.CurrentCulture, UiStrings.Discovery_LevelValue, entry.Value, entry.Files))];
 
+    /// <summary>What the picker beside this level is called, which has to be this level.</summary>
+    public string RoleName { get; } = string.Format(
+        CultureInfo.CurrentCulture, UiStrings.Discovery_LevelRole, preview.Level);
+
     [Reactive] public partial FolderRole Role { get; set; } = role;
 
     public IReadOnlyList<FolderRole> AvailableRoles { get; } = [.. System.Enum.GetValues<FolderRole>()];

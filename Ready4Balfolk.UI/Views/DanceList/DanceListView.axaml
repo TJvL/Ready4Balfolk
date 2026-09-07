@@ -15,7 +15,16 @@
             <Setter Property="Padding" Value="8,2" />
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="FontSize" Value="12" />
+            <!-- Out of the tab order by default, which is the copies on the cards: the same tag
+                 is drawn again on every dance that carries it, so a few hundred of them would
+                 stand between the panel's first control and its last while doing nothing the rail
+                 does not already do. The rail's own chips take the keyboard, below. -->
             <Setter Property="Focusable" Value="False" />
+        </Style>
+        <!-- The rail carries every tag exactly once, and toggling one is the only way to set the
+             pool: left out, the pool would be a thing only a pointer could set. -->
+        <Style Selector="Button.chip.rail">
+            <Setter Property="Focusable" Value="True" />
         </Style>
         <Style Selector="Button.chip.pooled">
             <Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
@@ -37,6 +46,8 @@
         <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
               ColumnDefinitions="*,Auto" Margin="0,0,0,8">
             <TextBox Grid.Column="0"
+                     AutomationProperties.AutomationId="dancelist.search"
+                     AutomationProperties.Name="{x:Static res:UiStrings.DanceList_SearchWatermark}"
                      Text="{CompiledBinding SearchText, Mode=TwoWay}"
                      PlaceholderText="{x:Static res:UiStrings.DanceList_SearchWatermark}" />
             <TextBlock Grid.Column="1"
@@ -67,8 +78,7 @@
                     <Button Command="{CompiledBinding ClearPoolCommand}"
                             IsVisible="{CompiledBinding HasPool}"
                             HorizontalAlignment="Stretch"
-                            Padding="8"
-                            Focusable="False">
+                            Padding="8">
                         <controls:ButtonContent Icon="{StaticResource IconClose}"
                                                 Text="{x:Static res:UiStrings.DanceList_ClearPool}"
                                                 IconSize="14" />
@@ -86,8 +96,7 @@
                             IsEnabled="{CompiledBinding !IsUpdating}"
                             ToolTip.Tip="{x:Static res:UiStrings.DanceList_UpdateTip}"
                             HorizontalAlignment="Stretch"
-                            Padding="8"
-                            Focusable="False">
+                            Padding="8">
                         <controls:ButtonContent Icon="{StaticResource IconDownload}"
                                                 Text="{x:Static res:UiStrings.DanceList_Update}"
                                                 IconSize="14" />
@@ -97,8 +106,7 @@
                             IsEnabled="{CompiledBinding !IsUpdating}"
                             ToolTip.Tip="{x:Static res:UiStrings.DanceList_UpdateFromFileTip}"
                             HorizontalAlignment="Stretch"
-                            Padding="8"
-                            Focusable="False">
+                            Padding="8">
                         <controls:ButtonContent Icon="{StaticResource IconFileImport}"
                                                 Text="{x:Static res:UiStrings.DanceList_UpdateFromFile}"
                                                 IconSize="14" />
@@ -114,7 +122,9 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="danceList:TagChipViewModel">
-                                <Button Classes="chip"
+                                <Button Classes="chip rail"
+                                        AutomationProperties.AutomationId="dancelist.tag"
+                                        AutomationProperties.Name="{Binding Tag}"
                                         Classes.pooled="{Binding IsInPool}"
                                         Classes.dimmed="{Binding IsDimmed}"
                                         Classes.excluded="{Binding IsExcluded}"
@@ -171,15 +181,21 @@
                                                    FontSize="12"
                                                    Opacity="0.35" />
 
+                                        <!-- One per dance, and the only way to ask for that one
+                                             dance: out of the tab order it would be a thing only a
+                                             pointer could press. Named after its own card, because
+                                             a hundred buttons all called the same three words tell
+                                             a listener walking the panel nothing. -->
                                         <Button Grid.Row="0" Grid.Column="2"
+                                                AutomationProperties.AutomationId="dancelist.pick"
+                                                AutomationProperties.Name="{Binding PickName}"
                                                 Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).PickDanceCommand}"
                                                 CommandParameter="{Binding Slug}"
                                                 IsVisible="{Binding HasTracks}"
                                                 ToolTip.Tip="{x:Static res:UiStrings.DanceList_PickThisDance}"
                                                 Background="Transparent"
                                                 BorderThickness="0"
-                                                Padding="6"
-                                                Focusable="False">
+                                                Padding="6">
                                             <PathIcon Data="{StaticResource IconDice}" Width="16" Height="16" />
                                         </Button>
 

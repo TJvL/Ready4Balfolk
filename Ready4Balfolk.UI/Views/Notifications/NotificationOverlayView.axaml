@@ -40,7 +40,11 @@
                     <!--Wrapped, because a notification is not always a sentence somebody wrote to
                         fit: several of them end in whatever the operating system or a server had to
                         say, and the reason is the half that would be cut off.-->
+                    <!-- A live region, and an interrupting one: the bar says something the DJ
+                         did not ask about and it is gone in four seconds, which is not long
+                         enough to wait for a turn to speak. -->
                     <TextBlock AutomationProperties.AutomationId="notification.message"
+                               AutomationProperties.LiveSetting="Assertive"
                                Text="{Binding Message}"
                                Foreground="{DynamicResource NotificationTextBrush}"
                                FontSize="14"

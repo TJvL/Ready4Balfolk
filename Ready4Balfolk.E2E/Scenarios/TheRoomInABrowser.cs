@@ -268,6 +268,13 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             Assert.Contains(world.WebServerPort.ToString(CultureInfo.InvariantCulture), application.TextOf("qr.address"), StringComparison.Ordinal);
             Assert.Equal("202020", application.TextOf("qr.pin"));
 
+            // The code itself is a picture of that address and nothing else: a name is the only
+            // thing anybody not looking at it has to go on.
+            Assert.Contains(
+                application.TextOf("qr.address"),
+                application.NameOf("qr.image"),
+                StringComparison.Ordinal);
+
             application.Click("qr.close");
         });
     }

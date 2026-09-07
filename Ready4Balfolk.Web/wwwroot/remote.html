@@ -32,15 +32,18 @@
     <div class="remote-body">
       <!-- Now -->
       <section class="pane is-active" data-pane="now">
-        <div class="now-card">
+        <!-- A live region: a dance ends and the next one starts with nobody touching the
+             phone. The clock and the bar are cut back out of it, or a screen reader would read
+             the seconds out one at a time for the whole of a track. -->
+        <div class="now-card" aria-live="polite">
           <div class="kicker" id="nowKicker"></div>
           <div class="now-primary" id="nowPrimary"></div>
           <div class="now-sub" id="nowSub"></div>
-          <div class="now-times">
+          <div class="now-times" aria-live="off">
             <span id="nowElapsed">0:00</span>
             <span id="nowLeft">-0:00</span>
           </div>
-          <div class="now-bar"><i id="nowBar"></i></div>
+          <div class="now-bar" aria-live="off"><i id="nowBar"></i></div>
         </div>
 
         <div class="transport">
@@ -60,7 +63,7 @@
           </button>
         </div>
 
-        <div class="upnext">
+        <div class="upnext" aria-live="polite">
           <div class="kicker" id="upnextKicker"></div>
           <div class="un-text" id="upnextText"></div>
         </div>
@@ -149,7 +152,9 @@
     </nav>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <!-- Whatever the queue said back. It is gone in under two seconds, which is not long enough
+       to wait for a turn to speak, so it interrupts. -->
+  <div class="toast" id="toast" role="alert"></div>
 
   <script src="/lib/signalr.min.js"></script>
   <script src="/strings.js"></script>

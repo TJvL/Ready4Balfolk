@@ -24,7 +24,10 @@
                 CornerRadius="4"
                 Padding="12"
                 HorizontalAlignment="Center">
+            <!-- An image with an address in it, which is nothing at all to a screen reader:
+                 the address is written out underneath, and this says which address this is. -->
             <Image AutomationProperties.AutomationId="qr.image"
+                   AutomationProperties.Name="{CompiledBinding Address, StringFormat={x:Static res:UiStrings.Qr_ImageName}}"
                    Source="{CompiledBinding Image}"
                    Width="260"
                    Height="260" />

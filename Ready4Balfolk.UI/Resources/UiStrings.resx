@@ -288,6 +288,9 @@
   <data name="Settings_QueueCutoff" xml:space="preserve">
     <value>Stop accepting requests after a set time</value>
   </data>
+  <data name="Settings_QueueCutoffTime" xml:space="preserve">
+    <value>Cutoff time</value>
+  </data>
   <data name="Settings_QueueCutoffGrace" xml:space="preserve">
     <value>Grace (minutes)</value>
   </data>
@@ -347,6 +350,9 @@
   </data>
   <data name="Settings_GapBetweenTracks" xml:space="preserve">
     <value>Add a standard delay in between tracks</value>
+  </data>
+  <data name="Settings_GapBetweenTracksLength" xml:space="preserve">
+    <value>Length of the delay between tracks (seconds)</value>
   </data>
   <data name="Settings_GapBetweenTracksSeconds" xml:space="preserve">
     <value>seconds</value>
@@ -592,6 +598,9 @@
   </data>
 
   <!-- Playback -->
+  <data name="Playback_ProgressName" xml:space="preserve">
+    <value>How far into the track</value>
+  </data>
   <data name="Playback_RestartTrack" xml:space="preserve">
     <value>Restart track</value>
   </data>
@@ -972,6 +981,9 @@
   <data name="DanceList_PickThisDance" xml:space="preserve">
     <value>Queue a random track of this dance</value>
   </data>
+  <data name="DanceList_PickDanceName" xml:space="preserve">
+    <value>Queue a random track of {0}</value>
+  </data>
   <data name="DanceList_NoTrackForDance" xml:space="preserve">
     <value>You have no track for {0}.</value>
   </data>
@@ -1121,6 +1133,9 @@
   </data>
   <data name="Discovery_LevelDepth" xml:space="preserve">
     <value>{0} of {1} files are this deep</value>
+  </data>
+  <data name="Discovery_LevelRole" xml:space="preserve">
+    <value>What level {0} means</value>
   </data>
   <data name="Discovery_LevelValue" xml:space="preserve">
     <value>{0} ({1})</value>
@@ -1297,6 +1312,9 @@
   </data>
   <data name="Qr_RemoteTitle" xml:space="preserve">
     <value>The remote</value>
+  </data>
+  <data name="Qr_ImageName" xml:space="preserve">
+    <value>QR code for {0}</value>
   </data>
   <data name="Qr_Pin" xml:space="preserve">
     <value>PIN</value>

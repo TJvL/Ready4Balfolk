@@ -47,6 +47,14 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     [Reactive] public partial bool HasAudioItem { get; set; }
     [Reactive] public partial bool IsAudioUnavailable { get; set; }
 
+    /// <summary>What the two-state buttons are called, for whoever cannot see which icon is on.</summary>
+    /// <remarks>
+    /// A name of their own rather than one taken from the label inside them: each button holds
+    /// both labels at once and shows one, so it has to say which of the two it currently is.
+    /// </remarks>
+    [ObservableAsProperty] public partial string PlayPauseName { get; }
+    [ObservableAsProperty] public partial string SkipOrClearName { get; }
+
     /// <summary>Play holds what is on, and with nothing on at all it starts the evening.</summary>
     private IObservable<bool> CanPlayPause =>
         this.WhenAnyValue(
@@ -176,6 +184,16 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         TrackLine = "";
         CurrentTime = "0:00";
         TotalTime = "0:00";
+
+        _playPauseNameHelper = this.WhenAnyValue(x => x.IsPlaying)
+            .Select(playing => playing ? UiStrings.Playback_PauseLabel : UiStrings.Playback_PlayLabel)
+            .ToProperty(this, x => x.PlayPauseName);
+        _playPauseNameHelper.DisposeWith(_disposables);
+
+        _skipOrClearNameHelper = this.WhenAnyValue(x => x.ShowNextIcon)
+            .Select(next => next ? UiStrings.Playback_SkipLabel : UiStrings.Playback_ClearLabel)
+            .ToProperty(this, x => x.SkipOrClearName);
+        _skipOrClearNameHelper.DisposeWith(_disposables);
 
         audioPlaybackService.WhenAvailabilityChanged
             .ObserveOn(RxSchedulers.MainThreadScheduler)

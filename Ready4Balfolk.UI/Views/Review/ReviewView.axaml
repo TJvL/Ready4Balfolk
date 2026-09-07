@@ -102,8 +102,7 @@
                 <ToggleButton Content="{x:Static res:UiStrings.Review_Rules}"
                               IsChecked="{Binding IsDiscoveryOpen, Mode=TwoWay}"
                               Padding="8,2"
-                              FontSize="11"
-                              Focusable="False" />
+                              FontSize="11" />
                 <TextBlock Text="{x:Static res:UiStrings.Review_RulesHint}"
                            FontSize="11"
                            Opacity="0.7"
@@ -136,7 +135,6 @@
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveFolderCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding CanAnswerFolder}"
-                                        Focusable="False"
                                         FontSize="11"
                                         Padding="8,2" />
                             </StackPanel>
@@ -167,21 +165,21 @@
                                 <!-- One button in two states: the thing that starts it is the thing
                                      that stops it, in the place the eye already is. -->
                                 <Button Grid.Column="0"
+                                        AutomationProperties.Name="{x:Static res:UiStrings.Review_Preview}"
                                         Click="OnPreviewClick"
                                         Tag="{Binding}"
                                         ToolTip.Tip="{x:Static res:UiStrings.Review_Preview}"
                                         IsVisible="{Binding !IsPreviewing}"
-                                        Padding="6,2"
-                                        Focusable="False">
+                                        Padding="6,2">
                                     <PathIcon Data="{StaticResource IconPlay}" Width="12" Height="12" />
                                 </Button>
                                 <Button Grid.Column="0"
+                                        AutomationProperties.Name="{x:Static res:UiStrings.Review_StopPreview}"
                                         Click="OnPreviewClick"
                                         Tag="{Binding}"
                                         ToolTip.Tip="{x:Static res:UiStrings.Review_StopPreview}"
                                         IsVisible="{Binding IsPreviewing}"
-                                        Padding="6,2"
-                                        Focusable="False">
+                                        Padding="6,2">
                                     <PathIcon Data="{StaticResource IconClose}" Width="12" Height="12" />
                                 </Button>
 
@@ -242,6 +240,7 @@
                                      been answered. -->
                                 <TextBox Classes="field"
                                          AutomationProperties.AutomationId="review.dance"
+                                         AutomationProperties.Name="{x:Static res:UiStrings.Review_Dance}"
                                          Text="{Binding Dance, Mode=TwoWay}"
                                          IsReadOnly="{Binding IsApproved}"
                                          PlaceholderText="{x:Static res:UiStrings.Review_Dance}"
@@ -280,6 +279,7 @@
                             <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
                                 <TextBox Classes="field"
                                          AutomationProperties.AutomationId="review.artist"
+                                         AutomationProperties.Name="{x:Static res:UiStrings.Review_Artist}"
                                          Text="{Binding Artist, Mode=TwoWay}"
                                          IsReadOnly="{Binding IsApproved}"
                                          PlaceholderText="{x:Static res:UiStrings.Review_Artist}" />
@@ -289,6 +289,7 @@
                             <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2">
                                 <TextBox Classes="field"
                                          AutomationProperties.AutomationId="review.title"
+                                         AutomationProperties.Name="{x:Static res:UiStrings.Review_TitleField}"
                                          Text="{Binding Title, Mode=TwoWay}"
                                          IsReadOnly="{Binding IsApproved}"
                                          PlaceholderText="{x:Static res:UiStrings.Review_TitleField}" />
@@ -304,15 +305,13 @@
                                         Content="{x:Static res:UiStrings.Review_Approve}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveCommand}"
                                         CommandParameter="{Binding}"
-                                        IsVisible="{Binding !IsApproved}"
-                                        Focusable="False" />
+                                        IsVisible="{Binding !IsApproved}" />
                                 <Button AutomationProperties.AutomationId="review.withdraw"
                                         Content="{x:Static res:UiStrings.Review_Withdraw}"
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).WithdrawCommand}"
                                         CommandParameter="{Binding}"
                                         ToolTip.Tip="{x:Static res:UiStrings.Review_WithdrawHint}"
-                                        IsVisible="{Binding IsApproved}"
-                                        Focusable="False" />
+                                        IsVisible="{Binding IsApproved}" />
                             </StackPanel>
 
                             <!-- Twenty files claiming the same misspelling are one decision about a
@@ -326,7 +325,6 @@
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).UseDanceForAllCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding IsShared}"
-                                        Focusable="False"
                                         FontSize="11" />
                                 <ItemsControl ItemsSource="{Binding Suggestions}" IsVisible="{Binding HasSuggestions}">
                                     <ItemsControl.ItemsPanel>
@@ -342,7 +340,6 @@
                                             <Button Content="{Binding}"
                                                     Click="OnSuggestionClick"
                                                     Tag="{Binding $parent[ItemsControl].DataContext}"
-                                                    Focusable="False"
                                                     FontSize="11" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -353,7 +350,6 @@
                                         Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).NotADanceCommand}"
                                         CommandParameter="{Binding}"
                                         ToolTip.Tip="{x:Static res:UiStrings.Review_NotADanceHint}"
-                                        Focusable="False"
                                         FontSize="11" />
                             </StackPanel>
                         </Grid>

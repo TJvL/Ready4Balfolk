@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Globalization;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.UI.Views.DanceList;
 
@@ -14,6 +16,16 @@ public sealed class DanceCardViewModel(Dance dance, int trackCount)
     public string Slug { get; } = dance.Slug;
 
     public string NamesText { get; } = string.Join(" · ", dance.Names);
+
+    /// <summary>What the dice on this card is called, which has to be this card's dance.</summary>
+    /// <remarks>
+    /// One card carries one of these and the panel draws a hundred cards, so a name that did not
+    /// say which dance would read the same on every one of them.
+    /// </remarks>
+    public string PickName { get; } = string.Format(
+        CultureInfo.CurrentCulture,
+        UiStrings.DanceList_PickDanceName,
+        string.Join(" · ", dance.Names));
 
     public IReadOnlyList<string> Tags { get; } = dance.Tags;
 

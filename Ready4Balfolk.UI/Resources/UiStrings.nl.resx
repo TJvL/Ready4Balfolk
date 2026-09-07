@@ -213,6 +213,9 @@
   <data name="Settings_QueueCutoff" xml:space="preserve">
     <value>Geen verzoeken meer aannemen na een bepaalde tijd</value>
   </data>
+  <data name="Settings_QueueCutoffTime" xml:space="preserve">
+    <value>Eindtijd</value>
+  </data>
   <data name="Settings_QueueCutoffGrace" xml:space="preserve">
     <value>Speling (minuten)</value>
   </data>
@@ -272,6 +275,9 @@
   </data>
   <data name="Settings_GapBetweenTracks" xml:space="preserve">
     <value>Standaard pauze tussen nummers</value>
+  </data>
+  <data name="Settings_GapBetweenTracksLength" xml:space="preserve">
+    <value>Lengte van de pauze tussen nummers (seconden)</value>
   </data>
   <data name="Settings_GapBetweenTracksSeconds" xml:space="preserve">
     <value>seconden</value>
@@ -517,6 +523,9 @@
   </data>
 
   <!-- Playback -->
+  <data name="Playback_ProgressName" xml:space="preserve">
+    <value>Hoe ver in het nummer</value>
+  </data>
   <data name="Playback_RestartTrack" xml:space="preserve">
     <value>Nummer herstarten</value>
   </data>
@@ -897,6 +906,9 @@
   <data name="DanceList_PickThisDance" xml:space="preserve">
     <value>Zet een willekeurig nummer van deze dans in de wachtrij</value>
   </data>
+  <data name="DanceList_PickDanceName" xml:space="preserve">
+    <value>Zet een willekeurig nummer van {0} in de wachtrij</value>
+  </data>
   <data name="DanceList_NoTrackForDance" xml:space="preserve">
     <value>Je hebt geen nummer voor {0}.</value>
   </data>
@@ -1046,6 +1058,9 @@
   </data>
   <data name="Discovery_LevelDepth" xml:space="preserve">
     <value>{0} van {1} bestanden zitten zo diep</value>
+  </data>
+  <data name="Discovery_LevelRole" xml:space="preserve">
+    <value>Wat niveau {0} betekent</value>
   </data>
   <data name="Discovery_LevelValue" xml:space="preserve">
     <value>{0} ({1})</value>
@@ -1222,6 +1237,9 @@
   </data>
   <data name="Qr_RemoteTitle" xml:space="preserve">
     <value>De afstandsbediening</value>
+  </data>
+  <data name="Qr_ImageName" xml:space="preserve">
+    <value>QR-code voor {0}</value>
   </data>
   <data name="Qr_Pin" xml:space="preserve">
     <value>Pincode</value>

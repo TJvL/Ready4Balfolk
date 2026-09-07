@@ -12,8 +12,7 @@
         <Button AutomationProperties.AutomationId="history.show-queue"
                 Click="OnToggleClick"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_SwitchToQueue}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconMenu}"
                                     Text="{x:Static res:UiStrings.HistoryToolbar_QueueLabel}"
                                     IconSize="16" />
@@ -24,6 +23,7 @@
         <!-- Which evening is being read. Nights are kept rather than lost, so this is how a filed
              one is reached, exported or thrown away. -->
         <ComboBox AutomationProperties.AutomationId="history.nights"
+                  AutomationProperties.Name="{x:Static res:UiStrings.History_Showing}"
                   ItemsSource="{Binding Nights}"
                   SelectedItem="{Binding SelectedNight, Mode=TwoWay}"
                   ToolTip.Tip="{x:Static res:UiStrings.History_Showing}"
@@ -40,8 +40,7 @@
                 Click="OnExportClick"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ExportHistory}"
                 IsEnabled="{Binding HasItems}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconDownload}"
                                     Text="{x:Static res:UiStrings.HistoryToolbar_ExportLabel}"
                                     IconSize="16" />
@@ -49,8 +48,7 @@
         <Button AutomationProperties.AutomationId="history.new-night"
                 Command="{Binding StartNewNightCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_NewNight}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconRestart}"
                                     Text="{x:Static res:UiStrings.HistoryToolbar_NewNightLabel}"
                                     IconSize="16" />
@@ -58,8 +56,7 @@
         <Button AutomationProperties.AutomationId="history.delete-night"
                 Command="{Binding DeleteNightCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_DeleteNight}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconDelete}"
                                     Text="{x:Static res:UiStrings.HistoryToolbar_DeleteLabel}"
                                     IconSize="16" />

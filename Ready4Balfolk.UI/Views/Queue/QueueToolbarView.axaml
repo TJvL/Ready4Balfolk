@@ -12,8 +12,7 @@
         <Button AutomationProperties.AutomationId="queue.show-history"
                 Click="OnToggleClick"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_SwitchToHistory}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconHourglass}"
                                     Text="{x:Static res:UiStrings.QueueToolbar_HistoryLabel}"
                                     IconSize="16" />
@@ -24,8 +23,7 @@
         <Button AutomationProperties.AutomationId="queue.random"
                 Command="{Binding QueueRandomTrackCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_QueueRandomTrack}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconDice}"
                                     Text="{x:Static res:UiStrings.QueueToolbar_RandomLabel}"
                                     IconSize="16" />
@@ -36,8 +34,7 @@
         <Button AutomationProperties.AutomationId="queue.stop"
                 Command="{Binding EnqueueStopCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RequestStop}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconStop}"
                                     Text="{x:Static res:UiStrings.QueueToolbar_StopLabel}"
                                     IconSize="16" />
@@ -45,8 +42,7 @@
         <Button AutomationProperties.AutomationId="queue.delay"
                 Command="{Binding EnqueueDelayCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RequestDelay}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconClock}"
                                     Text="{x:Static res:UiStrings.QueueToolbar_DelayLabel}"
                                     IconSize="16" />
@@ -54,8 +50,7 @@
         <Button AutomationProperties.AutomationId="queue.message"
                 Click="OnMessageClick"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RequestMessage}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconEmail}"
                                     Text="{x:Static res:UiStrings.QueueToolbar_MessageLabel}"
                                     IconSize="16" />
@@ -65,8 +60,7 @@
         <Button AutomationProperties.AutomationId="queue.end-of-night"
                 Command="{Binding EnqueueEndOfNightCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_EndOfNight}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconMoon}"
                                     Text="{x:Static res:UiStrings.QueueToolbar_EndOfNightLabel}"
                                     IconSize="16" />
@@ -77,8 +71,7 @@
         <Button AutomationProperties.AutomationId="queue.remove"
                 Command="{Binding RemoveSelectedCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_RemoveSelected}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconClose}"
                                     Text="{x:Static res:UiStrings.QueueToolbar_RemoveLabel}"
                                     IconSize="16" />
@@ -86,8 +79,7 @@
         <Button AutomationProperties.AutomationId="queue.clear"
                 Command="{Binding ClearQueueCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.QueueToolbar_ClearQueue}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconDelete}"
                                     Text="{x:Static res:UiStrings.QueueToolbar_ClearLabel}"
                                     IconSize="16" />
@@ -98,8 +90,7 @@
         <Button AutomationProperties.AutomationId="queue.move-up"
                 Command="{Binding MoveSelectedUpCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.Queue_MoveUp}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconArrowUp}"
                                     Text="{x:Static res:UiStrings.Queue_MoveUpLabel}"
                                     IconSize="16" />
@@ -107,8 +98,7 @@
         <Button AutomationProperties.AutomationId="queue.move-down"
                 Command="{Binding MoveSelectedDownCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.Queue_MoveDown}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconArrowDown}"
                                     Text="{x:Static res:UiStrings.Queue_MoveDownLabel}"
                                     IconSize="16" />

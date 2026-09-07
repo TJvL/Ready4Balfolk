@@ -81,13 +81,11 @@
                                                     Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).AcceptProposalCommand}"
                                                     CommandParameter="{Binding}"
                                                     IsVisible="{Binding CanAccept}"
-                                                    Focusable="False"
                                                     Margin="8,0,0,0" />
                                             <Button Grid.Column="2"
                                                     Content="{x:Static res:UiStrings.Discovery_ProposalDismiss}"
                                                     Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).DismissProposalCommand}"
                                                     CommandParameter="{Binding}"
-                                                    Focusable="False"
                                                     Margin="4,0,0,0" />
                                         </Grid>
 
@@ -155,19 +153,16 @@
                                                         Content="{x:Static res:UiStrings.Discovery_MoveUp}"
                                                         Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).MovePatternUpCommand}"
                                                         CommandParameter="{Binding}"
-                                                        Focusable="False"
                                                         Margin="4,0,0,0" />
                                                 <Button Grid.Column="2"
                                                         Content="{x:Static res:UiStrings.Discovery_MoveDown}"
                                                         Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).MovePatternDownCommand}"
                                                         CommandParameter="{Binding}"
-                                                        Focusable="False"
                                                         Margin="4,0,0,0" />
                                                 <Button Grid.Column="3"
                                                         Content="{x:Static res:UiStrings.Discovery_Remove}"
                                                         Command="{Binding $parent[UserControl].((local:DiscoveryViewModel)DataContext).RemovePatternCommand}"
                                                         CommandParameter="{Binding}"
-                                                        Focusable="False"
                                                         Margin="4,0,0,0" />
                                             </Grid>
 
@@ -198,6 +193,7 @@
                         <Grid ColumnDefinitions="*,Auto">
                             <TextBox Grid.Column="0"
                                      AutomationProperties.AutomationId="discovery.draft-pattern"
+                                     AutomationProperties.Name="{x:Static res:UiStrings.Discovery_PatternsHeader}"
                                      Text="{Binding DraftPattern, Mode=TwoWay}"
                                      PlaceholderText="{x:Static res:UiStrings.Discovery_DraftWatermark}"
                                      FontFamily="monospace" />
@@ -206,8 +202,7 @@
                                     Content="{x:Static res:UiStrings.Discovery_Declare}"
                                     Command="{Binding DeclareDraftCommand}"
                                     IsEnabled="{Binding CanDeclareDraft}"
-                                    Margin="8,0,0,0"
-                                    Focusable="False" />
+                                    Margin="8,0,0,0" />
                         </Grid>
 
                         <TextBlock Text="{Binding DraftSummary}" TextWrapping="Wrap" FontWeight="SemiBold" />
@@ -288,6 +283,7 @@
                                             </ItemsControl>
 
                                             <ComboBox Grid.Column="2"
+                                                      AutomationProperties.Name="{Binding RoleName}"
                                                       ItemsSource="{Binding AvailableRoles}"
                                                       SelectedItem="{Binding Role, Mode=TwoWay}"
                                                       MinWidth="160"
@@ -378,6 +374,7 @@
 
                         <TextBox Text="{Binding CustomDanceTag, Mode=TwoWay}"
                                  AutomationProperties.AutomationId="discovery.custom-tag"
+                                 AutomationProperties.Name="{x:Static res:UiStrings.Discovery_CustomDanceTag}"
                                  PlaceholderText="{x:Static res:UiStrings.Discovery_CustomDanceTagPlaceholder}"
                                  MaxWidth="240"
                                  HorizontalAlignment="Left" />
@@ -399,8 +396,7 @@
                     <Button Content="{x:Static res:UiStrings.Discovery_ApplyRolesAndTags}"
                             Command="{Binding ApplyRolesAndTagsCommand}"
                             AutomationProperties.AutomationId="discovery.apply"
-                            HorizontalAlignment="Left"
-                            Focusable="False" />
+                            HorizontalAlignment="Left" />
                 </StackPanel>
             </StackPanel>
         </StackPanel>

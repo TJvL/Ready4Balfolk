@@ -21,6 +21,9 @@
             <Setter Property="Padding" Value="8,4" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
+            <!-- Focus stays in the box being typed into: these are what the typing found, walked
+                 with the arrows and taken with Enter. A match that could take the caret would end
+                 the search that produced it. -->
             <Setter Property="Focusable" Value="False" />
         </Style>
         <Style Selector="Button.match.highlighted">
@@ -31,7 +34,9 @@
     <StackPanel Margin="20" Spacing="12">
         <StackPanel Spacing="4">
             <TextBlock Text="{x:Static res:UiStrings.Discovery_FieldDance}" />
-            <TextBox x:Name="DanceBox" Text="{CompiledBinding Dance}" />
+            <TextBox x:Name="DanceBox"
+                     AutomationProperties.Name="{x:Static res:UiStrings.Discovery_FieldDance}"
+                     Text="{CompiledBinding Dance}" />
             <!-- Inline rather than a Popup: a popup steals focus from the box being typed into.
                  Same reasoning as the review row's picker. -->
             <Border IsVisible="{CompiledBinding IsPickerOpen}"
@@ -62,12 +67,14 @@
 
         <StackPanel Spacing="4">
             <TextBlock Text="{x:Static res:UiStrings.Discovery_FieldArtist}" />
-            <TextBox Text="{CompiledBinding Artist}" />
+            <TextBox AutomationProperties.Name="{x:Static res:UiStrings.Discovery_FieldArtist}"
+                     Text="{CompiledBinding Artist}" />
         </StackPanel>
 
         <StackPanel Spacing="4">
             <TextBlock Text="{x:Static res:UiStrings.Discovery_FieldTitle}" />
-            <TextBox Text="{CompiledBinding Title}" />
+            <TextBox AutomationProperties.Name="{x:Static res:UiStrings.Discovery_FieldTitle}"
+                     Text="{CompiledBinding Title}" />
         </StackPanel>
 
         <StackPanel Orientation="Horizontal"

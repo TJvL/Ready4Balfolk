@@ -13,8 +13,7 @@
                 AutomationProperties.AutomationId="catalog.show-dances"
                 Click="OnToggleClick"
                 ToolTip.Tip="{x:Static res:UiStrings.TrackCatalog_SwitchToDanceList}"
-                Padding="8"
-                Focusable="False">
+                Padding="8">
             <controls:ButtonContent Icon="{StaticResource IconTreeStructure}"
                                     Text="{x:Static res:UiStrings.TrackCatalog_DancesLabel}"
                                     IconSize="16" />
@@ -26,14 +25,15 @@
                 Command="{Binding ClearSearchCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.TrackCatalog_ClearSearch}"
                 Padding="8"
-                Margin="4,0,0,0"
-                Focusable="False">
+                Margin="4,0,0,0">
             <controls:ButtonContent Icon="{StaticResource IconClose}"
                                     Text="{x:Static res:UiStrings.TrackCatalog_ClearSearchLabel}"
                                     IconSize="14" />
         </Button>
 
-        <TextBox AutomationProperties.AutomationId="catalog.search"
+        <TextBox x:Name="SearchBox"
+                 AutomationProperties.AutomationId="catalog.search"
+                 AutomationProperties.Name="{x:Static res:UiStrings.TrackCatalog_SearchWatermark}"
                  Text="{Binding SearchText}"
                  PlaceholderText="{x:Static res:UiStrings.TrackCatalog_SearchWatermark}"
                  VerticalAlignment="Center" />

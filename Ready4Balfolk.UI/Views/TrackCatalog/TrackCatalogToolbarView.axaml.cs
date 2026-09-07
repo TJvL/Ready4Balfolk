@@ -12,5 +12,16 @@ public partial class TrackCatalogToolbarView : ReactiveUserControl<TrackCatalogV
         InitializeComponent();
     }
 
+    /// <summary>Puts the caret in the search box, over whatever is already in it.</summary>
+    /// <remarks>
+    /// Selected rather than appended to: the shortcut is pressed to look for something else, and
+    /// a box that has to be cleared first is half a shortcut.
+    /// </remarks>
+    public void FocusSearch()
+    {
+        SearchBox.Focus();
+        SearchBox.SelectAll();
+    }
+
     private void OnToggleClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().IsDanceListMode = true;
 }

@@ -12,6 +12,7 @@
         <Grid ColumnDefinitions="*, Auto">
             <TextBox Grid.Column="0"
                      AutomationProperties.AutomationId="wizard.music-directory"
+                     AutomationProperties.Name="{x:Static res:UiStrings.Settings_MusicDirectory}"
                      Text="{CompiledBinding MusicDirectoryPath, Mode=TwoWay}"
                      PlaceholderText="{x:Static res:UiStrings.Settings_MusicDirectoryWatermark}"
                      IsReadOnly="True" />

@@ -20,8 +20,8 @@ namespace Ready4Balfolk.UI.Views.Review;
 /// <remarks>
 /// Two thousand mouse trips is the difference between an evening and never, so a row is answered
 /// without the hands leaving the keys: selecting one puts the caret where the typing has to start,
-/// Tab walks its three fields, Enter answers the row, Shift+Enter answers the folder and Ctrl+Z
-/// takes an answer back.
+/// Tab walks its boxes and then its buttons and leaves at the end of them, Enter answers the row,
+/// Shift+Enter answers the folder and Ctrl+Z takes an answer back.
 /// </remarks>
 public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
 {
@@ -46,6 +46,14 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         // the selected row: clicking into a box does not move the selection, and the picker that
         // opened belongs to where the typing is.
         var typing = (e.Source as Control)?.DataContext as ReviewRowViewModel ?? selected;
+
+        // A focused button owns Enter and Space, because that is how a button is pressed. The
+        // queue's own keys would otherwise answer a row while the DJ was pressing something else,
+        // and the button they were on would never fire at all.
+        if (e.Source is Button && e.Key is Key.Enter or Key.Space && e.KeyModifiers is KeyModifiers.None)
+        {
+            return;
+        }
 
         // After this keystroke has done its work, including opening the picker: the overlay adds
         // no layout extent, so a bottom-of-viewport row's list is clipped with provably no room
@@ -90,9 +98,11 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         // every case", and this one has 250 of them.
         if (e.Key is Key.Tab)
         {
-            // Round this row's own fields rather than out of it: what follows a title is the next
-            // thing to type about this track, not the button beside it.
-            e.Handled = MoveWithinRow(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1);
+            // Through this row before anything else: its three boxes, and then the buttons that
+            // answer with what was typed into them. Past the last of those the key is handed back
+            // rather than wrapped, or the row would be somewhere the keyboard can get into and
+            // never out of, with every button on it reachable by pointer alone.
+            e.Handled = MoveAlongRow(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1);
             return;
         }
 
@@ -163,32 +173,91 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         (fields.FirstOrDefault(field => string.IsNullOrWhiteSpace(TextOf(field))) ?? fields[0]).Focus();
     }
 
-    /// <summary>Moves the caret round the row's own fields, wrapping at either end.</summary>
-    private bool MoveWithinRow(int direction)
+    /// <summary>
+    /// Moves the keyboard along the row it is already in, and lets it out at either end.
+    /// </summary>
+    /// <remarks>
+    /// Answers false for every keystroke that is not a step along this row, which hands Tab back
+    /// to the window: from anywhere else on the screen, and from either end of the row itself.
+    /// </remarks>
+    private bool MoveAlongRow(int direction)
     {
-        var fields = FieldsOfSelectedRow();
-        if (fields.Count == 0 || TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is not Visual focused)
+        if (ViewModel?.Selected is not { } selected
+            || Queue.ContainerFromItem(selected) is not { } row
+            || TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is not Visual focused)
         {
             return false;
         }
 
-        // The focus sits on a text box inside the field rather than on the field itself, so a
-        // reference check alone would never find where the caret is.
-        var at = fields.FindIndex(field => field == focused || field.IsVisualAncestorOf(focused));
+        // Only the row the keyboard is standing in. The rules panel hangs over this same view, and
+        // a Tab pressed in there belongs to the panel rather than to whichever row is selected
+        // behind it.
+        if (row != focused && !row.IsVisualAncestorOf(focused))
+        {
+            return false;
+        }
+
+        var stops = StopsOf(row);
+        if (stops.Count == 0)
+        {
+            return false;
+        }
+
+        // The focus sits on a part inside a control rather than on the control itself, so a
+        // reference check alone would never find where the keyboard is.
+        var at = stops.FindIndex(stop => stop == focused || stop.IsVisualAncestorOf(focused));
         if (at < 0)
         {
-            return false;
+            // On the row itself, which is where Tab arrives when it reaches the list: forwards it
+            // steps into the row, backwards it carries on out to whatever came before the list.
+            return direction > 0 && MoveTo(stops[0]);
         }
 
-        var next = fields[(at + direction + fields.Count) % fields.Count];
-        next.Focus();
+        var next = at + direction;
+        return next >= 0 && next < stops.Count && MoveTo(stops[next]);
+    }
 
-        if (next is TextBox box)
+    /// <summary>Gives one stop the keyboard, with a box's text ready to be typed over.</summary>
+    private static bool MoveTo(Control stop)
+    {
+        stop.Focus();
+
+        if (stop is TextBox box)
         {
             box.SelectAll();
         }
 
         return true;
+    }
+
+    /// <summary>Everything in one row that can take the keyboard, in the order it is read.</summary>
+    /// <remarks>
+    /// The buttons as well as the boxes: the folder answer, the preview, approve and withdraw, the
+    /// one that uses this dance for every track saying the same thing, the spellings the list
+    /// offers and the one that says the value is not a dance. Most of what a row can say, it says
+    /// through those. Whichever of a pair is showing, and nothing hidden or shut off, so a walk
+    /// never stops on something that is not there.
+    /// </remarks>
+    private static List<Control> StopsOf(Control row)
+    {
+        var stops = new List<Control>();
+
+        foreach (var control in row.GetVisualDescendants().OfType<Control>())
+        {
+            if (!control.Focusable || !control.IsEffectivelyVisible || !control.IsEffectivelyEnabled)
+            {
+                continue;
+            }
+
+            // The control itself, never the parts it is drawn from: a box whose template holds
+            // something that can take the keyboard is still one stop.
+            if (!stops.Any(stop => stop.IsVisualAncestorOf(control)))
+            {
+                stops.Add(control);
+            }
+        }
+
+        return stops;
     }
 
     /// <summary>The selected row's three inputs, in the order they are read.</summary>

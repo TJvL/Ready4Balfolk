@@ -31,9 +31,12 @@
                 Padding="16"
                 IsVisible="{Binding !IsAudioUnavailable}">
             <Grid RowDefinitions="Auto,Auto,Auto,Auto">
-                <!-- Dance Name (normal mode - not message) -->
+                <!-- Dance Name (normal mode - not message). A live region: a dance ends and the
+                     next one starts with nobody touching the keyboard, so what this line says has
+                     to be announced rather than waited for. -->
                 <TextBlock Grid.Row="0"
                            AutomationProperties.AutomationId="playback.dance"
+                           AutomationProperties.LiveSetting="Polite"
                            Text="{Binding DanceName}"
                            FontSize="18"
                            FontWeight="Bold"
@@ -56,6 +59,7 @@
                     <Canvas x:Name="MessageCanvas" ClipToBounds="True">
                         <TextBlock x:Name="MessageTextBlock"
                                    AutomationProperties.AutomationId="playback.message"
+                                   AutomationProperties.LiveSetting="Polite"
                                    Text="{Binding DanceName}"
                                    FontSize="18"
                                    FontWeight="Bold"
@@ -78,6 +82,7 @@
                                  a TextBlock of its own when the fields were fixed; it is theirs
                                  now, and so is what happens when a track has no title. -->
                             <TextBlock AutomationProperties.AutomationId="playback.track"
+                                       AutomationProperties.LiveSetting="Polite"
                                        Text="{Binding TrackLine}"
                                        FontSize="16"
                                        VerticalAlignment="Center" />
@@ -103,6 +108,7 @@
                                Margin="0,0,8,0" />
                     <ProgressBar x:Name="PlaybackProgressBar"
                                  AutomationProperties.AutomationId="playback.progress"
+                                 AutomationProperties.Name="{x:Static res:UiStrings.Playback_ProgressName}"
                                  Grid.Column="1"
                                  Minimum="0"
                                  Maximum="{Binding Duration}"
@@ -120,13 +126,16 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Center"
                             Spacing="16">
+                    <!-- Named from the view model rather than from the label inside it: the
+                         button holds both labels and shows one, so only the view model knows
+                         which of the two this button currently is. -->
                     <Button AutomationProperties.AutomationId="playback.play-pause"
+                            AutomationProperties.Name="{Binding PlayPauseName}"
                             Command="{Binding PlayPauseCommand}"
                             MinWidth="60"
                             Height="40"
                             HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center"
-                            Focusable="False">
+                            VerticalContentAlignment="Center">
                         <Panel>
                             <controls:ButtonContent Icon="{StaticResource IconPlay}"
                                     Text="{x:Static res:UiStrings.Playback_PlayLabel}"
@@ -142,18 +151,17 @@
                             Height="40"
                             HorizontalContentAlignment="Center"
                             VerticalContentAlignment="Center"
-                            ToolTip.Tip="{x:Static res:UiStrings.Playback_RestartTrack}"
-                            Focusable="False">
+                            ToolTip.Tip="{x:Static res:UiStrings.Playback_RestartTrack}">
                         <controls:ButtonContent Icon="{StaticResource IconRestart}"
                                     Text="{x:Static res:UiStrings.Playback_RestartLabel}" />
                     </Button>
                     <Button AutomationProperties.AutomationId="playback.skip"
+                            AutomationProperties.Name="{Binding SkipOrClearName}"
                             Command="{Binding NextOrClearCommand}"
                             MinWidth="60"
                             Height="40"
                             HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center"
-                            Focusable="False">
+                            VerticalContentAlignment="Center">
                         <Panel>
                             <!-- Next track icon - shown when queue has items -->
                             <controls:ButtonContent Icon="{StaticResource IconSkipNext}"

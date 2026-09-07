@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
@@ -171,6 +172,76 @@ public sealed class RunningApplication : IAsyncDisposable
 
     /// <summary>What the thing with this automation id says.</summary>
     public string TextOf(string automationId) => Screen.Says(Find(automationId));
+
+    /// <summary>What a screen reader would call the thing with this automation id.</summary>
+    /// <remarks>
+    /// Asked of the automation peer rather than read off the attached property, because the peer
+    /// is what a screen reader actually asks: a name set on the wrong element of the pair reads
+    /// back fine from the property and is still nothing to anybody listening.
+    /// </remarks>
+    public string NameOf(string automationId) => NameOf(Find(automationId));
+
+    /// <summary>What a screen reader would call this control.</summary>
+    public static string NameOf(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+
+        return ControlAutomationPeer.CreatePeerForElement(control).GetName() ?? string.Empty;
+    }
+
+    /// <summary>Gives a control the keyboard, and fails if it will not take it.</summary>
+    /// <remarks>
+    /// Where Tab would leave it. A control that refuses focus simply returns false here rather
+    /// than throwing, so the refusal is what is asserted: that is the whole of the difference
+    /// between a screen a keyboard can drive and one it cannot.
+    /// </remarks>
+    public void GiveTheKeyboardTo(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+
+        control.BringIntoView();
+        Settle();
+
+        Assert.True(
+            control.Focus(),
+            $"The control would not take the keyboard.{Environment.NewLine}"
+            + $"What was on screen:{Environment.NewLine}{WhatIsOnScreen()}");
+
+        Settle();
+    }
+
+    /// <summary>Gives the keyboard to whatever carries this automation id.</summary>
+    public void GiveTheKeyboardTo(string automationId) => GiveTheKeyboardTo(Find(automationId));
+
+    /// <summary>What has the keyboard, which is the only thing Tab is ever about.</summary>
+    public Control? WhatHasTheKeyboard() => Window.FocusManager?.GetFocusedElement() as Control;
+
+    /// <summary>Whether the keyboard is on this control, or on a part it is drawn from.</summary>
+    /// <remarks>
+    /// A box takes the keyboard on the presenter inside it rather than on itself, so a reference
+    /// check alone would say the caret is nowhere near a box the caret is in.
+    /// </remarks>
+    public bool TheKeyboardIsOn(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+
+        return WhatHasTheKeyboard() is { } focused
+               && (focused == control || control.IsVisualAncestorOf(focused));
+    }
+
+    /// <summary>What a scenario calls the thing the keyboard is on, for the walks that report one.</summary>
+    public string WhateverHasTheKeyboardIsCalled()
+    {
+        if (WhatHasTheKeyboard() is not { } focused)
+        {
+            return "nothing";
+        }
+
+        // Its id where it has one, and the name a screen reader would read where it has not: the
+        // buttons of a row carry ids, the two-state preview button carries only a name.
+        var id = AutomationProperties.GetAutomationId(focused);
+        return string.IsNullOrEmpty(id) ? NameOf(focused) : id;
+    }
 
     /// <summary>How far along the bar with this automation id has run.</summary>
     public double ProgressOf(string automationId) => ((ProgressBar)Find(automationId)).Value;

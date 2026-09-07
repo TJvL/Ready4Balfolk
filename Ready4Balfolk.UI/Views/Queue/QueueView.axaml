@@ -10,6 +10,9 @@
              x:Class="Ready4Balfolk.UI.Views.Queue.QueueView"
              x:DataType="local:QueueViewModel">
     <UserControl.Styles>
+        <!-- The one row in the queue that refuses focus, and it refuses selection too: it is a
+             suggestion rather than an entry, so the arrows walk past it instead of stopping on
+             something there is nothing to do to. -->
         <Style Selector="ListBoxItem.autoTrack">
             <Setter Property="Focusable" Value="False" />
         </Style>
@@ -191,8 +194,7 @@
                                             Padding="2"
                                             Margin="0,0,8,0"
                                             Background="Transparent"
-                                            BorderThickness="0"
-                                            Focusable="False">
+                                            BorderThickness="0">
                                         <controls:ButtonContent Icon="{StaticResource IconPin}"
                                                                 Text="{x:Static res:UiStrings.Queue_KeepTrackLabel}"
                                                                 IconSize="12" />
@@ -203,8 +205,7 @@
                                             Padding="2"
                                             Margin="0,0,4,0"
                                             Background="Transparent"
-                                            BorderThickness="0"
-                                            Focusable="False">
+                                            BorderThickness="0">
                                         <controls:ButtonContent Icon="{StaticResource IconAutoRepeat}"
                                                                 Text="{x:Static res:UiStrings.Queue_RefreshAutoTrackLabel}"
                                                                 IconSize="12" />

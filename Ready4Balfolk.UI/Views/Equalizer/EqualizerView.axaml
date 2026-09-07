@@ -52,8 +52,7 @@
                 <CheckBox Content="{x:Static res:UiStrings.Equalizer_Enable}"
                           IsChecked="{Binding Enabled}" />
                 <Button Content="{x:Static res:UiStrings.Equalizer_Reset}"
-                        Command="{Binding ResetToFlatCommand}"
-                        Focusable="False" />
+                        Command="{Binding ResetToFlatCommand}" />
             </StackPanel>
 
             <!-- Band sliders -->
@@ -69,7 +68,8 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="local:EqualizerBandViewModel">
                         <StackPanel HorizontalAlignment="Center">
-                            <Slider Orientation="Vertical"
+                            <Slider AutomationProperties.Name="{Binding Label}"
+                                    Orientation="Vertical"
                                     Height="120"
                                     HorizontalAlignment="Center"
                                     Minimum="{x:Static settings:EqualizerSettings.MinimumGainDecibels}"
@@ -97,6 +97,7 @@
                           IsChecked="{Binding LowCutEnabled}"
                           MinWidth="110" />
                 <Slider Grid.Row="0" Grid.Column="1"
+                        AutomationProperties.Name="{x:Static res:UiStrings.Equalizer_LowCut}"
                         Minimum="{x:Static settings:EqualizerSettings.MinimumLowCutHertz}"
                         Maximum="{x:Static settings:EqualizerSettings.MaximumLowCutHertz}"
                         Value="{Binding LowCutHertz}"
@@ -112,6 +113,7 @@
                            Text="{x:Static res:UiStrings.Equalizer_Preamp}"
                            VerticalAlignment="Center" />
                 <Slider Grid.Row="1" Grid.Column="1"
+                        AutomationProperties.Name="{x:Static res:UiStrings.Equalizer_Preamp}"
                         Minimum="{x:Static settings:EqualizerSettings.MinimumGainDecibels}"
                         Maximum="{x:Static settings:EqualizerSettings.MaximumGainDecibels}"
                         Value="{Binding PreampDecibels}"

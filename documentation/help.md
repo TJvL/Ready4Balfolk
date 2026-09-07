@@ -52,6 +52,43 @@ The main screen is divided into two columns:
 
 You can toggle between views in each column using the toggle buttons at the top of each panel.
 
+### The keyboard
+
+The main screen can be run without the pointer. Every button, tick box, box and list on it takes
+the keyboard, so Tab walks the panel you are in and Space or Enter presses what you have reached.
+The dance cards repeat the tags each dance carries, and those copies are the one thing Tab skips:
+the rail on the left holds every tag once and does take the keyboard, so walking a few hundred
+copies of what the rail already offers would only be a longer way round.
+
+These four answer from anywhere on the main screen:
+
+| | |
+|---|---|
+| Space | play or pause |
+| Ctrl+Right | the next dance, or clear what is on |
+| Ctrl+Left | start this dance again |
+| Ctrl+F | jump to the library's search box, over whatever is in it |
+
+That box belongs to the library, so if the dance list has the right column when you press Ctrl+F,
+the library comes back first: the dance list closes, and where you were in it is not kept.
+
+If your keyboard has media keys, play/pause, next and previous do the same first three things,
+and nothing else on screen ever takes one.
+
+These belong to the list you are standing in:
+
+| | |
+|---|---|
+| Up, Down | walk the library, or the queue |
+| Enter | in the library, put the highlighted track in the queue |
+| Delete | in the queue, take the selected entry out |
+| Ctrl+Up, Ctrl+Down | in the queue, move the selected entry up or down |
+
+Space and Ctrl with an arrow belong to whatever you are typing into or standing on first: a space
+typed into the search box is a space, a space on a button you have tabbed to presses that button,
+and Ctrl+Right in a box still walks the words. The settings, the help and the review queue have no
+transport keys at all; review has a keyboard of its own, described under [Review](#the-keyboard-1).
+
 ---
 
 ## Toolbar
@@ -372,7 +409,7 @@ one that is honestly still waiting.
 | | |
 |---|---|
 | Up, Down | between tracks |
-| Tab | between the three fields of a track, wrapping round |
+| Tab | through the track's three fields and then its buttons, and out of the row after the last one |
 | Enter | answer this track and move to the next one waiting |
 | Shift+Enter | answer every track in this folder that is complete |
 | Ctrl+Z | take back the answer on the track the cursor is in |
