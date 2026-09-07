@@ -1,6 +1,9 @@
 app-id: io.github.tjvl.Ready4Balfolk
 runtime: org.freedesktop.Platform
-runtime-version: '24.08'
+# build-flatpak.yml reads this value and pulls the builder container tagged for it, so this is the
+# one place the runtime version is written. Freedesktop releases a branch before a builder image
+# exists for it, and the manifest cannot move ahead of that image.
+runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 command: Ready4Balfolk.UI
 
