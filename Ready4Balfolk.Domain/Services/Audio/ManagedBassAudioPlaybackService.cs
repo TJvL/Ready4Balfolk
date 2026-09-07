@@ -107,7 +107,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                     if (_channel == 0)
                     {
                         throw new InvalidOperationException(
-                            $"Failed to create stream for '{path}': {Bass.LastError}");
+                            $"Failed to create stream for '{LogPaths.Name(path)}': {Bass.LastError}");
                     }
 
                     SetupEndSync();
@@ -284,7 +284,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                     if (_preloadedChannel == 0)
                     {
                         throw new InvalidOperationException(
-                            $"Failed to create preload stream for '{path}': {Bass.LastError}");
+                            $"Failed to create preload stream for '{LogPaths.Name(path)}': {Bass.LastError}");
                     }
 
                     // The preloaded stream needs the chain too. Without this every second track

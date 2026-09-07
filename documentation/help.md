@@ -248,7 +248,7 @@ The night's own boundaries are lines in the list: where it began, and where it e
 
 - **Toggle to Queue**: Switch back to the queue view
 - **Which night**: Tonight, or any evening that has been filed. Everything else in this toolbar acts on the night you are looking at.
-- **Export History**: Save that night to a JSON file. Useful for keeping records of what was played at an event.
+- **Export History**: Save that night to a JSON file. Useful for keeping records of what was played at an event. It holds the dances, artists, titles and times, and not where the files sit on your disk, so it can go to an organiser as it is.
 - **New night**: Keep tonight and start a new one (with confirmation). Nothing is deleted: the evening is filed and the history starts empty. Use it after a soundcheck, or on any evening that did not end with the end-of-the-night audio.
 - **Delete**: Throw that night away (with confirmation). This cannot be undone, and it is how the file stays a size somebody chose.
 
@@ -582,7 +582,7 @@ Choose between three options:
 
 ### Export Log File
 
-Click to save the application log file. Useful for troubleshooting issues or submitting bug reports.
+Click to save the application log file. Useful for troubleshooting issues or submitting bug reports. The saved copy carries the current log and the one before it, and your home directory is written as `~` rather than spelled out. The text of an error message is written by whatever failed, though, and one of those can still name a file in full, so read the export before you paste it somewhere public.
 
 ---
 
@@ -621,7 +621,12 @@ display page is up, **Remote** when the remote is up as well. They follow the se
 switch, so a port somebody else has taken shows as nothing rather than as a promise. Click one and
 its address comes up as a QR code a phone can be pointed at, with the address written underneath and
 the PIN beside the remote's. If the machine is on more than one network, the other addresses are
-listed under the code, because only one of them is the one the phone is on.
+listed under the code, because only one of them is the one the phone is on. The address at the top
+is a guess at which network that is: one with a router behind it goes before one without, and a
+tunnel goes last. It is only a guess, so if the phone cannot reach it, try the next line down. On a
+machine that is on no network at all there is nothing a phone could reach, so the dialog says that
+instead of drawing a code that would only send the phone to itself. **Escape** puts the code away
+again, as does the close button under it.
 
 Both are enabled in **Settings**. The remote is off unless you turn it on, and it is guarded by a
 PIN: anyone who can reach the page and knows the PIN can change what the room is dancing to, so

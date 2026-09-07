@@ -19,8 +19,17 @@
                    FontWeight="SemiBold"
                    HorizontalAlignment="Center" />
 
+        <!-- Nothing to point a phone at, said out loud. A code for localhost would scan and send
+             the phone to itself, which looks like it worked. -->
+        <TextBlock AutomationProperties.AutomationId="qr.no-address"
+                   Text="{x:Static res:UiStrings.Qr_NoAddress}"
+                   IsVisible="{CompiledBinding !HasCode}"
+                   FontSize="14"
+                   TextWrapping="Wrap" />
+
         <!-- White behind it whatever the theme is: a code drawn dark on dark scans off nothing. -->
-        <Border Background="White"
+        <Border IsVisible="{CompiledBinding HasCode}"
+                Background="White"
                 CornerRadius="4"
                 Padding="12"
                 HorizontalAlignment="Center">
@@ -35,6 +44,7 @@
 
         <SelectableTextBlock AutomationProperties.AutomationId="qr.address"
                              Text="{CompiledBinding Address}"
+                             IsVisible="{CompiledBinding HasCode}"
                              FontSize="16"
                              HorizontalAlignment="Center" />
 
@@ -57,17 +67,26 @@
                        FontSize="11"
                        Opacity="0.6"
                        TextWrapping="Wrap" />
-            <SelectableTextBlock AutomationProperties.AutomationId="qr.other-addresses"
-                                 Text="{CompiledBinding OtherAddresses}"
-                                 FontSize="12"
-                                 Opacity="0.8"
-                                 TextWrapping="Wrap" />
+            <!-- Bounded, because this is the one part of the window whose length is not known: a
+                 laptop docked with a VPN up lists addresses until the close button is off the
+                 bottom of the screen. -->
+            <ScrollViewer MaxHeight="120" HorizontalScrollBarVisibility="Disabled">
+                <SelectableTextBlock AutomationProperties.AutomationId="qr.other-addresses"
+                                     Text="{CompiledBinding OtherAddresses}"
+                                     FontSize="12"
+                                     Opacity="0.8"
+                                     TextWrapping="Wrap" />
+            </ScrollViewer>
         </StackPanel>
 
-        <Button AutomationProperties.AutomationId="qr.close"
+        <!-- Escape closes it. It is a window with nothing to answer, put up over the queue in the
+             middle of an evening, and it was staying there until somebody found the mouse. -->
+        <Button x:Name="CloseButton"
+                AutomationProperties.AutomationId="qr.close"
                 Content="{x:Static res:UiStrings.Qr_Close}"
                 Click="OnCloseClick"
                 HorizontalAlignment="Center"
-                MinWidth="100" />
+                MinWidth="100"
+                IsCancel="True" />
     </StackPanel>
 </Window>

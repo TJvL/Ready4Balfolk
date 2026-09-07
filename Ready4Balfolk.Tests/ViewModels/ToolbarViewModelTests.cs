@@ -5,6 +5,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
+using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Views.Toolbar;
 using Ready4Balfolk.Web;
 
@@ -23,25 +24,25 @@ public sealed class ToolbarViewModelTests : IDisposable
     private readonly BehaviorSubject<int> _inReview = new(0);
     private readonly BehaviorSubject<int> _unavailable = new(0);
     private readonly BehaviorSubject<ApplicationSettings> _settings = new(new ApplicationSettings());
+    private readonly ITrackStore _trackStore = Substitute.For<ITrackStore>();
+    private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
     private readonly PresentationWebServer _webServer;
     private readonly ToolbarViewModel _sut;
 
     public ToolbarViewModelTests()
     {
-        var trackStore = Substitute.For<ITrackStore>();
-        trackStore.InReviewCount.Returns(_inReview);
-        trackStore.UnavailableCount.Returns(_unavailable);
+        _trackStore.InReviewCount.Returns(_inReview);
+        _trackStore.UnavailableCount.Returns(_unavailable);
 
-        var settingsStore = Substitute.For<ISettingsStore>();
-        settingsStore.Current.Returns(_ => _settings.Value);
-        settingsStore.Observe().Returns(_settings);
+        _settingsStore.Current.Returns(_ => _settings.Value);
+        _settingsStore.Observe().Returns(_settings);
 
         // Never started, so it reports Stopped. Sealed, so there is nothing to substitute, and
         // starting one would mean binding a socket.
         _webServer = new PresentationWebServer(
             Substitute.For<IServiceProvider>(), new NoOpLoggerService(), TimeProvider.System);
 
-        _sut = new ToolbarViewModel(trackStore, _webServer, settingsStore);
+        _sut = new ToolbarViewModel(_trackStore, _webServer, _settingsStore);
     }
 
     [Fact]
@@ -128,11 +129,30 @@ public sealed class ToolbarViewModelTests : IDisposable
     }
 
     [Fact]
-    public void WithNoAddress_ThereIsNothingToShowAPhone()
+    public void WithNoServer_ThereIsNothingToShowAPhone()
     {
-        // A server that never bound has no address, and an empty code is worse than no code.
+        // Nothing is being served, so there is nothing behind the button and no dialog at all. A
+        // running server with no address is the other case, and that one says so on screen.
         Assert.Null(_sut.DisplayAddress());
         Assert.Null(_sut.RemoteAddress());
+    }
+
+    /// <summary>
+    /// A laptop on nothing at all. A code for localhost scans perfectly and sends the phone to
+    /// itself, which looks like it worked, so the dialog opens and says what is wrong instead.
+    /// </summary>
+    [Fact]
+    public async Task ARunningServerWithNoAddress_SaysSoInsteadOfDrawingACode()
+    {
+        await using var server = await RunningWebServer.StartAsync();
+        using var toolbar = new ToolbarViewModel(_trackStore, server.Server, _settingsStore);
+
+        var dialog = toolbar.DisplayAddress();
+
+        Assert.NotNull(dialog);
+        Assert.False(dialog.HasCode);
+        Assert.Null(dialog.Image);
+        Assert.Equal(string.Empty, dialog.Address);
     }
 
     public void Dispose()

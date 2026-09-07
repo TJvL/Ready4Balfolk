@@ -1,5 +1,6 @@
 using System.Globalization;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -236,10 +237,11 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
     /// <summary>The DJ shows a helper where the remote is, without reading out an address.</summary>
     /// <remarks>
     /// World: a library of one dance, the server on and the remote on with a PIN.
-    /// Steps: open the toolbar's remote status.
-    /// Sees: the address the phone would have to be typed with, and the PIN beside it. Reading
-    /// "http://192.168.1.42:8420/remote" across a hall and having somebody type it in the dark is
-    /// how a helper ends up on the wrong port with the wrong digit.
+    /// Steps: open the toolbar's remote status, then press Escape.
+    /// Sees: the address the phone would have to be typed with, and the PIN beside it, and the
+    /// window gone again on Escape. Reading "http://192.168.1.42:8420/remote" across a hall and
+    /// having somebody type it in the dark is how a helper ends up on the wrong port with the wrong
+    /// digit.
     /// </remarks>
     [Fact]
     public async Task DjShowsAHelperTheRemoteAddress()
@@ -275,7 +277,14 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
                 application.NameOf("qr.image"),
                 StringComparison.Ordinal);
 
-            application.Click("qr.close");
+            // Escape puts it away. It is a window with nothing to answer, standing over the queue
+            // in the middle of an evening, and reaching for the mouse to be rid of it is the last
+            // thing a DJ with a helper at their elbow has a hand free for.
+            application.Press(PhysicalKey.Escape);
+
+            await application.WaitUntil(
+                () => !application.IsShowing("qr.address"),
+                "the code to go away on Escape");
         });
     }
 

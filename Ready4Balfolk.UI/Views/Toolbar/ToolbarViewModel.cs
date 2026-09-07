@@ -113,14 +113,28 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
     public QrCodeDialogViewModel? RemoteAddress() => Address(
         UiStrings.Qr_RemoteTitle, "/remote", _settingsStore.Current.WebRemoteControlPin);
 
+    /// <summary>
+    /// The dialog for one page, or nothing at all when there is no server behind it.
+    /// </summary>
+    /// <remarks>
+    /// A running server with no address is a machine on no network a phone could reach, and the
+    /// dialog says that rather than drawing a code: the toolbar buttons are only there while the
+    /// server is up, so the DJ pressed one and is owed an answer.
+    /// </remarks>
     private QrCodeDialogViewModel? Address(string title, string path, string? pin)
     {
+        if (_webServer.State is not WebServerState.Running)
+        {
+            return null;
+        }
+
         var addresses = _webServer.Addresses;
 
         return addresses.Count == 0
-            ? null
+            ? new QrCodeDialogViewModel(title)
             : new QrCodeDialogViewModel(
                 title,
+                // Best guess first, which is what the server ranked them by.
                 addresses[0] + path,
                 pin,
                 [.. addresses.Select(address => address + path)]);

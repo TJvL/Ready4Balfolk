@@ -595,6 +595,22 @@ public sealed class TrackStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task MusicDirectory_MissingDirectory_NamesTheFolderWithoutSayingWhereItIs()
+    {
+        // The log is exported into a public issue, so a music root written out in full hands over
+        // the DJ's home directory, the name usually in it, and the shape of their disk. Which
+        // folder is missing is the part that helps.
+        var missing = _fileSystem.DirectoryInfo.New(Path.Combine(_dirA.FullName, "not mounted"));
+
+        await ApplyAsync(directory: missing);
+
+        await WaitUntilAsync(() => Warnings().Any(IsAboutTheMusicDirectory));
+        var warning = Warnings().First(IsAboutTheMusicDirectory);
+        Assert.Contains("'not mounted'", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain(missing.FullName, warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ADeclaredRule_ApprovesEveryFileItAnswers()
     {
         // The bargain of a declaration: the user vouches for the rule once, and the files it matches
@@ -1214,6 +1230,17 @@ public sealed class TrackStoreTests : IDisposable
 
         return _sut.ApplyAsync(_configuration);
     }
+
+    private static bool IsAboutTheMusicDirectory(string warning) =>
+        warning.StartsWith("Music directory", StringComparison.Ordinal);
+
+    /// <summary>Every warning written so far, as the log would carry it.</summary>
+    private List<string> Warnings() =>
+    [
+        .. _loggerService.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == nameof(ILoggerService.WarningAsync))
+            .Select(call => (string)call.GetArguments()[0]!)
+    ];
 
     private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 10_000)
     {

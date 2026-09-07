@@ -751,6 +751,9 @@ public static class UiStrings
     public static string Settings_WebServerFailed =>
         ResourceManager.GetString("Settings_WebServerFailed", Culture)!;
 
+    public static string Settings_WebServerRunningNoAddress =>
+        ResourceManager.GetString("Settings_WebServerRunningNoAddress", Culture)!;
+
     public static string Settings_WebServerStopping =>
         ResourceManager.GetString("Settings_WebServerStopping", Culture)!;
 
@@ -1072,6 +1075,18 @@ public static class UiStrings
     public static string TrackCatalog_NothingToWithdraw =>
         ResourceManager.GetString("TrackCatalog_NothingToWithdraw", Culture)!;
 
+    public static string TrackCatalog_EmptySearch =>
+        ResourceManager.GetString("TrackCatalog_EmptySearch", Culture)!;
+
+    public static string TrackCatalog_EmptyNoFolder =>
+        ResourceManager.GetString("TrackCatalog_EmptyNoFolder", Culture)!;
+
+    public static string TrackCatalog_EmptyReviewWaiting =>
+        ResourceManager.GetString("TrackCatalog_EmptyReviewWaiting", Culture)!;
+
+    public static string TrackCatalog_EmptyNoTracks =>
+        ResourceManager.GetString("TrackCatalog_EmptyNoTracks", Culture)!;
+
     public static string EditTrack_WindowTitle =>
         ResourceManager.GetString("EditTrack_WindowTitle", Culture)!;
 
@@ -1210,6 +1225,9 @@ public static class UiStrings
 
     public static string Qr_OtherAddresses =>
         ResourceManager.GetString("Qr_OtherAddresses", Culture)!;
+
+    public static string Qr_NoAddress =>
+        ResourceManager.GetString("Qr_NoAddress", Culture)!;
 
     public static string Qr_Close =>
         ResourceManager.GetString("Qr_Close", Culture)!;

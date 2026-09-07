@@ -98,7 +98,8 @@ public sealed class ClosingUp(HeadlessSession session)
     /// flat laptop or a lid shut at three in the morning leaves behind.
     /// Steps: open the application.
     /// Sees: being asked once whether that evening is over, at the one moment the question does not
-    /// interrupt a room.
+    /// interrupt a room, in a window the size of the question rather than a fixed one the longer
+    /// half of the question falls out of.
     /// </remarks>
     [Fact]
     public async Task DjIsAskedAboutTheUnfinishedNight()
@@ -114,6 +115,14 @@ public sealed class ClosingUp(HeadlessSession session)
             await application.WaitUntil(
                 () => application.IsShowing("dialog.confirm"),
                 "the application to ask about the evening that was never ended");
+
+            // The window is the length of what it is asking rather than a number somebody typed
+            // into the view, and nothing inside it is scrolling, which together are what keeps the
+            // question readable whatever it says: this one names a date and a count, and the Dutch
+            // of it runs longer than the English.
+            Assert.True(
+                application.TheWindowShowingItShowsTheWholeOfWhatItHolds("dialog.confirm"),
+                "Part of the question is out of sight in a window that is not the size of it.");
 
             application.Click("dialog.confirm");
             application.Click("queue.show-history");

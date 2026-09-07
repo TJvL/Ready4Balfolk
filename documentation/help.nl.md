@@ -250,7 +250,7 @@ Waar de avond begint en waar hij eindigt staan als regels in de lijst.
 
 - **Naar wachtrij**: terug naar de wachtrijweergave
 - **Welke avond**: vanavond, of een avond die is opgeborgen. De rest van deze werkbalk werkt op de avond waar je naar kijkt.
-- **Geschiedenis exporteren**: bewaart die avond als JSON. Handig als verslag van een avond.
+- **Geschiedenis exporteren**: bewaart die avond als JSON. Handig als verslag van een avond. Er staan de dansen, artiesten, titels en tijden in, en niet waar de bestanden op je schijf staan, dus je kunt het zo aan een organisator geven.
 - **Nieuwe avond**: bewaart deze avond en begint een nieuwe (met bevestiging). Er wordt niets verwijderd: de avond wordt opgeborgen en de geschiedenis begint leeg. Handig na een soundcheck, of op een avond die niet met het eindsignaal is afgesloten.
 - **Verwijderen**: gooit die avond weg (met bevestiging). Dit kan niet ongedaan worden gemaakt, en zo blijft het bestand een omvang die iemand gekozen heeft.
 
@@ -610,7 +610,9 @@ Drie keuzes:
 ### Logbestand exporteren
 
 Bewaart het logbestand van het programma. Nuttig bij het uitzoeken van problemen of het melden van
-een fout.
+een fout. De bewaarde kopie bevat het huidige logbestand en het vorige, en je thuismap staat er als
+`~` in plaats van voluit. De tekst van een foutmelding komt van wat er misging, en zo'n melding kan
+alsnog een bestand voluit noemen, dus lees de export door voordat je hem ergens openbaar plakt.
 
 ---
 
@@ -657,7 +659,12 @@ schermpagina draait, **Afstandsbediening** als die er ook is. Ze volgen de serve
 dus een poort die al bezet is levert niets op in plaats van een belofte. Klik erop en het adres komt
 in beeld als QR-code waar je een telefoon op richt, met het adres eronder en bij de afstandsbediening
 de pincode ernaast. Zit de computer op meerdere netwerken, dan staan de andere adressen onder de
-code, want maar een daarvan is het netwerk waar de telefoon op zit.
+code, want maar een daarvan is het netwerk waar de telefoon op zit. Bovenaan staat een gok op welk
+netwerk dat is: een netwerk met een router erachter gaat voor een netwerk zonder, en een tunnel gaat
+achteraan. Het blijft een gok, dus bereikt de telefoon het niet, probeer dan de regel eronder. Zit de
+computer op geen enkel netwerk, dan is er niets wat een telefoon kan bereiken en zegt het venster
+dat, in plaats van een code te tekenen die de telefoon alleen naar zichzelf stuurt. **Escape** haalt
+de code weer weg, net als de sluitknop eronder.
 
 Beide worden aangezet in **Instellingen**. De afstandsbediening staat uit tot jij hem aanzet, en
 is beveiligd met een pincode: wie de pagina kan bereiken en de pincode kent, kan veranderen waar de

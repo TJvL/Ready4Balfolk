@@ -288,6 +288,53 @@ public sealed class RunningApplication : IAsyncDisposable
         return text.TextLayout.Width <= text.Bounds.Width + 1;
     }
 
+    /// <summary>Whether the window this is in is showing the whole of what it holds.</summary>
+    /// <remarks>
+    /// The property rather than the symptom, and deliberately so: a headless window has no title
+    /// bar, so a height typed into a view leaves room here that the same number does not leave on a
+    /// desk, and measuring the text would call a clipped dialog fine.
+    /// Two questions, because the first on its own proves less than it reads like. The window is
+    /// the height its content asked for, so nothing was cut to fit a number somebody typed into the
+    /// view. And nothing in it is scrolling, because a control given a height of its own asks for
+    /// that height and gets it, and the window around it then measures as an exact fit over a
+    /// message showing half of itself.
+    /// A confirmation past its MaxHeight looks the same way round, and this answers no there,
+    /// which is the limit of what it proves: that the whole of the dialog is on screen, never that
+    /// a message long enough to reach the cap could be. Past the cap the content asks for the cap,
+    /// so the heights agree while the question is behind a scroll bar.
+    /// </remarks>
+    public bool TheWindowShowingItShowsTheWholeOfWhatItHolds(string automationId)
+    {
+        var window = WindowShowing(automationId);
+        var held = window.Content as Control
+                   ?? throw new InvalidOperationException($"The window showing {automationId} holds no control.");
+
+        // A pixel of slack, for the same reason the text measurement above takes one.
+        var theWindowIsTheHeightOfIt = Math.Abs(window.ClientSize.Height - held.DesiredSize.Height) <= 1;
+
+        var nothingIsScrolling = window.GetVisualDescendants()
+            .OfType<ScrollViewer>()
+            .Where(scroller => scroller.IsEffectivelyVisible)
+            .All(scroller => scroller.Extent.Height <= scroller.Viewport.Height + 1);
+
+        return theWindowIsTheHeightOfIt && nothingIsScrolling;
+    }
+
+    /// <summary>How tall the window this is in has made itself.</summary>
+    public double HowTallTheWindowShowingItIs(string automationId) => WindowShowing(automationId).ClientSize.Height;
+
+    /// <summary>The window something is in, which for anything in a dialog is the dialog.</summary>
+    /// <remarks>
+    /// It refuses rather than falling back on the main window. A flyout, a dropdown or anything
+    /// else in the overlay layer is in no window of its own, and answering "the main one" there
+    /// would measure the main window against the main window's content, which agree for reasons
+    /// that have nothing to do with the dialog under test.
+    /// </remarks>
+    private Window WindowShowing(string automationId) =>
+        Find(automationId).FindAncestorOfType<Window>()
+        ?? throw new InvalidOperationException(
+            $"{automationId} is in no window of its own, so there is no window here to measure.");
+
     /// <summary>Every row a list is showing, for the assertions that are about all of them.</summary>
     public IReadOnlyList<Control> Rows(string automationId) =>
         Find(automationId).GetVisualDescendants()

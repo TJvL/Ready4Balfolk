@@ -330,8 +330,8 @@ internal static class SmokeTest
             return null;
         }
 
-        // The logger caps the file by deleting it and starting over, so one that shrank is a fresh
-        // file whose every line belongs to this run.
+        // The logger caps the file by moving it aside and starting over, so one that shrank is a
+        // fresh file whose every line belongs to this run.
         var start = logFile.Length < logOffset ? 0 : logOffset;
 
         try

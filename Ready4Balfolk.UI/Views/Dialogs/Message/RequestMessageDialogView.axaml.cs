@@ -16,7 +16,9 @@ public partial class RequestMessageDialogView : ReactiveWindow<RequestMessageDia
         // surface is mapped. See WaylandAppId.
         WaylandAppId.Apply(this);
 
-        Opened += (_, _) => OkButton.Focus();
+        // The box, not the button: the DJ opened this to type an announcement, and a caret waiting
+        // on OK costs a click before every one of them. OK stays the default, so return still sends.
+        Opened += (_, _) => MessageBox.Focus();
 
         this.WhenActivated(d => d(this.WhenAnyValue(x => x.ViewModel!.DialogResult)
             .Where(r => r.HasValue)

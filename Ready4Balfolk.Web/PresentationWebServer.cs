@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -22,13 +21,25 @@ namespace Ready4Balfolk.Web;
 
 /// <summary>The embedded server, started and stopped by the app that hosts it.</summary>
 /// <remarks>
+/// <para>
 /// This is an extra the user switches on, not a backend the app talks to. Nothing in the desktop app
 /// depends on it running, and it owns no state of its own beyond the listener.
+/// </para>
+/// <para>
+/// The last constructor parameter is how this machine's networks are read. It defaults to reading
+/// them off the operating system and is handed in by tests: a laptop on a container bridge and
+/// nothing else, or a laptop on no network at all, are the cases the QR code gets wrong, and
+/// neither can be arranged on a build agent.
+/// </para>
 /// </remarks>
 public sealed class PresentationWebServer(
-    IServiceProvider hostServices, ILoggerService logger, TimeProvider time)
+    IServiceProvider hostServices,
+    ILoggerService logger,
+    TimeProvider time,
+    Func<IReadOnlyList<NetworkAdapter>>? adapters = null)
     : IAsyncDisposable
 {
+    private readonly Func<IReadOnlyList<NetworkAdapter>> _adapters = adapters ?? LocalAddresses.ThisMachine;
     private readonly RemoteAccessService _access = new(time);
     private readonly SemaphoreSlim _mutex = new(1, 1);
     private readonly Subject<Unit> _changed = new();
@@ -52,8 +63,27 @@ public sealed class PresentationWebServer(
     /// <summary>Why the last start attempt failed, or null when it did not.</summary>
     public string? LastError { get; private set; }
 
-    /// <summary>Addresses a browser can reach, for the settings panel to print.</summary>
-    public IReadOnlyList<string> Addresses { get; private set; } = [];
+    /// <summary>
+    /// Addresses another device stands a chance of reaching, best guess first, for the settings
+    /// panel to print and the QR code to carry.
+    /// </summary>
+    /// <remarks>
+    /// Empty while the server is down, and empty on a machine that is on no network at all: there
+    /// is nothing to hand a phone then, and an address only this machine can use is worse than
+    /// none. Worked out on every read rather than kept from the start, because a cable plugged in
+    /// or a wifi joined halfway through an evening changes the answer and nothing restarts the
+    /// listener.
+    /// </remarks>
+    public IReadOnlyList<string> Addresses =>
+        _running is { } options ? LocalAddresses.Reachable(_adapters(), options.Port) : [];
+
+    /// <summary>The port the listener actually bound, or null while there is no listener.</summary>
+    /// <remarks>
+    /// Not the port in the settings, which is what the spinner shows and can already have been
+    /// changed to one nothing is listening on. The settings panel prints this when the machine is
+    /// on no network another device can reach, so that the pages can still be opened here.
+    /// </remarks>
+    public int? BoundPort => _running?.Port;
 
     /// <summary>Brings the server into line with the settings, starting or stopping as needed.</summary>
     public async Task ApplyAsync(WebServerOptions options, CancellationToken cancellationToken = default)
@@ -180,9 +210,15 @@ public sealed class PresentationWebServer(
             _app = app;
             _running = options;
             LastError = null;
-            Addresses = DescribeAddresses(options);
 
-            await logger.InfoAsync($"Presentation server listening on {string.Join(", ", Addresses)}")
+            // The port and how many, never the addresses themselves. Which interfaces this
+            // machine has is the DJ's home or the venue's network, and the settings panel is where
+            // somebody who needs an address reads one. That none is reachable is worth saying,
+            // because it is why the QR code is not on offer.
+            var addresses = Addresses;
+            await logger.InfoAsync(addresses.Count > 0
+                    ? $"Presentation server listening on port {options.Port} ({addresses.Count} addresses)"
+                    : $"Presentation server listening on port {options.Port}, with no address another device can reach")
                 .ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IOException or SocketException)
@@ -190,14 +226,12 @@ public sealed class PresentationWebServer(
             // Almost always the port already being in use. The app carries on without the server,
             // and the settings panel shows the failure rather than a switch that claims success.
             LastError = ex.Message;
-            Addresses = [];
             await logger.ErrorAsync($"Presentation server could not start on port {options.Port}", ex)
                 .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
-            Addresses = [];
             await logger.ErrorAsync("Presentation server failed to start", ex).ConfigureAwait(false);
         }
     }
@@ -212,7 +246,6 @@ public sealed class PresentationWebServer(
         var app = _app;
         _app = null;
         _running = null;
-        Addresses = [];
 
         try
         {
@@ -239,38 +272,6 @@ public sealed class PresentationWebServer(
         return file.Exists
             ? Results.Stream(file.CreateReadStream(), "text/html; charset=utf-8")
             : Results.NotFound();
-    }
-
-    /// <summary>
-    /// What to type into the other device: every address this machine actually answers on. Guessing
-    /// which interface the hall's wifi handed out is not something to make the user do.
-    /// </summary>
-    private static List<string> DescribeAddresses(WebServerOptions options)
-    {
-        var addresses = new List<string>();
-        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
-        {
-            if (nic.OperationalStatus != OperationalStatus.Up ||
-                nic.NetworkInterfaceType == NetworkInterfaceType.Loopback)
-            {
-                continue;
-            }
-
-            foreach (var address in nic.GetIPProperties().UnicastAddresses)
-            {
-                if (address.Address.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    addresses.Add($"http://{address.Address}:{options.Port}");
-                }
-            }
-        }
-
-        if (addresses.Count == 0)
-        {
-            addresses.Add($"http://localhost:{options.Port}");
-        }
-
-        return addresses;
     }
 
     public async ValueTask DisposeAsync()
