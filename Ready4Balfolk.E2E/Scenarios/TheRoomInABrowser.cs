@@ -524,10 +524,11 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
     /// <remarks>
     /// World: a library of one dance, the server on, and the remote on with a PIN a helper knows.
     /// Steps: unlock the remote on the phone, have the DJ generate a new PIN in the settings, and
-    /// ask for a random track from the phone. Then read the new PIN off the desktop and enter it.
-    /// Sees: nothing reaching the queue, the phone told it is not let in any more and asked for the
-    /// PIN, and the new PIN letting it straight back in. Changing the PIN is a way of taking the
-    /// remote back, and a helper at the bar can tell that from an application that has crashed.
+    /// touch the phone no further. Then read the new PIN off the desktop and enter it.
+    /// Sees: the phone put back to the PIN form on its own and told why, and the new PIN letting
+    /// it straight back in. The DJ changes the PIN to take the remote back, so it cannot wait for
+    /// the helper to press something; and a helper at the bar can tell being shut out from an
+    /// application that has crashed.
     /// </remarks>
     [Fact]
     public async Task ChangingThePinTurnsTheHelperOutOfTheRemote()
@@ -572,22 +573,12 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
                 () => application.IsShowing("queue.items"),
                 "the main screen to come back");
 
-            // The phone still has its page, so it can still ask for things. Nothing it asks for
-            // may reach the evening.
-            await phone.Page.Locator("[data-tab='add']").ClickAsync();
-            await phone.Page.Locator("[data-act='random']").ClickAsync();
-
+            // Nobody has touched the phone since the PIN changed. It was watching the evening on
+            // a socket of its own, and that socket is what a new PIN has to reach.
             await phone.Page.Locator("#gate").WaitForAsync();
 
             Assert.False(await phone.IsShowing("app"), "The phone still looked like a working remote.");
             Assert.NotEqual(string.Empty, await phone.Reads("gateError"));
-
-            // Nothing left in flight to wait out: the gate is back because the server has already
-            // refused what the phone asked for, and an accepted request puts its row in the queue
-            // before it answers.
-            application.Settle();
-
-            Assert.Empty(application.RowsOf("queue.items"));
 
             // The gate is the honest answer rather than a dead end: the remote is there, and the
             // helper only needs the PIN that is on the DJ's screen.

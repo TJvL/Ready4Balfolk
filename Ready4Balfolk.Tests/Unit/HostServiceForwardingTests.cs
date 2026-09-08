@@ -45,6 +45,7 @@ public sealed class HostServiceForwardingTests
         web.AddForwardedHostServices(hostProvider);
         // What PresentationWebServer registers beside the forwards.
         web.AddSingleton(new RemoteAccessService());
+        web.AddSingleton<RemoteConnections>();
         web.AddSingleton<PresentationBroadcaster>();
         using var webProvider = web.BuildServiceProvider();
 

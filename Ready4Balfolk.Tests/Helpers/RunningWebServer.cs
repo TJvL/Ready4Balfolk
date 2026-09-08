@@ -43,13 +43,17 @@ internal sealed class RunningWebServer : IAsyncDisposable
     public static Task<RunningWebServer> StartAsync(params NetworkAdapter[] adapters) =>
         StartAsync(() => adapters);
 
+    /// <summary>The same with a clock handed in, which is the only thing a remote token ages by.</summary>
+    public static Task<RunningWebServer> StartAsync(TimeProvider time) => StartAsync(() => [], time);
+
     /// <summary>The same with the networks read afresh on every ask, as the real one reads them.</summary>
-    public static async Task<RunningWebServer> StartAsync(Func<IReadOnlyList<NetworkAdapter>> adapters)
+    public static async Task<RunningWebServer> StartAsync(
+        Func<IReadOnlyList<NetworkAdapter>> adapters, TimeProvider? time = null)
     {
         var hostServices = HostServices();
         var port = FreePort();
         var log = new RecordingLoggerService();
-        var server = new PresentationWebServer(hostServices, log, TimeProvider.System, adapters);
+        var server = new PresentationWebServer(hostServices, log, time ?? TimeProvider.System, adapters);
 
         await server.ApplyAsync(new WebServerOptions(true, port, false, ""));
 
@@ -100,8 +104,28 @@ internal sealed class RunningWebServer : IAsyncDisposable
         services.AddSingleton(Substitute.For<ITrackStore>());
         services.AddSingleton(Substitute.For<ISettingsStore>());
         services.AddSingleton<ILoggerService>(new NoOpLoggerService());
-        services.AddSingleton(Substitute.For<IRemoteCommandDispatcher>());
+        services.AddSingleton<IRemoteCommandDispatcher>(new ImmediateDispatcher());
         return services.BuildServiceProvider();
+    }
+
+    /// <summary>Runs a remote command where it was asked, which is what the UI thread does.</summary>
+    /// <remarks>
+    /// A substitute hands the hub a null task and every command from a phone fails on it, which
+    /// would make a test that asserts a command is refused pass without anything refusing it.
+    /// </remarks>
+    private sealed class ImmediateDispatcher : IRemoteCommandDispatcher
+    {
+        public Task InvokeAsync(Func<Task> work)
+        {
+            ArgumentNullException.ThrowIfNull(work);
+            return work();
+        }
+
+        public Task<T> InvokeAsync<T>(Func<T> work)
+        {
+            ArgumentNullException.ThrowIfNull(work);
+            return Task.FromResult(work());
+        }
     }
 
     /// <summary>A port the operating system says is free, rather than one picked out of the air.</summary>

@@ -1,5 +1,9 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Connections.Features;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
+using Ready4Balfolk.Domain.Models.Presentation;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
@@ -31,6 +35,11 @@ public sealed class RemoteHubTests : IDisposable
     private readonly IDancePool _dancePool = Substitute.For<IDancePool>();
     private readonly ITrackStore _trackStore = Substitute.For<ITrackStore>();
     private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
+    private const string Pin = "123456";
+
+    private readonly RemoteAccessService _access = new();
+    private readonly IHubContext<RemoteHub> _remoteHubContext = Substitute.For<IHubContext<RemoteHub>>();
+    private readonly RemoteConnections _connections;
     private readonly RemoteHub _sut;
 
     /// <summary>Runs the work where it was asked, which is what the UI thread does in the app.</summary>
@@ -45,21 +54,29 @@ public sealed class RemoteHubTests : IDisposable
 
     public RemoteHubTests()
     {
+        _connections = new RemoteConnections(_remoteHubContext, _access);
         _settingsStore.Current.Returns(new ApplicationSettings());
         _trackStore.Current.Returns([]);
         _queueService.Enqueue(Arg.Any<IQueueItem>()).Returns(QueueAddResult.Allow());
 
+        // A state the snapshot can be built from: OnConnectedAsync draws the phone straight away,
+        // and a bare substitute hands it a null state.
+        var presentation = Substitute.For<IPresentationStateService>();
+        presentation.Current.Returns(new PresentationState(
+            PresentationItem.None, PresentationItem.None, PresentationItem.None, IsPlaying: false));
+
         // The real one: it is sealed, so there is nothing to substitute, and the commands under
         // test never ask it anything. Only OnConnectedAsync reads its snapshots.
         _broadcaster = new PresentationBroadcaster(
-            Substitute.For<IPresentationStateService>(),
+            presentation,
             _queueService,
             Substitute.For<IHubContext<DisplayHub>>(),
             Substitute.For<IHubContext<RemoteHub>>());
 
         _sut = new RemoteHub(
             _broadcaster,
-            new RemoteAccessService(),
+            _access,
+            _connections,
             new ImmediateDispatcher(),
             _queueService,
             _consumption,
@@ -376,6 +393,95 @@ public sealed class RemoteHubTests : IDisposable
             .Select(index => TestData.CreateTrack(artist: "Naragonia", title: $"Track {index}"))]);
 
         Assert.Equal(40, (await _sut.Search("naragonia")).Count);
+    }
+
+    // --- The socket itself ---
+
+    [Fact]
+    public async Task OnConnectedAsync_RemembersTheSocket_SoANewPinCanCloseIt()
+    {
+        // Letting the phone in is only half of it. Nothing else knows the socket exists, so a PIN
+        // change reaches the commands this phone sends and not the queue it is being pushed.
+        var phone = await LetInAsync("phone");
+
+        _access.Configure(true, "654321");
+        await _connections.TurnOutStaleAsync();
+
+        phone.Received(1).Abort();
+    }
+
+    [Fact]
+    public async Task OnDisconnectedAsync_ForgetsTheSocket()
+    {
+        var phone = await LetInAsync("phone");
+
+        await _sut.OnDisconnectedAsync(null);
+
+        _access.Configure(true, "654321");
+        await _connections.TurnOutStaleAsync();
+
+        phone.DidNotReceive().Abort();
+    }
+
+    [Fact]
+    public async Task OnConnectedAsync_APhoneThatWasRefused_IsNeverRemembered()
+    {
+        // Refused connections are aborted on the spot, and a second abort on a socket that is
+        // already gone is the turn-out walking over connections it does not own.
+        _access.Configure(true, Pin);
+        var refused = Connection("phone", "not-a-token");
+        _sut.Context = refused;
+        _sut.Clients = Callers();
+
+        await _sut.OnConnectedAsync();
+        refused.ClearReceivedCalls();
+
+        _access.Configure(true, "654321");
+        await _connections.TurnOutStaleAsync();
+
+        refused.DidNotReceive().Abort();
+    }
+
+    /// <summary>A phone that logged in with the current PIN and got past <c>OnConnectedAsync</c>.</summary>
+    private async Task<HubCallerContext> LetInAsync(string connectionId)
+    {
+        _access.Configure(true, Pin);
+        var token = _access.TryLogin(Pin, "192.168.1.50").Token;
+        Assert.NotNull(token);
+
+        var context = Connection(connectionId, token);
+        _sut.Context = context;
+        _sut.Clients = Callers();
+
+        await _sut.OnConnectedAsync();
+        return context;
+    }
+
+    private static IHubCallerClients Callers()
+    {
+        var clients = Substitute.For<IHubCallerClients>();
+        clients.Caller.Returns(Substitute.For<ISingleClientProxy>());
+        return clients;
+    }
+
+    private static HubCallerContext Connection(string connectionId, string token)
+    {
+        var http = new DefaultHttpContext();
+        http.Request.QueryString = QueryString.Create("access_token", token);
+
+        var features = new FeatureCollection();
+        features.Set<IHttpContextFeature>(new CarriedHttpContext(http));
+
+        var context = Substitute.For<HubCallerContext>();
+        context.ConnectionId.Returns(connectionId);
+        context.Features.Returns(features);
+        return context;
+    }
+
+    /// <summary>How SignalR hands the opening request through to a live connection.</summary>
+    private sealed class CarriedHttpContext(HttpContext context) : IHttpContextFeature
+    {
+        public HttpContext? HttpContext { get; set; } = context;
     }
 
     public void Dispose()
