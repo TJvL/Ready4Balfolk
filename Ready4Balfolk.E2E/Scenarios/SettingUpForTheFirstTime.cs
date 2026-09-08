@@ -1,3 +1,4 @@
+using Avalonia.Input;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -84,6 +85,62 @@ public sealed class SettingUpForTheFirstTime(HeadlessSession session)
             Assert.False(
                 world.SettingsOnDisk().Discovery.UsesFolderRoles,
                 "A section the DJ never ticked was saved as on.");
+        });
+    }
+
+    /// <summary>Enter in the wizard's own draft-pattern box still means "next step".</summary>
+    /// <remarks>
+    /// World: a machine nobody has set up, and a music directory of one file.
+    /// Steps: through the wizard to the step that asks how the library is arranged, ticking file
+    /// name patterns, typing into the draft box and pressing Enter there instead of clicking
+    /// Declare or Continue.
+    /// Sees: the wizard moving on to the next step the way its own Continue button always did,
+    /// with the file still waiting for a person there rather than declared away by a rule the DJ
+    /// never asked to add.
+    /// </remarks>
+    [Fact]
+    public async Task EnterInTheWizardsDraftBoxStillMovesToTheNextStep()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereNothingHasBeenSetUpYet()
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(() => application.IsShowing("wizard"), "the wizard to open");
+
+            application.Click("wizard.continue");
+            application.Click("wizard.continue");
+
+            await application.WaitUntil(
+                () => application.IsShowing("wizard.browse"),
+                "the step that asks where the music is");
+
+            RunningApplication.TheDjWillPick(world.MusicDirectory.FullName);
+            application.Click("wizard.browse");
+            application.Click("wizard.continue");
+
+            await application.WaitUntil(
+                () => application.IsShowing("discovery.uses-file-names"),
+                "the step that asks how the library is arranged");
+
+            application.Click("discovery.uses-file-names");
+
+            await application.WaitUntil(
+                () => application.IsShowing("discovery.draft-pattern"),
+                "the patterns section to open");
+
+            application.TypeInto("discovery.draft-pattern", "%a - %t");
+            application.Press(PhysicalKey.Enter);
+
+            await application.WaitUntil(
+                () => application.RowsOf("review.rows").Count == 1,
+                "the wizard's own Continue button to carry the DJ on to the next step");
+
+            Assert.False(
+                world.SettingsOnDisk().Discovery.FileNamePatterns.Contains("%a - %t"),
+                "Enter in the wizard's draft box declared a rule the DJ never asked to add.");
         });
     }
 

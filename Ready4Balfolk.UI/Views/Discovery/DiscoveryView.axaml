@@ -196,7 +196,8 @@
                                      AutomationProperties.Name="{x:Static res:UiStrings.Discovery_PatternsHeader}"
                                      Text="{Binding DraftPattern, Mode=TwoWay}"
                                      PlaceholderText="{x:Static res:UiStrings.Discovery_DraftWatermark}"
-                                     FontFamily="monospace" />
+                                     FontFamily="monospace"
+                                     KeyDown="OnDraftPatternKeyDown" />
                             <Button Grid.Column="1"
                                     AutomationProperties.AutomationId="discovery.declare"
                                     Content="{x:Static res:UiStrings.Discovery_Declare}"
