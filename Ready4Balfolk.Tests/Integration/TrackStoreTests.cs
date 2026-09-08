@@ -1,6 +1,7 @@
 using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Microsoft.Data.Sqlite;
 using NSubstitute;
 using Ready4Balfolk.Domain;
 using Ready4Balfolk.Domain.Models.Dances;
@@ -10,6 +11,7 @@ using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Tracks;
+using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Tracks;
@@ -84,6 +86,14 @@ public sealed class TrackStoreTests : IDisposable
                 lock (_indexSnapshot)
                 {
                     return new Dictionary<string, LibraryEntry>(_indexSnapshot, StringComparer.Ordinal);
+                }
+            });
+        _libraryIndex.IndexedPathsAsync(Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                lock (_indexSnapshot)
+                {
+                    return _indexSnapshot.Keys.ToHashSet(StringComparer.Ordinal);
                 }
             });
         _libraryIndex.WriteAsync(Arg.Any<IReadOnlyCollection<LibraryEntry>>(), Arg.Any<CancellationToken>())
@@ -173,9 +183,10 @@ public sealed class TrackStoreTests : IDisposable
     /// about what happens while a copy is still running says otherwise, or it would sit through
     /// the real two seconds of it.
     /// </remarks>
-    private TrackStore NewStore(TimeSpan? batchQuiet = null, TimeSpan? batchAtMost = null) => new(
-        _loggerService, _discoveryService, _danceListStore, _libraryIndex, _fileSystem, _missingFolderPrompt,
-        batchQuiet, batchAtMost);
+    private TrackStore NewStore(
+        TimeSpan? batchQuiet = null, TimeSpan? batchAtMost = null, ILibraryIndex? libraryIndex = null) => new(
+        _loggerService, _discoveryService, _danceListStore, libraryIndex ?? _libraryIndex, _fileSystem,
+        _missingFolderPrompt, batchQuiet, batchAtMost);
 
     private IFileSystemWatcher CreateWatcher(string path)
     {
@@ -1112,6 +1123,89 @@ public sealed class TrackStoreTests : IDisposable
         // Kept, but in nothing: not the library, and counted where somebody can see it.
         Assert.Empty(restarted.Current);
         await WaitUntilAsync(() => unavailable == 1);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task TheMusicUnreachable_AsksAndKeepsWhatWasAnswered_SchemaChangeOrNot(bool theSchemaChanged)
+    {
+        // Over the real index rather than a stand-in, because the thing on trial is what a schema
+        // change does to the file. A build with a new stamp throws the index away and lays it out
+        // again, and if it took the paths with it there would be nothing left to ask about: the
+        // question would not be asked, and the reconciliation that closes the scan would delete
+        // every approval for pointing at no track. The two runs are one test on purpose. Whatever
+        // this start does with the drive unplugged, it must do the same either way.
+        var settingsDirectory = new FileSystem().DirectoryInfo.New(
+            Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
+        settingsDirectory.Create();
+        try
+        {
+            var indexDirectory = Substitute.For<IApplicationSettingsDirectory>();
+            indexDirectory.DirectoryInfoRoot.Returns(settingsDirectory);
+            var path = _fileSystem.Path.Combine(_dirA.FullName, "a.mp3");
+
+            using (var before = new SqliteLibraryIndex(indexDirectory, new NoOpLoggerService()))
+            {
+                await before.WriteAsync([IndexedAt(path)], TestContext.Current.CancellationToken);
+                await before.ApproveIndividuallyAsync(
+                    [path],
+                    [new FieldAnswer(TrackField.Title, "Le Tourdion")],
+                    TestContext.Current.CancellationToken);
+            }
+
+            if (theSchemaChanged)
+            {
+                await StampAnotherSchemaAsync(settingsDirectory);
+            }
+
+            // The drive is not plugged in: the folder is there and there is no music in it.
+            using var index = new SqliteLibraryIndex(indexDirectory, new NoOpLoggerService());
+            using var restarted = NewStore(libraryIndex: index);
+            await restarted.ApplyAsync(_configuration with { MusicDirectoryPath = _dirA.FullName });
+
+            var folder = Assert.Single(Assert.Single(_asked));
+            Assert.Equal(_dirA.FullName, folder.Path);
+            Assert.Equal(1, folder.TrackCount);
+
+            var approvals = await index.ApprovalsAsync(TestContext.Current.CancellationToken);
+            Assert.Equal("Le Tourdion", Assert.Single(Assert.Single(approvals).Value).Value);
+        }
+        finally
+        {
+            settingsDirectory.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>A row for a file, as a scan that could reach it would have left one.</summary>
+    private static LibraryEntry IndexedAt(string path) => new()
+    {
+        ContentHash = [7],
+        Path = path,
+        FileSize = 1234,
+        LastWriteUtc = new DateTime(2026, 8, 8, 20, 0, 0, DateTimeKind.Utc),
+        Duration = TimeSpan.FromSeconds(180),
+        Format = AudioFormat.Mp3,
+        DanceSlug = "mazurka",
+        Artist = "Artist",
+        Title = "Title"
+    };
+
+    /// <summary>Stamps a shape nothing was ever laid out in, which is what another build looks like.</summary>
+    private static async Task StampAnotherSchemaAsync(IDirectoryInfo settingsDirectory)
+    {
+        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            // As the index does: a pooled handle outlives Dispose and leaves the file locked on
+            // Windows, and the index deletes this file the moment the stamp is not its own.
+            DataSource = Path.Combine(settingsDirectory.FullName, "library.sqlite"),
+            Pooling = false
+        }.ToString());
+
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA user_version = 9999;";
+        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]

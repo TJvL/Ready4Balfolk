@@ -4,20 +4,29 @@ namespace Ready4Balfolk.Domain.Services.Discovery;
 
 /// <summary>The kinds of thing that can speak about a track, one per independent reading.</summary>
 /// <remarks>
+/// <para>
 /// Independence is the whole point of this enum, because agreement between two kinds is what makes
 /// an answer trustworthy. The title tag and the comment tag are one kind between them: they were
 /// written by the same ripper in the same pass, so a dance appearing in both proves nothing.
+/// </para>
+/// <para>
+/// The numbers are written into the library index and are the identity of the member, not its
+/// position. They are pinned so a member added here can never be added in front of one: a scan
+/// rebuilds an unchanged file's row out of the index rather than opening it again, so a shift
+/// would have the review screen tell a person a value was read off a folder when it came out of a
+/// tag, and no later scan would put it back.
+/// </para>
 /// </remarks>
 public enum ClaimSourceKind
 {
     /// <summary>Something written into the file's tags.</summary>
-    Tag,
+    Tag = 0,
 
     /// <summary>The file's own name, read whole or through a pattern the user declared.</summary>
-    FileName,
+    FileName = 1,
 
     /// <summary>The folders the file sits in, or what the rest of one turned out to be.</summary>
-    Folder
+    Folder = 2
 }
 
 /// <summary>Where a claim came from, precisely enough to show a person.</summary>

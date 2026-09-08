@@ -3,6 +3,12 @@ using Ready4Balfolk.Domain.Models.Tracks;
 namespace Ready4Balfolk.Domain.Stores.Library;
 
 /// <summary>How a value came to be agreed to, which decides what happens to it later.</summary>
+/// <remarks>
+/// The numbers are written into the library index and are the identity of the member, not its
+/// position. They are pinned so a member added here can never be added in front of one: an
+/// approval a person gave by hand is the one thing in that index nobody can recompute, and a shift
+/// would hand every one of them back to the rules to revoke.
+/// </remarks>
 public enum ApprovalKind
 {
     /// <summary>
@@ -13,7 +19,7 @@ public enum ApprovalKind
     /// the rules takes the approval back with them and the tracks return to review. Fixing a pattern
     /// greenlit by mistake has to undo its work.
     /// </remarks>
-    ByRule,
+    ByRule = 0,
 
     /// <summary>
     /// The user looked at this track and said yes.
@@ -23,7 +29,7 @@ public enum ApprovalKind
     /// application writing the file's own tags. It is the one thing in the index that was not
     /// derived from anything.
     /// </remarks>
-    Individual
+    Individual = 1
 }
 
 /// <summary>One field of one track, agreed to by a person.</summary>
