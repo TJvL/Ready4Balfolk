@@ -491,8 +491,9 @@ ingedeeld.
 
 ### Maximaal aantal wachtrijitems
 
-Het maximum in de wachtrij, tussen 1 en 100. Is de wachtrij vol, dan kan er niets bij tot er iets
-gespeeld of verwijderd is.
+Het maximumaantal nummers in de wachtrij, tussen 1 en 100. Pauzes, berichten en stopmarkeringen tellen
+niet mee. Is de wachtrij vol, dan kunnen er geen nummers meer bij tot er nummers gespeeld of
+verwijderd zijn.
 
 ### Pauzeduur
 

@@ -477,7 +477,7 @@ Everything below that folder counts, however it is arranged.
 
 ### Maximum Queue Items
 
-The maximum number of items allowed in the queue, between 1 and 100. When the queue is full, new items cannot be added until existing ones are played or removed.
+The maximum number of tracks allowed in the queue, between 1 and 100. Delays, messages and stop markers do not count towards it. When the queue is full, new tracks cannot be added until existing ones are played or removed.
 
 ### Delay Duration
 

@@ -57,7 +57,7 @@
     <value>Nummer is al afgespeeld.</value>
   </data>
   <data name="MaxItemsRule_QueueFull" xml:space="preserve">
-    <value>Wachtrij is vol (max {0} items).</value>
+    <value>Wachtrij is vol (max {0} nummers).</value>
   </data>
   <data name="QueueGuard_DeniedByRule" xml:space="preserve">
     <value>Geweigerd door wachtrijregel.</value>
