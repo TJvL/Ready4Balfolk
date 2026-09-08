@@ -1,7 +1,9 @@
 using System.IO.Abstractions;
+using Microsoft.Data.Sqlite;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores;
@@ -12,6 +14,12 @@ namespace Ready4Balfolk.Tests.Integration;
 
 public sealed class SqliteLibraryIndexTests : IAsyncLifetime
 {
+    /// <summary>An index a build before this one laid out, which never stamped anything.</summary>
+    private const long AnEarlierSchema = 0;
+
+    /// <summary>An index laid out by a build somebody has since gone back from.</summary>
+    private const long ALaterSchema = 9999;
+
     private readonly IDirectoryInfo _tempDir;
     private readonly SqliteLibraryIndex _sut;
 
@@ -198,6 +206,160 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         Assert.Single(await healed.SnapshotByPathAsync(Token));
     }
 
+    [Fact]
+    public async Task Open_StampsTheShapeTheIndexWasLaidOutIn()
+    {
+        // Without a stamp a build that changes a table opens the old one, and the first query that
+        // wants the new column throws on every start with nothing left to work out why.
+        _sut.Dispose();
+
+        Assert.NotEqual(0, await StampedSchemaVersionAsync());
+    }
+
+    [Fact]
+    public async Task AnIndexLaidOutForAnotherSchema_IsThrownAwayAndTheApprovalsAreKept()
+    {
+        // The hard part. The tracks and the paths are a cache and a scan puts them back; the
+        // approvals are evenings of the DJ answering, and nothing anywhere can recompute them.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/a.mp3"], [new FieldAnswer(TrackField.Title, "Le Tourdion")], Token);
+        _sut.Dispose();
+        await StampSchemaVersionAsync(AnEarlierSchema);
+
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        await rebuilt.OpenAsync(Token);
+
+        Assert.Empty(await rebuilt.SnapshotByPathAsync(Token));
+        var approval = Assert.Single((await rebuilt.ApprovalsAsync(Token))[LibraryKey.For([9])]);
+        Assert.Equal(TrackField.Title, approval.Field);
+        Assert.Equal("Le Tourdion", approval.Value);
+        Assert.Equal(ApprovalKind.Individual, approval.Kind);
+        Assert.Equal(new DateTime(2026, 8, 8, 20, 0, 0, DateTimeKind.Utc), approval.FileWriteUtc);
+    }
+
+    [Fact]
+    public async Task AnIndexLaidOutForANewerSchema_IsThrownAwayAndTheApprovalsAreKeptToo()
+    {
+        // Somebody going back a build meets a file written by the newer one, and this code can no
+        // more read a shape it does not know from the future than from the past. It costs the same
+        // rescan in this direction and it keeps the same answers: a DJ who went back a build over
+        // something unrelated must not pay for it with every evening of review they have done.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/a.mp3"], [new FieldAnswer(TrackField.Title, "Le Tourdion")], Token);
+        await _sut.IgnoreValueAsync("Ambiance", Token);
+        _sut.Dispose();
+        await StampSchemaVersionAsync(ALaterSchema);
+
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+
+        Assert.Empty(await rebuilt.SnapshotByPathAsync(Token));
+        Assert.Equal("Le Tourdion", Assert.Single((await rebuilt.ApprovalsAsync(Token))[LibraryKey.For([9])]).Value);
+        Assert.Single(await rebuilt.GetIgnoredValuesAsync(Token));
+    }
+
+    [Fact]
+    public async Task AnIndexLaidOutForAnotherSchema_KeepsThePathsSoTheFolderQuestionCanStillBeAsked()
+    {
+        // The rebuild's own way of losing everything. The paths are the only thing that says what
+        // the library held, and the question a scan asks when it finds no music is asked about the
+        // folders they name. Empty them and a start with the drive unplugged asks nothing and then
+        // reconciles the whole index away, approvals and all.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+        _sut.Dispose();
+        await StampSchemaVersionAsync(AnEarlierSchema);
+
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+
+        Assert.Equal(["/music/a.mp3"], await rebuilt.IndexedPathsAsync(Token));
+        // The derived half really is gone, or this would only be proving the file was left alone.
+        Assert.Empty(await rebuilt.SnapshotByPathAsync(Token));
+    }
+
+    [Fact]
+    public async Task AnIndexLaidOutForAnotherSchema_KeepsAFolderTheUserSaidToKeep()
+    {
+        // Unavailable is an answer, not a reading: a scan never sets it, somebody said "keep them"
+        // about a folder that was not there. Carrying the paths and dropping that would put the
+        // folder back into the library pointing at files nobody has seen.
+        await _sut.WriteAsync([Entry("/music/here.mp3", [1]), Entry("/music/nas/gone.mp3", [2])], Token);
+        await _sut.DeleteMissingAsync(["/music/here.mp3"], ["/music/nas/gone.mp3"], Token);
+        _sut.Dispose();
+        await StampSchemaVersionAsync(AnEarlierSchema);
+
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+
+        Assert.Equal(2, (await rebuilt.IndexedPathsAsync(Token)).Count);
+        // Counted over reachable rows alone, so the kept one is still marked unreachable.
+        Assert.Equal(1, await rebuilt.CountIndexedAsync(Token));
+    }
+
+    [Fact]
+    public async Task AnIndexLaidOutForAnotherSchema_KeepsWhatWasSaidNotToAskAboutAgain()
+    {
+        // Ignoring is an answer as much as approving is, and no scan recomputes it either: losing
+        // it puts the badge back to a number the DJ already worked through.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+        await _sut.IgnoreValueAsync("Ambiance", Token);
+        _sut.Dispose();
+        await StampSchemaVersionAsync(AnEarlierSchema);
+
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+
+        Assert.Empty(await rebuilt.SnapshotByPathAsync(Token));
+        Assert.Single(await rebuilt.GetIgnoredValuesAsync(Token));
+    }
+
+    [Fact]
+    public async Task AnIndexOfThisSchema_IsOpenedAsItStands()
+    {
+        // The other half of the guard: throwing the index away on a launch that changed nothing
+        // would cost a full rescan of the library every single time.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+        _sut.Dispose();
+
+        using var reopened = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+
+        Assert.Equal(["/music/a.mp3"], (await reopened.SnapshotByPathAsync(Token)).Keys);
+    }
+
+    [Fact]
+    public void TheNumbersTheApprovalsAreStoredAs_AreThePinnedOnes()
+    {
+        // A member inserted in front of one of these silently rewrites every answer the DJ has
+        // given, and the rebuild that carries the approvals across a schema change reads them back
+        // by exactly these numbers.
+        Assert.Equal(0, (int)TrackField.Dance);
+        Assert.Equal(1, (int)TrackField.Artist);
+        Assert.Equal(2, (int)TrackField.Title);
+        Assert.Equal(0, (int)ApprovalKind.ByRule);
+        Assert.Equal(1, (int)ApprovalKind.Individual);
+    }
+
+    [Fact]
+    public void TheNumbersTheDerivedColumnsAreStoredAs_ArePinnedToo()
+    {
+        // These three are written into the tracks table. A scan looks like it would put a wrong
+        // reading right, and it would not: an unchanged file is rebuilt out of the index rather
+        // than opened again, so a shift leaves every FLAC reading as an Ogg for good.
+        Assert.Equal(0, (int)AudioFormat.Mp3);
+        Assert.Equal(1, (int)AudioFormat.Wav);
+        Assert.Equal(2, (int)AudioFormat.Flac);
+        Assert.Equal(3, (int)AudioFormat.Ogg);
+        Assert.Equal(4, (int)AudioFormat.Aif);
+        Assert.Equal(0, (int)ClaimSourceKind.Tag);
+        Assert.Equal(1, (int)ClaimSourceKind.FileName);
+        Assert.Equal(2, (int)ClaimSourceKind.Folder);
+        Assert.Equal(0, (int)DecisionReason.NoClaim);
+        Assert.Equal(1, (int)DecisionReason.Unusable);
+        Assert.Equal(2, (int)DecisionReason.SoleValue);
+        Assert.Equal(3, (int)DecisionReason.Corroborated);
+        Assert.Equal(4, (int)DecisionReason.Preferred);
+        Assert.Equal(5, (int)DecisionReason.Deliberate);
+        Assert.Equal(6, (int)DecisionReason.Contested);
+    }
+
     public ValueTask DisposeAsync()
     {
         _sut.Dispose();
@@ -217,6 +379,38 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         }
 
         return ValueTask.CompletedTask;
+    }
+
+    /// <summary>Writes the shape stamp straight into the file, standing in for another build.</summary>
+    private async Task StampSchemaVersionAsync(long version)
+    {
+        await using var connection = await RawConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA user_version = {version};";
+        await command.ExecuteNonQueryAsync(Token);
+    }
+
+    private async Task<long> StampedSchemaVersionAsync()
+    {
+        await using var connection = await RawConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA user_version;";
+        return Convert.ToInt64(await command.ExecuteScalarAsync(Token), provider: null);
+    }
+
+    /// <summary>The database file itself, with nothing of the index in the way of it.</summary>
+    private async Task<SqliteConnection> RawConnectionAsync()
+    {
+        var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = Path.Combine(_tempDir.FullName, "library.sqlite"),
+            // As the index does: a pooled handle outlives Dispose and leaves the file locked on
+            // Windows, and the index deletes this file the moment the stamp is not its own.
+            Pooling = false
+        }.ToString());
+
+        await connection.OpenAsync(Token);
+        return connection;
     }
 
     private IApplicationSettingsDirectory DirectoryPointingAtTemp()

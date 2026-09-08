@@ -4,32 +4,41 @@ namespace Ready4Balfolk.Domain.Services.Discovery;
 
 /// <summary>Why a field reads the way it does.</summary>
 /// <remarks>
+/// <para>
 /// Kept because the review screen has to show where a value came from, and because "no answer" has
 /// several different meanings that a person needs told apart: nobody said anything, everybody said
 /// something useless, and two sources said different things are three separate situations.
+/// </para>
+/// <para>
+/// The numbers are written into the library index and are the identity of the member, not its
+/// position. They are pinned so a member added here can never be added in front of one: a scan
+/// rebuilds an unchanged file's row out of the index rather than opening it again, so a shift
+/// would have the review screen give a person the wrong grounds for a value, and no later scan
+/// would put it back.
+/// </para>
 /// </remarks>
 public enum DecisionReason
 {
     /// <summary>No source offered anything at all.</summary>
-    NoClaim,
+    NoClaim = 0,
 
     /// <summary>Something was offered and none of it can be used: a placeholder, or a dance the list does not know.</summary>
-    Unusable,
+    Unusable = 1,
 
     /// <summary>One value was offered, by one source.</summary>
-    SoleValue,
+    SoleValue = 2,
 
     /// <summary>Two independent sources offered the same value. The strongest thing available.</summary>
-    Corroborated,
+    Corroborated = 3,
 
     /// <summary>Several sources were ordered by how much they are trusted, and the first usable one answered.</summary>
-    Preferred,
+    Preferred = 4,
 
     /// <summary>Several values, and exactly one of them was written on purpose.</summary>
-    Deliberate,
+    Deliberate = 5,
 
     /// <summary>Several values and nothing to separate them, so the honest answer is none.</summary>
-    Contested
+    Contested = 6
 }
 
 /// <summary>What one field of a track was decided to be, and on what grounds.</summary>
