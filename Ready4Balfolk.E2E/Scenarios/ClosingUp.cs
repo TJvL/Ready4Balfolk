@@ -1,4 +1,5 @@
 using System.Globalization;
+using Avalonia;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -9,7 +10,7 @@ public sealed class ClosingUp(HeadlessSession session)
     /// <summary>The DJ closes the application and finds their window where they left it.</summary>
     /// <remarks>
     /// World: a library of one dance, and a window the size the DJ last had it.
-    /// Steps: press exit and agree to it.
+    /// Steps: move and resize the window, then press exit and agree to it.
     /// Sees: the window gone, and the size and position it had written down for the next evening.
     /// </remarks>
     [Fact]
@@ -27,6 +28,10 @@ public sealed class ClosingUp(HeadlessSession session)
                 () => application.RowsOf("catalog.tracks").Count == 1,
                 "the library to be indexed");
 
+            // A window nobody seeded: the world laid down 1600 by 1000 at the corner, so a run
+            // that asserted that back would be green whether or not closing ever read the window.
+            application.TheDjMovesAndResizesTheWindow(new PixelPoint(140, 70), 1280, 820);
+
             application.Click("toolbar.exit");
 
             await application.WaitUntil(
@@ -41,8 +46,10 @@ public sealed class ClosingUp(HeadlessSession session)
 
             var saved = world.SettingsOnDisk().MainWindowState;
 
-            Assert.Equal(1600, saved.Width);
-            Assert.Equal(1000, saved.Height);
+            Assert.Equal(1280, saved.Width);
+            Assert.Equal(820, saved.Height);
+            Assert.Equal(140, saved.X);
+            Assert.Equal(70, saved.Y);
         });
     }
 

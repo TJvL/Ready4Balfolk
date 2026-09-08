@@ -54,6 +54,7 @@ public sealed class DanceListViewModelTests : IDisposable
     private readonly IQueueService _queueService = Substitute.For<IQueueService>();
     private readonly INotificationService _notifications = Substitute.For<INotificationService>();
     private readonly IDanceListFeed _feed = Substitute.For<IDanceListFeed>();
+    private readonly ThrottleClock _throttles = new();
     private readonly DanceListViewModel _sut;
 
     public DanceListViewModelTests()
@@ -70,10 +71,11 @@ public sealed class DanceListViewModelTests : IDisposable
         _queueService.Enqueue(Arg.Any<IQueueItem>()).Returns(QueueAddResult.Allow());
 
         _sut = new DanceListViewModel(_store, _pool, _trackStore, _randomTracks, _queueService,
-            _notifications, _feed, new MockFileSystem(), new NoOpLoggerService());
+            _notifications, _feed, new MockFileSystem(), new NoOpLoggerService(), _throttles.Scheduler);
     }
 
-    private static async Task SettleAsync() => await Task.Delay(400);
+    /// <summary>Spends the fractions of a second the rail waits out, rather than sleeping past them.</summary>
+    private void Settle() => _throttles.LetTheThrottlesRunOut();
 
     private DanceCardViewModel Card(string slug) => _sut.Dances.Single(card => card.Slug == slug);
 
@@ -88,14 +90,14 @@ public sealed class DanceListViewModelTests : IDisposable
             _sut.Dances.Select(card => card.NamesText));
 
     [Fact]
-    public async Task ACard_CountsTheTracksYouHaveForThatDance()
+    public void ACard_CountsTheTracksYouHaveForThatDance()
     {
         _tracks.AddRange([
             TestData.CreateTrack(dance: "Mazurka", title: "One"),
             TestData.CreateTrack(dance: "Mazurka", title: "Two"),
             TestData.CreateTrack(dance: "Plinn")
         ]);
-        await SettleAsync();
+        Settle();
 
         Assert.Equal(2, Card("mazurka").TrackCount);
         Assert.True(Card("plinn").HasTracks);
@@ -115,14 +117,14 @@ public sealed class DanceListViewModelTests : IDisposable
     // --- Keeping what has not changed ---
 
     [Fact]
-    public async Task ACard_TheLibraryMoves_IsToldTheCountRatherThanReplaced()
+    public void ACard_TheLibraryMoves_IsToldTheCountRatherThanReplaced()
     {
         // A card that could only take a new count by being built again takes the DJ's keyboard with
         // it: the control it is drawn as is destroyed, and Avalonia moves the focus nowhere at all.
         var standingOn = Card("mazurka");
 
         _tracks.Add(TestData.CreateTrack(dance: "Mazurka", title: "One"));
-        await SettleAsync();
+        Settle();
 
         Assert.Same(standingOn, Card("mazurka"));
         Assert.Equal(1, standingOn.TrackCount);
@@ -140,12 +142,12 @@ public sealed class DanceListViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task ACard_TheSearchMoves_IsKept()
+    public void ACard_TheSearchMoves_IsKept()
     {
         var standingOn = Card("mazurka");
 
         _sut.SearchText = "mazurk";
-        await SettleAsync();
+        Settle();
 
         Assert.Same(standingOn, Card("mazurka"));
     }
@@ -170,7 +172,7 @@ public sealed class DanceListViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task ARebuildThatChangesNothing_TouchesNothingInTheList()
+    public void ARebuildThatChangesNothing_TouchesNothingInTheList()
     {
         // Nothing added, nothing removed and nothing moved, in the cards or in the rail: no
         // control is detached, which is the whole of why the keyboard stays where the DJ put it.
@@ -182,7 +184,7 @@ public sealed class DanceListViewModelTests : IDisposable
         _sut.Tags.CollectionChanged += (_, _) => rail++;
 
         _tracks.Add(TestData.CreateTrack(dance: "Mazurka", title: "One"));
-        await SettleAsync();
+        Settle();
 
         Assert.Equal(0, cards);
         Assert.Equal(0, rail);
@@ -229,15 +231,15 @@ public sealed class DanceListViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task ACard_TheSearchTakesItAway_Goes()
+    public void ACard_TheSearchTakesItAway_Goes()
     {
         _sut.SearchText = "plinn";
-        await SettleAsync();
+        Settle();
 
         Assert.Equal(["plinn"], _sut.Dances.Select(card => card.Slug));
 
         _sut.SearchText = string.Empty;
-        await SettleAsync();
+        Settle();
 
         Assert.Equal(["mazurka", "plinn", "scottish"], _sut.Dances.Select(card => card.Slug));
     }
@@ -258,39 +260,39 @@ public sealed class DanceListViewModelTests : IDisposable
     // --- Searching ---
 
     [Fact]
-    public async Task Search_NarrowsTheCards()
+    public void Search_NarrowsTheCards()
     {
         _sut.SearchText = "plinn";
-        await SettleAsync();
+        Settle();
 
         Assert.Equal("plinn", Assert.Single(_sut.Dances).Slug);
     }
 
     [Fact]
-    public async Task Search_MatchesAnySpellingOfADance()
+    public void Search_MatchesAnySpellingOfADance()
     {
         // Every name is an equal: somebody typing the German spelling is not searching wrong.
         _sut.SearchText = "schottische";
-        await SettleAsync();
+        Settle();
 
         Assert.Equal("scottish", Assert.Single(_sut.Dances).Slug);
     }
 
     [Fact]
-    public async Task Search_IgnoresAccentsAndCase()
+    public void Search_IgnoresAccentsAndCase()
     {
         _sut.SearchText = "MAZURK";
-        await SettleAsync();
+        Settle();
 
         Assert.Equal("mazurka", Assert.Single(_sut.Dances).Slug);
     }
 
     [Fact]
-    public async Task Search_ATagThatNothingShowingCarries_IsDimmedRatherThanRemoved()
+    public void Search_ATagThatNothingShowingCarries_IsDimmedRatherThanRemoved()
     {
         // A rail that reshuffles itself as you type is impossible to aim at.
         _sut.SearchText = "plinn";
-        await SettleAsync();
+        Settle();
 
         Assert.True(Chip("common").IsDimmed);
         Assert.False(Chip("bretagne").IsDimmed);
