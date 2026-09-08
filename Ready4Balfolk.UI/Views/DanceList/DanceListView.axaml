@@ -211,6 +211,7 @@
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="x:String">
                                                     <Button Classes="chip"
+                                                            AutomationProperties.AutomationId="dancelist.card-tag"
                                                             Margin="0,0,4,0"
                                                             Content="{Binding}"
                                                             Command="{Binding $parent[UserControl].((danceList:DanceListViewModel)DataContext).ToggleTagCommand}"

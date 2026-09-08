@@ -68,17 +68,29 @@ public sealed class PresentationStateServiceTests
         Assert.Equal("Bar closes at midnight", item.Primary);
         Assert.Equal("", item.Artist);
         Assert.False(item.HasSubtitle);
+        Assert.Null(item.Duration);
     }
 
     [Fact]
-    public void Map_Delay_CarriesNoText()
+    public void Map_MessageWithADuration_CarriesIt()
     {
-        // Deliberately empty: the desktop window says it in UiStrings and the browser in its own
-        // strings, so Domain must not pick one of them.
+        // A timed message is a pause the room is waiting out, same as a delay, so a surface that
+        // wants to say how long can.
+        var item = PresentationStateService.Map(new MessageQueueItem("Back in five", TimeSpan.FromMinutes(5)));
+
+        Assert.Equal(TimeSpan.FromMinutes(5), item.Duration);
+    }
+
+    [Fact]
+    public void Map_Delay_CarriesNoTextButCarriesItsLength()
+    {
+        // No text: the desktop window says it in UiStrings and the browser in its own strings, so
+        // Domain must not pick one of them. The length is not text, so it travels either way.
         var item = PresentationStateService.Map(new DelayQueueItem(TimeSpan.FromSeconds(30)));
 
         Assert.Equal(PresentationItemKind.Delay, item.Kind);
         Assert.Equal("", item.Primary);
+        Assert.Equal(TimeSpan.FromSeconds(30), item.Duration);
     }
 
     [Fact]

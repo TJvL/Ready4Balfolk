@@ -53,6 +53,66 @@ public sealed class MaxItemsRuleTests
     }
 
     [Fact]
+    public void EvaluateAdd_AtTrackLimit_DelayIsStillAllowed()
+    {
+        IReadOnlyList<IQueueItem> items =
+        [
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
+            new TrackQueueItem(TestData.CreateTrack("B"), false),
+            new TrackQueueItem(TestData.CreateTrack("C"), false)
+        ];
+
+        Assert.Null(_sut.EvaluateAdd(new DelayQueueItem(TimeSpan.FromSeconds(10)), items));
+    }
+
+    [Fact]
+    public void EvaluateAdd_AtTrackLimit_MessageIsStillAllowed()
+    {
+        IReadOnlyList<IQueueItem> items =
+        [
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
+            new TrackQueueItem(TestData.CreateTrack("B"), false),
+            new TrackQueueItem(TestData.CreateTrack("C"), false)
+        ];
+
+        Assert.Null(_sut.EvaluateAdd(new MessageQueueItem("Back in five minutes"), items));
+    }
+
+    [Fact]
+    public void EvaluateAdd_TrackDoesNotCountDelaysOrMessagesAgainstTheLimit()
+    {
+        var track = new TrackQueueItem(TestData.CreateTrack("New"), false);
+        IReadOnlyList<IQueueItem> items =
+        [
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
+            new DelayQueueItem(TimeSpan.FromSeconds(10)),
+            new MessageQueueItem("Coffee break"),
+            new StopQueueItem()
+        ];
+
+        // Only "A" is a track, so a second one still fits under a limit of three.
+        Assert.Null(_sut.EvaluateAdd(track, items));
+    }
+
+    [Fact]
+    public void GetEvictionIndices_SkipsDelaysAndMessages()
+    {
+        IReadOnlyList<IQueueItem> items =
+        [
+            new TrackQueueItem(TestData.CreateTrack("A"), false),
+            new DelayQueueItem(TimeSpan.FromSeconds(10)),
+            new TrackQueueItem(TestData.CreateTrack("B"), false),
+            new TrackQueueItem(TestData.CreateTrack("C"), false),
+            new MessageQueueItem("Coffee break"),
+            new TrackQueueItem(TestData.CreateTrack("D"), false)
+        ];
+
+        // max=3 tracks: A, B, C are kept, D is over the limit, and the delay and message are
+        // never touched even though they sit inside the same three-track budget.
+        Assert.Equal([5], _sut.GetEvictionIndices(items));
+    }
+
+    [Fact]
     public void EvaluateAdd_UnderLimit_NoOpinion()
     {
         var track = new TrackQueueItem(TestData.CreateTrack(), false);

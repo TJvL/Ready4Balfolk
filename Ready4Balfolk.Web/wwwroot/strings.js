@@ -20,6 +20,13 @@
       endOfNight: "End of the night",
       reconnecting: "Reconnecting",
 
+      oneSecond: "1 second",
+      seconds: "{0} seconds",
+      oneMinute: "1 minute",
+      minutes: "{0} minutes",
+      delayWithDuration: "Delay ({0})",
+      messageWithDuration: "Message ({0})",
+
       playing: "Playing",
       nothingPlaying: "Nothing playing",
       queueEmpty: "The queue is empty",
@@ -86,6 +93,13 @@
       message: "Bericht",
       endOfNight: "Einde van de avond",
       reconnecting: "Opnieuw verbinden",
+
+      oneSecond: "1 seconde",
+      seconds: "{0} seconden",
+      oneMinute: "1 minuut",
+      minutes: "{0} minuten",
+      delayWithDuration: "Pauze ({0})",
+      messageWithDuration: "Bericht ({0})",
 
       playing: "Speelt nu",
       nothingPlaying: "Niets aan het afspelen",
@@ -161,6 +175,46 @@
     if (kind === "Message") return R4B.t("message");
     if (kind === "EndOfNight") return R4B.t("endOfNight");
     return "";
+  };
+
+  /* The large line for an item: a track's dance, a message's text, or the surface's own label for
+     the kinds that carry no text of their own. Every page draws this line, so the fallback lives
+     here rather than once per page. */
+  R4B.primaryLabel = function (item) {
+    return item.primary || R4B.kindLabel(item.kind);
+  };
+
+  /* How long, in words: seconds for a short wait, minutes once it stops being one. */
+  R4B.durationPhrase = function (totalSeconds) {
+    var rounded = Math.round(totalSeconds);
+    if (rounded < 60) {
+      return rounded === 1 ? R4B.t("oneSecond") : R4B.t("seconds", rounded);
+    }
+    var minutes = Math.max(1, Math.round(rounded / 60));
+    return minutes === 1 ? R4B.t("oneMinute") : R4B.t("minutes", minutes);
+  };
+
+  /* A delay or a timed message says how long it lasts, since there is no countdown bar under it
+     yet the way there is once it starts playing. */
+  R4B.kindLabelWithDuration = function (kind, totalSeconds) {
+    var phrase = R4B.durationPhrase(totalSeconds);
+    if (kind === "Delay") return R4B.t("delayWithDuration", phrase);
+    if (kind === "Message") return R4B.t("messageWithDuration", phrase);
+    return R4B.kindLabel(kind);
+  };
+
+  /* The label for what is queued up next. A message never falls back to its own words here: those
+     are drawn on their own line instead, the way the desktop window keeps them apart too. */
+  R4B.nextLabel = function (item) {
+    if (item.kind === "Message") {
+      return item.durationSeconds != null
+        ? R4B.kindLabelWithDuration(item.kind, item.durationSeconds)
+        : R4B.t("message");
+    }
+    if (item.kind === "Delay" && item.durationSeconds != null) {
+      return R4B.kindLabelWithDuration(item.kind, item.durationSeconds);
+    }
+    return R4B.primaryLabel(item);
   };
 
   R4B.loadConfig = function () {

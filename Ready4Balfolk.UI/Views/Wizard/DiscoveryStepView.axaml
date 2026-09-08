@@ -7,5 +7,9 @@
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="480"
              x:Class="Ready4Balfolk.UI.Views.Wizard.DiscoveryStepView"
              x:DataType="wizard:DiscoveryStepViewModel">
-    <discovery:DiscoveryView DataContext="{CompiledBinding Discovery}" ShowSaveButton="False" />
+    <!-- DeclareOnEnter="False": this step's Continue button (SetupWizardView) is IsDefault, so Enter
+         typed into the draft-pattern box belongs to it, not to declaring a half-typed rule. -->
+    <discovery:DiscoveryView DataContext="{CompiledBinding Discovery}"
+                              ShowSaveButton="False"
+                              DeclareOnEnter="False" />
 </UserControl>

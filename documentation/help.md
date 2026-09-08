@@ -249,6 +249,7 @@ The night's own boundaries are lines in the list: where it began, and where it e
 - **Toggle to Queue**: Switch back to the queue view
 - **Which night**: Tonight, or any evening that has been filed. Everything else in this toolbar acts on the night you are looking at.
 - **Export History**: Save that night to a JSON file. Useful for keeping records of what was played at an event. It holds the dances, artists, titles and times, and not where the files sit on your disk, so it can go to an organiser as it is.
+- **Report**: Save that night as a document instead of as data. It is an RTF file, which any word processor opens, holding a heading for the evening and the artist, title and time of every track that played, in the order they played. That is what a rights organisation asks for, and nobody there should have to read JSON to find it.
 - **New night**: Keep tonight and start a new one (with confirmation). Nothing is deleted: the evening is filed and the history starts empty. Use it after a soundcheck, or on any evening that did not end with the end-of-the-night audio.
 - **Delete**: Throw that night away (with confirmation). This cannot be undone, and it is how the file stays a size somebody chose.
 
@@ -477,7 +478,7 @@ Everything below that folder counts, however it is arranged.
 
 ### Maximum Queue Items
 
-The maximum number of items allowed in the queue, between 1 and 100. When the queue is full, new items cannot be added until existing ones are played or removed.
+The maximum number of tracks allowed in the queue, between 1 and 100. Delays, messages and stop markers do not count towards it. When the queue is full, new tracks cannot be added until existing ones are played or removed.
 
 ### Delay Duration
 
