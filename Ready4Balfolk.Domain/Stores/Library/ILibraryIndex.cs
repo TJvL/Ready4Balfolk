@@ -20,6 +20,19 @@ public interface ILibraryIndex : IDisposable
     /// </summary>
     Task<IReadOnlyDictionary<string, LibraryEntry>> SnapshotByPathAsync(CancellationToken token = default);
 
+    /// <summary>
+    /// Every path the index holds, whether or not a scan has worked out what is at it.
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="SnapshotByPathAsync"/>'s keys, and the difference is the whole point. A
+    /// snapshot row needs the derived track behind the path, and a rebuild after a schema change
+    /// throws exactly that away and keeps the paths, so asking the snapshot what the library held
+    /// would answer "nothing" on the one start where the answer matters most: the folders here are
+    /// what the missing-folder question is asked about, and a question that is not asked is an
+    /// index reconciled away without a word.
+    /// </remarks>
+    Task<IReadOnlySet<string>> IndexedPathsAsync(CancellationToken token = default);
+
     /// <summary>Inserts or updates rows, in one transaction.</summary>
     /// <remarks>
     /// Only ever derived values. What a person agreed to lives in its own table and is not touched
