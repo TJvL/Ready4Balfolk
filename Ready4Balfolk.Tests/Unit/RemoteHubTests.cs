@@ -37,6 +37,7 @@ public sealed class RemoteHubTests : IDisposable
     private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
     private const string Pin = "123456";
 
+    private readonly IEndOfNightAudio _endOfNightAudio = Substitute.For<IEndOfNightAudio>();
     private readonly RemoteAccessService _access = new();
     private readonly IHubContext<RemoteHub> _remoteHubContext = Substitute.For<IHubContext<RemoteHub>>();
     private readonly RemoteConnections _connections;
@@ -65,8 +66,6 @@ public sealed class RemoteHubTests : IDisposable
         presentation.Current.Returns(new PresentationState(
             PresentationItem.None, PresentationItem.None, PresentationItem.None, IsPlaying: false));
 
-        // The real one: it is sealed, so there is nothing to substitute, and the commands under
-        // test never ask it anything. Only OnConnectedAsync reads its snapshots.
         _broadcaster = new PresentationBroadcaster(
             presentation,
             _queueService,
@@ -80,7 +79,7 @@ public sealed class RemoteHubTests : IDisposable
             new ImmediateDispatcher(),
             _queueService,
             _consumption,
-            Substitute.For<IEndOfNightAudio>(),
+            _endOfNightAudio,
             _randomTracks,
             _dancePool,
             _trackStore,
@@ -149,6 +148,98 @@ public sealed class RemoteHubTests : IDisposable
         await _consumption.Received(1).AdvanceAsync();
     }
 
+    // --- Getting in ---
+
+    /// <summary>
+    /// A phone with no good token never gets as far as a command: the connection itself is ended.
+    /// </summary>
+    /// <remarks>
+    /// Refusing the calls one at a time would leave the socket open and the page looking connected,
+    /// which is the state the filter exists to clean up after rather than the one to arrive in.
+    /// </remarks>
+    [Fact]
+    public async Task Connecting_WithoutAToken_IsToldSoAndTheConnectionIsEnded()
+    {
+        _access.Configure(true, "123456");
+        var caller = ConnectAs(null);
+
+        await _sut.OnConnectedAsync();
+
+        await caller.Received(1).SendCoreAsync(
+            RemoteHub.TurnedOutMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
+        await caller.DidNotReceive().SendCoreAsync(
+            DisplayHub.SnapshotMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
+        _sut.Context.Received(1).Abort();
+    }
+
+    /// <summary>Last night's token is not this night's: a changed PIN turns the helper out.</summary>
+    [Fact]
+    public async Task Connecting_WithATokenFromBeforeThePinChanged_IsEnded()
+    {
+        _access.Configure(true, "123456");
+        var token = _access.TryLogin("123456", "phone").Token;
+        _access.Configure(true, "654321");
+        var caller = ConnectAs(token);
+
+        await _sut.OnConnectedAsync();
+
+        await caller.Received(1).SendCoreAsync(
+            RemoteHub.TurnedOutMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
+        _sut.Context.Received(1).Abort();
+    }
+
+    /// <summary>The legitimate phone is let in and gets both screens to draw from.</summary>
+    [Fact]
+    public async Task Connecting_WithTheTokenThePinWasExchangedFor_IsLetIn()
+    {
+        _access.Configure(true, "123456");
+        var caller = ConnectAs(_access.TryLogin("123456", "phone").Token);
+
+        await _sut.OnConnectedAsync();
+
+        _sut.Context.DidNotReceive().Abort();
+        await caller.DidNotReceive().SendCoreAsync(
+            RemoteHub.TurnedOutMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
+        await caller.Received(1).SendCoreAsync(
+            DisplayHub.SnapshotMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
+        await caller.Received(1).SendCoreAsync(
+            RemoteHub.QueueMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Puts a connection carrying <paramref name="token" /> under the hub, and hands back the
+    /// proxy standing in for the phone at the other end of it.
+    /// </summary>
+    /// <remarks>
+    /// The token is read off the query string of the HTTP request the socket was opened with,
+    /// which is where SignalR keeps it, so that is where a test has to put it.
+    /// </remarks>
+    private ISingleClientProxy ConnectAs(string? token)
+    {
+        var httpContext = new DefaultHttpContext();
+        if (token is not null)
+        {
+            httpContext.Request.QueryString = QueryString.Create("access_token", token);
+        }
+
+        var httpContextFeature = Substitute.For<IHttpContextFeature>();
+        httpContextFeature.HttpContext.Returns(httpContext);
+
+        var features = new FeatureCollection();
+        features.Set(httpContextFeature);
+
+        var context = Substitute.For<HubCallerContext>();
+        context.Features.Returns(features);
+        _sut.Context = context;
+
+        var caller = Substitute.For<ISingleClientProxy>();
+        var clients = Substitute.For<IHubCallerClients>();
+        clients.Caller.Returns(caller);
+        _sut.Clients = clients;
+
+        return caller;
+    }
+
     // --- Queueing ---
 
     [Fact]
@@ -212,6 +303,69 @@ public sealed class RemoteHubTests : IDisposable
 
         Assert.True(result.Accepted);
         _queueService.Received(1).Enqueue(Arg.Any<TrackQueueItem>());
+    }
+
+    [Fact]
+    public async Task QueueDelay_IsQueuedAsAskedFor()
+    {
+        var result = await _sut.QueueDelay(120);
+
+        Assert.True(result.Accepted);
+        _queueService.Received(1).Enqueue(Arg.Is<DelayQueueItem>(
+            item => item.DelayDuration == TimeSpan.FromMinutes(2)));
+    }
+
+    /// <summary>
+    /// The phone's own buttons only offer sensible gaps, but the hub is what anybody on the venue
+    /// wifi with the PIN actually talks to, so the limits hold here rather than on the page.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 5)]
+    [InlineData(-60, 5)]
+    [InlineData(4000, 900)]
+    public async Task QueueDelay_BeyondWhatAGapCanBe_IsBroughtBackIntoRange(int asked, int queued)
+    {
+        var result = await _sut.QueueDelay(asked);
+
+        Assert.True(result.Accepted);
+        _queueService.Received(1).Enqueue(Arg.Is<DelayQueueItem>(
+            item => item.DelayDuration == TimeSpan.FromSeconds(queued)));
+    }
+
+    [Fact]
+    public async Task QueueStop_IsQueued()
+    {
+        var result = await _sut.QueueStop();
+
+        Assert.True(result.Accepted);
+        _queueService.Received(1).Enqueue(Arg.Any<StopQueueItem>());
+    }
+
+    [Fact]
+    public async Task QueueEndOfNight_TheComputerHasOneChosen_IsQueued()
+    {
+        _endOfNightAudio.Create().Returns(new EndOfNightQueueItem("last.mp3", TimeSpan.FromMinutes(3)));
+
+        var result = await _sut.QueueEndOfNight();
+
+        Assert.True(result.Accepted);
+        _queueService.Received(1).Enqueue(Arg.Any<EndOfNightQueueItem>());
+    }
+
+    /// <summary>
+    /// Nothing has been chosen at the computer, and there is nothing for the phone to choose from:
+    /// somebody stacking chairs is told that rather than left tapping a button that does nothing.
+    /// </summary>
+    [Fact]
+    public async Task QueueEndOfNight_WithNoFileChosen_IsRefusedWithAReason()
+    {
+        _endOfNightAudio.Create().Returns((EndOfNightQueueItem?)null);
+
+        var result = await _sut.QueueEndOfNight();
+
+        Assert.False(result.Accepted);
+        Assert.NotNull(result.Reason);
+        _queueService.DidNotReceive().Enqueue(Arg.Any<IQueueItem>());
     }
 
     [Fact]

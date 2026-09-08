@@ -78,6 +78,18 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     public bool IsStopped => _channel == 0 || Bass.ChannelIsActive(_channel) == PlaybackState.Stopped;
     public bool IsEqualizerAvailable { get; private set; }
 
+    /// <summary>
+    /// The BASS handles of the streams this service currently has open: the one a select landed
+    /// on, and the one loaded ahead. Zero where there is none.
+    /// </summary>
+    /// <remarks>
+    /// Only a test reads these, so that it can ask BASS itself what has been done to a stream this
+    /// class opened. Nothing else needs them: a handle is meaningless outside the library that
+    /// issued it, and everything the rest of the application wants from a channel is already an
+    /// observable or a property above.
+    /// </remarks>
+    internal (int Playing, int Preloaded) OpenChannels => (_channel, _preloadedChannel);
+
     public IObservable<Uri?> WhenSelectedChanged => _selectedChanged.AsObservable();
     public IObservable<Unit> WhenPlaybackStarted => _playbackStarted.AsObservable();
     public IObservable<Unit> WhenPlaybackPaused => _playbackPaused.AsObservable();
