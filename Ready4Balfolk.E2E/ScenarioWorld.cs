@@ -2,6 +2,7 @@ using System.IO.Abstractions;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.Settings;
@@ -152,6 +153,52 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
         File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "dances.json"), path, overwrite: true);
 
         return path;
+    }
+
+    /// <summary>The published list with one dance taken out of it, which is what a newer one is.</summary>
+    /// <remarks>
+    /// A list that differs from the one in hand, so importing it is an update rather than the same
+    /// file again: what the panel does while the vocabulary under it changes is the point.
+    /// </remarks>
+    public string ThePublishedDanceListWithout(string slug)
+    {
+        var published = JsonNode.Parse(
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "dances.json")))!;
+
+        var dances = published["dances"]!.AsArray();
+        var dropped = dances.First(dance => string.Equals(
+            dance!["slug"]!.GetValue<string>(), slug, StringComparison.Ordinal));
+
+        dances.Remove(dropped);
+
+        return ADanceListFileHolding(published.ToJsonString());
+    }
+
+    /// <summary>The published list with one of a dance's own names put first, which respells it.</summary>
+    /// <remarks>
+    /// The name a dance is sorted and shown by is the first of the ones the list gives it, so
+    /// deciding a different spelling leads is enough to move that dance across the panel. Nothing
+    /// is invented: the name was already one of this dance's, and the slug does not move, so a
+    /// recording already known to be this dance still is.
+    /// </remarks>
+    public string ThePublishedDanceListLeadingWith(string slug, string name)
+    {
+        var published = JsonNode.Parse(
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "dances.json")))!;
+
+        var renamed = published["dances"]!.AsArray().First(dance => string.Equals(
+            dance!["slug"]!.GetValue<string>(), slug, StringComparison.Ordinal))!;
+
+        var names = renamed["names"]!.AsArray().Select(one => one!.GetValue<string>()).ToList();
+        if (!names.Remove(name))
+        {
+            throw new InvalidOperationException($"The published list does not call {slug} \"{name}\".");
+        }
+
+        names.Insert(0, name);
+        renamed["names"] = new JsonArray([.. names.Select(one => JsonValue.Create(one))]);
+
+        return ADanceListFileHolding(published.ToJsonString());
     }
 
     /// <summary>An evening that ran and was never closed, this long ago.</summary>
