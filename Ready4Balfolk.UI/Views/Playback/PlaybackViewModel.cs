@@ -16,6 +16,7 @@ using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Playback;
 
+#pragma warning disable CS8618 // ObservableAsProperty fields are set by the helpers in the constructor
 public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
 {
     private readonly IQueueConsumptionService _consumptionService;
