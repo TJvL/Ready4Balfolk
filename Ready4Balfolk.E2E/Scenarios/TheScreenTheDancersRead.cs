@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -92,15 +93,23 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
                 () => application.IsShowing("display.behind-dance"),
                 "the screen to name the dance the pause is for");
 
+            // The default delay is 30 seconds, and the room is told so rather than just "Delay":
+            // there is no countdown bar under it yet to say how long, the way there is once it
+            // starts playing.
+            var expectedDelayLabel = string.Format(CultureInfo.CurrentCulture,
+                UiStrings.Presentation_DelayWithDuration,
+                string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_Seconds, 30));
+
             // The name the shared list carries, which is what every screen says: the tag says
             // Schottische and the vocabulary calls it Scottish.
-            Assert.Equal(UiStrings.Presentation_Delay, application.TextOf("display.next-dance"));
+            Assert.Equal(expectedDelayLabel, application.TextOf("display.next-dance"));
             Assert.Equal("Scottish", application.TextOf("display.behind-dance"));
             Assert.Equal("Trio Loubelya - La Belle", application.TextOf("display.behind-track"));
 
             // The same picture in the hall's browser, which is the other screen a room reads. It
             // writes the artist and the title into boxes of their own rather than as one line, so
             // what is read back below is the title on its own.
+            await projector.WaitUntilItReads("nextPrimary", expectedDelayLabel);
             await projector.WaitUntilItReads("behindPrimary", "Scottish");
 
             Assert.Equal("La Belle", await projector.Reads("behindTitle"));

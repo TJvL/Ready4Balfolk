@@ -36,12 +36,6 @@
     node.classList.toggle("is-hidden", !visible);
   }
 
-  /* The large line: a track's dance, a message's text, or the surface's own label for the kinds
-     that carry no text. */
-  function primaryOf(item) {
-    return item.primary || window.R4B.kindLabel(item.kind);
-  }
-
   function applyStaticText() {
     el.idle.textContent = window.R4B.t("noTrack");
     el.nextIdle.textContent = window.R4B.t("noNext");
@@ -61,7 +55,7 @@
     el.mid.style.visibility = hasCurrent ? "visible" : "hidden";
 
     if (hasCurrent) {
-      el.primary.textContent = primaryOf(current);
+      el.primary.textContent = window.R4B.primaryLabel(current);
       show(el.sub, current.kind === "Track" && current.artist.length > 0);
       el.artist.textContent = current.artist;
       el.title.textContent = current.title;
@@ -79,9 +73,10 @@
 
     if (hasNext) {
       // A queued announcement is billed as "Message" with its text beneath, rather than shouting
-      // the whole announcement in the next-up slot before its turn.
+      // the whole announcement in the next-up slot before its turn. A timed delay or message says
+      // for how long, since there is no countdown bar under it yet to say so instead.
       var isMessage = next.kind === "Message";
-      el.nextPrimary.textContent = isMessage ? window.R4B.t("message") : primaryOf(next);
+      el.nextPrimary.textContent = window.R4B.nextLabel(next);
       el.nextArtist.textContent = isMessage ? next.primary : next.artist;
       el.nextTitle.textContent = isMessage ? "" : next.title;
       show(el.nextSub, isMessage || (next.kind === "Track" && next.artist.length > 0));
@@ -96,7 +91,7 @@
     show(el.behind, hasBehind);
 
     if (hasBehind) {
-      el.behindPrimary.textContent = primaryOf(behind);
+      el.behindPrimary.textContent = window.R4B.primaryLabel(behind);
       el.behindArtist.textContent = behind.artist;
       el.behindTitle.textContent = behind.title;
       show(el.behindSub, behind.artist.length > 0);

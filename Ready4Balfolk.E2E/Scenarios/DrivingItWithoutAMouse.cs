@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Ready4Balfolk.UI.Resources;
@@ -325,6 +326,227 @@ public sealed class DrivingItWithoutAMouse(HeadlessSession session)
                 () => application.Rows("review.rows")
                     .All(waiting => RunningApplication.Says(RunningApplication.Within(waiting, "review.dance")).Length == 0),
                 "the value to be gone from both tracks");
+        });
+    }
+
+    /// <summary>The dance list is set from the keyboard, and says which dance each button is for.</summary>
+    /// <remarks>
+    /// World: a library of one dance, which is enough for one card to carry the dice.
+    /// Steps: open the dance list, narrow it to one dance, and put the keyboard on the tag rail and
+    /// on that card's dice.
+    /// Sees: both taking the keyboard, the dice named after the dance it plays, and a space on it
+    /// queueing that dance. The panel draws one dice per dance, so a name that did not say which
+    /// one would be the same three words on a hundred buttons.
+    /// </remarks>
+    [Fact]
+    public async Task TheDanceListTakesTheKeyboardAndSaysWhichDanceEachButtonIsFor()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.Click("catalog.show-dances");
+
+            await application.WaitUntil(
+                () => application.IsShowing("dancelist.search"),
+                "the dance list to take the right column");
+
+            // The rail, where a tag is put in the pool. One chip per tag rather than the copies
+            // the cards carry, which is what makes it somewhere Tab can afford to stop.
+            application.GiveTheKeyboardTo("dancelist.tag");
+
+            application.TypeInto("dancelist.search", "Mazurka");
+
+            // The dice is only on the card once the card knows it has something to pick from, and
+            // the pool arrives after the dance itself does. It has to stay ready as well as become
+            // ready: the panel is fed from four things, two of them throttled, so the first pass
+            // to put a dice on screen is not always the last.
+            await application.WaitUntilItStays(
+                () => application.CanTakeTheKeyboard("dancelist.pick")
+                    && application.NameOf("dancelist.pick").Contains("Mazurka", StringComparison.Ordinal),
+                "the dice on the card to be there, named after its own dance, and ready for the keyboard");
+
+            application.GiveTheKeyboardTo("dancelist.pick");
+            application.Press(PhysicalKey.Space);
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 1,
+                "the dance the keyboard asked for to be in the queue");
+        });
+    }
+
+    /// <summary>The keyboard stays on a dance card while the panel is brought up to date.</summary>
+    /// <remarks>
+    /// World: a library of one dance, and a newer dance list on a memory stick.
+    /// Steps: stand on that card's dice and move each of the four things the panel watches under
+    /// it: what was typed, the library, the pool and the list itself. Then press space.
+    /// Sees: the same dice still there after each of them, the keyboard still on it, and the dance
+    /// it asks for in the queue. The panel used to build every card again whenever any of the four
+    /// moved, so the button somebody had just tabbed to was destroyed under them and the space they
+    /// pressed a moment later ran the transport instead of the dice.
+    /// The two steps that move the keyboard themselves, because typing and pressing a button are
+    /// what they are, ask the other half of the same question: whether the button a DJ was standing
+    /// on is still the button that is there afterwards.
+    /// </remarks>
+    [Fact]
+    public async Task TheDanceListKeepsTheKeyboardWhileTheFourThingsItWatchesMove()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                RequirePlaybackConfirmation = false
+            })
+            .Save();
+
+        var newerList = world.ThePublishedDanceListWithout("mazurka-waltz");
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.Click("catalog.show-dances");
+
+            await application.WaitUntilItStays(
+                () => application.CanTakeTheKeyboard("dancelist.pick"),
+                "the dice on the one card with a recording behind it to be ready for the keyboard");
+
+            var dice = application.Find("dancelist.pick");
+
+            // What was typed. The caret belongs in the box while somebody is typing into it, so
+            // what this asks is that the card underneath was not thrown away and drawn again.
+            application.TypeInto("dancelist.search", "Mazurka");
+
+            await application.WaitUntil(
+                () => !application.SeesAnywhere("An dro"),
+                "the panel to narrow to what was typed");
+
+            Assert.Same(dice, application.Find("dancelist.pick"));
+
+            // The library. A second recording of the dance the keyboard is standing on, put in the
+            // music directory the way a DJ puts one there.
+            application.GiveTheKeyboardTo(dice);
+            world.WithTrack(dance: "Mazurka", artist: "Trio Loubelya", title: "La Belle");
+
+            await application.WaitUntil(
+                () => application.SeesAnywhere(
+                    string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_TrackCount, 2)),
+                "the card to count the recording that has just arrived");
+
+            Assert.True(
+                application.TheKeyboardIsOn(dice),
+                $"The library arriving took the keyboard off the dice, on to {application.WhateverHasTheKeyboardIsCalled()}.");
+
+            // The pool. A tag on the card itself, which is deliberately not a tab stop: pressing
+            // one is something a DJ does with the keyboard somewhere else entirely.
+            application.Click("dancelist.card-tag");
+
+            await application.WaitUntil(
+                () => !application.SeesAnywhere(UiStrings.DanceList_PoolEverything),
+                "the pool to take the tag that was pressed");
+
+            Assert.True(
+                application.TheKeyboardIsOn(dice),
+                $"The pool changing took the keyboard off the dice, on to {application.WhateverHasTheKeyboardIsCalled()}.");
+
+            // The list itself, imported from a file, which is the fourth of them.
+            RunningApplication.TheDjWillPick(newerList);
+            application.Click("dancelist.import");
+
+            await application.WaitUntil(
+                () => !application.SeesAnywhere("Mazurka-Waltz"),
+                "the newer list to arrive and take a dance out of the panel");
+
+            Assert.Same(dice, application.Find("dancelist.pick"));
+
+            // And the whole point of standing on it: a space presses the dice.
+            application.GiveTheKeyboardTo(dice);
+            application.Press(PhysicalKey.Space);
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 1,
+                "the dance the keyboard asked for to be in the queue");
+        });
+    }
+
+    /// <summary>The keyboard stays with the dance when the panel has to move its card.</summary>
+    /// <remarks>
+    /// World: a library of one Scottish, and a newer dance list that leads that dance with another
+    /// of the spellings it already had, which sorts its card out of the S's and into the E's.
+    /// Steps: stand on that card's dice, let the newer list land under it, and press space.
+    /// Sees: the dice drawn again as a different control, because Avalonia builds a fresh one for
+    /// an item shown at a new index however carefully the card behind it was kept, and the
+    /// keyboard on that new one rather than nowhere.
+    /// This is the one shape of list change that reorders. A dance added or taken away leaves
+    /// every survivor where it was, so keeping the card is enough there and is not enough here.
+    /// The list lands without a button being pressed for it, because pressing Import would put the
+    /// keyboard on the Import button: what this is about is a DJ whose hands are back in the panel
+    /// while the list they asked for a second ago is still on its way.
+    /// </remarks>
+    [Fact]
+    public async Task TheDanceListKeepsTheKeyboardWhileACardMovesUnderIt()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Scottish", artist: "Naragonia", title: "Sinner Man")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                RequirePlaybackConfirmation = false
+            })
+            .Save();
+
+        var respelled = world.ThePublishedDanceListLeadingWith("scottish", "Escoticha");
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.Click("catalog.show-dances");
+
+            await application.WaitUntilItStays(
+                () => application.CanTakeTheKeyboard("dancelist.pick"),
+                "the dice on the one card with a recording behind it to be ready for the keyboard");
+
+            var dice = application.Find("dancelist.pick");
+            application.GiveTheKeyboardTo(dice);
+
+            await application.ANewerDanceListArrivesFrom(respelled);
+
+            await application.WaitUntilItStays(
+                () => application.SeesAnywhere("Escoticha"),
+                "the newer list to arrive and respell the dance the keyboard is standing on");
+
+            // The card was kept and its control was not, which is the whole reason this scenario
+            // exists. If this ever fails because the framework started moving containers instead
+            // of rebuilding them, the panel is doing work it no longer has to.
+            Assert.NotSame(dice, application.Find("dancelist.pick"));
+
+            var moved = application.Find("dancelist.pick");
+            Assert.True(
+                application.TheKeyboardIsOn(moved),
+                $"The card moving took the keyboard off the dice, on to {application.WhateverHasTheKeyboardIsCalled()}.");
+            Assert.Contains("Scottish", RunningApplication.NameOf(moved), StringComparison.Ordinal);
+
+            application.Press(PhysicalKey.Space);
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 1,
+                "the dance the keyboard asked for to be in the queue");
         });
     }
 

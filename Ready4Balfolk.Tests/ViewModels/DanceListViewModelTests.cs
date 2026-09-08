@@ -112,6 +112,149 @@ public sealed class DanceListViewModelTests : IDisposable
     public void TheSourceLink_IsTheReadablePageRatherThanTheRawFile() =>
         Assert.DoesNotContain("raw.githubusercontent", _sut.SourceUri.ToString(), StringComparison.Ordinal);
 
+    // --- Keeping what has not changed ---
+
+    [Fact]
+    public async Task ACard_TheLibraryMoves_IsToldTheCountRatherThanReplaced()
+    {
+        // A card that could only take a new count by being built again takes the DJ's keyboard with
+        // it: the control it is drawn as is destroyed, and Avalonia moves the focus nowhere at all.
+        var standingOn = Card("mazurka");
+
+        _tracks.Add(TestData.CreateTrack(dance: "Mazurka", title: "One"));
+        await SettleAsync();
+
+        Assert.Same(standingOn, Card("mazurka"));
+        Assert.Equal(1, standingOn.TrackCount);
+        Assert.True(standingOn.HasTracks);
+    }
+
+    [Fact]
+    public void ACard_ThePoolMoves_IsKept()
+    {
+        var standingOn = Card("mazurka");
+
+        _pools.OnNext(new DancePoolSelection(["common"], []));
+
+        Assert.Same(standingOn, Card("mazurka"));
+    }
+
+    [Fact]
+    public async Task ACard_TheSearchMoves_IsKept()
+    {
+        var standingOn = Card("mazurka");
+
+        _sut.SearchText = "mazurk";
+        await SettleAsync();
+
+        Assert.Same(standingOn, Card("mazurka"));
+    }
+
+    [Fact]
+    public void ACard_TheListMoves_IsKeptWhereTheDanceIsStillInIt()
+    {
+        var standingOn = Card("mazurka");
+
+        _lists.OnNext(new DanceList
+        {
+            Tags = ["common"],
+            Dances =
+            [
+                TestData.CreateDance("mazurka", ["common"], "Mazurka", "Mazurk"),
+                TestData.CreateDance("bourree", ["common"], "Bourrée")
+            ]
+        });
+
+        Assert.Same(standingOn, Card("mazurka"));
+        Assert.Equal(["Bourrée", "Mazurka · Mazurk"], _sut.Dances.Select(card => card.NamesText));
+    }
+
+    [Fact]
+    public async Task ARebuildThatChangesNothing_TouchesNothingInTheList()
+    {
+        // Nothing added, nothing removed and nothing moved, in the cards or in the rail: no
+        // control is detached, which is the whole of why the keyboard stays where the DJ put it.
+        // The rail is counted as well as the cards because its chips are the panel's other tab
+        // stops, and the one place a tag can be put in the pool without a mouse.
+        var cards = 0;
+        var rail = 0;
+        _sut.Dances.CollectionChanged += (_, _) => cards++;
+        _sut.Tags.CollectionChanged += (_, _) => rail++;
+
+        _tracks.Add(TestData.CreateTrack(dance: "Mazurka", title: "One"));
+        await SettleAsync();
+
+        Assert.Equal(0, cards);
+        Assert.Equal(0, rail);
+        Assert.Equal(1, Card("mazurka").TrackCount);
+    }
+
+    [Fact]
+    public void ThePoolMoving_TouchesNothingInTheRail()
+    {
+        // Pressing a chip dims every tag nothing left carries, and dimming is something a chip is
+        // told rather than rebuilt for: the chip the DJ is standing on is still the one there
+        // afterwards, and so is every chip they could Tab to next.
+        var rail = 0;
+        _sut.Tags.CollectionChanged += (_, _) => rail++;
+
+        _pools.OnNext(new DancePoolSelection(["common"], []));
+
+        Assert.Equal(0, rail);
+        Assert.True(Chip("common").IsInPool);
+        Assert.True(Chip("suite").IsDimmed);
+    }
+
+    [Fact]
+    public void ACard_TheListRespellsIt_IsKeptAndShownWhereTheNewNameBelongs()
+    {
+        // The one shape of list change that reorders. A dance added or taken away leaves every
+        // survivor where it was; a dance whose leading spelling changes has to be shown somewhere
+        // else, and it is the same card that goes there.
+        var standingOn = Card("scottish");
+
+        _lists.OnNext(new DanceList
+        {
+            Tags = ["bretagne", "common", "suite"],
+            Dances =
+            [
+                TestData.CreateDance("mazurka", ["common"], "Mazurka", "Mazurk"),
+                TestData.CreateDance("scottish", ["common"], "Escoticha", "Scottish"),
+                TestData.CreateDance("plinn", ["bretagne", "suite"], "Plinn")
+            ]
+        });
+
+        Assert.Same(standingOn, Card("scottish"));
+        Assert.Equal(["scottish", "mazurka", "plinn"], _sut.Dances.Select(card => card.Slug));
+    }
+
+    [Fact]
+    public async Task ACard_TheSearchTakesItAway_Goes()
+    {
+        _sut.SearchText = "plinn";
+        await SettleAsync();
+
+        Assert.Equal(["plinn"], _sut.Dances.Select(card => card.Slug));
+
+        _sut.SearchText = string.Empty;
+        await SettleAsync();
+
+        Assert.Equal(["mazurka", "plinn", "scottish"], _sut.Dances.Select(card => card.Slug));
+    }
+
+    [Fact]
+    public void AChip_ThePoolMoves_IsToldItIsInItRatherThanReplaced()
+    {
+        // The rail is the one place a tag can be put in the pool, so its chips are tab stops: the
+        // same defect on them is a DJ who cannot reach the pool without a mouse.
+        var standingOn = Chip("common");
+
+        _pools.OnNext(new DancePoolSelection(["common"], []));
+
+        Assert.Same(standingOn, Chip("common"));
+        Assert.True(standingOn.IsInPool);
+    }
+
     // --- Searching ---
 
     [Fact]

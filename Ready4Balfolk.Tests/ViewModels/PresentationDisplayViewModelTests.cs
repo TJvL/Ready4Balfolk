@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using NSubstitute;
@@ -74,13 +75,56 @@ public sealed class PresentationDisplayViewModelTests : IDisposable
     {
         Showing(
             Track("Mazurka", "Naragonia", "Salamandre"),
-            new PresentationItem(PresentationItemKind.Delay, "", "", ""),
+            new PresentationItem(PresentationItemKind.Delay, "", "", "", TimeSpan.FromSeconds(30)),
             Track("Scottish", "Trio Loubelya", "La Belle"));
 
-        Assert.Equal(UiStrings.Presentation_Delay, _sut.NextDance);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_DelayWithDuration,
+                string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_Seconds, 30)),
+            _sut.NextDance);
         Assert.Equal("", _sut.NextTrack);
         Assert.Equal("Scottish", _sut.BehindDance);
         Assert.Equal("Trio Loubelya - La Belle", _sut.BehindTrack);
+    }
+
+    [Fact]
+    public void QueuedDelay_SaysHowLongInSeconds()
+    {
+        Showing(
+            PresentationItem.None,
+            new PresentationItem(PresentationItemKind.Delay, "", "", "", TimeSpan.FromSeconds(45)),
+            PresentationItem.None);
+
+        Assert.Equal("Delay (45 seconds)", _sut.NextDance);
+    }
+
+    [Fact]
+    public void QueuedDelay_OfAMinuteOrMore_SaysMinutesRatherThanSeconds()
+    {
+        Showing(
+            PresentationItem.None,
+            new PresentationItem(PresentationItemKind.Delay, "", "", "", TimeSpan.FromMinutes(5)),
+            PresentationItem.None);
+
+        Assert.Equal("Delay (5 minutes)", _sut.NextDance);
+    }
+
+    [Fact]
+    public void QueuedDelay_OfExactlyOneSecondOrMinute_ReadsInTheSingular()
+    {
+        Showing(
+            PresentationItem.None,
+            new PresentationItem(PresentationItemKind.Delay, "", "", "", TimeSpan.FromSeconds(1)),
+            PresentationItem.None);
+
+        Assert.Equal("Delay (1 second)", _sut.NextDance);
+
+        Showing(
+            PresentationItem.None,
+            new PresentationItem(PresentationItemKind.Delay, "", "", "", TimeSpan.FromMinutes(1)),
+            PresentationItem.None);
+
+        Assert.Equal("Delay (1 minute)", _sut.NextDance);
     }
 
     [Fact]
@@ -92,6 +136,19 @@ public sealed class PresentationDisplayViewModelTests : IDisposable
             PresentationItem.None);
 
         Assert.Equal(UiStrings.Presentation_Message, _sut.NextDance);
+        Assert.Equal("Bar closes at eleven", _sut.NextTrack);
+    }
+
+    [Fact]
+    public void TimedMessageComingUp_SaysHowLongAlongsideTheWordMessage()
+    {
+        Showing(
+            Track("Mazurka", "Naragonia", "Salamandre"),
+            new PresentationItem(PresentationItemKind.Message, "Bar closes at eleven", "", "",
+                TimeSpan.FromSeconds(20)),
+            PresentationItem.None);
+
+        Assert.Equal("Message (20 seconds)", _sut.NextDance);
         Assert.Equal("Bar closes at eleven", _sut.NextTrack);
     }
 

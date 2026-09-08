@@ -57,7 +57,7 @@
     <value>Track was already played.</value>
   </data>
   <data name="MaxItemsRule_QueueFull" xml:space="preserve">
-    <value>Queue is full (max {0} items).</value>
+    <value>Queue is full (max {0} tracks).</value>
   </data>
   <data name="QueueGuard_DeniedByRule" xml:space="preserve">
     <value>Denied by queue rule.</value>
