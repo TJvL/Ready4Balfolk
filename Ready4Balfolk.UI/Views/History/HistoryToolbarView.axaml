@@ -45,6 +45,17 @@
                                     Text="{x:Static res:UiStrings.HistoryToolbar_ExportLabel}"
                                     IconSize="16" />
         </Button>
+        <!-- The same evening as a document rather than as data: what a rights organisation is
+             handed to show which tracks were played. -->
+        <Button AutomationProperties.AutomationId="history.export-report"
+                Click="OnExportReportClick"
+                ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ExportReport}"
+                IsEnabled="{Binding HasItems}"
+                Padding="8">
+            <controls:ButtonContent Icon="{StaticResource IconFileExport}"
+                                    Text="{x:Static res:UiStrings.HistoryToolbar_ExportReportLabel}"
+                                    IconSize="16" />
+        </Button>
         <Button AutomationProperties.AutomationId="history.new-night"
                 Command="{Binding StartNewNightCommand}"
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_NewNight}"

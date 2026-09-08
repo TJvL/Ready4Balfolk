@@ -141,6 +141,21 @@ public sealed class HistoryViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task ExportReport_WritesTheNightThatIsBeingRead()
+    {
+        _historyStore.ListNightsAsync().Returns(Task.FromResult<IReadOnlyList<NightSummary>>(
+            [new NightSummary(7, Yesterday, Yesterday.AddHours(4), 1)]));
+        _historyStore.ReadNightAsync(7).Returns(Task.FromResult<QueueHistory?>(
+            new QueueHistory(Yesterday, [Track("Salamandre")]) { Id = 7, EndedAt = Yesterday.AddHours(4) }));
+
+        await _sut.RefreshNightsAsync();
+        await _sut.ExportReportAsync("/tmp/for the organisers.rtf");
+
+        // The night on screen, not the empty one that is running.
+        await _historyStore.Received(1).ExportReportAsync(7, "/tmp/for the organisers.rtf");
+    }
+
+    [Fact]
     public void StartNewNight_WithConfirmation_EndsTheNight()
     {
         _historySubject.OnNext(new QueueHistory(DateTime.Now, [

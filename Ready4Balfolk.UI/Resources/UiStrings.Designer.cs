@@ -90,6 +90,9 @@ public static class UiStrings
     public static string HistoryToolbar_ExportLabel =>
         ResourceManager.GetString("HistoryToolbar_ExportLabel", Culture)!;
 
+    public static string HistoryToolbar_ExportReportLabel =>
+        ResourceManager.GetString("HistoryToolbar_ExportReportLabel", Culture)!;
+
     public static string HistoryToolbar_NewNightLabel =>
         ResourceManager.GetString("HistoryToolbar_NewNightLabel", Culture)!;
 
@@ -470,6 +473,9 @@ public static class UiStrings
     public static string HistoryToolbar_ExportHistory =>
         ResourceManager.GetString("HistoryToolbar_ExportHistory", Culture)!;
 
+    public static string HistoryToolbar_ExportReport =>
+        ResourceManager.GetString("HistoryToolbar_ExportReport", Culture)!;
+
     public static string HistoryToolbar_NewNight =>
         ResourceManager.GetString("HistoryToolbar_NewNight", Culture)!;
 
@@ -499,6 +505,9 @@ public static class UiStrings
 
     public static string HistoryToolbar_ExportTitle =>
         ResourceManager.GetString("HistoryToolbar_ExportTitle", Culture)!;
+
+    public static string HistoryToolbar_ExportReportTitle =>
+        ResourceManager.GetString("HistoryToolbar_ExportReportTitle", Culture)!;
 
     // Playback
     public static string Playback_ProgressName =>
@@ -616,6 +625,24 @@ public static class UiStrings
 
     public static string Presentation_Message =>
         ResourceManager.GetString("Presentation_Message", Culture)!;
+
+    public static string Presentation_OneSecond =>
+        ResourceManager.GetString("Presentation_OneSecond", Culture)!;
+
+    public static string Presentation_Seconds =>
+        ResourceManager.GetString("Presentation_Seconds", Culture)!;
+
+    public static string Presentation_OneMinute =>
+        ResourceManager.GetString("Presentation_OneMinute", Culture)!;
+
+    public static string Presentation_Minutes =>
+        ResourceManager.GetString("Presentation_Minutes", Culture)!;
+
+    public static string Presentation_DelayWithDuration =>
+        ResourceManager.GetString("Presentation_DelayWithDuration", Culture)!;
+
+    public static string Presentation_MessageWithDuration =>
+        ResourceManager.GetString("Presentation_MessageWithDuration", Culture)!;
 
     // Dialogs
     public static string Dialog_RequestMessageTitle =>
@@ -1395,6 +1422,9 @@ public static class UiStrings
         ResourceManager.GetString("History_ReadNightsFailed", Culture)!;
     public static string HistoryToolbar_ExportFailed =>
         ResourceManager.GetString("HistoryToolbar_ExportFailed", Culture)!;
+
+    public static string HistoryToolbar_ExportReportFailed =>
+        ResourceManager.GetString("HistoryToolbar_ExportReportFailed", Culture)!;
     public static string Toolbar_DisplayAddressFailed =>
         ResourceManager.GetString("Toolbar_DisplayAddressFailed", Culture)!;
     public static string Toolbar_RemoteAddressFailed =>

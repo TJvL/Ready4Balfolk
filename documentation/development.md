@@ -190,7 +190,7 @@ The `QueueService` does not contain any validation logic itself. Instead, it del
 | `AutoTrackRule` | Denies adding a second `AutoTrackQueueItem` while one is already queued. Evicts every auto-track when the auto-queue setting is off. Prevents moving or removing an auto-track, and refuses a clear once auto-tracks are all that is left. Emits no removal predicate: the auto-track sits at the tail alongside real requests rather than being displaced by them (`QueueService` keeps it last). |
 | `DuplicateTrackRule` | Denies adding a track that already exists in the queue, is currently playing, or was already played (finished in history). Evicts duplicates when history changes or the setting is toggled. |
 | `QueueCutoffRule` | Denies adding once the projection: the current item's remainder, plus the queued durations, plus the new item, would run past the configured time of day plus its grace. The auto-track is judged like any request, since exempting the thing that refills the queue would leave the evening running past the cutoff on its own. Suspended while a halt (a stop, or a message with no duration) is queued, because past one there is no end time to judge against. |
-| `MaxItemsRule` | Denies adding when the queue is at capacity. Evicts tail items when the max is reduced. The auto-track is exempt: it is a placeholder for an empty slot, so it neither counts against the limit nor gets evicted by it. |
+| `MaxItemsRule` | Denies adding a track when the queue already holds `maxItems` tracks. Evicts tail tracks when the max is reduced. Only `TrackQueueItem` counts: the auto-track, the end-of-night item, gaps, delays, messages and stop markers are all exempt, so none of them count against the limit or are ever evicted by it. |
 
 **Reactive rebuilding:** `QueueService` subscribes to `ISettingsStore.Observe()` and rebuilds the guard via `QueueGuardBuilder.FromSettings()` whenever settings change. After rebuilding, it runs eviction to enforce the new rules immediately. It also subscribes to `IQueueHistoryStore.Observe()` (skipping the initial value) to evict items that become duplicates after a track finishes playing.
 
@@ -379,7 +379,9 @@ network can open a socket directly without ever loading the page.
 - Tokens expire, slid forward on use, and changing the PIN or switching the remote off drops every issued token.
 
 `PresentationWebServer.ApplyAsync` brings the listener into line with the settings, so switching the
-server on, moving its port or opening it to the network never needs a restart.
+server on or moving its port never needs a restart. There is no bind-to-loopback option: enabling the
+server binds `IPAddress.Any`, so it is reachable on every interface the machine has from the moment
+it is switched on.
 
 ---
 

@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
@@ -9,6 +10,8 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
+using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.UI;
 
 namespace Ready4Balfolk.E2E;
@@ -25,6 +28,13 @@ public sealed class RunningApplication : IAsyncDisposable
 {
     /// <summary>How long a step waits for something the application does on its own.</summary>
     private static readonly TimeSpan PatienceLimit = TimeSpan.FromSeconds(10);
+
+    /// <summary>How long something has to stay true to count as settled rather than as a flicker.</summary>
+    /// <remarks>
+    /// Longer than the slowest throttle a panel is fed through, which is a quarter of a second, so
+    /// a pass that is already on its way has landed before this answers.
+    /// </remarks>
+    private static readonly TimeSpan HoldsFor = TimeSpan.FromMilliseconds(400);
 
     private readonly ApplicationStartup _startup;
 
@@ -110,19 +120,69 @@ public sealed class RunningApplication : IAsyncDisposable
             + $"What it logged:{Environment.NewLine}{WhatWasLogged()}");
     }
 
+    /// <summary>Waits for something to become true and stay true, rather than to flicker true.</summary>
+    /// <remarks>
+    /// A panel fed from throttled sources is brought up to date several times over as they arrive,
+    /// so a step that waits for one to be ready can be answered by the first of those passes and
+    /// then act on a screen the next pass is about to change under it. This asks the same question
+    /// on every pass and only answers once it has held for longer than the throttles it is waiting
+    /// out.
+    /// </remarks>
+    public async Task WaitUntilItStays(Func<bool> what, string describedAs)
+    {
+        ArgumentNullException.ThrowIfNull(what);
+
+        var deadline = DateTime.UtcNow + PatienceLimit;
+        DateTime? since = null;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            Settle();
+
+            if (!what())
+            {
+                since = null;
+            }
+            else
+            {
+                since ??= DateTime.UtcNow;
+                if (DateTime.UtcNow - since.Value >= HoldsFor)
+                {
+                    return;
+                }
+            }
+
+            await Task.Delay(20);
+        }
+
+        Assert.Fail(
+            $"Waited {PatienceLimit.TotalSeconds:0} seconds for {describedAs}, and it never held.{Environment.NewLine}"
+            + $"What was on screen:{Environment.NewLine}{WhatIsOnScreen()}{Environment.NewLine}"
+            + $"What it logged:{Environment.NewLine}{WhatWasLogged()}");
+    }
+
     /// <summary>The control with this automation id, on the window or on a dialog over it.</summary>
     public Control Find(string automationId)
     {
-        // A visible one first: a panel that is hidden rather than removed is still in the tree, so
-        // the artist of the track that is not playing is findable and says the last thing it said.
-        var found = Everywhere()
-            .SelectMany(root => Screen.AllWith(root, automationId))
-            .OrderByDescending(control => control.IsEffectivelyVisible)
-            .FirstOrDefault();
+        var found = LookFor(automationId);
 
         Assert.True(found is not null, $"Nothing with the automation id {automationId} is on screen.");
         return found!;
     }
+
+    /// <summary>The control with this automation id, or nothing where there is none yet.</summary>
+    /// <remarks>
+    /// What <see cref="Find"/> is built on, and what the questions a step is allowed to ask while
+    /// waiting are built on: a wait that fails the scenario the first time the answer is no is not
+    /// a wait at all.
+    /// </remarks>
+    private Control? LookFor(string automationId) =>
+        // A visible one first: a panel that is hidden rather than removed is still in the tree, so
+        // the artist of the track that is not playing is findable and says the last thing it said.
+        Everywhere()
+            .SelectMany(root => Screen.AllWith(root, automationId))
+            .OrderByDescending(control => control.IsEffectivelyVisible)
+            .FirstOrDefault();
 
     /// <summary>The control with this automation id inside one row, rather than anywhere.</summary>
     /// <remarks>
@@ -169,6 +229,22 @@ public sealed class RunningApplication : IAsyncDisposable
         Everywhere()
             .SelectMany(root => Screen.AllWith(root, automationId))
             .Any(control => control.IsEffectivelyVisible);
+
+    /// <summary>Whether the thing with this automation id would take the keyboard if offered it.</summary>
+    /// <remarks>
+    /// On screen is not the same as ready. A control that has only just appeared, because what it
+    /// is bound to has only just become true, is in the tree and drawn before it will answer
+    /// <see cref="InputElement.Focus" />, so a scenario that waits for it to be visible and then
+    /// gives it the keyboard races the layout pass and loses on a slower machine than the one it
+    /// was written on.
+    /// Nothing on screen answers no rather than failing the scenario, because this is a question a
+    /// wait asks over and over while a control is on its way in: not yet is the answer it is for.
+    /// </remarks>
+    public bool CanTakeTheKeyboard(string automationId) =>
+        LookFor(automationId) is { } control
+        && control.IsEffectivelyVisible
+        && control.IsEffectivelyEnabled
+        && control.Focusable;
 
     /// <summary>What the thing with this automation id says.</summary>
     public string TextOf(string automationId) => Screen.Says(Find(automationId));
@@ -456,6 +532,25 @@ public sealed class RunningApplication : IAsyncDisposable
 
     /// <summary>Says which file the DJ picks the next time something asks them for one.</summary>
     public static void TheDjWillPick(string path) => ScenarioApplication.Pickers.TheyWillPick(path);
+
+    /// <summary>A newer dance list lands, without a button being pressed to ask for it.</summary>
+    /// <remarks>
+    /// Through the store the Import button goes through, and not through the button, because
+    /// pressing Import puts the keyboard on the Import button. The moment worth a scenario is the
+    /// other one: the DJ asked for a list a second ago, their hands are back in the panel, and it
+    /// lands under them. Awaited, so what follows is the panel with the newer list already in it.
+    /// </remarks>
+    public async Task ANewerDanceListArrivesFrom(string path)
+    {
+        var update = await App.Services.GetRequiredService<IDanceListStore>()
+            .UpdateFromFileAsync(new FileSystem().FileInfo.New(path));
+
+        Assert.True(
+            update.Outcome == DanceListUpdateOutcome.Updated,
+            $"The list from the file was not taken: {update.Problem}");
+
+        Settle();
+    }
 
     /// <summary>Clicks whatever carries this automation id.</summary>
     public void Click(string automationId) => Click(Find(automationId));

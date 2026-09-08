@@ -23,6 +23,12 @@ public sealed class FilePickerService : IFilePickerService
         MimeTypes = ["text/plain"]
     };
 
+    private static readonly FilePickerFileType Rtf = new("Rich Text Format (*.rtf)")
+    {
+        Patterns = ["*.rtf"],
+        MimeTypes = ["application/rtf"]
+    };
+
     private Window? _owner;
 
     /// <summary>The window a picker belongs to, handed over once the main window exists.</summary>
@@ -87,6 +93,7 @@ public sealed class FilePickerService : IFilePickerService
     {
         FileKind.Json => [Json],
         FileKind.Text => [Text],
+        FileKind.Rtf => [Rtf],
         FileKind.Audio => [AudioFiles()],
         _ => null
     };

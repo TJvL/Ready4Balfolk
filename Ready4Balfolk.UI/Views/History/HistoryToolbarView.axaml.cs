@@ -25,5 +25,17 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
             }
         });
 
+    private void OnExportReportClick(object? sender, RoutedEventArgs e) =>
+        Handlers.Run(UiStrings.HistoryToolbar_ExportReportFailed, async () =>
+        {
+            var path = await App.Services.GetRequiredService<IFilePickerService>()
+                .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportReportTitle, "queue_history", FileKind.Rtf);
+
+            if (path is not null)
+            {
+                await ViewModel!.ExportReportAsync(path);
+            }
+        });
+
     private void OnToggleClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().IsHistoryMode = false;
 }

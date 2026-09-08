@@ -17,11 +17,13 @@ Ready4Balfolk is a desktop application that reads a music directory and plays au
 accounts, no server component you connect to, and it sends nothing anywhere by itself. Three parts
 are worth naming.
 
-**The embedded web server is off by default.** When switched on it binds to the local machine, or to
-the network if you ask it to, and serves two pages: a presentation display and a phone remote. It
-speaks plain HTTP, so anyone able to read traffic on that network can read what is on the screen and
-the remote's token. That is deliberate for a page whose whole content is being projected onto a wall
-in the same room. Do not put it on a network you do not trust.
+**The embedded web server is off by default.** When switched on it binds to every network interface
+on the chosen port, there is no local-only mode, and it serves two pages: a presentation display and
+a phone remote. It speaks plain HTTP, so anyone able to read traffic on that network can read what is
+on the screen and the remote's token. The on/off switch is the only guard on the server as a whole; the
+PIN guards the remote page on top of that, but the display page has no PIN check at all, so once the
+server is on, anyone on the network can load it. That is deliberate for a page whose whole content is
+being projected onto a wall in the same room. Do not put it on a network you do not trust.
 
 The remote is guarded by a six-digit PIN exchanged once for a token, with a per-address lockout after
 five wrong attempts. The PIN protects against someone idly poking at the port, not against a

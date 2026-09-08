@@ -112,6 +112,15 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
         }
     }
 
+    /// <summary>The same night, written as a document for whoever asked what was played.</summary>
+    public async Task ExportReportAsync(string path)
+    {
+        if (SelectedNight is { } night)
+        {
+            await _historyStore.ExportReportAsync(IdOf(night), path);
+        }
+    }
+
     public HistoryViewModel(
         IQueueHistoryStore historyStore,
         ISettingsStore settingsStore,

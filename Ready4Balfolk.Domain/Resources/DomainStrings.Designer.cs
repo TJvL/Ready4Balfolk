@@ -99,4 +99,17 @@ public static class DomainStrings
 
     public static string Audio_OutputGone =>
         ResourceManager.GetString("Audio_OutputGone", Culture)!;
+
+    // The night written out for a rights organisation
+    public static string NightReport_Heading =>
+        ResourceManager.GetString("NightReport_Heading", Culture)!;
+
+    public static string NightReport_TimeColumn =>
+        ResourceManager.GetString("NightReport_TimeColumn", Culture)!;
+
+    public static string NightReport_ArtistColumn =>
+        ResourceManager.GetString("NightReport_ArtistColumn", Culture)!;
+
+    public static string NightReport_TitleColumn =>
+        ResourceManager.GetString("NightReport_TitleColumn", Culture)!;
 }
