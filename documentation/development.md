@@ -379,7 +379,9 @@ network can open a socket directly without ever loading the page.
 - Tokens expire, slid forward on use, and changing the PIN or switching the remote off drops every issued token.
 
 `PresentationWebServer.ApplyAsync` brings the listener into line with the settings, so switching the
-server on, moving its port or opening it to the network never needs a restart.
+server on or moving its port never needs a restart. There is no bind-to-loopback option: enabling the
+server binds `IPAddress.Any`, so it is reachable on every interface the machine has from the moment
+it is switched on.
 
 ---
 
