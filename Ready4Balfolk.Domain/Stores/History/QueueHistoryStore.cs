@@ -2,11 +2,13 @@ using System.Globalization;
 using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Data.Sqlite;
 using Ready4Balfolk.Domain.Models.History;
+using Ready4Balfolk.Domain.Services.History;
 using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Domain.Stores.History;
@@ -242,7 +244,32 @@ public sealed class QueueHistoryStore(
         }
     }
 
-    public async Task ExportAsync(long nightId, string destinationPath)
+    public Task ExportAsync(long nightId, string destinationPath) =>
+        WriteExportAsync(nightId, destinationPath,
+            (stream, night) => JsonSerializer.SerializeAsync(stream, night, ExportJsonOptions));
+
+    public Task ExportReportAsync(long nightId, string destinationPath) =>
+        WriteExportAsync(nightId, destinationPath, async (stream, night) =>
+        {
+            // RTF is seven-bit and the report escapes everything above it, so what is written is
+            // the bytes that were built and no encoding preamble in front of them. The stream is
+            // left open because the caller owns it, the same as it does for the JSON export.
+            await using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
+            await writer.WriteAsync(NightReport.Render(night));
+        });
+
+    public void Dispose()
+    {
+        _connection?.Dispose();
+        _connection = null;
+        _gate.Dispose();
+        _history.Dispose();
+        _isLoading.Dispose();
+    }
+
+    /// <summary>Reads the night and hands it to whoever writes the file, in whichever format.</summary>
+    private async Task WriteExportAsync(
+        long nightId, string destinationPath, Func<Stream, QueueHistory, Task> write)
     {
         var night = await ReadNightAsync(nightId);
         if (night is null)
@@ -256,22 +283,13 @@ public sealed class QueueHistoryStore(
             var destination = fileSystem.FileInfo.New(destinationPath);
             destination.Directory?.Create();
             await using var stream = fileSystem.File.Create(destination.FullName);
-            await JsonSerializer.SerializeAsync(stream, night, ExportJsonOptions);
+            await write(stream, night);
             _ = loggerService.InfoAsync($"Exported the night to {LogPaths.Name(destination.FullName)}");
         }
         finally
         {
             _gate.Release();
         }
-    }
-
-    public void Dispose()
-    {
-        _connection?.Dispose();
-        _connection = null;
-        _gate.Dispose();
-        _history.Dispose();
-        _isLoading.Dispose();
     }
 
     /// <summary>The open connection, opening it first when nobody has yet. The gate must be held.</summary>

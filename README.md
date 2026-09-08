@@ -8,7 +8,7 @@ Tracks are discovered from a music directory without requiring any naming conven
 
 ## Audio Backend
 
-Ready4Balfolk uses [BASS](https://www.un4seen.com/) (via ManagedBass) as its audio backend.
+Ready4Balfolk uses [BASS](https://www.un4seen.com/) (via ManagedBass) as its audio backend, together with its BASSFLAC and BASS_FX add-ons.
 
 ## Installation
 
@@ -31,6 +31,10 @@ Every release artifact is launched by CI before it is published, so a build that
 - [Development Guide](documentation/development.md): how the codebase is laid out, and why
 - [Contributing](CONTRIBUTING.md): what CI checks, and the conventions to follow
 - [Security](SECURITY.md): how to report a vulnerability, and what the threat model is
+
+## Third-party licences
+
+Ready4Balfolk is GPLv3 (see [LICENSE](LICENSE)), but the audio backend is not: every release bundles the proprietary BASS library and its BASSFLAC and BASS_FX add-ons from [un4seen Developments](https://www.un4seen.com/). Their free licence covers non-commercial use only, as part of an end-user product, and does not permit reselling or sublicensing them; playing a paid gig is commercial use and needs a licence from un4seen. See [un4seen's BASS licensing page](https://www.un4seen.com/bass.html) for the current terms, and [LICENSE.BASS](LICENSE.BASS) for the GPL linking exception that lets Ready4Balfolk be distributed alongside them.
 
 ## Issues
 

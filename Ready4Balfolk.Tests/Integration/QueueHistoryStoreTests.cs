@@ -2,6 +2,7 @@ using System.IO.Abstractions;
 using Microsoft.Data.Sqlite;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.History;
@@ -245,6 +246,26 @@ public sealed class QueueHistoryStoreTests : IDisposable
         var content = await File.ReadAllTextAsync(exportFile.FullName, TestContext.Current.CancellationToken);
         Assert.Contains("Mazurka", content);
         Assert.DoesNotContain("\"stop\"", content);
+    }
+
+    [Fact]
+    public async Task ExportReportAsync_WritesTheTracksThatWerePlayedAsADocument()
+    {
+        await _sut.AddAsync(Track() with { Artist = "Naragonia", Title = "Salamandre" });
+
+        var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "history.rtf"));
+        await _sut.ExportReportAsync(_sut.Current.Id, exportFile.FullName);
+
+        Assert.True(exportFile.Exists);
+        var content = await File.ReadAllTextAsync(exportFile.FullName, TestContext.Current.CancellationToken);
+
+        // What a rights organisation is being shown: who played what, under a heading, and no
+        // description of the DJ's disk.
+        Assert.StartsWith(@"{\rtf1", content, StringComparison.Ordinal);
+        Assert.Contains(DomainStrings.NightReport_Heading, content, StringComparison.Ordinal);
+        Assert.Contains("Naragonia", content, StringComparison.Ordinal);
+        Assert.Contains("Salamandre", content, StringComparison.Ordinal);
+        Assert.DoesNotContain(TrackPath, content, StringComparison.Ordinal);
     }
 
     [Fact]

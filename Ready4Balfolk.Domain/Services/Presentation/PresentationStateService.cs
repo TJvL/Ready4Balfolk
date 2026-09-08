@@ -143,13 +143,16 @@ public sealed class PresentationStateService : IPresentationStateService, IDispo
         null => PresentationItem.None,
         AutoTrackQueueItem auto => MapTrack(auto.TrackQueueItem),
         TrackQueueItem track => MapTrack(track),
-        // The message text is the large line; there is no artist or title beneath it.
+        // The message text is the large line; there is no artist or title beneath it. Its duration
+        // travels too, since a timed message is a pause the room is waiting out just like a delay.
         MessageQueueItem message => new PresentationItem(
-            PresentationItemKind.Message, message.Description, string.Empty, string.Empty),
-        // Delay and stop carry no payload at all: each surface writes its own label, so the desktop
-        // window keeps reading UiStrings and the browser keeps its own.
-        DelayQueueItem => new PresentationItem(
-            PresentationItemKind.Delay, string.Empty, string.Empty, string.Empty),
+            PresentationItemKind.Message, message.Description, string.Empty, string.Empty,
+            message.Duration),
+        // Delay and stop carry no text payload at all: each surface writes its own label, so the
+        // desktop window keeps reading UiStrings and the browser keeps its own. The delay's length
+        // does travel, so a surface that wants to say how long can.
+        DelayQueueItem delay => new PresentationItem(
+            PresentationItemKind.Delay, string.Empty, string.Empty, string.Empty, delay.DelayDuration),
         GapQueueItem => new PresentationItem(
             PresentationItemKind.Gap, string.Empty, string.Empty, string.Empty),
         StopQueueItem => new PresentationItem(

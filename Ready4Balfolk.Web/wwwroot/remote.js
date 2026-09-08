@@ -52,10 +52,6 @@
     if (okMessage) toast(okMessage);
   }
 
-  function primaryOf(item) {
-    return item.primary || window.R4B.kindLabel(item.kind);
-  }
-
   function subtitleOf(item) {
     if (item.kind === "Track") {
       return item.artist + (item.title ? " - " + item.title : "");
@@ -67,6 +63,13 @@
     return "";
   }
 
+  /* The line under what is coming next. An announcement's own words go there: the line above it
+     bills it as a message and says how long it lasts, and a card that said only that would leave
+     the DJ opening the queue to find out what the room is about to be told. */
+  function nextSubtitleOf(item) {
+    return item.kind === "Message" ? item.primary || subtitleOf(item) : subtitleOf(item);
+  }
+
   /* ---------------------------------------------------------------- rendering */
 
   function renderSnapshot(snapshot) {
@@ -74,7 +77,7 @@
     var next = snapshot.next;
     var hasCurrent = current.kind !== "None";
 
-    text("nowPrimary", hasCurrent ? primaryOf(current) : t("nothingPlaying"));
+    text("nowPrimary", hasCurrent ? window.R4B.primaryLabel(current) : t("nothingPlaying"));
     text("nowSub", hasCurrent ? subtitleOf(current) : t("queueEmpty"));
 
     var duration = snapshot.durationSeconds;
@@ -95,8 +98,10 @@
     id("pp").disabled = !(isSound || (!hasCurrent && next.kind !== "None"));
     id("restart").disabled = !isSound;
 
+    // A timed delay or message says for how long: on this screen too, there is no countdown bar
+    // under something that has not started yet.
     id("upnextText").innerHTML = next.kind !== "None"
-      ? "<b>" + escapeHtml(primaryOf(next)) + "</b><br>" + escapeHtml(subtitleOf(next))
+      ? "<b>" + escapeHtml(window.R4B.nextLabel(next)) + "</b><br>" + escapeHtml(nextSubtitleOf(next))
       : "<b>" + escapeHtml(t("noNext")) + "</b>";
   }
 
@@ -121,7 +126,7 @@
       main.className = "qmain";
       main.innerHTML =
         '<span class="qmark k-' + entry.kind + '">' + (MARK[entry.kind] || "") + "</span>" +
-        "<span><span class=\"qtitle\">" + escapeHtml(primaryOf(entry)) + "</span>" +
+        "<span><span class=\"qtitle\">" + escapeHtml(window.R4B.primaryLabel(entry)) + "</span>" +
         '<span class="qsub">' + escapeHtml(entry.isAuto ? t("autoAdded") : subtitleOf(entry)) + "</span></span>" +
         '<span class="qdur">' +
         (entry.durationSeconds ? window.R4B.mmss(entry.durationSeconds) : "-") + "</span>";

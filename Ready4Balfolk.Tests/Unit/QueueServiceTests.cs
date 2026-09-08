@@ -451,6 +451,51 @@ public sealed class QueueServiceTests : IDisposable
         Assert.Contains(string.Format(CultureInfo.CurrentCulture, DomainStrings.MaxItemsRule_QueueFull, 2), result.RejectionReason!);
     }
 
+    [Fact]
+    public void Enqueue_DelaysAndMessagesDoNotCountTowardsTheMaximum()
+    {
+        _settingsSubject.OnNext(new ApplicationSettings() with
+        {
+            MaxQueueItems = 2
+        });
+
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
+
+        // The queue is at its two-track maximum, but a delay, a message and a stop marker are not
+        // requests for a dance and are let through regardless.
+        Assert.True(_sut.Enqueue(new DelayQueueItem(TimeSpan.FromSeconds(10))).Allowed);
+        Assert.True(_sut.Enqueue(new MessageQueueItem("Back soon")).Allowed);
+        Assert.True(_sut.Enqueue(new StopQueueItem()).Allowed);
+        Assert.Equal(5, _sut.Count);
+
+        // A third track is still refused, because the two already there are the actual tracks.
+        Assert.False(_sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("C"), false)).Allowed);
+    }
+
+    [Fact]
+    public void SettingsChange_MaxReduced_LeavesDelaysAndMessagesInPlace()
+    {
+        var trackC = new TrackQueueItem(TestData.CreateTrack("C"), false);
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _sut.Enqueue(new DelayQueueItem(TimeSpan.FromSeconds(10)));
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
+        _sut.Enqueue(new MessageQueueItem("Back soon"));
+        _sut.Enqueue(trackC);
+        Assert.Equal(5, _sut.Count);
+
+        _settingsSubject.OnNext(new ApplicationSettings() with
+        {
+            MaxQueueItems = 2
+        });
+
+        // Only the third track is over the limit; the delay and the message are not touched.
+        Assert.Equal(4, _sut.Count);
+        Assert.DoesNotContain(trackC, _sut.Items);
+        Assert.Contains(_sut.Items, item => item is DelayQueueItem);
+        Assert.Contains(_sut.Items, item => item is MessageQueueItem);
+    }
+
     // --- Reactive ---
 
     [Fact]

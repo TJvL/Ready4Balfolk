@@ -14,6 +14,9 @@ public enum FileKind
     /// <summary>A log, which is plain text.</summary>
     Text,
 
+    /// <summary>A night written out as a document, which any word processor opens.</summary>
+    Rtf,
+
     /// <summary>Something the application can play, which is whatever BASS loaded support for.</summary>
     Audio
 }

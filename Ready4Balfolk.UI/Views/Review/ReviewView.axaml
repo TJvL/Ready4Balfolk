@@ -99,7 +99,8 @@
 
             <!-- The rule that empties this queue belongs above it, not three screens away. -->
             <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
-                <ToggleButton Content="{x:Static res:UiStrings.Review_Rules}"
+                <ToggleButton AutomationProperties.AutomationId="review.rules"
+                              Content="{x:Static res:UiStrings.Review_Rules}"
                               IsChecked="{Binding IsDiscoveryOpen, Mode=TwoWay}"
                               Padding="8,2"
                               FontSize="11" />
@@ -379,7 +380,8 @@
 
     <!-- Hovering over the queue rather than pushing it down: opening the rules must not move the
          row somebody was reading, and closing them must not move it back. -->
-    <Border IsVisible="{Binding IsDiscoveryOpen}"
+    <Border x:Name="RulesPanel"
+            IsVisible="{Binding IsDiscoveryOpen}"
             VerticalAlignment="Top"
             Margin="0,96,0,0"
             MaxHeight="620"

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -188,10 +189,11 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
     /// <summary>The organisers ask for the evening afterwards, and it is still there to give.</summary>
     /// <remarks>
     /// World: a library of one dance and auto queue off.
-    /// Steps: play a dance, file the night, and export what is on screen.
+    /// Steps: play a dance, file the night, and export what is on screen, both ways.
     /// Sees: a file holding the evening that ended, not the empty one that is running, with no
     /// path from the DJ's disk in it. An export that could only ever write tonight is no use the
-    /// morning after.
+    /// morning after. And a document beside it saying the same evening in words, which is what a
+    /// rights organisation is handed rather than JSON.
     /// </remarks>
     [Fact]
     public async Task DjExportsTheNightForTheOrganisers()
@@ -207,6 +209,7 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
             .Save();
 
         var export = Path.Combine(world.DirectoryInfoRoot.FullName, "for the organisers.json");
+        var report = Path.Combine(world.DirectoryInfoRoot.FullName, "for the organisers.rtf");
 
         await session.RunAsync(world, async application =>
         {
@@ -241,6 +244,18 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
                 world.MusicDirectory.FullName,
                 await File.ReadAllTextAsync(export, TestContext.Current.CancellationToken),
                 StringComparison.Ordinal);
+
+            RunningApplication.TheDjWillPick(report);
+            application.Click("history.export-report");
+
+            await application.WaitUntil(
+                () => File.Exists(report) && File.ReadAllText(report).Contains("Salamandre", StringComparison.Ordinal),
+                "the evening to be written out as a document");
+
+            var document = await File.ReadAllTextAsync(report, TestContext.Current.CancellationToken);
+            Assert.StartsWith(@"{\rtf1", document, StringComparison.Ordinal);
+            Assert.Contains("Naragonia", document, StringComparison.Ordinal);
+            Assert.Contains(DomainStrings.NightReport_Heading, document, StringComparison.Ordinal);
         });
     }
 

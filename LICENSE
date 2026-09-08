@@ -672,3 +672,11 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <http://www.gnu.org/philosophy/why-not-lgpl.html>.
+
+------------------------------------------------------------------------
+
+Ready4Balfolk is distributed under the above GNU General Public License,
+version 3, with one additional permission under section 7 covering
+linking with the proprietary BASS audio library and its BASSFLAC and
+BASS_FX add-ons. See LICENSE.BASS for that permission and for BASS's
+own licensing terms.
