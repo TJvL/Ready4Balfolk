@@ -46,7 +46,7 @@ jobs:
 
       # The BASS natives are fetched from un4seen.com by Directory.Build.targets on every build,
       # which puts a third party download in the path of every run. Keyed on the targets file,
-      # since that is what pins the URLs.
+      # since that is what holds the URLs and the SHA-256 each archive is checked against.
       - name: Cache BASS natives
         uses: actions/cache@v6
         with:

@@ -21,7 +21,14 @@ dotnet test --project Ready4Balfolk.Tests/Ready4Balfolk.Tests.csproj -c Release
 ```
 
 The audio natives (BASS, BASSFLAC, BASS_FX) are downloaded by `Directory.Build.targets` on first
-build. Set `BassSkipDownload=true` to build offline from whatever is already in `build/bass-native`.
+build and checked against a SHA-256 committed there, since the un4seen URLs always serve the latest
+build and cannot be pinned any other way. A hash that does not match stops the build; when un4seen
+publishes a new build, the committed hash is bumped deliberately.
+
+Set `BassSkipDownload=true` to build offline from whatever is already in `build/bass-native`. That
+skips the hash check too, because nothing was fetched for it to answer for, which is also the only
+way to build a tag older than the last hash bump: the download would fetch today's archive and fail
+its own pin. Keep a `build/bass-native` from that era if you expect to need it.
 
 ## What CI will check
 

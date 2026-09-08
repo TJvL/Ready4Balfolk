@@ -425,7 +425,7 @@ Coverage is collected as cobertura in the `test` job and uploaded as an artifact
 
 Two build-level gates are worth knowing about. `TreatWarningsAsErrors` does not reach the Avalonia XAML compiler, so `AVLN5001` (the obsolete-member warning) is listed in `WarningsAsErrors` separately. And every workflow declares a `concurrency` group so a superseded push is cancelled, except on `main`, where a commit left with no verdict is worse than a slow one.
 
-**The smoke test.** CI packages every artifact but cannot tell a healthy one from a broken one by looking. `Directory.Build.targets` picks the BASS, BASSFLAC and BASS_FX natives from the *host* OS rather than from the `RuntimeIdentifier`, so a publish that lands the wrong ones, or none, still succeeds, and the failure only shows up when a user double-clicks it.
+**The smoke test.** CI packages every artifact but cannot tell a healthy one from a broken one by looking. `Directory.Build.targets` takes the architecture of the BASS, BASSFLAC and BASS_FX natives from the `RuntimeIdentifier`, but the operating system always from the *host*, so a publish for another OS lands the wrong ones and still succeeds. And a native that is present is not the same as one that loads. Either way the failure only shows up when a user double-clicks it.
 
 So the app can start itself for inspection:
 

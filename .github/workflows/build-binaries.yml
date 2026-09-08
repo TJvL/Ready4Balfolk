@@ -67,9 +67,10 @@ jobs:
           -o publish-flatpak
 
       # Everything below this line answers the question a green build cannot: does the thing we
-      # just published actually start? Directory.Build.targets picks the BASS, BASSFLAC and BASS_FX
-      # natives from the host OS rather than from the RuntimeIdentifier, so a publish that lands the
-      # wrong ones — or none — succeeds and produces a package that dies on launch.
+      # just published actually start? Directory.Build.targets takes the architecture of the BASS,
+      # BASSFLAC and BASS_FX natives from the RuntimeIdentifier, but the operating system always
+      # from the host, and a native that is present is not necessarily one that loads. Either way
+      # the publish succeeds and produces a package that dies on launch.
       - name: Install smoke test dependencies (Linux)
         if: runner.os == 'Linux'
         run: |

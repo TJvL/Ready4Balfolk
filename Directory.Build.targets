@@ -8,14 +8,46 @@
         them on the zip already existing would short-circuit that and let a stale local cache
         drift from CI indefinitely.
 
-        Set BassSkipDownload=true to build offline from whatever is already in build/bass-native.
+        Because the URL cannot pin a version, the expected SHA-256 of each archive is committed
+        below and checked after every download. A build that gets anything else stops with the
+        two hashes rather than shipping unreviewed native code in a release. When un4seen
+        publishes a new build the checked-in hash is what has to be bumped, deliberately, after
+        looking at what changed.
+
+        The hash covers the archive, but what is copied into the output is the extracted copy of
+        it, so extraction overwrites unconditionally rather than leaving files whose size and
+        timestamp already match. Every build rewrites the extracted trees from the archive the
+        check has just passed, so an edited native left under build/bass-native does not reach
+        the output. That matters because CI caches that directory whole, extracted trees and all.
+
+        The pin has a cost worth reading before it is met in a red build. The URL only ever
+        serves the latest build and nothing here keeps a copy of the bytes a hash was taken from,
+        so once un4seen publishes something new, no commit made before the hash was bumped can
+        download an archive that satisfies its own pin. Building an old tag needs a
+        build/bass-native from that era and BassSkipDownload=true to use it.
+
+        BassSkipDownload=true builds from whatever is already in build/bass-native without going
+        online, and skips the hash check with it: nothing was fetched, so there is nothing for
+        the check to answer for, and an older legitimate archive is exactly what the flag gets
+        reached for. It is the offline and old-tag route. CI never sets it, so nothing released
+        is built that way.
     -->
 
     <PropertyGroup>
         <BassNativeDir>$(MSBuildThisFileDirectory)build/bass-native/</BassNativeDir>
         <_BassIsWindows>$([MSBuild]::IsOSPlatform('Windows'))</_BassIsWindows>
         <_BassIsLinux>$([MSBuild]::IsOSPlatform('Linux'))</_BassIsLinux>
-        <_BassArch>$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)</_BassArch>
+
+        <!--
+            The natives have to match what is being published, not the machine doing the
+            publishing, so the architecture comes from the runtime identifier whenever there is
+            one. Without it there is nothing to go on but the host, which is what a plain build
+            runs on anyway.
+        -->
+        <_BassArch Condition="'$(RuntimeIdentifier)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)</_BassArch>
+        <_BassArch Condition="'$(RuntimeIdentifier)' != '' AND $(RuntimeIdentifier.EndsWith('-x64'))">X64</_BassArch>
+        <_BassArch Condition="'$(RuntimeIdentifier)' != '' AND $(RuntimeIdentifier.EndsWith('-x86'))">X86</_BassArch>
+        <_BassArch Condition="'$(RuntimeIdentifier)' != '' AND $(RuntimeIdentifier.EndsWith('-arm64'))">Arm64</_BassArch>
 
         <!--
             Every project in the solution imports this file and they all write to the one
@@ -32,6 +64,7 @@
     <PropertyGroup Condition="'$(_BassIsWindows)' == 'true'">
         <_BassZipUrl>https://www.un4seen.com/files/bass24.zip</_BassZipUrl>
         <_BassZipFile>bass24.zip</_BassZipFile>
+        <_BassZipSha256>3A03EC9A33D0F4F9D167660DA51C8BB1432E8977496995455AB137277D69636E</_BassZipSha256>
         <_BassExtractDir>win/</_BassExtractDir>
         <_BassOutputFile>bass.dll</_BassOutputFile>
     </PropertyGroup>
@@ -48,6 +81,7 @@
     <PropertyGroup Condition="'$(_BassIsLinux)' == 'true'">
         <_BassZipUrl>https://www.un4seen.com/files/bass24-linux.zip</_BassZipUrl>
         <_BassZipFile>bass24-linux.zip</_BassZipFile>
+        <_BassZipSha256>9BF723DBF750D665C14CFC099F96A056483DC35DE6850D2DF76AF8B640435CA9</_BassZipSha256>
         <_BassExtractDir>linux/</_BassExtractDir>
         <_BassOutputFile>libbass.so</_BassOutputFile>
     </PropertyGroup>
@@ -60,6 +94,21 @@
         <_BassNativeFile>libs/aarch64/libbass.so</_BassNativeFile>
     </PropertyGroup>
 
+    <!--
+        An architecture this file has no library for used to leave _BassNativeFile empty, which
+        made the condition on all three download targets false: the build succeeded, nothing was
+        copied, and nothing was said about it. BASS, BASSFLAC and BASS_FX are selected by the
+        same architecture groups, so BASS not resolving means none of them did.
+    -->
+    <Target Name="CheckBassNativeArchitecture"
+            BeforeTargets="PrepareForBuild"
+            Condition="'$(_BassZipUrl)' != '' AND '$(_BassNativeFile)' == ''">
+        <Error Condition="'$(RuntimeIdentifier)' != ''"
+               Text="Nothing in Directory.Build.targets maps the runtime identifier '$(RuntimeIdentifier)' to a BASS native. It knows x86 and x64 on Windows, x64 and arm64 on Linux. Publishing anything else would produce a build with no audio libraries in it, which starts and then fails on the first track played. Add the architecture there, or publish one it already knows."/>
+        <Error Condition="'$(RuntimeIdentifier)' == ''"
+               Text="Nothing in Directory.Build.targets maps the host architecture '$(_BassArch)' to a BASS native. It knows x86 and x64 on Windows, x64 and arm64 on Linux. A build here would have no audio libraries in it, and would start and then fail on the first track played."/>
+    </Target>
+
     <Target Name="DownloadBassNative"
             BeforeTargets="PrepareForBuild"
             Condition="'$(_BassZipUrl)' != '' AND '$(_BassNativeFile)' != ''">
@@ -71,9 +120,19 @@
                       Retries="3"
                       Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true'"/>
 
+        <GetFileHash Files="$(BassNativeDir)$(_BassZipFile)"
+                     Algorithm="SHA256"
+                     Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true'">
+            <Output TaskParameter="Hash" PropertyName="_BassZipActualSha256"/>
+        </GetFileHash>
+
+        <Error Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true' AND '$(_BassZipActualSha256)' != '$(_BassZipSha256)'"
+               Text="$(BassNativeDir)$(_BassZipFile) does not match the SHA-256 committed in Directory.Build.targets. Expected $(_BassZipSha256), got $(_BassZipActualSha256). un4seen may have published a new build, in which case look at what changed and bump the committed hash deliberately; otherwise the download was corrupted or tampered with and must not be built."/>
+
         <Unzip SourceFiles="$(BassNativeDir)$(_BassZipFile)"
                DestinationFolder="$(BassNativeDir)$(_BassExtractDir)"
                OverwriteReadOnlyFiles="true"
+               SkipUnchangedFiles="false"
                Condition="'$(_BassFetches)' == 'true'"/>
 
         <ItemGroup>
@@ -88,6 +147,7 @@
     <PropertyGroup Condition="'$(_BassIsWindows)' == 'true'">
         <_BassFlacZipUrl>https://www.un4seen.com/files/bassflac24.zip</_BassFlacZipUrl>
         <_BassFlacZipFile>bassflac24.zip</_BassFlacZipFile>
+        <_BassFlacZipSha256>147280210F62A80E52094E1822E73A16FD3B1A8C9C857C24DCCA7DCFCB4FFA14</_BassFlacZipSha256>
         <_BassFlacExtractDir>win-flac/</_BassFlacExtractDir>
         <_BassFlacOutputFile>bassflac.dll</_BassFlacOutputFile>
     </PropertyGroup>
@@ -104,6 +164,7 @@
     <PropertyGroup Condition="'$(_BassIsLinux)' == 'true'">
         <_BassFlacZipUrl>https://www.un4seen.com/files/bassflac24-linux.zip</_BassFlacZipUrl>
         <_BassFlacZipFile>bassflac24-linux.zip</_BassFlacZipFile>
+        <_BassFlacZipSha256>3B42CA51BC5376576314F3CAE6D7EA419610D56E254591BF988987A7EAFB2861</_BassFlacZipSha256>
         <_BassFlacExtractDir>linux-flac/</_BassFlacExtractDir>
         <_BassFlacOutputFile>libbassflac.so</_BassFlacOutputFile>
     </PropertyGroup>
@@ -127,9 +188,19 @@
                       Retries="3"
                       Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true'"/>
 
+        <GetFileHash Files="$(BassNativeDir)$(_BassFlacZipFile)"
+                     Algorithm="SHA256"
+                     Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true'">
+            <Output TaskParameter="Hash" PropertyName="_BassFlacZipActualSha256"/>
+        </GetFileHash>
+
+        <Error Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true' AND '$(_BassFlacZipActualSha256)' != '$(_BassFlacZipSha256)'"
+               Text="$(BassNativeDir)$(_BassFlacZipFile) does not match the SHA-256 committed in Directory.Build.targets. Expected $(_BassFlacZipSha256), got $(_BassFlacZipActualSha256). un4seen may have published a new build, in which case look at what changed and bump the committed hash deliberately; otherwise the download was corrupted or tampered with and must not be built."/>
+
         <Unzip SourceFiles="$(BassNativeDir)$(_BassFlacZipFile)"
                DestinationFolder="$(BassNativeDir)$(_BassFlacExtractDir)"
                OverwriteReadOnlyFiles="true"
+               SkipUnchangedFiles="false"
                Condition="'$(_BassFetches)' == 'true'"/>
 
         <ItemGroup>
@@ -144,6 +215,7 @@
     <PropertyGroup Condition="'$(_BassIsWindows)' == 'true'">
         <_BassFxZipUrl>https://www.un4seen.com/files/z/0/bass_fx24.zip</_BassFxZipUrl>
         <_BassFxZipFile>bass_fx24.zip</_BassFxZipFile>
+        <_BassFxZipSha256>A4BAF602865941963127ACB15ED12627D108189F99C2757970432AE7DA0366CD</_BassFxZipSha256>
         <_BassFxExtractDir>win-fx/</_BassFxExtractDir>
         <_BassFxOutputFile>bass_fx.dll</_BassFxOutputFile>
     </PropertyGroup>
@@ -160,6 +232,7 @@
     <PropertyGroup Condition="'$(_BassIsLinux)' == 'true'">
         <_BassFxZipUrl>https://www.un4seen.com/files/z/0/bass_fx24-linux.zip</_BassFxZipUrl>
         <_BassFxZipFile>bass_fx24-linux.zip</_BassFxZipFile>
+        <_BassFxZipSha256>1EE97610BC2768357C4C344C0D7A058AC95EDF51804C391FDCF7644762BD413B</_BassFxZipSha256>
         <_BassFxExtractDir>linux-fx/</_BassFxExtractDir>
         <_BassFxOutputFile>libbass_fx.so</_BassFxOutputFile>
     </PropertyGroup>
@@ -183,9 +256,19 @@
                       Retries="3"
                       Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true'"/>
 
+        <GetFileHash Files="$(BassNativeDir)$(_BassFxZipFile)"
+                     Algorithm="SHA256"
+                     Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true'">
+            <Output TaskParameter="Hash" PropertyName="_BassFxZipActualSha256"/>
+        </GetFileHash>
+
+        <Error Condition="'$(_BassFetches)' == 'true' AND '$(BassSkipDownload)' != 'true' AND '$(_BassFxZipActualSha256)' != '$(_BassFxZipSha256)'"
+               Text="$(BassNativeDir)$(_BassFxZipFile) does not match the SHA-256 committed in Directory.Build.targets. Expected $(_BassFxZipSha256), got $(_BassFxZipActualSha256). un4seen may have published a new build, in which case look at what changed and bump the committed hash deliberately; otherwise the download was corrupted or tampered with and must not be built."/>
+
         <Unzip SourceFiles="$(BassNativeDir)$(_BassFxZipFile)"
                DestinationFolder="$(BassNativeDir)$(_BassFxExtractDir)"
                OverwriteReadOnlyFiles="true"
+               SkipUnchangedFiles="false"
                Condition="'$(_BassFetches)' == 'true'"/>
 
         <ItemGroup>
