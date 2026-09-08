@@ -28,7 +28,7 @@ jobs:
         shell: pwsh
 
       - name: Build installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.9
+        uses: Minionguyjpro/Inno-Setup-Action@ec985ef724d1fb4a05bfbc1a8e49930dc76d2b0c # v1.2.9
         with:
           path: packaging/windows/setup.iss
         env:
