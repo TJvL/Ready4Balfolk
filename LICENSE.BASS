@@ -1,0 +1,23 @@
+Additional permission under GNU GPL version 3 section 7
+
+As a special exception to the terms of the GNU General Public License,
+version 3 ("GPLv3"), the copyright holders of Ready4Balfolk give you
+permission to link Ready4Balfolk with the BASS audio library and its
+BASSFLAC and BASS_FX add-ons (all published by un4seen Developments),
+or with a modified version of those libraries, and to convey the
+resulting work, without the requirement that the work as a whole be
+subject to GPLv3 on account of that linking. You must still comply
+with GPLv3 in every other respect for the resulting work, and this
+permission does not extend to any other proprietary code combined
+with Ready4Balfolk.
+
+BASS, BASSFLAC and BASS_FX are not part of Ready4Balfolk and are not
+covered by GPLv3. They are proprietary software owned by un4seen
+Developments and distributed under un4seen's own licence, which is
+free for non-commercial use; commercial use, including playing a paid
+gig, needs a licence purchased from un4seen. That licence also only
+covers using BASS, BASSFLAC and BASS_FX as part of an end-user
+product; reselling or sublicensing them, on their own or bundled with
+something else, is not permitted. This file grants no rights to BASS,
+BASSFLAC or BASS_FX themselves, and does not summarise un4seen's full
+terms; see https://www.un4seen.com/bass.html for those.
