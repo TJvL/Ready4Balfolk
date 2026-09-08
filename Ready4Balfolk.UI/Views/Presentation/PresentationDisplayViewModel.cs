@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -97,15 +98,19 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         BehindTrack = TrackLine(state.Behind);
 
         // A queued announcement is billed as "Message" with its text beneath, rather than shouting
-        // the whole announcement in the next-up slot before its turn.
+        // the whole announcement in the next-up slot before its turn. A timed one says for how long,
+        // since that is the one thing the room cannot read off a screen showing only the words.
         if (state.Next.Kind is PresentationItemKind.Message)
         {
-            NextDance = UiStrings.Presentation_Message;
+            NextDance = state.Next.Duration is { } messageDuration
+                ? string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_MessageWithDuration,
+                    DurationPhrase(messageDuration))
+                : UiStrings.Presentation_Message;
             NextTrack = state.Next.Primary;
             return;
         }
 
-        NextDance = Label(state.Next);
+        NextDance = NextLabel(state.Next);
         NextTrack = TrackLine(state.Next);
     }
 
@@ -122,6 +127,33 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
         PresentationItemKind.EndOfNight => UiStrings.Presentation_EndOfNight,
         _ => item.Primary
     };
+
+    /// <summary>
+    /// The label for what is queued up next. A delay says how long it lasts, because there is no
+    /// countdown bar under it yet to say so instead, the way there is once it starts playing.
+    /// </summary>
+    private static string NextLabel(PresentationItem item) =>
+        item.Kind is PresentationItemKind.Delay && item.Duration is { } delayDuration
+            ? string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_DelayWithDuration,
+                DurationPhrase(delayDuration))
+            : Label(item);
+
+    /// <summary>How long, in words: seconds for a short wait, minutes once it stops being one.</summary>
+    private static string DurationPhrase(TimeSpan duration)
+    {
+        var totalSeconds = (int)Math.Round(duration.TotalSeconds, MidpointRounding.AwayFromZero);
+        if (totalSeconds < 60)
+        {
+            return totalSeconds == 1
+                ? UiStrings.Presentation_OneSecond
+                : string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_Seconds, totalSeconds);
+        }
+
+        var minutes = Math.Max(1, (int)Math.Round(totalSeconds / 60d, MidpointRounding.AwayFromZero));
+        return minutes == 1
+            ? UiStrings.Presentation_OneMinute
+            : string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_Minutes, minutes);
+    }
 
     /// <summary>The small line: who plays it and what it is called, as one line of text.</summary>
     /// <remarks>

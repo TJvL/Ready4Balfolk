@@ -234,6 +234,80 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
         });
     }
 
+    /// <summary>The helper reads what the next announcement says, on their phone.</summary>
+    /// <remarks>
+    /// World: a library of one dance, the server and the remote on, and auto queue off.
+    /// Steps: unlock the remote, write an announcement on the phone, then have the DJ put a second
+    /// one behind it with twenty seconds on it and start the evening.
+    /// Sees: the phone's next card billing what is coming as a message and saying what it says,
+    /// first with no time on it and then with the time the DJ set. Somebody at the bar decides on
+    /// the words whether to fetch the DJ, and a card naming the kind and nothing else sends them
+    /// into the queue list to find out what the room is about to be told.
+    /// </remarks>
+    [Fact]
+    public async Task HelperReadsTheNextAnnouncementOnTheirPhone()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "998877")
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "998877");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            // Writing one is on the tab that adds; reading what is coming is on the first one.
+            await phone.Page.Locator("[data-tab='add']").ClickAsync();
+            await phone.TypeInto("messageText", "Bar closes at eleven");
+            await phone.Page.Locator("[data-act='message']").ClickAsync();
+            await phone.Page.Locator("[data-tab='now']").ClickAsync();
+
+            await phone.WaitUntilItReads("upnextText", "Bar closes at eleven");
+
+            Assert.Contains(
+                UiStrings.Presentation_Message,
+                await phone.Reads("upnextText"),
+                StringComparison.Ordinal);
+
+            // A second announcement, this one with a time on it, behind the first.
+            application.Click("queue.message");
+
+            await application.WaitUntil(
+                () => application.IsShowing("message.text"),
+                "the message to be asked for");
+
+            application.TypeInto("message.text", "Last dance in five minutes");
+            application.Click("message.timed");
+            application.TypeInto("message.seconds", "20");
+            application.Click("message.ok");
+
+            // Starting the evening puts the first announcement on the screen, which leaves the
+            // timed one as what the phone says is coming.
+            application.Click("playback.skip");
+
+            await phone.WaitUntilItReads("upnextText", "Last dance in five minutes");
+
+            var expectedTimedLabel = string.Format(CultureInfo.CurrentCulture,
+                UiStrings.Presentation_MessageWithDuration,
+                string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_Seconds, 20));
+
+            Assert.Contains(
+                expectedTimedLabel,
+                await phone.Reads("upnextText"),
+                StringComparison.Ordinal);
+        });
+    }
+
     /// <summary>The DJ shows a helper where the remote is, without reading out an address.</summary>
     /// <remarks>
     /// World: a library of one dance, the server on and the remote on with a PIN.

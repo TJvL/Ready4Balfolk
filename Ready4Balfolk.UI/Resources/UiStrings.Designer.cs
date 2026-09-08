@@ -617,6 +617,24 @@ public static class UiStrings
     public static string Presentation_Message =>
         ResourceManager.GetString("Presentation_Message", Culture)!;
 
+    public static string Presentation_OneSecond =>
+        ResourceManager.GetString("Presentation_OneSecond", Culture)!;
+
+    public static string Presentation_Seconds =>
+        ResourceManager.GetString("Presentation_Seconds", Culture)!;
+
+    public static string Presentation_OneMinute =>
+        ResourceManager.GetString("Presentation_OneMinute", Culture)!;
+
+    public static string Presentation_Minutes =>
+        ResourceManager.GetString("Presentation_Minutes", Culture)!;
+
+    public static string Presentation_DelayWithDuration =>
+        ResourceManager.GetString("Presentation_DelayWithDuration", Culture)!;
+
+    public static string Presentation_MessageWithDuration =>
+        ResourceManager.GetString("Presentation_MessageWithDuration", Culture)!;
+
     // Dialogs
     public static string Dialog_RequestMessageTitle =>
         ResourceManager.GetString("Dialog_RequestMessageTitle", Culture)!;

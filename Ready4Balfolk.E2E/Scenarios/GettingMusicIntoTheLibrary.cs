@@ -503,4 +503,48 @@ public sealed class GettingMusicIntoTheLibrary(HeadlessSession session)
                 "the question to go away with all twenty-six still waiting to be answered");
         });
     }
+
+    /// <summary>Typing a rule in the Rules panel does not answer whatever row is behind it.</summary>
+    /// <remarks>
+    /// World: a track whose artist and title are already known and whose dance has just been
+    /// typed, so it is answerable and, being the only row, the one the queue keeps selected.
+    /// Steps: open the rules panel over the queue, type a pattern into its own draft box and press
+    /// Enter there rather than clicking Declare. The pattern asks for an underscore between artist
+    /// and title, which nothing in this world's one file name has, on purpose: were the row to
+    /// come back answered, that could only be the bug being guarded against here, never a rule
+    /// that genuinely matched the file.
+    /// Sees: the row still waiting to be answered. Enter typed into a rule belongs to declaring
+    /// that rule, not to whichever row the queue had selected behind the panel.
+    /// </remarks>
+    [Fact]
+    public async Task TypingAPatternInTheRulesPanelDoesNotApproveARow()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            application.Click("toolbar.review");
+
+            await application.WaitUntil(
+                () => application.RowsOf("review.rows").Count == 1,
+                "the track to be waiting for a person");
+
+            var row = application.Row("review.rows", "Salamandre");
+            application.TypeIntoWithin(row, "review.dance", "Mazurka");
+            application.Press(PhysicalKey.Escape);
+
+            application.Click("review.rules");
+            application.Click("discovery.uses-file-names");
+            // "Naragonia - Salamandre" has no underscore in it, so this can never match: the only
+            // way the row below could end up approved is the routing bug, not a declared rule.
+            application.TypeInto("discovery.draft-pattern", "%a_%t");
+            application.Press(PhysicalKey.Enter);
+
+            Assert.True(
+                RunningApplication.IsShowingWithin(row, "review.approve"),
+                "Enter typed into the rules panel answered the row behind it.");
+        });
+    }
 }
