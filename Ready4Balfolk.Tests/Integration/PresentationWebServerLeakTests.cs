@@ -27,8 +27,10 @@ public sealed class PresentationWebServerLeakTests
         var log = new RecordingLoggerService();
 
         // Something else holds the port for the whole test, the way another process on stage
-        // already having it would.
-        var blocker = new TcpListener(IPAddress.Loopback, 0);
+        // already having it would. It has to hold the same wildcard address the server binds:
+        // Windows lets a wildcard bind and a loopback bind of one port live side by side, so
+        // blocking loopback alone leaves the server free to start.
+        var blocker = new TcpListener(IPAddress.Any, 0);
         blocker.Start();
         var port = ((IPEndPoint)blocker.LocalEndpoint).Port;
 
