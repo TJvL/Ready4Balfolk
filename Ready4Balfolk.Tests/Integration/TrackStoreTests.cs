@@ -18,6 +18,7 @@ using Ready4Balfolk.Tests.Helpers.FileSystemHelpers;
 
 namespace Ready4Balfolk.Tests.Integration;
 
+[Collection(ProcessWideAudioState.Name)]
 public sealed class TrackStoreTests : IDisposable
 {
     private readonly WatchableMockFileSystem _fileSystem;

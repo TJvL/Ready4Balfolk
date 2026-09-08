@@ -89,6 +89,26 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         await _audio.Received(1).PlayAsync();
     }
 
+    /// <summary>
+    /// The dance loaded ahead and the dance then started have to be the same file. The player only
+    /// plays the stream it is already holding when those two agree, so a next that is worked out
+    /// twice and differently is a head start thrown away in silence.
+    /// </summary>
+    [Fact]
+    public async Task AdvanceAsync_StartsTheTrackItLoadedAhead()
+    {
+        var second = TestData.CreateTrack("Waltz");
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack("Mazurka"), false));
+        _queue.Enqueue(new TrackQueueItem(second, false));
+
+        await _sut.AdvanceAsync();
+        await _sut.AdvanceAsync();
+
+        var uri = new Uri(second.FileInfo.FullName);
+        await _audio.Received(1).PreloadNextAsync(uri);
+        await _audio.Received(1).SelectAsync(uri);
+    }
+
     [Fact]
     public async Task AdvanceAsync_ForAnItemThatIsNoLongerPlaying_IsRefused()
     {
@@ -299,22 +319,42 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     {
         await StartAGapAsync();
 
-        // And the dance that is waiting is loaded again, since clearing took it with it.
-        await _audio.Received().ClearAsync();
-        await _audio.Received(2).PreloadNextAsync(Arg.Any<Uri>());
+        await _audio.Received(1).ClearPlayingAsync();
+    }
+
+    /// <summary>
+    /// The gap is there so that what follows it starts the instant the count runs out. Letting the
+    /// whole player go took the waiting dance's stream with it, and that file was then opened a
+    /// second time for the same start: exactly the cost the gap exists to hide.
+    /// </summary>
+    [Fact]
+    public async Task AdvanceAsync_WithAGapAsked_KeepsTheWaitingDanceLoaded()
+    {
+        var waiting = await StartAGapAsync();
+
+        await _audio.DidNotReceive().ClearAsync();
+        await _audio.DidNotReceive().ClearPreloadAsync();
+
+        // Asked for again, because the queue can have moved while the dance was running. It is the
+        // same file both times, which the player answers by keeping the stream it already has.
+        await _audio.Received(2).PreloadNextAsync(waiting);
+        await _audio.DidNotReceive().PreloadNextAsync(Arg.Is<Uri>(uri => uri != waiting));
     }
 
     /// <summary>Runs a dance out with another waiting, which is what puts a gap on.</summary>
-    private async Task StartAGapAsync()
+    /// <returns>The file of the dance left waiting behind the gap.</returns>
+    private async Task<Uri> StartAGapAsync()
     {
         _settings = _settings with { GapBetweenTracksEnabled = true, GapBetweenTracksSeconds = 5 };
+        var waiting = TestData.CreateTrack(title: "Second");
         _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
-        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(title: "Second"), false));
+        _queue.Enqueue(new TrackQueueItem(waiting, false));
 
         await _sut.AdvanceAsync();
         _playbackEnded.OnNext(RxUnit.Default);
 
         await WaitUntilAsync(() => _sut.CurrentItem is GapQueueItem);
+        return new Uri(waiting.FileInfo.FullName);
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)

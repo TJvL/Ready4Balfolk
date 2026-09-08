@@ -2,7 +2,6 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using AsyncAwaitBestPractices;
 using ManagedBass;
 using ManagedBass.Fx;
 using Ready4Balfolk.Domain.Models.Settings;
@@ -77,7 +76,6 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     public bool IsPlaying => _channel != 0 && Bass.ChannelIsActive(_channel) == PlaybackState.Playing;
     public bool IsPaused => _channel != 0 && Bass.ChannelIsActive(_channel) == PlaybackState.Paused;
     public bool IsStopped => _channel == 0 || Bass.ChannelIsActive(_channel) == PlaybackState.Stopped;
-    public bool AutoAdvance { get; set; } = true;
     public bool IsEqualizerAvailable { get; private set; }
 
     public IObservable<Uri?> WhenSelectedChanged => _selectedChanged.AsObservable();
@@ -102,16 +100,32 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                     FreeChannel();
 
                     var path = source.LocalPath;
-                    _channel = Bass.CreateStream(path);
+                    var preloaded = TakePreloadedChannel(source);
 
-                    if (_channel == 0)
+                    if (preloaded != 0)
                     {
-                        throw new InvalidOperationException(
-                            $"Failed to create stream for '{LogPaths.Name(path)}': {Bass.LastError}");
+                        // Already open, already through its effect chain, and nothing left to read
+                        // from the disk before the first note. This is what the gap between two
+                        // dances is for.
+                        _channel = preloaded;
+                        _ = _loggerService.DebugAsync(
+                            $"Playing the stream preloaded for '{LogPaths.Name(path)}'");
+                    }
+                    else
+                    {
+                        _channel = Bass.CreateStream(path);
+
+                        if (_channel == 0)
+                        {
+                            throw new InvalidOperationException(
+                                $"Failed to create stream for '{LogPaths.Name(path)}': {Bass.LastError}");
+                        }
+
+                        AttachEqualizer(_channel);
+                        _ = _loggerService.DebugAsync($"Opened a stream for '{LogPaths.Name(path)}'");
                     }
 
                     SetupEndSync();
-                    AttachEqualizer(_channel);
                     _selectedChanged.OnNext(source);
 
                     var lengthInBytes = Bass.ChannelGetLength(_channel);
@@ -267,6 +281,24 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         });
     }
 
+    public Task ClearPlayingAsync()
+    {
+        return Task.Run(async () =>
+        {
+            await _semaphore.WaitAsync();
+            try
+            {
+                FreeChannel();
+                _selectedChanged.OnNext(null);
+                _playbackCleared.OnNext(Unit.Default);
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        });
+    }
+
     public Task PreloadNextAsync(Uri source)
     {
         return _bassFailed
@@ -276,6 +308,13 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                 await _semaphore.WaitAsync();
                 try
                 {
+                    if (IsAlreadyPreloaded(source))
+                    {
+                        // The same file, already open and waiting. Freeing it to open it again is
+                        // the head start thrown away and then paid for a second time.
+                        return;
+                    }
+
                     FreePreloadedChannel();
 
                     var path = source.LocalPath;
@@ -288,10 +327,11 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                     }
 
                     // The preloaded stream needs the chain too. Without this every second track
-                    // plays flat, because AdvanceToPreloaded only swaps the handle over.
+                    // plays flat, because selecting it only takes the handle over.
                     AttachEqualizer(_preloadedChannel);
 
                     _preloadedUri = source;
+                    _ = _loggerService.DebugAsync($"Loaded '{LogPaths.Name(path)}' ahead");
                 }
                 finally
                 {
@@ -335,22 +375,6 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                     _semaphore.Release();
                 }
             });
-    }
-
-    public Task NextAsync()
-    {
-        return Task.Run(async () =>
-        {
-            await _semaphore.WaitAsync();
-            try
-            {
-                AdvanceToPreloaded();
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
-        });
     }
 
     ~ManagedBassAudioPlaybackService()
@@ -612,54 +636,37 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         _endSyncHandle = Bass.ChannelSetSync(_channel, SyncFlags.End, 0, OnPlaybackEnded);
     }
 
-    private void OnPlaybackEnded(int handle, int channel, int data, nint user)
-    {
+    private void OnPlaybackEnded(int handle, int channel, int data, nint user) =>
         _playbackEnded.OnNext(Unit.Default);
 
-        if (AutoAdvance && _preloadedChannel != 0)
-        {
-            Task.Run(async () =>
-            {
-                await _semaphore.WaitAsync();
-                try
-                {
-                    AdvanceToPreloaded();
-                }
-                finally
-                {
-                    _semaphore.Release();
-                }
-            }).SafeFireAndForget(exception => _loggerService.ErrorAsync("AdvanceToPreloaded", exception));
-        }
-    }
-
-    private void AdvanceToPreloaded()
+    /// <summary>The stream already open for <paramref name="source" />, or nothing.</summary>
+    /// <remarks>
+    /// Taking it hands the handle over: the slot is empty afterwards, so whoever took it is the
+    /// only thing left that can free it. A stream nobody takes stays in the slot and is freed by a
+    /// preload of some other file, by clearing, or at disposal, because the dance it was opened for
+    /// is usually still the one coming.
+    ///
+    /// The paths are compared exactly rather than as URIs, which match without regard to case: two
+    /// files whose names differ only in case are two files on Linux, and a mismatch here costs one
+    /// stream open where a wrong match would put the wrong music through the hall.
+    /// </remarks>
+    private int TakePreloadedChannel(Uri source)
     {
-        if (_preloadedChannel == 0)
+        if (!IsAlreadyPreloaded(source))
         {
-            return;
+            return 0;
         }
 
-        FreeChannel();
-
-        _channel = _preloadedChannel;
-        var uri = _preloadedUri;
-
+        var channel = _preloadedChannel;
         _preloadedChannel = 0;
         _preloadedUri = null;
-
-        SetupEndSync();
-        _selectedChanged.OnNext(uri);
-
-        var lengthInBytes = Bass.ChannelGetLength(_channel);
-        var lengthInSeconds = Bass.ChannelBytes2Seconds(_channel, lengthInBytes);
-        _durationChanged.OnNext(TimeSpan.FromSeconds(lengthInSeconds));
-
-        if (StartChannel())
-        {
-            _playbackStarted.OnNext(Unit.Default);
-        }
+        return channel;
     }
+
+    /// <summary>Whether the stream waiting in the slot is this exact file's.</summary>
+    private bool IsAlreadyPreloaded(Uri source) =>
+        _preloadedChannel != 0 &&
+        string.Equals(_preloadedUri?.LocalPath, source.LocalPath, StringComparison.Ordinal);
 
     private TimeSpan GetPosition()
     {

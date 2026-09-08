@@ -8,9 +8,10 @@ namespace Ready4Balfolk.Domain.Services.Audio;
 /// The BASS_FX effect handles making up one channel's equalizer.
 /// </summary>
 /// <remarks>
-/// BASS has no mixer here: every track is its own stream and the handle is swapped on advance, so
-/// the chain is built per channel and travels with the handle. Effects are freed with the stream,
-/// so nothing has to be torn down explicitly when a channel goes away.
+/// BASS has no mixer here: every track is its own stream, and a stream opened ahead of time keeps
+/// its handle when it becomes the one playing, so the chain is built per channel and travels with
+/// the handle. Effects are freed with the stream, so nothing has to be torn down explicitly when a
+/// channel goes away.
 /// </remarks>
 internal sealed class EqualizerChain
 {

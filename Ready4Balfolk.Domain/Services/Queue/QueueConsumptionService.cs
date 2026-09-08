@@ -93,9 +93,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             loggerService,
             exception => exception is ObjectDisposedException && _closing);
 
-        // The consumption service manages all advancement, so auto-advance is disabled on audio
-        _audio.AutoAdvance = false;
-
         // Global audio play state subscriptions
         _globalDisposables.Add(
             _audio.WhenPlaybackStarted.Subscribe(_ => _isPlaying.OnNext(true)));
@@ -214,7 +211,10 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         // The dance that just ended is let go here, exactly as a delay lets it go. Left loaded it is
         // still there to be played, and a Restart during the gap put the finished dance back through
         // the hall while every screen said the floor was between two of them.
-        await _audio.ClearAsync();
+        //
+        // Only the finished one. Letting everything go took the coming dance's stream with it, so
+        // the gap threw away the head start it exists to give and opened that file a second time.
+        await _audio.ClearPlayingAsync();
 
         _itemFinishedNaturally = false;
         _currentItemStartedAt = _time.GetLocalNow().DateTime;
@@ -222,8 +222,9 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _currentItem.OnNext(new GapQueueItem(gap));
         StartCountdown(gap);
 
-        // Clearing takes the coming dance's preloaded stream with it, so it is loaded again: the
-        // whole point of the gap is that what follows it starts the moment it runs out.
+        // Read again, because the queue can have been reordered while the dance was running and
+        // what follows the gap is then a different file. Asking for the one already waiting keeps
+        // the stream it has, so this costs nothing when nobody moved anything.
         PreloadNext();
     }
 

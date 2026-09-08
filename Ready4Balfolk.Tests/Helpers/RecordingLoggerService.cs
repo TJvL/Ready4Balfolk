@@ -12,6 +12,7 @@ namespace Ready4Balfolk.Tests.Helpers;
 internal sealed class RecordingLoggerService : ILoggerService, IDisposable
 {
     private readonly List<LogEntry> _errors = [];
+    private readonly List<string> _debug = [];
     private readonly SemaphoreSlim _reported = new(0);
 
     /// <summary>How many reports have been handed out by <see cref="NextErrorAsync" />.</summary>
@@ -60,7 +61,27 @@ internal sealed class RecordingLoggerService : ILoggerService, IDisposable
 
     public Task LogAsync(LogLevel logLevel, string message) => Task.CompletedTask;
 
-    public Task DebugAsync(string message) => Task.CompletedTask;
+    /// <summary>Every debug line, in the order it was written.</summary>
+    public IReadOnlyList<string> Debug
+    {
+        get
+        {
+            lock (_debug)
+            {
+                return [.. _debug];
+            }
+        }
+    }
+
+    public Task DebugAsync(string message)
+    {
+        lock (_debug)
+        {
+            _debug.Add(message);
+        }
+
+        return Task.CompletedTask;
+    }
 
     public Task InfoAsync(string message) => Task.CompletedTask;
 
