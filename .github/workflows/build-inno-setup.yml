@@ -39,3 +39,5 @@ jobs:
         with:
           name: Ready4Balfolk-win-x64-setup
           path: installer-output/*.exe
+          # The release attaches it in the same run; on a pull request nothing reads it at all.
+          retention-days: 7
