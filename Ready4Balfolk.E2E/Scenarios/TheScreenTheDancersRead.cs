@@ -269,4 +269,37 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
                 "the screen to come down");
         });
     }
+
+    /// <summary>A screen still comes up when the setting that asked for it arrived off the UI thread.</summary>
+    /// <remarks>
+    /// World: a library of one dance, and no screen up yet.
+    /// Steps: raise the setting the way the equalizer and the embedded web server really do, from a
+    /// thread of their own, rather than through a click.
+    /// Sees: the screen comes up all the same. Window creation is Avalonia's, not the scenario's, so
+    /// this is what would have thrown or wedged the dispatcher before the settings observer moved
+    /// the work back onto the UI thread.
+    /// </remarks>
+    [Fact]
+    public async Task AScreenStillComesUpWhenTheSettingArrivesOffTheUiThread()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                PresentationDisplayCount = 0
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await RunningApplication.ASettingChangesFromABackgroundThread(
+                settings => settings with { PresentationDisplayCount = 1 });
+
+            await application.WaitUntil(
+                () => application.ScreensShowing() == 1,
+                "the screen raised from a background thread to come up");
+        });
+    }
 }

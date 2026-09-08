@@ -7,11 +7,14 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Stores.Dances;
+using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI;
 
 namespace Ready4Balfolk.E2E;
@@ -552,6 +555,18 @@ public sealed class RunningApplication : IAsyncDisposable
         Settle();
     }
 
+    /// <summary>Changes a setting the way the equalizer and the web server do: off the UI thread.</summary>
+    /// <remarks>
+    /// Neither of those publishes from a click, so a scenario reaching for the store directly, on a
+    /// thread of its own, is the only way to raise a settings change the way they really do.
+    /// </remarks>
+    public static async Task ASettingChangesFromABackgroundThread(
+        Func<ApplicationSettings, ApplicationSettings> change)
+    {
+        var store = App.Services.GetRequiredService<ISettingsStore>();
+        await Task.Run(() => store.UpdateAsync(change));
+    }
+
     /// <summary>Clicks whatever carries this automation id.</summary>
     public void Click(string automationId) => Click(Find(automationId));
 
@@ -631,6 +646,15 @@ public sealed class RunningApplication : IAsyncDisposable
 
     /// <summary>How many screens the application has up for the room.</summary>
     public int ScreensShowing() => _startup.PresentationWindows.Count;
+
+    /// <summary>The theme the application actually has applied, not what the setting asks for.</summary>
+    /// <remarks>
+    /// <c>App.ApplyTheme</c> is what turns a setting into this: it sets
+    /// <see cref="Application.RequestedThemeVariant"/>, which is what restyles every window
+    /// already open. Reading that back, rather than the setting, is what makes a scenario prove the
+    /// subscription ran rather than merely that the store holds the new value.
+    /// </remarks>
+    public static ThemeVariant CurrentTheme() => Application.Current!.RequestedThemeVariant ?? ThemeVariant.Default;
 
     /// <summary>Every window the application has open, which is where a control may be.</summary>
     /// <remarks>
