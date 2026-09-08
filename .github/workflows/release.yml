@@ -1,5 +1,8 @@
 name: Release
 
+permissions:
+  contents: read
+
 # Never two releases at once, and never cancel one part-way: a half-published release leaves
 # artifacts on a tag that no longer matches what the workflow was building.
 concurrency:
@@ -81,7 +84,7 @@ jobs:
           path: artifacts
 
       - name: Create Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           tag_name: v${{ inputs.version }}
           name: Release ${{ inputs.version }}
