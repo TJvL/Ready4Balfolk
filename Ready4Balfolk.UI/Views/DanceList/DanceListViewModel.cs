@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO.Abstractions;
 using System.Linq;
@@ -54,9 +55,11 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
 
     [Reactive] public partial string SearchText { get; set; }
 
-    [Reactive] public partial IReadOnlyList<TagChipViewModel> Tags { get; private set; }
+    /// <summary>The rail, kept rather than drawn again: see <see cref="IKeepsItsPlace"/>.</summary>
+    public ObservableCollection<TagChipViewModel> Tags { get; } = [];
 
-    [Reactive] public partial IReadOnlyList<DanceCardViewModel> Dances { get; private set; }
+    /// <summary>The cards, kept rather than drawn again: see <see cref="IKeepsItsPlace"/>.</summary>
+    public ObservableCollection<DanceCardViewModel> Dances { get; } = [];
 
     /// <summary>What a random pick is scoped to, said out loud.</summary>
     [Reactive] public partial string PoolDescription { get; private set; }
@@ -97,8 +100,6 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         _fileSystem = fileSystem;
 
         SearchText = string.Empty;
-        Tags = [];
-        Dances = [];
         PoolDescription = UiStrings.DanceList_PoolEverything;
         SummaryText = string.Empty;
         OriginText = string.Empty;
@@ -108,8 +109,8 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
             .ToProperty(this, x => x.IsLoading);
         _isLoadingHelper.DisposeWith(_disposables);
 
-        // The rail and the cards are rebuilt from whichever of the four changed: the list itself,
-        // the pool, what the user typed, or the tracks that decide a card's count.
+        // The rail and the cards are brought up to date from whichever of the four changed: the
+        // list itself, the pool, what the user typed, or the tracks that decide a card's count.
         var lists = store.Observe();
         var pools = pool.Observe();
         var searches = this.WhenAnyValue(x => x.SearchText)
@@ -122,7 +123,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
 
         lists.CombineLatest(pools, searches, tracks, (list, selection, search, _) => (list, selection, search))
             .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(x => Rebuild(x.list, x.selection, x.search))
+            .Subscribe(x => Refresh(x.list, x.selection, x.search))
             .DisposeWith(_disposables);
 
         store.ObserveStatus()
@@ -229,7 +230,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private void Rebuild(DanceListModel list, DancePoolSelection selection, string search)
+    private void Refresh(DanceListModel list, DancePoolSelection selection, string search)
     {
         var folded = StringNormalizer.Normalize(search);
         var inPool = selection.Tags.ToHashSet(StringComparer.Ordinal);
@@ -246,26 +247,29 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         var matching = list.WithAnyTag(selection.Tags)
             .Where(dance => !excluded.Any(dance.HasTag))
             .Where(dance => Matches(dance, folded))
+            .OrderBy(dance => dance.DisplayName, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
-        Dances =
-        [
-            .. matching
-                .OrderBy(dance => dance.DisplayName, StringComparer.CurrentCultureIgnoreCase)
-                .Select(dance => new DanceCardViewModel(dance, trackCounts.GetValueOrDefault(dance.Slug)))
-        ];
+        BringUpToDate(
+            Dances,
+            matching,
+            dance => dance.Slug,
+            dance => new DanceCardViewModel(dance, trackCounts.GetValueOrDefault(dance.Slug)),
+            (card, dance) => card.Show(dance, trackCounts.GetValueOrDefault(dance.Slug)));
 
         var reachable = matching.SelectMany(dance => dance.Tags).ToHashSet(StringComparer.Ordinal);
         var counts = list.Tags.ToDictionary(tag => tag, list.CountOf, StringComparer.Ordinal);
         var largest = counts.Count == 0 ? 1 : counts.Values.Max();
+        var rail = list.Tags.OrderBy(tag => tag, StringComparer.Ordinal).ToList();
 
-        Tags =
-        [
-            .. list.Tags
-                .OrderBy(tag => tag, StringComparer.Ordinal)
-                .Select(tag => new TagChipViewModel(
-                    tag, counts[tag], largest, inPool.Contains(tag), excluded.Contains(tag), reachable.Contains(tag)))
-        ];
+        BringUpToDate(
+            Tags,
+            rail,
+            tag => tag,
+            tag => new TagChipViewModel(
+                tag, counts[tag], largest, inPool.Contains(tag), excluded.Contains(tag), reachable.Contains(tag)),
+            (chip, tag) => chip.Show(
+                counts[tag], largest, inPool.Contains(tag), excluded.Contains(tag), reachable.Contains(tag)));
 
         HasPool = !selection.IsEverything;
         var drawable = list.WithAnyTag(selection.Tags).Count(dance => !excluded.Any(dance.HasTag));
@@ -285,6 +289,53 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
 
         SummaryText = string.Format(
             CultureInfo.CurrentCulture, UiStrings.DanceList_Summary, Dances.Count, list.Dances.Count);
+    }
+
+    /// <summary>Matches what is showing to what should be, keeping whatever is still wanted.</summary>
+    /// <remarks>
+    /// Keyed rather than rebuilt, which is the whole of why the panel is written this way: see
+    /// <see cref="IKeepsItsPlace"/>. What is gone goes, what is new is built where it belongs, and
+    /// everything else is told what it says now. Whatever is already where it belongs keeps the
+    /// control it is drawn as; whatever has to move is drawn again where it lands, because that is
+    /// what Avalonia does with an item that changes index, and the view puts the keyboard back.
+    /// </remarks>
+    private static void BringUpToDate<TShown, TWanted>(
+        ObservableCollection<TShown> showing,
+        IReadOnlyList<TWanted> wanted,
+        Func<TWanted, string> keyOf,
+        Func<TWanted, TShown> build,
+        Action<TShown, TWanted> tell)
+        where TShown : IKeepsItsPlace
+    {
+        var keys = wanted.Select(keyOf).ToHashSet(StringComparer.Ordinal);
+
+        for (var index = showing.Count - 1; index >= 0; index--)
+        {
+            if (!keys.Contains(showing[index].Key))
+            {
+                showing.RemoveAt(index);
+            }
+        }
+
+        var kept = showing.ToDictionary(shown => shown.Key, StringComparer.Ordinal);
+
+        for (var index = 0; index < wanted.Count; index++)
+        {
+            var one = wanted[index];
+            if (!kept.TryGetValue(keyOf(one), out var already))
+            {
+                showing.Insert(index, build(one));
+                continue;
+            }
+
+            tell(already, one);
+
+            var at = showing.IndexOf(already);
+            if (at != index)
+            {
+                showing.Move(at, index);
+            }
+        }
     }
 
     private static bool Matches(Dance dance, string foldedSearch) =>
