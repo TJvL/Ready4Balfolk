@@ -36,6 +36,16 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
+        // The rules panel hangs over this view but is not part of it: it owns its own boxes,
+        // checkbox and buttons, so a key that started there belongs to it, never to the queue
+        // underneath. Checked before anything else, because the queue's keys reach from Tab to
+        // Ctrl+Z and every one of them would otherwise be claimed here first and never reach the
+        // panel.
+        if (e.Source is Visual source && (source == RulesPanel || RulesPanel.IsVisualAncestorOf(source)))
+        {
+            return;
+        }
+
         if (ViewModel is not { Selected: { } selected })
         {
             return;
