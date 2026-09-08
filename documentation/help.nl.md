@@ -251,6 +251,7 @@ Waar de avond begint en waar hij eindigt staan als regels in de lijst.
 - **Naar wachtrij**: terug naar de wachtrijweergave
 - **Welke avond**: vanavond, of een avond die is opgeborgen. De rest van deze werkbalk werkt op de avond waar je naar kijkt.
 - **Geschiedenis exporteren**: bewaart die avond als JSON. Handig als verslag van een avond. Er staan de dansen, artiesten, titels en tijden in, en niet waar de bestanden op je schijf staan, dus je kunt het zo aan een organisator geven.
+- **Rapport**: bewaart die avond als document in plaats van als gegevens. Het is een RTF-bestand, dat elke tekstverwerker opent, met een kop voor de avond en de artiest, titel en tijd van elk nummer dat gedraaid is, in de volgorde waarin ze gedraaid zijn. Dat is wat een auteursrechtenorganisatie vraagt, en niemand daar hoort JSON te moeten lezen om het te vinden.
 - **Nieuwe avond**: bewaart deze avond en begint een nieuwe (met bevestiging). Er wordt niets verwijderd: de avond wordt opgeborgen en de geschiedenis begint leeg. Handig na een soundcheck, of op een avond die niet met het eindsignaal is afgesloten.
 - **Verwijderen**: gooit die avond weg (met bevestiging). Dit kan niet ongedaan worden gemaakt, en zo blijft het bestand een omvang die iemand gekozen heeft.
 

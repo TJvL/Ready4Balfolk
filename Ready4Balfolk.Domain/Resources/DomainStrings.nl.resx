@@ -122,4 +122,18 @@
   <data name="Audio_OutputGone" xml:space="preserve">
     <value>Er komt geen geluid uit: het audioapparaat is weg. Controleer de kabel en druk daarna opnieuw op afspelen.</value>
   </data>
+
+  <!-- The night written out for a rights organisation -->
+  <data name="NightReport_Heading" xml:space="preserve">
+    <value>Balfolkavond</value>
+  </data>
+  <data name="NightReport_TimeColumn" xml:space="preserve">
+    <value>Tijd</value>
+  </data>
+  <data name="NightReport_ArtistColumn" xml:space="preserve">
+    <value>Artiest</value>
+  </data>
+  <data name="NightReport_TitleColumn" xml:space="preserve">
+    <value>Titel</value>
+  </data>
 </root>

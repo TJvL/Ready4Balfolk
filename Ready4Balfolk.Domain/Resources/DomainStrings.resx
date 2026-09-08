@@ -122,4 +122,18 @@
   <data name="Audio_OutputGone" xml:space="preserve">
     <value>No sound is coming out: the audio device is gone. Check the cable, then press play again.</value>
   </data>
+
+  <!-- The night written out for a rights organisation -->
+  <data name="NightReport_Heading" xml:space="preserve">
+    <value>Balfolk evening</value>
+  </data>
+  <data name="NightReport_TimeColumn" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="NightReport_ArtistColumn" xml:space="preserve">
+    <value>Artist</value>
+  </data>
+  <data name="NightReport_TitleColumn" xml:space="preserve">
+    <value>Title</value>
+  </data>
 </root>

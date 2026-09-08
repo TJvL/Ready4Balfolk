@@ -181,6 +181,9 @@
   <data name="HistoryToolbar_ExportLabel" xml:space="preserve">
     <value>Export</value>
   </data>
+  <data name="HistoryToolbar_ExportReportLabel" xml:space="preserve">
+    <value>Report</value>
+  </data>
   <data name="HistoryToolbar_NewNightLabel" xml:space="preserve">
     <value>New night</value>
   </data>
@@ -566,6 +569,9 @@
   <data name="HistoryToolbar_ExportHistory" xml:space="preserve">
     <value>Export history</value>
   </data>
+  <data name="HistoryToolbar_ExportReport" xml:space="preserve">
+    <value>Export a report of the tracks played</value>
+  </data>
   <data name="HistoryToolbar_NewNight" xml:space="preserve">
     <value>Start a new night</value>
   </data>
@@ -595,6 +601,9 @@
   </data>
   <data name="HistoryToolbar_ExportTitle" xml:space="preserve">
     <value>Export History</value>
+  </data>
+  <data name="HistoryToolbar_ExportReportTitle" xml:space="preserve">
+    <value>Export Report</value>
   </data>
 
   <!-- Playback -->
@@ -1543,6 +1552,9 @@ It holds {2} tracks in the library.</value>
   </data>
   <data name="HistoryToolbar_ExportFailed" xml:space="preserve">
     <value>Failed to export queue history</value>
+  </data>
+  <data name="HistoryToolbar_ExportReportFailed" xml:space="preserve">
+    <value>Failed to export the report of the tracks played</value>
   </data>
   <data name="Toolbar_DisplayAddressFailed" xml:space="preserve">
     <value>Failed to show the display address</value>

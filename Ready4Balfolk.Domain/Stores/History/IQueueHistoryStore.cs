@@ -45,4 +45,11 @@ public interface IQueueHistoryStore : ILoadableStore, IDisposable
 
     /// <summary>Writes one night out as JSON, whether it is running or filed.</summary>
     Task ExportAsync(long nightId, string destinationPath);
+
+    /// <summary>Writes one night out as a document somebody reads, rather than as data.</summary>
+    /// <remarks>
+    /// A rights organisation is told which tracks were played on an evening, and JSON is not an
+    /// answer to that question anybody outside this application should have to read.
+    /// </remarks>
+    Task ExportReportAsync(long nightId, string destinationPath);
 }
