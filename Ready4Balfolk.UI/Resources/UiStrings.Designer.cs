@@ -54,6 +54,9 @@ public static class UiStrings
     public static string Playback_ClearLabel =>
         ResourceManager.GetString("Playback_ClearLabel", Culture)!;
 
+    public static string Playback_NoTrackPlaceholder =>
+        ResourceManager.GetString("Playback_NoTrackPlaceholder", Culture)!;
+
     public static string QueueToolbar_HistoryLabel =>
         ResourceManager.GetString("QueueToolbar_HistoryLabel", Culture)!;
 
@@ -601,6 +604,9 @@ public static class UiStrings
     // Presentation
     public static string Presentation_WindowTitle =>
         ResourceManager.GetString("Presentation_WindowTitle", Culture)!;
+
+    public static string Presentation_WindowTitleDefault =>
+        ResourceManager.GetString("Presentation_WindowTitleDefault", Culture)!;
 
     public static string Presentation_NoTrackPlaying =>
         ResourceManager.GetString("Presentation_NoTrackPlaying", Culture)!;

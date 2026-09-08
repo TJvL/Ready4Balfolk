@@ -366,7 +366,7 @@
                             <!-- A refusal has to be seen rather than explained: a keystroke that
                                  does nothing reads as one that never arrived. -->
                             <Border Classes.rejected="{Binding IsRejected}"
-                                    Background="#FFE03A3A"
+                                    Background="{DynamicResource ReviewRejectedBrush}"
                                     CornerRadius="4"
                                     Margin="0,0,0,6"
                                     Opacity="0"

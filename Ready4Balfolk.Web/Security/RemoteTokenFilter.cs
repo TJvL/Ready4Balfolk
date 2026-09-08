@@ -7,9 +7,10 @@ namespace Ready4Balfolk.Web.Security;
 /// <summary>Checks on every command that the phone sending it is still let in.</summary>
 /// <remarks>
 /// <para>
-/// A socket is checked when it opens and then never again, so a phone that was connected when the
-/// PIN changed kept a working remote: the whole point of generating a new PIN is that the helper
-/// who had the old one is turned out, and that has to hold for the connection they already have.
+/// A socket is checked when it opens and then never again, so without this a phone keeps a working
+/// remote for as long as it holds the connection. A PIN change closes those sockets itself, which
+/// leaves this the check that catches a token running out under a phone nobody has touched:
+/// nothing re-applies the settings when twelve hours simply pass.
 /// </para>
 /// <para>
 /// The token is told it is finished before the connection goes, because a remote that quietly stops

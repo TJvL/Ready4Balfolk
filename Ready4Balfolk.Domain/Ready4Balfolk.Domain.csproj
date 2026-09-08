@@ -18,6 +18,13 @@
     </ItemGroup>
 
     <ItemGroup>
+      <!--The audio internals are internal because they are how the playback service shapes a BASS
+          channel rather than a surface anything else calls: the effect chain, and the raw stream
+          handles a test needs so it can ask BASS what was actually done to those streams.-->
+      <InternalsVisibleTo Include="Ready4Balfolk.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
       <EmbeddedResource Update="Resources\DomainStrings.resx">
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>DomainStrings.Designer.cs</LastGenOutput>

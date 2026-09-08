@@ -40,17 +40,26 @@ public sealed class RemoteAccessService(TimeProvider? timeProvider = null)
     public bool IsEnabled { get; private set; }
 
     /// <summary>Applies the current settings, dropping every issued token if the PIN changed.</summary>
-    public void Configure(bool enabled, string pin)
+    /// <returns>
+    /// Whether the tokens were dropped, which is the caller's cue to close the sockets that were
+    /// opened with them. Clearing the dictionary only stops the next command being let through:
+    /// a phone that sends nothing goes on being pushed the queue until it happens to press
+    /// something, and getting that phone out is why the PIN was changed.
+    /// </returns>
+    public bool Configure(bool enabled, string pin)
     {
         var pinChanged = !string.Equals(_pin, pin, StringComparison.Ordinal);
         IsEnabled = enabled;
         _pin = pin;
 
-        if (pinChanged || !enabled)
+        if (!pinChanged && enabled)
         {
-            _tokens.Clear();
-            _attempts.Clear();
+            return false;
         }
+
+        _tokens.Clear();
+        _attempts.Clear();
+        return true;
     }
 
     /// <summary>Generates a PIN. Six digits, from a cryptographic source rather than Random.</summary>

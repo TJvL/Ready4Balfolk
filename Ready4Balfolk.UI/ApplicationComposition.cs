@@ -147,7 +147,11 @@ public static class ApplicationComposition
         }
     }
 
-    private static void ConfigureServices(IServiceCollection services, ApplicationOptions options)
+    /// <summary>
+    /// Internal rather than private so a test can build the real registrations against a plain
+    /// <see cref="IServiceCollection"/>, without an Avalonia platform to run them on.
+    /// </summary>
+    internal static void ConfigureServices(IServiceCollection services, ApplicationOptions options)
     {
         // Services
         // The clock, everywhere it decides something: the cutoff and its grace, when an item
@@ -200,6 +204,7 @@ public static class ApplicationComposition
         services.AddSingleton<ILibraryIndex, SqliteLibraryIndex>();
         services.AddSingleton<IFileSystem>(new FileSystem());
         services.AddSingleton<TrackEditorService>();
+        services.AddSingleton<ITrackEditorService>(sp => sp.GetRequiredService<TrackEditorService>());
         services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<IPresentationStateService, PresentationStateService>();

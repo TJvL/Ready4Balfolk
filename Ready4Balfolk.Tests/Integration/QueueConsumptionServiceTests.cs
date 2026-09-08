@@ -485,8 +485,12 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(title: "Second"), false));
 
         await _sut.AdvanceAsync();
+
+        // The advance a finished dance asks for is put on the queue's own scheduler, which this
+        // fixture runs inline, so the evening has moved on by the time this returns. Waiting a
+        // fixed fifth of a second for it instead is the assertion with a margin on it, and the
+        // margin is what a loaded build agent eats.
         _playbackEnded.OnNext(RxUnit.Default);
-        await Task.Delay(200, TestContext.Current.CancellationToken);
 
         // The floor's moment: the gap is what is playing, so every screen can draw it, and the
         // coming dance is still in the queue rather than taken out of it.
@@ -505,7 +509,6 @@ public sealed class QueueConsumptionServiceTests : IDisposable
 
         await _sut.AdvanceAsync();
         _playbackEnded.OnNext(RxUnit.Default);
-        await Task.Delay(200, TestContext.Current.CancellationToken);
 
         Assert.NotNull(_sut.CurrentItem);
         Assert.Equal(0, _queue.Count);

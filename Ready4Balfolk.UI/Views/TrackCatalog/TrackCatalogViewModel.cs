@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -24,7 +25,7 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
 {
     private readonly IQueueService _queueService;
     private readonly INotificationService _notificationService;
-    private readonly TrackEditorService _trackEditor;
+    private readonly ITrackEditorService _trackEditor;
     private readonly CompositeDisposable _disposables = [];
     private readonly ReadOnlyObservableCollection<TrackViewModel> _tracks;
 
@@ -105,8 +106,15 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
         }
     }
 
+    /// <remarks>
+    /// <c>searchScheduler</c> is where the three tenths of a second between the last keystroke and
+    /// the filter are counted. Real time unless a caller says otherwise, and only a test does:
+    /// sleeping past a real throttle is the failure that passes on a quiet machine and fails on a
+    /// busy one.
+    /// </remarks>
     public TrackCatalogViewModel(ITrackStore trackStore, IQueueService queueService,
-        INotificationService notificationService, TrackEditorService trackEditor, ISettingsStore settingsStore)
+        INotificationService notificationService, ITrackEditorService trackEditor,
+        ISettingsStore settingsStore, IScheduler? searchScheduler = null)
     {
         _queueService = queueService;
         _notificationService = notificationService;
@@ -121,7 +129,7 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
         // Shared, so the filter and the sentence below react to one and the same typed term at one
         // and the same moment instead of running two throttles that can land in either order.
         var searchObservable = this.WhenAnyValue(x => x.SearchText)
-            .Throttle(TimeSpan.FromMilliseconds(300))
+            .Throttle(TimeSpan.FromMilliseconds(300), searchScheduler ?? DefaultScheduler.Instance)
             .DistinctUntilChanged()
             .Publish()
             .RefCount();

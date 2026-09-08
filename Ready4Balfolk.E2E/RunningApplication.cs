@@ -34,8 +34,8 @@ public sealed class RunningApplication : IAsyncDisposable
 
     /// <summary>How long something has to stay true to count as settled rather than as a flicker.</summary>
     /// <remarks>
-    /// Longer than the slowest throttle a panel is fed through, which is a quarter of a second, so
-    /// a pass that is already on its way has landed before this answers.
+    /// Longer than the slowest throttle a panel is fed through, which is three tenths of a second,
+    /// so a pass that is already on its way has landed before this answers.
     /// </remarks>
     private static readonly TimeSpan HoldsFor = TimeSpan.FromMilliseconds(400);
 
@@ -527,6 +527,20 @@ public sealed class RunningApplication : IAsyncDisposable
     public void TheWindowIsThisWide(double width)
     {
         Window.Width = width;
+        Settle();
+    }
+
+    /// <summary>Moves and resizes the window, the way a DJ does over the course of an evening.</summary>
+    /// <remarks>
+    /// A size and a place the world did not lay down, so what is written down at closing time can
+    /// only have come from the window. Asserting what the run seeded is green whether or not
+    /// anything ever read the window.
+    /// </remarks>
+    public void TheDjMovesAndResizesTheWindow(PixelPoint to, double width, double height)
+    {
+        Window.Position = to;
+        Window.Width = width;
+        Window.Height = height;
         Settle();
     }
 

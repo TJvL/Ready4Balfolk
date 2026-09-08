@@ -19,6 +19,7 @@ namespace Ready4Balfolk.Web.Hubs;
 public sealed class RemoteHub(
     PresentationBroadcaster broadcaster,
     RemoteAccessService access,
+    RemoteConnections connections,
     IRemoteCommandDispatcher dispatcher,
     IQueueService queueService,
     IQueueConsumptionService consumptionService,
@@ -51,6 +52,11 @@ public sealed class RemoteHub(
     private const int MaxMessageLength = 60;
 
     /// <summary>Rejects the connection outright unless it carries a token issued for the PIN.</summary>
+    /// <remarks>
+    /// A socket that is let in is also remembered, because a PIN change has to reach the phones
+    /// that are already connected and not only the commands they send. Remembering it can find it
+    /// already shut out, when a new PIN landed in the moment between the two.
+    /// </remarks>
     public override async Task OnConnectedAsync()
     {
         if (!access.IsTokenValid(RemoteTokenFilter.TokenOf(Context)))
@@ -60,9 +66,28 @@ public sealed class RemoteHub(
             return;
         }
 
+        if (!await connections.AddAsync(Context))
+        {
+            // A new PIN landed between the check above and the socket being registered. It has
+            // already been told and closed there, and drawing the evening onto it now would be
+            // pushing the queue at a phone that has just been shut out.
+            return;
+        }
+
         await Clients.Caller.SendAsync(DisplayHub.SnapshotMethod, broadcaster.Latest);
         await Clients.Caller.SendAsync(QueueMethod, broadcaster.QueueSnapshot);
         await base.OnConnectedAsync();
+    }
+
+    /// <summary>Forgets a phone that has gone, however it went.</summary>
+    /// <remarks>
+    /// Runs for a socket that was closed from this end as well as for one that simply dropped, so
+    /// a phone a new PIN turned out leaves nothing behind for the next one to walk over.
+    /// </remarks>
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        connections.Remove(Context);
+        return base.OnDisconnectedAsync(exception);
     }
 
     /// <summary>Holds what is on, and starts the evening when nothing is on at all.</summary>

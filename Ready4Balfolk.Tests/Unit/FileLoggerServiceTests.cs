@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
 using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Tests.Unit;
@@ -85,6 +86,41 @@ public sealed class FileLoggerServiceTests : IDisposable
         var onDisk = await File.ReadAllTextAsync(
             Path.Combine(_directory.FullName, "app.log"), TestContext.Current.CancellationToken);
         Assert.Contains(path, onDisk, StringComparison.Ordinal);
+    }
+
+    /// <summary>A logger built on a fake file system must never fall back to the real disk.</summary>
+    /// <remarks>
+    /// The constructor takes the directory apart to build <c>_logFile</c>, but a write that goes
+    /// through the static <see cref="File"/> instead of <c>_logFile.FileSystem.File</c>
+    /// lands on whatever file system that static class actually is: the real one, regardless of what
+    /// was injected.
+    /// </remarks>
+    [Fact]
+    public async Task LogAsync_WritesThroughTheInjectedFileSystemNotTheRealDisk()
+    {
+        var mock = new MockFileSystem();
+        var directoryPath = Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}");
+        mock.Directory.CreateDirectory(directoryPath);
+        Directory.CreateDirectory(directoryPath);
+        try
+        {
+            var directory = mock.DirectoryInfo.New(directoryPath);
+            using var logger = new FileLoggerService(directory);
+
+            await logger.InfoAsync("written through the mock");
+
+            var logPath = Path.Combine(directoryPath, "app.log");
+            Assert.True(mock.File.Exists(logPath));
+            Assert.Contains(
+                "written through the mock", mock.File.ReadAllText(logPath), StringComparison.Ordinal);
+            Assert.False(
+                File.Exists(logPath),
+                "A logger given a fake file system must never touch the real disk.");
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
     }
 
     public void Dispose()

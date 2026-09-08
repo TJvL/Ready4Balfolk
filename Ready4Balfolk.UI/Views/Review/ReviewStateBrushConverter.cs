@@ -1,5 +1,7 @@
 using System;
 using System.Globalization;
+using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 
@@ -16,25 +18,26 @@ public sealed class ReviewStateBrushConverter : IValueConverter
 {
     public static readonly ReviewStateBrushConverter Instance = new();
 
-    private static readonly IBrush Answered = Brushes.MediumSeaGreen;
-    private static readonly IBrush Parked = Brushes.Goldenrod;
     private static readonly IBrush Waiting = Brushes.Transparent;
-
-    /// <summary>The whole row is filled, because a bar down its edge is not something you see.</summary>
-    private static readonly IBrush AnsweredFill = new SolidColorBrush(Colors.MediumSeaGreen, 0.28);
-    private static readonly IBrush ParkedFill = new SolidColorBrush(Colors.Goldenrod, 0.28);
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var filling = string.Equals(parameter as string, "fill", StringComparison.Ordinal);
+        var key = ResourceKeyFor(value as ReviewRowState?, filling);
 
-        return value switch
-        {
-            ReviewRowState.Answered => filling ? AnsweredFill : Answered,
-            ReviewRowState.Parked => filling ? ParkedFill : Parked,
-            _ => Waiting
-        };
+        return key != null
+               && Application.Current!.TryFindResource(key, Application.Current?.ActualThemeVariant, out var resource)
+            ? (IBrush)resource!
+            : Waiting;
     }
+
+    /// <summary>The App.axaml brush key for a row's state, or null for a row nobody has touched.</summary>
+    internal static string? ResourceKeyFor(ReviewRowState? state, bool filling) => state switch
+    {
+        ReviewRowState.Answered => filling ? "ReviewAnsweredFillBrush" : "ReviewAnsweredBrush",
+        ReviewRowState.Parked => filling ? "ReviewParkedFillBrush" : "ReviewParkedBrush",
+        _ => null
+    };
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();

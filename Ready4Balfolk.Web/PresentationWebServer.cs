@@ -102,8 +102,14 @@ public sealed class PresentationWebServer(
                 return;
             }
 
-            // The PIN and the remote switch are read live, so they never need a restart.
-            _access.Configure(options.RemoteControlEnabled, options.RemoteControlPin);
+            // The PIN and the remote switch are read live, so they never need a restart. What a
+            // dropped token does not do on its own is close the socket it opened, and the phone
+            // the DJ wanted out is the one that sends nothing and only watches.
+            if (_access.Configure(options.RemoteControlEnabled, options.RemoteControlPin) && _app is not null)
+            {
+                await _app.Services.GetRequiredService<RemoteConnections>()
+                    .TurnOutStaleAsync().ConfigureAwait(false);
+            }
 
             if (!options.Enabled)
             {
@@ -168,6 +174,7 @@ public sealed class PresentationWebServer(
                 host.ShutdownTimeout = TimeSpan.FromSeconds(2));
 
             builder.Services.AddSingleton<RemoteTokenFilter>();
+            builder.Services.AddSingleton<RemoteConnections>();
             builder.Services
                 .AddSignalR()
                 // Every command from a phone, not only the socket it arrives on: a PIN change has

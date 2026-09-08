@@ -70,6 +70,9 @@
   <data name="Playback_ClearLabel" xml:space="preserve">
     <value>Wissen</value>
   </data>
+  <data name="Playback_NoTrackPlaceholder" xml:space="preserve">
+    <value>...</value>
+  </data>
   <data name="QueueToolbar_HistoryLabel" xml:space="preserve">
     <value>Geschiedenis</value>
   </data>
@@ -628,6 +631,9 @@
   <!-- Presentation -->
   <data name="Presentation_WindowTitle" xml:space="preserve">
     <value>Presentatiescherm {0}</value>
+  </data>
+  <data name="Presentation_WindowTitleDefault" xml:space="preserve">
+    <value>Presentatiescherm</value>
   </data>
   <data name="Presentation_NoTrackPlaying" xml:space="preserve">
     <value>Geen nummer aan het afspelen</value>

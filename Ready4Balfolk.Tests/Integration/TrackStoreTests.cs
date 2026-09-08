@@ -877,14 +877,34 @@ public sealed class TrackStoreTests : IDisposable
         // serialised is exactly the question of whether it can get past this while the load holds it.
         var loadIsInside = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseTheLoad = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var readFromBehindTheGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var loadHoldsTheGate = false;
         var rebuildRan = false;
 
         _libraryIndex.DeleteMissingAsync(
                 Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
             .Returns(async _ =>
             {
+                Volatile.Write(ref loadHoldsTheGate, true);
                 loadIsInside.TrySetResult();
                 await releaseTheLoad.Task;
+            });
+
+        // Reading the index is a rebuild's first act once it is past the gate, so a read arriving
+        // while the load is still holding it is the interleaving itself, reported the instant it
+        // happens rather than deduced afterwards from a wait.
+        _libraryIndex.SnapshotByPathAsync(Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                if (Volatile.Read(ref loadHoldsTheGate))
+                {
+                    readFromBehindTheGate.TrySetResult();
+                }
+
+                lock (_indexSnapshot)
+                {
+                    return new Dictionary<string, LibraryEntry>(_indexSnapshot, StringComparer.Ordinal);
+                }
             });
 
         // Not awaited: the point is to ask for a rebuild while this load is still inside the gate.
@@ -897,11 +917,21 @@ public sealed class TrackStoreTests : IDisposable
             rebuildRan = true;
         }, TestContext.Current.CancellationToken);
 
-        // Long enough that an ungated rebuild would have finished: it opens no files and reads one
-        // in-memory snapshot. Before the gate, this assertion failed.
-        await Task.Delay(250, TestContext.Current.CancellationToken);
+        // The one wait, and it is an answer rather than a margin: it ends the moment a read comes
+        // through from behind the gate, so an ungated rebuild fails this the instant it gets that
+        // far, however slow the machine is and however late the thread pool starts the work item.
+        // Only a run where nothing ever came through waits the second out, which is what "nothing
+        // came through" means, and a run whose rebuild never started at all is caught below by
+        // being made to finish before the test ends.
+        await Task.WhenAny(
+            readFromBehindTheGate.Task,
+            Task.Delay(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken));
+
+        Assert.False(readFromBehindTheGate.Task.IsCompleted,
+            "the rebuild read the index while the load still held the gate");
         Assert.False(rebuildRan, "the rebuild ran while the load still held the gate");
 
+        Volatile.Write(ref loadHoldsTheGate, false);
         releaseTheLoad.TrySetResult();
         await load.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         await rebuild.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);

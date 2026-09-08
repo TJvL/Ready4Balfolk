@@ -43,6 +43,13 @@
                     <SolidColorBrush x:Key="FormatFlacBrush" Color="#66BB6A" />
                     <SolidColorBrush x:Key="FormatOggBrush" Color="#FFA726" />
                     <SolidColorBrush x:Key="FormatAifBrush" Color="#26A69A" />
+                    <!-- Review row state: brighter green/gold for dark backgrounds -->
+                    <SolidColorBrush x:Key="ReviewAnsweredBrush" Color="#66BB6A" />
+                    <SolidColorBrush x:Key="ReviewAnsweredFillBrush" Color="#4766BB6A" />
+                    <SolidColorBrush x:Key="ReviewParkedBrush" Color="#FFCA28" />
+                    <SolidColorBrush x:Key="ReviewParkedFillBrush" Color="#47FFCA28" />
+                    <!-- Review row refusal flash: brighter red for dark backgrounds -->
+                    <SolidColorBrush x:Key="ReviewRejectedBrush" Color="#EF5350" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
                     <!-- Stop marker: deeper orange for light backgrounds -->
@@ -76,6 +83,13 @@
                     <SolidColorBrush x:Key="FormatFlacBrush" Color="#388E3C" />
                     <SolidColorBrush x:Key="FormatOggBrush" Color="#F57C00" />
                     <SolidColorBrush x:Key="FormatAifBrush" Color="#00796B" />
+                    <!-- Review row state: deeper green/gold for light backgrounds -->
+                    <SolidColorBrush x:Key="ReviewAnsweredBrush" Color="#2E7D32" />
+                    <SolidColorBrush x:Key="ReviewAnsweredFillBrush" Color="#472E7D32" />
+                    <SolidColorBrush x:Key="ReviewParkedBrush" Color="#F9A825" />
+                    <SolidColorBrush x:Key="ReviewParkedFillBrush" Color="#47F9A825" />
+                    <!-- Review row refusal flash: deeper red for light backgrounds -->
+                    <SolidColorBrush x:Key="ReviewRejectedBrush" Color="#D32F2F" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>

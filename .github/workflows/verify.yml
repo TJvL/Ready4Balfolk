@@ -161,7 +161,7 @@ jobs:
 
   # A stable name for the branch ruleset to require. The jobs underneath report one status check
   # each, named after themselves and after their matrix values, so requiring those directly means
-  # editing the ruleset every time one is added or split — and a leg nobody remembered to add is a
+  # editing the ruleset every time one is added or split - and a leg nobody remembered to add is a
   # leg that cannot block a merge. This job is the contract; what runs underneath it is free to
   # change.
   verify:

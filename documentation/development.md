@@ -343,7 +343,7 @@ Existing converters: `BoolToStringConverter` and `WeightConverter` in `Converter
 
 ### Presentation Windows
 
-`ApplicationStartup` manages 0–10 presentation windows (for external displays). The count is driven by `ApplicationSettings.PresentationDisplayCount`. Each window's position, size, maximised, and borderless state is saved on exit and restored on startup. The `SyncPresentationWindows` method closes excess windows and opens new ones as the setting changes.
+`ApplicationStartup` manages 0-10 presentation windows (for external displays). The count is driven by `ApplicationSettings.PresentationDisplayCount`. Each window's position, size, maximised, and borderless state is saved on exit and restored on startup. The `SyncPresentationWindows` method closes excess windows and opens new ones as the setting changes.
 
 ---
 

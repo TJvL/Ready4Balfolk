@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO.Abstractions;
 using System.Linq;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -78,6 +79,13 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
 
     public Uri SourceUri => _feed.HomePage;
 
+    /// <remarks>
+    /// <c>settleScheduler</c> is where the fractions of a second the rail waits out are counted:
+    /// the one after the last keystroke, and the one that keeps a library arriving in batches from
+    /// redrawing every card per batch. Real time unless a caller says otherwise, and only a test
+    /// does: sleeping past a real throttle is the failure that passes on a quiet machine and fails
+    /// on a busy one.
+    /// </remarks>
     public DanceListViewModel(
         IDanceListStore store,
         IDancePool pool,
@@ -87,7 +95,8 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         INotificationService notifications,
         IDanceListFeed feed,
         IFileSystem fileSystem,
-        ILoggerService loggerService)
+        ILoggerService loggerService,
+        IScheduler? settleScheduler = null)
     {
         _store = store;
         _pool = pool;
@@ -113,11 +122,12 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         // list itself, the pool, what the user typed, or the tracks that decide a card's count.
         var lists = store.Observe();
         var pools = pool.Observe();
+        var settle = settleScheduler ?? RxSchedulers.TaskpoolScheduler;
         var searches = this.WhenAnyValue(x => x.SearchText)
-            .Throttle(TimeSpan.FromMilliseconds(150), RxSchedulers.TaskpoolScheduler)
+            .Throttle(TimeSpan.FromMilliseconds(150), settle)
             .StartWith(string.Empty);
         var tracks = trackStore.Connect()
-            .Throttle(TimeSpan.FromMilliseconds(250), RxSchedulers.TaskpoolScheduler)
+            .Throttle(TimeSpan.FromMilliseconds(250), settle)
             .Select(_ => System.Reactive.Unit.Default)
             .StartWith(System.Reactive.Unit.Default);
 
