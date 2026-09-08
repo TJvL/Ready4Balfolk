@@ -2,7 +2,7 @@ name: Smoke Test Packages
 
 # Installs each release package the way a user would and launches what the installer actually put
 # on disk. The portable builds are already checked inside build-binaries.yml; what only this can
-# catch is a packaging bug the portable build hides — a native library that is present in publish/
+# catch is a packaging bug the portable build hides - a native library that is present in publish/
 # but never copied into the bundle, an installer that writes the executable somewhere the shortcut
 # does not point, a Flatpak manifest missing a permission the app needs to start.
 
@@ -31,7 +31,7 @@ jobs:
             flatpak xvfb cage libx11-6 libice6 libsm6 libfontconfig1 fonts-dejavu-core
 
           # Ubuntu 24.04 confines unprivileged user namespaces with an AppArmor profile, and
-          # bubblewrap — and so every flatpak run — needs them. The runner is a throwaway VM.
+          # bubblewrap - and so every flatpak run - needs them. The runner is a throwaway VM.
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Install the Flatpak bundle

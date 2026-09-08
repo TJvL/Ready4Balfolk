@@ -145,6 +145,9 @@
   <data name="Playback_ClearLabel" xml:space="preserve">
     <value>Clear</value>
   </data>
+  <data name="Playback_NoTrackPlaceholder" xml:space="preserve">
+    <value>...</value>
+  </data>
   <data name="QueueToolbar_HistoryLabel" xml:space="preserve">
     <value>History</value>
   </data>
@@ -703,6 +706,9 @@
   <!-- Presentation -->
   <data name="Presentation_WindowTitle" xml:space="preserve">
     <value>Presentation Display {0}</value>
+  </data>
+  <data name="Presentation_WindowTitleDefault" xml:space="preserve">
+    <value>Presentation Display</value>
   </data>
   <data name="Presentation_NoTrackPlaying" xml:space="preserve">
     <value>No track playing</value>

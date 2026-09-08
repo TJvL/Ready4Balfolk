@@ -92,7 +92,7 @@
 
                 <!-- Placeholder when no track -->
                 <TextBlock Grid.Row="1"
-                           Text="..."
+                           Text="{x:Static res:UiStrings.Playback_NoTrackPlaceholder}"
                            FontSize="16"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,16"
