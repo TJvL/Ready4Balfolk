@@ -36,13 +36,31 @@ jobs:
           echo "runtime version $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      # The image below is pinned by digest, not by the floating freedesktop-<version> tag, so a
+      # retagged image cannot swap out the builder that assembles the bundle a DJ installs. That
+      # digest is only good for the version it was resolved from, so this catches a manifest bump
+      # loudly, at the cheap step, rather than building against a tag/digest mismatch that would
+      # otherwise resolve back to the manifest's declared version.
+      - name: Check the pinned builder image still matches the manifest
+        run: |
+          set -euo pipefail
+          pinned_version="25.08"
+          if [ "${{ steps.read.outputs.version }}" != "$pinned_version" ]; then
+            echo "packaging/linux/io.github.tjvl.Ready4Balfolk.yml now requests runtime-version ${{ steps.read.outputs.version }}, but build-flatpak.yml still pins the freedesktop-$pinned_version image digest."
+            echo "Resolve the digest for freedesktop-${{ steps.read.outputs.version }} and update the pin."
+            exit 1
+          fi
+
   flatpak:
     needs: runtime-version
     runs-on: ubuntu-latest
     container:
       # ghcr.io/flathub-infra is where the action's images are published now; the older
       # bilelmoussaoui/flatpak-github-actions images on Docker Hub stop at freedesktop-24.08.
-      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-${{ needs.runtime-version.outputs.version }}
+      # Pinned by digest, not the mutable freedesktop-25.08 tag: this container builds the bundle
+      # a DJ installs, so a retagged image must not be able to swap that out from under the build.
+      # The runtime-version job checks this digest still matches the manifest before this job starts.
+      image: ghcr.io/flathub-infra/flatpak-github-actions@sha256:d6975c0cabef8467b1729461c8268ac336936671db30f3f825ba0ed4de6a5425 # freedesktop-25.08
       options: --privileged
     steps:
       - name: Checkout
@@ -90,7 +108,7 @@ jobs:
             $STAGE/stage/share/icons/hicolor/symbolic/apps/io.github.tjvl.Ready4Balfolk-symbolic.svg
 
       - name: Build Flatpak
-        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6
         with:
           manifest-path: packaging/linux/io.github.tjvl.Ready4Balfolk.yml
           bundle: Ready4Balfolk-${{ inputs.version }}.flatpak

@@ -150,6 +150,8 @@ public sealed class PresentationWebServer(
 
     private async Task StartCoreAsync(WebServerOptions options, CancellationToken cancellationToken)
     {
+        WebApplication? app = null;
+
         try
         {
             var builder = WebApplication.CreateSlimBuilder();
@@ -176,10 +178,20 @@ public sealed class PresentationWebServer(
             builder.Services.AddSingleton<PresentationBroadcaster>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PresentationBroadcaster>());
 
-            var app = builder.Build();
+            app = builder.Build();
 
             var assets = new ManifestEmbeddedFileProvider(typeof(PresentationWebServer).Assembly, "wwwroot");
-            app.UseStaticFiles(new StaticFileOptions { FileProvider = assets });
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = assets,
+                // Heuristic caching otherwise lets a phone keep serving a script from before the
+                // last upgrade for days: no freshness directive plus a Last-Modified is exactly
+                // what makes a browser guess an expiry instead of asking. The ETag this already
+                // sends still makes a repeat visit a cheap 304, so this is not "reload every file
+                // every time", only "always ask first".
+                OnPrepareResponse = context =>
+                    context.Context.Response.Headers.CacheControl = "no-cache",
+            });
 
             app.MapGet("/", () => ServeAsset(assets, "display.html"));
 
@@ -228,11 +240,29 @@ public sealed class PresentationWebServer(
             LastError = ex.Message;
             await logger.ErrorAsync($"Presentation server could not start on port {options.Port}", ex)
                 .ConfigureAwait(false);
+            await DisposeUnstartedAsync(app).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
             await logger.ErrorAsync("Presentation server failed to start", ex).ConfigureAwait(false);
+            await DisposeUnstartedAsync(app).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Disposes a host built by a start attempt that did not make it into <see cref="_app"/>.
+    /// </summary>
+    /// <remarks>
+    /// A reference check rather than a bool: everything between <c>StartAsync</c> succeeding and
+    /// the end of the try block is bookkeeping around a host that is genuinely up, and if one of
+    /// those steps is what threw, the host must be left running, not torn down under it.
+    /// </remarks>
+    private async Task DisposeUnstartedAsync(WebApplication? app)
+    {
+        if (app is not null && !ReferenceEquals(_app, app))
+        {
+            await app.DisposeAsync().ConfigureAwait(false);
         }
     }
 

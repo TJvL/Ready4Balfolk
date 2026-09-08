@@ -8,7 +8,6 @@ public interface IAudioPlaybackService
     bool IsPlaying { get; }
     bool IsPaused { get; }
     bool IsStopped { get; }
-    bool AutoAdvance { get; set; }
 
     /// <summary>False when the BASS_FX add-on could not be loaded. Playback still works without it.</summary>
     bool IsEqualizerAvailable { get; }
@@ -23,9 +22,15 @@ public interface IAudioPlaybackService
     Task SeekAsync(TimeSpan position);
     Task ClearAsync();
 
+    /// <summary>Lets the playing track go, and leaves the one loaded ahead of it waiting.</summary>
+    Task ClearPlayingAsync();
+
+    /// <summary>
+    /// Opens the track that comes next, so that selecting it later starts it without a disk read.
+    /// Asking again for the track that is already waiting keeps the stream it has.
+    /// </summary>
     Task PreloadNextAsync(Uri source);
     Task ClearPreloadAsync();
-    Task NextAsync();
 
     IObservable<Uri?> WhenSelectedChanged { get; }
     IObservable<Unit> WhenPlaybackStarted { get; }

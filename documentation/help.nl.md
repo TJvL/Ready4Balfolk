@@ -8,27 +8,27 @@ Ready4Balfolk is een wachtrijbeheerprogramma voor balfolkavonden met opgenomen m
 
 ### Muziekmap
 
-Ready4Balfolk vraagt bij de eerste start om één map, in een korte setup die ook de danslijst
+Ready4Balfolk vraagt bij de eerste start om één map, in een korte setup die ook de dansenlijst
 ophaalt en laat zien wat er op je wacht. Alles onder die map telt mee, hoe hij ook is ingedeeld. Je
-kunt de setup later opnieuw uitvoeren vanuit **Instellingen**.
+kunt het instellen later opnieuw doorlopen vanuit **Instellingen**.
 
 ### Hoe je bestanden gelezen worden
 
 Nummers worden automatisch ontdekt in je muziekmap. Er is **geen verplichte naamconventie**, en er wordt niets aangenomen over hoe je bibliotheek is ingedeeld: losse bestanden in één map en een boom van vijf niveaus diep zijn allebei gewoon.
 
-- **De dans** wordt herkend wanneer een naam uit je danslijst ergens in de bestandsnaam of in de tags staat: `10. Hep Harz (Cercle).mp3`, `11-La Violette - valse 5tps.mp3`, of een dans die in de tags is geschreven. Twee bronnen die het eens zijn maken een antwoord betrouwbaar, en als een bestand twee dansen noemt zonder iets dat ze scheidt, wordt er niets aangenomen.
+- **De dans** wordt herkend wanneer een naam uit je dansenlijst ergens in de bestandsnaam of in de tags staat: `10. Hep Harz (Cercle).mp3`, `11-La Violette - valse 5tps.mp3`, of een dans die in de tags is geschreven. Twee bronnen die het eens zijn maken een antwoord betrouwbaar, en als een bestand twee dansen noemt zonder iets dat ze scheidt, wordt er niets aangenomen.
 - **De artiest** komt uit de artiesttags. Een mapnaam wordt niet als artiest gelezen: hetzelfde niveau is in de ene bibliotheek een artiest en in de volgende een land.
 - **De titel** komt uit de titeltag, of anders uit de bestandsnaam met een eventueel volgnummer eraf.
 
-Alles wat zo niet beantwoord is, wacht op jou in **Review** in plaats van met een gok te worden ingevuld. Een nummer staat in je bibliotheek of in review, nooit allebei: de oversteek vraagt een artiest, een titel, een dans uit de gepubliceerde lijst, en jouw akkoord op alle drie. Een niet-gereviewde bibliotheek toont terecht geen muziek.
+Alles wat zo niet beantwoord is, wacht op jou in **Nakijken** in plaats van met een gok te worden ingevuld. Een nummer staat in je bibliotheek of in Nakijken, nooit allebei: de oversteek vraagt een artiest, een titel, een dans uit de gepubliceerde lijst, en jouw akkoord op alle drie. Een bibliotheek die nog niet is nagekeken toont terecht geen muziek.
 
-Review is een vaste plek, geen stap van de setup. Wijzig tags, hernoem een bestand of zet er nieuwe bij en ze komen vanzelf terug, met wat je eerder antwoordde behouden.
+Nakijken is een vaste plek, geen stap van de setup. Wijzig tags, hernoem een bestand of zet er nieuwe bij en ze komen vanzelf terug, met wat je eerder antwoordde behouden.
 
 Ondersteunde audioformaten: MP3, MP2, MP1, WAV, OGG, AIFF en FLAC.
 
 ### Regels: vertellen hoe je bestanden heten
 
-Als je bibliotheek *wél* een vaste vorm heeft, kun je dat zeggen. Open **Review** en klik op **Regels**; het paneel opent boven de wachtrij die het moet legen. Wat je daar verklaart gaat boven alles wat het programma zelf heeft uitgedokterd, want jij kent je bibliotheek en het programma niet.
+Als je bibliotheek *wél* een vaste vorm heeft, kun je dat zeggen. Open **Nakijken** en klik op **Regels**; het paneel opent boven de wachtrij die het moet legen. Wat je daar verklaart gaat boven alles wat het programma zelf heeft uitgedokterd, want jij kent je bibliotheek en het programma niet.
 
 Elk van de vier zet je apart aan, en ze staan allemaal uit. Vink aan wat jouw bibliotheek daadwerkelijk gebruikt; de rest blijft dichtgeklapt en doet niets, zodat een regel die je niet ziet je bestanden nooit raakt. Iets uitvinken laat staan wat je erin hebt gezet, voor het geval je het terug wilt.
 
@@ -39,7 +39,7 @@ Elk van de vier zet je apart aan, en ze staan allemaal uit. Vink aan wat jouw bi
 
 **Een regel is een bulkgoedkeuring**, en dat is precies de bedoeling: in plaats van tweeduizend bestanden één voor één te beantwoorden, ga je één keer akkoord met de regel die ze beantwoordt. Daarom zie je vooraf wat hij doet, in de getallen die ertoe doen: hoeveel bestanden hij pakt, wat hij ervan maakt, en hoeveel er overblijven. Een regel toevoegen, verwijderen of herordenen leest je bibliotheek opnieuw, want een regel is er om de bestanden te beantwoorden die er al liggen.
 
-**Het vertelt je ook hoe je bibliotheek eruitziet.** Bovenin het paneel staan de vormen die uit je eigen bestandsnamen en mappen gemeten zijn: "296 van 2685 bestanden hebben de vorm `%d - %i - %t`", "niveau 1 lijkt de artiest, 96 van 121 zijn het eens", elk met de tellingen erachter en de bestanden waaruit het gelezen is. Het zijn voorstellen: er gebeurt niets tot je op **Verklaar het** klikt. Waar de metingen het niet eens zijn wordt de vorm getoond en niets benoemd, want een zelfverzekerde gok over je hele bibliotheek is erger dan geen gok.
+**Het vertelt je ook hoe je bibliotheek eruitziet.** Bovenin het paneel staan de vormen die uit je eigen bestandsnamen en mappen gemeten zijn: "296 van 2685 bestanden hebben de vorm `%d - %i - %t`", "niveau 1 lijkt de artiest, 96 van 121 zijn het eens", elk met de tellingen erachter en de bestanden waaruit het gelezen is. Het zijn voorstellen: er gebeurt niets tot je op **Vastleggen** klikt. Waar de metingen het niet eens zijn wordt de vorm getoond en niets benoemd, want een zelfverzekerde gok over je hele bibliotheek is erger dan geen gok.
 
 **Een dans die in de gepubliceerde lijst ontbreekt is geen regelprobleem.** Het paneel linkt bovenaan naar [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/), want daar wordt een ontbrekende dans voorgesteld. Onder de regels staat een schakelaar om een dans die de lijst niet kent tóch je bibliotheek in te laten. Hij staat uit om mee te beginnen: de gedeelde lijst is wat een dansnaam voor iedereen hetzelfde laat betekenen, en een nummer dat zo binnenkomt kan nooit in een willekeurige keuze opduiken, want die trekt per tag en een dans die niemand publiceerde heeft er geen.
 
@@ -48,7 +48,7 @@ Elk van de vier zet je apart aan, en ze staan allemaal uit. Vink aan wat jouw bi
 Het hoofdscherm bestaat uit twee kolommen:
 
 - **Linkerkolom**: werkbalk, afspeelbediening, de equalizer, en de wachtrij- of geschiedenisweergave
-- **Rechterkolom**: nummercatalogus of danslijst
+- **Rechterkolom**: nummercatalogus of dansenlijst
 
 Met de schakelknoppen bovenaan elk paneel wissel je per kolom van weergave.
 
@@ -69,8 +69,8 @@ Deze vier werken overal op het hoofdscherm:
 | Ctrl+Links | deze dans opnieuw beginnen |
 | Ctrl+F | naar het zoekvak van de bibliotheek, over wat er al in staat |
 
-Dat vak hoort bij de bibliotheek, dus staat de danslijst in de rechterkolom als je Ctrl+F drukt,
-dan komt de bibliotheek eerst terug: de danslijst sluit, en waar je in die lijst was blijft niet
+Dat vak hoort bij de bibliotheek, dus staat de dansenlijst in de rechterkolom als je Ctrl+F drukt,
+dan komt de bibliotheek eerst terug: de dansenlijst sluit, en waar je in die lijst was blijft niet
 bewaard.
 
 Heeft je toetsenbord mediatoetsen, dan doen afspelen/pauzeren, volgende en vorige dezelfde eerste
@@ -87,8 +87,8 @@ Deze horen bij de lijst waar je in staat:
 
 Spatie en Ctrl met een pijl horen eerst bij waar je in typt of op staat: een spatie in het zoekvak
 is een spatie, een spatie op een knop waar je naartoe getabd bent drukt die knop in, en Ctrl+Rechts
-in een vak loopt nog steeds per woord. Instellingen, help en de reviewwachtrij hebben helemaal geen
-afspeeltoetsen; review heeft een eigen toetsenbord, beschreven onder [Review](#het-toetsenbord-1).
+in een vak loopt nog steeds per woord. Instellingen, help en de nakijkwachtrij hebben helemaal geen
+afspeeltoetsen; Nakijken heeft een eigen toetsenbord, beschreven onder [Nakijken](#het-toetsenbord-1).
 
 ---
 
@@ -96,7 +96,7 @@ afspeeltoetsen; review heeft een eigen toetsenbord, beschreven onder [Review](#h
 
 De werkbalk zit linksboven op het hoofdscherm en leidt naar de hoofdonderdelen van het programma.
 
-### Exit
+### Afsluiten
 
 Sluit het programma.
 
@@ -109,9 +109,16 @@ Opent dit helpscherm.
 Opent het instellingenscherm: wachtrijgedrag, presentatieschermen, thema, en de weg terug naar de
 setup.
 
-### Review
+### Nakijken
 
-Alles wat op jou wacht, met een teller van hoeveel nummers dat zijn. Niets bereikt je bibliotheek zonder een artiest, een titel, een dans uit de gepubliceerde lijst en jouw akkoord, dus dit is waar een bibliotheek gemaakt wordt in plaats van een klusje aan het eind van een. Zie [Review](#review-1) hieronder.
+Alles wat op jou wacht, met een teller van hoeveel nummers dat zijn. Niets bereikt je bibliotheek zonder een artiest, een titel, een dans uit de gepubliceerde lijst en jouw akkoord, dus dit is waar een bibliotheek gemaakt wordt in plaats van een klusje aan het eind van een. Zie [Nakijken](#nakijken-1) hieronder.
+
+### Scherm en Afstandsbediening
+
+Deze twee staan naast Nakijken zolang de ingebouwde webserver die pagina's aanbiedt, dus wat de
+werkbalk toont is wat een telefoon ook echt kan bereiken. Klik erop voor het adres als QR-code, met
+bij de afstandsbediening de pincode ernaast. Zie
+[Telefoonafstandsbediening en webweergave](#telefoonafstandsbediening-en-webweergave).
 
 ---
 
@@ -123,9 +130,11 @@ Het afspeelpaneel toont wat er speelt en biedt de bedieningsknoppen.
 
 - **Dansnaam**: prominent bovenaan
 - **Artiest en titel**: daaronder als "Artiest - Titel", of in de vorm die het sjabloon voor die regel heeft
-- **Voortgangsbalk**: de positie in het nummer, met verstreken tijd links en totale duur rechts
+- **Voortgangsbalk**: de positie in het nummer, met verstreken tijd links en totale duur rechts. Klik er ergens op om naar dat punt te springen. Speelt er iets, dan komt er eerst een bevestiging, tenzij de bevestigingen in de instellingen uitstaan.
 
-Speelt er een bericht, dan schakelt de weergave naar berichtmodus met automatisch scrollende tekst.
+Speelt er een bericht, dan schakelt de weergave naar berichtmodus. Een regel die breder is dan het
+paneel schuift heen en weer in plaats van alleen zijn eerste helft te tonen, en dat doet de regel
+met artiest en titel ook.
 
 ### Bedieningsknoppen
 
@@ -204,8 +213,8 @@ De wachtrij kan verschillende soorten items bevatten, elk met een eigen uiterlij
 
 ### De wachtrij beheren
 
-- **Herordenen**: sleep items naar een andere plek
-- **Verwijderen**: selecteer een item en druk op Delete, of gebruik de knop in de werkbalk
+- **Herordenen**: sleep items naar een andere plek, of selecteer er een en gebruik **Omhoog verplaatsen** en **Omlaag verplaatsen** in de werkbalk, of Ctrl+Omhoog en Ctrl+Omlaag
+- **Verwijderen**: selecteer een item en druk op Delete, of gebruik **Geselecteerd item verwijderen** in de werkbalk
 - **Dubbelklik een nummer** in de catalogus om het achteraan toe te voegen
 - **Rechtsklik een nummer** en kies **Nummer bewerken** om zijn dans, artiest of titel meteen te corrigeren: zie [de catalogus](#nummercatalogus)
 
@@ -214,13 +223,14 @@ De wachtrij kan verschillende soorten items bevatten, elk met een eigen uiterlij
 De werkbalk boven de wachtrij biedt:
 
 - **Naar geschiedenis**: toont links de geschiedenisweergave
-- **Willekeurig nummer**: voegt een willekeurig gekozen nummer toe, getrokken uit de tags die nu in de pool staan. Zonder keuze trekt hij uit elke dans waar je een nummer van hebt.
-- **Stop toevoegen**: zet een stopmarkering in de wachtrij
-- **Pauze toevoegen**: zet een pauze met de duur uit de instellingen in de wachtrij
-- **Bericht toevoegen**: opent een venster voor een bericht met eventueel een duur
-- **Avond afsluiten**: zet de slotmuziek in de wachtrij. Uit zolang er geen bestand in de instellingen staat, en zolang er al een in de wachtrij staat of speelt.
-- **Selectie verwijderen**: haalt het geselecteerde item weg
+- **Willekeurig nummer toevoegen**: voegt een willekeurig gekozen nummer toe, getrokken uit de tags die nu in de pool staan. Zonder keuze trekt hij uit elke dans waar je een nummer van hebt.
+- **Stop aanvragen**: zet een stopmarkering in de wachtrij
+- **Pauze aanvragen**: zet een pauze met de duur uit de instellingen in de wachtrij
+- **Bericht aanvragen**: opent een venster voor een bericht met eventueel een duur
+- **De avond afsluiten**: zet de slotmuziek in de wachtrij. Uit zolang er geen bestand in de instellingen staat, en zolang er al een in de wachtrij staat of speelt.
+- **Geselecteerd item verwijderen**: haalt het geselecteerde item weg
 - **Wachtrij wissen**: haalt alles weg (met bevestiging)
+- **Omhoog verplaatsen** en **Omlaag verplaatsen**: verzetten het geselecteerde item een plek, hetzelfde wat Ctrl+Omhoog en Ctrl+Omlaag doen
 
 ### Statusbalk
 
@@ -233,7 +243,7 @@ Onderaan het wachtrijpaneel:
 
 ## Geschiedenis
 
-De geschiedenis is het logboek van wat er deze avond gespeeld of overgeslagen is.
+De geschiedenis toont wat er op een avond gebeurd is: vanavond terwijl hij loopt, of elke avond die is opgeborgen.
 
 ### Geschiedenis bekijken
 
@@ -272,8 +282,8 @@ Onderaan het geschiedenispaneel:
 
 ## Nummercatalogus
 
-De catalogus toont je bibliotheek, de nummers die je in Review beantwoord hebt, in een
-doorzoekbare, sorteerbare tabel. Wat nog wacht staat hier niet; dat staat in [Review](#review-1).
+De catalogus toont je bibliotheek, de nummers die je in Nakijken beantwoord hebt, in een
+doorzoekbare, sorteerbare tabel. Wat nog wacht staat hier niet; dat staat in [Nakijken](#nakijken-1).
 
 ### Nummers bladeren
 
@@ -282,9 +292,12 @@ De catalogus toont de nummers in een tabel met deze kolommen:
 - **Dans**: het danstype
 - **Artiest**: de artiest of groep
 - **Titel**: de titel
+- een smalle naamloze kolom met een gekleurd icoon voor het audioformaat van het bestand
 - **Duur**: de lengte als MM:SS
 
-Klik op een kolomkop om erop te sorteren. Klik nog eens om de volgorde om te draaien.
+Klik op een kolomkop om erop te sorteren, ook op die van het formaat. Klik nog eens om de volgorde
+om te draaien, en een derde keer om de sortering te wissen en de tabel te laten zoals hij gebouwd
+is, op dans.
 
 ### Zoeken
 
@@ -307,21 +320,21 @@ lijst kent; een ontbrekende dans is een voorstel bij
 ### Een antwoord terugnemen
 
 Rechtsklik een nummer en kies **Mijn antwoord terugnemen** om het uit je bibliotheek en terug in
-Review te zetten, met je antwoord op elk veld ervan teruggenomen. Zo kom je terug op een vraag die
+Nakijken te zetten, met je antwoord op elk veld ervan teruggenomen. Zo kom je terug op een vraag die
 je weken geleden beantwoordde, wanneer de regel die hem beantwoordde allang uit de rij verdwenen
 is. Het bestand zelf blijft ongemoeid, en wat al in de wachtrij van vanavond staat speelt gewoon
 door. Een nummer dat in je bibliotheek staat op een van je regels in plaats van op jouw antwoord
 heeft niets terug te nemen, en zegt dat ook: wijzig dan die regel.
 
-### Schakel naar Danslijst
+### Naar de dansenlijst
 
-Met de schakelknop in de werkbalk toont de rechterkolom de danslijst.
+Met de schakelknop in de werkbalk toont de rechterkolom de dansenlijst.
 
 ---
 
-## Danslijst
+## Dansenlijst
 
-De danslijst is elke balfolkdans en elke naam die elke dans draagt. Hij komt van
+De dansenlijst is elke balfolkdans en elke naam die elke dans draagt. Hij komt van
 [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/) en Ready4Balfolk gebruikt hem precies
 zoals gepubliceerd: er is niets op te bouwen, niets in te vullen, en niets in het programma
 bewerkt hem.
@@ -330,7 +343,7 @@ Er wordt geen kopie meegeleverd. De eerste keer dat je het programma opent vraag
 om de lijst bij BigBalfolkList op te halen, of om een `dances.json` te importeren die iemand op een
 stick heeft meegenomen als deze machine nooit online komt. Zolang dat niet gebeurd is valt er niets
 over je muziek te beantwoorden, en het programma haalt nooit uit zichzelf iets op: de knop
-Bijwerken in het danslijstpaneel is hoe je om een nieuwere vraagt.
+Bijwerken in het dansenlijstpaneel is hoe je om een nieuwere vraagt.
 
 ### Wat erin staat
 
@@ -390,10 +403,10 @@ daar een voorstel van dat iemand bekijkt. Iedereen die de lijst gebruikt krijgt 
 
 ---
 
-## Review
+## Nakijken
 
 Niets bereikt je bibliotheek voordat het een artiest, een titel, een dans uit de gepubliceerde
-lijst en jouw akkoord op alle drie heeft. Review is waar dat akkoord gegeven wordt, en het is een
+lijst en jouw akkoord op alle drie heeft. Nakijken is waar dat akkoord gegeven wordt, en het is een
 vast onderdeel van het programma in plaats van een stap van de setup: wijzig tags, hernoem een
 bestand of zet er nieuwe bij, en ze komen hier vanzelf terug met wat je eerder antwoordde er nog
 op.
@@ -458,7 +471,7 @@ antwoord dan terug vanuit de [nummercatalogus](#nummercatalogus), waar het numme
 |---|---|
 | gewoon | wacht op jou |
 | groen | beantwoord, en in je bibliotheek |
-| oranje | beantwoord, en wacht tot de danslijst de naam draagt die jij hem gaf |
+| oranje | beantwoord, en wacht tot de dansenlijst de naam draagt die jij hem gaf |
 
 ### Als een dans niet in de lijst staat
 
@@ -487,7 +500,7 @@ Het instellingenscherm regelt het gedrag van het programma. Alles wordt automati
 
 Waar je muziek staat, getoond in plaats van bewerkt: hem wijzigen leest de hele bibliotheek
 opnieuw en beslist elk nummer opnieuw, en dat is setup in plaats van een instelling om aan te
-schuiven. **Setup opnieuw uitvoeren** is de weg. Alles onder die map telt mee, hoe hij ook is
+schuiven. **Instellen opnieuw doorlopen** is de weg. Alles onder die map telt mee, hoe hij ook is
 ingedeeld.
 
 ### Maximaal aantal wachtrijitems
@@ -498,7 +511,7 @@ verwijderd zijn.
 
 ### Pauzeduur
 
-De standaardduur (in seconden) van pauzemarkeringen, tussen 1 en 300. Dit is wat "Pauze toevoegen"
+De standaardduur (in seconden) van pauzemarkeringen, tussen 1 en 300. Dit is wat "Pauze aanvragen"
 in de wachtrijwerkbalk gebruikt.
 
 ### Even tijd tussen twee dansen
@@ -534,7 +547,7 @@ de onderbreking duurt.
 
 De muziek die zegt dat het bal voorbij is: stoppen met dansen, jas zoeken, stoelen stapelen. Eén
 bestand, waar jij het ook bewaart. Het wordt niet geïmporteerd en komt nooit in de bibliotheek,
-want het heeft geen dans, geen artiest en geen titel en zou eeuwig in de reviewwachtrij om die
+want het heeft geen dans, geen artiest en geen titel en zou eeuwig in de nakijkwachtrij om die
 staan te vragen. Typ het pad of gebruik de bladerknop; laat het leeg en de knop in de
 wachtrijwerkbalk blijft uit, net als wanneer het bestand later verhuist.
 
@@ -605,7 +618,7 @@ optreden storen.
 
 Drie keuzes:
 
-- **Auto**: volgt het systeemthema
+- **Automatisch**: volgt het systeemthema
 - **Licht**: licht kleurenschema
 - **Donker**: donker kleurenschema
 
@@ -620,8 +633,8 @@ alsnog een bestand voluit noemen, dus lees de export door voordat je hem ergens 
 
 ## Presentatiescherm
 
-Presentatievensters zijn schermvullende weergaven voor projectors of externe monitoren, die de zaal
-tonen wat er speelt en wat er komt.
+Presentatievensters zijn weergaven voor projectors of externe monitoren, die de zaal tonen wat er
+speelt en wat er komt.
 
 ### Indeling
 
@@ -640,6 +653,10 @@ tonen wat er speelt en wat er komt.
 Stel het aantal vensters in bij **Instellingen > Presentatieschermen**. Elk venster kan naar een
 ander scherm en onthoudt zijn plek tussen sessies.
 
+Dubbelklik een presentatievenster om zijn rand en titelbalk weg te halen en het scherm waarop het
+staat te vullen. Dubbelklik nog eens om ze terug te geven. Zo krijgt een projector het hele beeld in
+plaats van een venster met een titelbalk erboven.
+
 ---
 
 ## Telefoonafstandsbediening en webweergave
@@ -656,7 +673,7 @@ webserver:
   wat het scherm daar zegt. De avond afsluiten werkt net zo: welk bestand dat is, is aan de computer
   bepaald, en staat er geen, dan zegt de afstandsbediening dat in plaats van er een te kiezen.
 
-Zolang er iets wordt aangeboden zegt de werkbalk dat, naast de reviewknop: **Scherm** als de
+Zolang er iets wordt aangeboden zegt de werkbalk dat, naast de knop Nakijken: **Scherm** als de
 schermpagina draait, **Afstandsbediening** als die er ook is. Ze volgen de server en niet de schakelaar,
 dus een poort die al bezet is levert niets op in plaats van een belofte. Klik erop en het adres komt
 in beeld als QR-code waar je een telefoon op richt, met het adres eronder en bij de afstandsbediening
