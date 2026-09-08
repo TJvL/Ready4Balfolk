@@ -74,7 +74,11 @@ internal sealed class RunningWebServer : IAsyncDisposable
     /// the current picture. A bare substitute hands it a null state and the start fails, which
     /// would look here like a server that could not bind.
     /// </remarks>
-    private static ServiceProvider HostServices()
+    /// <remarks>
+    /// Internal rather than private: a test that never gets past a failed start still needs a
+    /// real set of host services to build the server against.
+    /// </remarks>
+    internal static ServiceProvider HostServices()
     {
         var presentation = Substitute.For<IPresentationStateService>();
         presentation.Current.Returns(new PresentationState(
