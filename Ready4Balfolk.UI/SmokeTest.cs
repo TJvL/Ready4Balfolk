@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -13,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Ready4Balfolk.Domain;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Stores;
+using Ready4Balfolk.Web;
 
 namespace Ready4Balfolk.UI;
 
@@ -34,8 +36,30 @@ internal static class SmokeTest
     private const int Failed = 1;
     private const int HungOrCrashed = 2;
 
+    /// <summary>
+    /// The port the presentation server is asked for. Deliberately not the port the application
+    /// defaults to, so a smoke test run on a machine where Ready4Balfolk is already serving its
+    /// display page does not fail over a port that is legitimately taken.
+    /// </summary>
+    private const int WebServerPort = 18420;
+
+    /// <summary>
+    /// What a browser pulls in after the display page, and the only files that reach it through
+    /// the static file middleware. The page itself has a route of its own, so fetching it proves
+    /// nothing about these.
+    /// </summary>
+    private static readonly string[] ServedAssets = ["display.js", "app.css", "strings.js", "remote.js"];
+
     /// <summary>Cold start on a runner with software rendering is slow, but not this slow.</summary>
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(120);
+
+    /// <summary>
+    /// What the checks after the window get to themselves. Separate from the startup budget
+    /// because they are slow in their own right, and because an overrun in a decode or in the
+    /// presentation server reported as a window that never opened sends whoever reads it to
+    /// Avalonia startup, which is the one place the fault is not.
+    /// </summary>
+    private static readonly TimeSpan ChecksTimeout = TimeSpan.FromSeconds(120);
 
     /// <summary>
     /// The stores load asynchronously off the window's Opened event and nothing on the UI thread
@@ -59,6 +83,9 @@ internal static class SmokeTest
 
     /// <summary>Generous, because the lossy encoders pad the stream with an encoder delay.</summary>
     private static readonly TimeSpan MediaDurationTolerance = TimeSpan.FromSeconds(0.5);
+
+    /// <summary>Long enough for a loopback request, short enough to fail the check not the run.</summary>
+    private static readonly TimeSpan WebRequestTimeout = TimeSpan.FromSeconds(15);
 
     /// <summary>
     /// Static so the watchdog survives: the only stack that could root it is the one blocked in
@@ -121,6 +148,20 @@ internal static class SmokeTest
         long logOffset,
         string? mediaDirectory)
     {
+        // The window opened, which is the question the startup watchdog was asked. Hand the rest
+        // of the run a budget of its own so an overrun here is reported as what it is.
+        _watchdog?.Dispose();
+        _watchdog = new Timer(
+            _ =>
+            {
+                Report($"the checks did not finish within {ChecksTimeout.TotalSeconds:0} s");
+                DumpLog(logFile, logOffset);
+                Environment.Exit(HungOrCrashed);
+            },
+            null,
+            ChecksTimeout,
+            Timeout.InfiniteTimeSpan);
+
         var failures = new List<string>();
         var decoded = 0;
 
@@ -147,13 +188,22 @@ internal static class SmokeTest
             failures.Add($"the audio checks threw: {ex}");
         }
 
+        try
+        {
+            await CheckWebServerAsync(failures);
+        }
+        catch (Exception ex)
+        {
+            failures.Add($"the presentation server check threw: {ex}");
+        }
+
         failures.AddRange(ReadLoggedFailures(logFile, logOffset));
 
         int exitCode;
         if (failures.Count == 0)
         {
             Report($"passed: window opened, BASS, BASSFLAC and BASS_FX all loaded, "
-                   + $"{decoded} media files decoded, log clean");
+                   + $"{decoded} media files decoded, display page and web assets served, log clean");
             exitCode = Passed;
         }
         else
@@ -168,7 +218,7 @@ internal static class SmokeTest
         }
 
         // Shutdown runs the app's own teardown, which is worth exercising but is also the part
-        // most able to hang on a background task. Swap the startup watchdog for one that carries
+        // most able to hang on a background task. Swap the checks watchdog for one that carries
         // the verdict out regardless, so a stuck teardown cannot turn a decided run into a job
         // timeout, or worse, report a hang for a run that has already passed.
         _watchdog?.Dispose();
@@ -283,6 +333,95 @@ internal static class SmokeTest
 
         await audio.ClearAsync();
         return decoded;
+    }
+
+    /// <summary>
+    /// Starts the presentation server and fetches the display page, and every asset the page
+    /// pulls in, from it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two packaging failures hide behind a green build. The display page and its scripts are
+    /// embedded in Ready4Balfolk.Web and served from the assembly rather than from disk, so a
+    /// package that drops them starts perfectly and serves nothing; and a Flatpak whose manifest
+    /// lost <c>--share=network</c> gets a sandbox with no network of its own, where the listener
+    /// still binds inside the sandbox but no address the hall could reach exists at all.
+    /// </para>
+    /// <para>
+    /// The switch is not touched: the server is driven straight through
+    /// <see cref="PresentationWebServer.ApplyAsync"/>, so a developer running this locally does not
+    /// find the presentation server left on in their settings afterwards.
+    /// </para>
+    /// </remarks>
+    private static async Task CheckWebServerAsync(List<string> failures)
+    {
+        var server = App.Services.GetRequiredService<PresentationWebServer>();
+        var options = new WebServerOptions(true, WebServerPort, false, string.Empty);
+
+        try
+        {
+            await server.ApplyAsync(options);
+
+            if (server.State is not WebServerState.Running)
+            {
+                failures.Add($"the presentation server did not start on port {WebServerPort}: "
+                             + (server.LastError ?? "no reason was recorded"));
+                return;
+            }
+
+            using var client = new HttpClient { Timeout = WebRequestTimeout };
+
+            try
+            {
+                using (var page = await client.GetAsync(new Uri($"http://127.0.0.1:{WebServerPort}/")))
+                {
+                    if (!page.IsSuccessStatusCode)
+                    {
+                        failures.Add($"the display page came back as {(int)page.StatusCode}");
+                    }
+                }
+
+                // The page has a route of its own that reads display.html straight out of the
+                // assembly, so serving it says nothing about the scripts and the stylesheet: those
+                // go through the static file middleware, and they are what a projector browser
+                // 404s on when a package embedded the markup and none of the rest.
+                foreach (var asset in ServedAssets)
+                {
+                    using var response =
+                        await client.GetAsync(new Uri($"http://127.0.0.1:{WebServerPort}/{asset}"));
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        failures.Add($"{asset} came back as {(int)response.StatusCode}, "
+                                     + "so the web assets are missing from this package");
+                        continue;
+                    }
+
+                    if ((await response.Content.ReadAsStringAsync()).Length == 0)
+                    {
+                        failures.Add($"{asset} was served empty");
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                failures.Add($"the presentation server could not be read from: {ex.Message}");
+            }
+
+            // A listener nothing outside this machine can dial is a server that is up for nobody.
+            // On a Flatpak with no network share this is empty, because the sandbox has only its
+            // own loopback; a machine genuinely on no network reads the same, and saying so is
+            // right either way.
+            if (server.Addresses.Count == 0)
+            {
+                failures.Add("the presentation server is listening, but on no address another "
+                             + "device could reach");
+            }
+        }
+        finally
+        {
+            await server.ApplyAsync(options with { Enabled = false });
+        }
     }
 
     private static string? ReadOption(string[] args, string name)

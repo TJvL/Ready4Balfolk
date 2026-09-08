@@ -420,7 +420,7 @@ UI-level errors (e.g. a failed refresh, missing tracks) are shown to the user vi
 
 ### Continuous Integration
 
-`verify.yml` runs on every push to `main` and every pull request targeting it. `release.yml` is triggered by hand with a version and chains everything else: verify → build binaries → package (Flatpak, Inno Setup) → smoke test the packages → publish the release. macOS is not a build target.
+`verify.yml` runs on every push to `main` and every pull request targeting it. `verify-packages.yml` runs on a pull request that touches packaging, and builds and smoke tests the packages themselves. `release.yml` is triggered by hand with a version and chains everything else: verify → build binaries → package (Flatpak, Inno Setup) → smoke test the packages → publish the release. macOS is not a build target.
 
 Before opening a pull request, run what `verify.yml` runs:
 
@@ -457,9 +457,11 @@ So the app can start itself for inspection:
 ./Ready4Balfolk.UI --smoke-test
 ```
 
-`SmokeTest.Run` starts the application for real, waits for the main window, then resolves `IAudioPlaybackService`: which is what loads BASS, and is why killing the app after a timeout would not do: the service is a lazy singleton that nothing on the startup path touches, so a build with no BASS at all reaches a running window quite happily. It then checks BASS_FX (`IsEqualizerAvailable`), checks every extension the app offers is registered, **decodes a file in each format**, scans everything this run appended to `app.log` for `[ERROR]` and `[CRITICAL]`, prints the log if anything failed, and exits: `0` passed, `1` a check failed, `2` startup hung.
+`SmokeTest.Run` starts the application for real, waits for the main window, then resolves `IAudioPlaybackService`: which is what loads BASS, and is why killing the app after a timeout would not do: the service is a lazy singleton that nothing on the startup path touches, so a build with no BASS at all reaches a running window quite happily. It then checks BASS_FX (`IsEqualizerAvailable`), checks every extension the app offers is registered, **decodes a file in each format**, **starts the presentation server and fetches the display page and its assets from it**, scans everything this run appended to `app.log` for `[ERROR]` and `[CRITICAL]`, prints the log if anything failed, and exits: `0` passed, `1` a check failed, `2` startup hung.
 
 The decode matters because registering a plugin is not the same as being able to read a file with it. v1.1.0 shipped Windows builds with BASSFLAC present and unloadable, so `.flac` was silently missing from the catalogue for every Windows user.
+
+The presentation server is the other half a package can drop. The display page and its scripts are embedded in `Ready4Balfolk.Web` and served out of the assembly, so a package that loses them starts perfectly and serves nothing; and a Flatpak whose manifest lost `--share=network` gets a sandbox with no network of its own, where the listener still binds inside the sandbox but no address the hall could reach exists at all. The check asks for `display.js`, `app.css`, `strings.js` and `remote.js` as well as the page, because the page has a route of its own and only those four travel through the static file middleware a browser depends on. It drives `PresentationWebServer.ApplyAsync` directly rather than flipping the setting, so a local run leaves the DJ's own switch alone, and it asks for a port of its own so a machine already serving its display page is not a failure.
 
 `scripts/smoke-test-media/` holds the fixtures: the same 1.5 s chromatic scale, A4 up to G♯5, encoded as `.wav`, `.aiff`, `.flac`, `.mp3`, `.mp2` and `.ogg`. They are committed rather than generated, for the same reason the icons are: CI decodes them on every pull request, and generating them there would put ffmpeg on the critical path of every run, which `windows-latest` does not ship. Regenerate with `scripts/generate-smoke-test-media.sh` and commit the result; the output is deterministic, so an unchanged scale produces no diff.
 
@@ -482,6 +484,8 @@ pwsh scripts/smoke-test.ps1 publish\Ready4Balfolk.UI.exe
 Both display servers are worth running, because `UseWaylandWithFallback` picks the backend at startup and X11 and Wayland are two different paths through Avalonia.
 
 The portable builds are checked inside `build-binaries.yml`, so every pull request runs them. `smoke-test-packages.yml` goes further and installs the Flatpak and the Windows installer, then launches what the installer put on disk. That is the level that catches a native library present in `publish/` but never copied into the bundle. It gates the `release` job, so nothing reaches the Releases page without having been started at least once.
+
+`verify-packages.yml` runs that same chain on a pull request, so a manifest or a `setup.iss` that no longer produces a working package fails the change rather than the release. It is filtered to the paths packaging is built from: `packaging/`, the icons the bundle and the installer carry, the smoke test scripts and their fixtures, and the workflow files themselves. Everything else skips it, because building a Flatpak is the better part of a quarter of an hour and no ordinary change should wait on one. It builds the binaries itself rather than borrowing the run that `build-binaries.yml` starts for the same pull request: artifacts belong to the run that produced them. It has no aggregate gate job, and must not be required by the branch ruleset, since a required check on a path filtered workflow never reports on the pull requests that skip it.
 
 ### Reactive Patterns
 

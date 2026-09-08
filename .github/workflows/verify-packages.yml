@@ -1,0 +1,70 @@
+name: Verify Packages
+
+# The packaging half of the pull request checks: build the Flatpak bundle and the Windows
+# installer, install both, and start what the installer put on disk. Everything here used to run
+# for the first time during a release, where a broken manifest or a broken setup.iss stopped the
+# release rather than the pull request that caused it.
+#
+# Path filtered, because it is not cheap: the Flatpak build alone is the better part of a quarter
+# of an hour, and making every pull request wait on it to protect two files that change a few times
+# a year is a poor trade. A pull request that touches neither packaging nor the things packaging
+# reads skips this workflow entirely and pays nothing.
+#
+# There is no aggregate gate job here of the kind verify.yml and build-binaries.yml have, and there
+# must not be: a required status check on a path filtered workflow is a check that never reports on
+# every other pull request, and a merge that waits for it waits forever.
+
+# A literal group, not ${{ github.workflow }}-${{ github.ref }}, and it has to stay literal. A
+# called workflow reads the *caller's* name in github.workflow, so build-binaries.yml below would
+# resolve its own group to that same expression and claim the group this run already holds: with
+# cancel-in-progress set, the job cancels the run that started it and nothing gets packaged.
+# release.yml is safe from this only because its group is the literal string 'release'.
+concurrency:
+  group: verify-packages-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      # The manifest, the desktop file and the installer script.
+      - 'packaging/**'
+      # What the packaging reads but does not own: the icons the Flatpak stage installs and the one
+      # the installer uses, and the smoke test the packages are judged by.
+      - 'Ready4Balfolk.UI/Assets/icon*'
+      - 'scripts/smoke-test.sh'
+      - 'scripts/smoke-test.ps1'
+      - 'scripts/smoke-test-media/**'
+      # The workflows themselves, this one included. They are the other half of the packaging, and
+      # a change to build-flatpak.yml is exactly as unverified as a change to the manifest.
+      - '.github/workflows/**'
+
+jobs:
+  # Called rather than reused from the run that build-binaries.yml starts for the same pull
+  # request: artifacts belong to the run that produced them, and the Flatpak and installer jobs
+  # download theirs. That does mean the publish matrix runs twice on a packaging pull request,
+  # which is the price of not reaching across runs for artifacts.
+  build-binaries:
+    uses: ./.github/workflows/build-binaries.yml
+    with:
+      # Nothing is released from a pull request; this only names the bundle and the installer.
+      version: 0.0.0
+
+  build-flatpak:
+    needs: build-binaries
+    uses: ./.github/workflows/build-flatpak.yml
+    with:
+      version: 0.0.0
+
+  build-inno-setup:
+    needs: build-binaries
+    uses: ./.github/workflows/build-inno-setup.yml
+    with:
+      version: 0.0.0
+
+  smoke-test-packages:
+    needs: [build-flatpak, build-inno-setup]
+    uses: ./.github/workflows/smoke-test-packages.yml

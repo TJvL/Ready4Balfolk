@@ -43,7 +43,8 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # No version is passed on a pull request; nothing is released from one, so any value will do.
+      # Nothing is released from a pull request, so a pull request that runs this workflow on its
+      # own passes no version at all and any value will do.
       - name: Publish (single-file)
         run: >-
           dotnet publish Ready4Balfolk.UI/Ready4Balfolk.UI.csproj
@@ -123,9 +124,14 @@ jobs:
             ${{ matrix.artifact }}.tar.gz
           if-no-files-found: ignore
 
-      # Only the Flatpak build consumes this, and that job does not run on pull requests.
+      # Only the Flatpak build consumes this, and it is the callers that pass a version who go on
+      # to package: the release, and the packaging checks on a pull request that touches packaging.
+      # A pull request that runs this workflow on its own has nothing to feed, so it uploads
+      # nothing. github.event_name is no good for the distinction: a reusable workflow called from
+      # a pull request still reads pull_request, so a condition on it would starve the Flatpak job
+      # of the publish it downloads.
       - name: Upload Flatpak publish
-        if: matrix.runtime == 'linux-x64' && github.event_name != 'pull_request'
+        if: matrix.runtime == 'linux-x64' && inputs.version != ''
         uses: actions/upload-artifact@v7
         with:
           name: linux-x64-flatpak-publish
