@@ -22,6 +22,24 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
 {
     private const string DatabaseFileName = "library.sqlite";
 
+    /// <summary>The shape this build was written against, stamped in the file's user_version.</summary>
+    /// <remarks>
+    /// <para>
+    /// Raise it in the same commit as any change to <see cref="Schema"/>. An index stamped with
+    /// anything else is thrown away and laid out again, because a build that reads a shape it was
+    /// not written against reports "no such column" from somewhere far away from the cause, on
+    /// every start, forever.
+    /// </para>
+    /// <para>
+    /// It says nothing about the numbers the enums in those columns are written as. Those are
+    /// pinned on the members themselves and a test holds them there, because a stamp is the wrong
+    /// tool for them: the rebuild a bump provokes reads the old file's approvals back out by
+    /// exactly those numbers, so a build that renumbered one would carry every answer across as a
+    /// different answer.
+    /// </para>
+    /// </remarks>
+    private const int SchemaVersion = 1;
+
     /// <summary>The three fields whose source is stored, in the order their parameters are bound.</summary>
     private static readonly string[] SourceColumns = ["dance", "artist", "title"];
 
@@ -72,9 +90,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             await loggerService.ErrorAsync(
                 $"The library index ({DatabaseFileName}) is unreadable and will be rebuilt", exception);
 
-            File.Delete(path);
-            File.Delete(path + "-wal");
-            File.Delete(path + "-shm");
+            DeleteDatabaseFiles(path);
             _connection = await OpenAtAsync(path, token);
         }
 
@@ -82,6 +98,33 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
     }
 
     private async Task<SqliteConnection> OpenAtAsync(string path, CancellationToken token)
+    {
+        var connection = await ConnectAsync(path, token);
+
+        try
+        {
+            var stamped = await ReadSchemaVersionAsync(connection, token);
+            if (stamped != SchemaVersion && !await IsUnusedAsync(connection, token))
+            {
+                connection = await RebuildAsync(connection, path, stamped, token);
+            }
+            else
+            {
+                await LayOutAsync(connection, token);
+            }
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
+
+        _ = loggerService.InfoAsync($"Library index opened ({DatabaseFileName})");
+        return connection;
+    }
+
+    /// <summary>Opens the file and puts the connection in the state the rest of this class expects.</summary>
+    private static async Task<SqliteConnection> ConnectAsync(string path, CancellationToken token)
     {
         var connection = new SqliteConnection(new SqliteConnectionStringBuilder
         {
@@ -100,7 +143,6 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             // WAL so a crash mid-scan leaves a readable database rather than a truncated one.
             await ExecuteAsync(connection, "PRAGMA journal_mode=WAL;", token);
             await ExecuteAsync(connection, "PRAGMA synchronous=NORMAL;", token);
-            await ExecuteAsync(connection, Schema, token);
         }
         catch
         {
@@ -108,8 +150,257 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             throw;
         }
 
-        _ = loggerService.InfoAsync($"Library index opened ({DatabaseFileName})");
         return connection;
+    }
+
+    /// <summary>Creates whatever is missing and stamps the shape it was created in.</summary>
+    private static async Task LayOutAsync(SqliteConnection connection, CancellationToken token)
+    {
+        await ExecuteAsync(connection, Schema, token);
+        // Interpolated rather than bound: a pragma takes no parameters, and the value is a constant
+        // of this file rather than anything a caller supplies.
+        await ExecuteAsync(connection, $"PRAGMA user_version = {SchemaVersion};", token);
+    }
+
+    /// <summary>Which shape the file on disk was laid out in. Zero until something stamps it.</summary>
+    private static async Task<long> ReadSchemaVersionAsync(SqliteConnection connection, CancellationToken token)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA user_version;";
+        return Convert.ToInt64(await command.ExecuteScalarAsync(token), provider: null);
+    }
+
+    /// <summary>Whether nothing has been laid out in this file yet.</summary>
+    /// <remarks>
+    /// A file SQLite has just created for us reads back version zero, which is not this build's
+    /// number either, and the first launch of all must not announce that it is rebuilding an empty
+    /// file.
+    /// </remarks>
+    private static async Task<bool> IsUnusedAsync(SqliteConnection connection, CancellationToken token)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_master;";
+        return Convert.ToInt64(await command.ExecuteScalarAsync(token), provider: null) == 0;
+    }
+
+    /// <summary>Throws away only what a scan can work out again, and puts the rest back.</summary>
+    /// <remarks>
+    /// <para>
+    /// Any stamp but ours, lower or higher: an older build meeting tomorrow's file is the same
+    /// situation as a newer build meeting yesterday's, because neither can read a shape it was not
+    /// written against, and going back a build has to work the first time on a stage. Both rebuild,
+    /// so running the two alternately costs a scan each time and nothing else.
+    /// </para>
+    /// <para>
+    /// The tracks are the only table thrown away, because the scan an empty one provokes works
+    /// every column of it out again. Everything else comes across. The approvals and the ignored
+    /// values because they are evenings of the DJ's own answers and nothing anywhere can work them
+    /// out again. The paths because a scan only puts those back when it can reach the files: the
+    /// question asked when a scan finds no music in a folder is asked about the folders the
+    /// indexed paths name, so an emptied track_paths asks nothing at all on a start with the drive
+    /// unplugged, and the sweep that closes that scan then deletes every approval just carried
+    /// across for pointing at no track. A schema change would be a way of losing a library to an
+    /// unplugged drive without a word. Their available flag rides along with them, which is right:
+    /// it is an answer too, set only ever by somebody saying to keep a folder that was not there.
+    /// </para>
+    /// <para>
+    /// All of it is only sound because the numbers those enums are stored as are pinned and never
+    /// move.
+    /// </para>
+    /// </remarks>
+    private async Task<SqliteConnection> RebuildAsync(
+        SqliteConnection connection, string path, long stamped, CancellationToken token)
+    {
+        await loggerService.InfoAsync(
+            $"The library index ({DatabaseFileName}) was laid out for schema {stamped} and this build "
+            + $"expects {SchemaVersion}; rebuilding it and keeping the paths and what was answered");
+
+        var carried = await ReadWhatMustSurviveAsync(connection, token);
+        await connection.DisposeAsync();
+        DeleteDatabaseFiles(path);
+
+        var rebuilt = await ConnectAsync(path, token);
+        try
+        {
+            await LayOutAsync(rebuilt, token);
+            await RestoreAsync(rebuilt, carried, token);
+        }
+        catch
+        {
+            await rebuilt.DisposeAsync();
+            throw;
+        }
+
+        return rebuilt;
+    }
+
+    /// <summary>Reads everything the new file starts with, or nothing at all when the old shape hides it.</summary>
+    /// <remarks>
+    /// All three together or none of them. Approvals carried across without the paths they hang on
+    /// are approvals the next scan's orphan sweep deletes, so half of this succeeding would be
+    /// worse than none of it.
+    /// </remarks>
+    private async Task<CarriedRows> ReadWhatMustSurviveAsync(SqliteConnection connection, CancellationToken token)
+    {
+        try
+        {
+            var approvals = await ReadApprovalsAsync(connection, token);
+
+            var paths = new List<IndexedPath>();
+            await using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT path, content_hash, file_size, last_write_utc, available FROM track_paths;";
+                await using var reader = await command.ExecuteReaderAsync(token);
+                while (await reader.ReadAsync(token))
+                {
+                    paths.Add(new IndexedPath(
+                        reader.GetString(0),
+                        (byte[])reader["content_hash"],
+                        reader.GetInt64(2),
+                        reader.GetInt64(3),
+                        reader.GetInt32(4)));
+                }
+            }
+
+            var ignored = new List<(string Folded, string Value)>();
+            await using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT folded_value, value FROM ignored_values;";
+                await using var reader = await command.ExecuteReaderAsync(token);
+                while (await reader.ReadAsync(token))
+                {
+                    ignored.Add((reader.GetString(0), reader.GetString(1)));
+                }
+            }
+
+            return new CarriedRows(paths, approvals, ignored);
+        }
+        catch (Exception exception) when (exception is SqliteException or InvalidCastException)
+        {
+            // A table or column that is not there, or one holding something other than what this
+            // build reads it as. The one thing worse than losing the answers is refusing to start
+            // because of them, in a hall, so the loss is written down and the rebuild goes on. It
+            // takes the paths with it, so what is left is an empty index rather than answers with
+            // nothing to hang on.
+            await loggerService.ErrorAsync(
+                $"The library index ({DatabaseFileName}) is being rebuilt and what was answered could not be read out",
+                exception);
+
+            return new CarriedRows([], [], []);
+        }
+    }
+
+    private static async Task RestoreAsync(
+        SqliteConnection connection, CarriedRows carried, CancellationToken token)
+    {
+        if (carried.Paths.Count == 0 && carried.Approvals.Count == 0 && carried.IgnoredValues.Count == 0)
+        {
+            return;
+        }
+
+        await using var transaction = await connection.BeginTransactionAsync(token);
+
+        await using (var command = connection.CreateCommand())
+        {
+            command.Transaction = (SqliteTransaction)transaction;
+            command.CommandText = """
+                INSERT INTO track_paths (path, content_hash, file_size, last_write_utc, available)
+                VALUES ($path, $hash, $size, $written, $available);
+                """;
+
+            var path = command.Parameters.Add("$path", SqliteType.Text);
+            var hash = command.Parameters.Add("$hash", SqliteType.Blob);
+            var size = command.Parameters.Add("$size", SqliteType.Integer);
+            var written = command.Parameters.Add("$written", SqliteType.Integer);
+            var available = command.Parameters.Add("$available", SqliteType.Integer);
+
+            foreach (var indexed in carried.Paths)
+            {
+                path.Value = indexed.Path;
+                hash.Value = indexed.ContentHash;
+                size.Value = indexed.FileSize;
+                written.Value = indexed.LastWriteUtc;
+                available.Value = indexed.Available;
+                await command.ExecuteNonQueryAsync(token);
+            }
+        }
+
+        await using (var command = connection.CreateCommand())
+        {
+            command.Transaction = (SqliteTransaction)transaction;
+            command.CommandText = """
+                INSERT INTO approvals (content_hash, field, value, kind, rule, file_write_utc)
+                VALUES ($hash, $field, $value, $kind, $rule, $written);
+                """;
+
+            var hash = command.Parameters.Add("$hash", SqliteType.Blob);
+            var field = command.Parameters.Add("$field", SqliteType.Integer);
+            var value = command.Parameters.Add("$value", SqliteType.Text);
+            var kind = command.Parameters.Add("$kind", SqliteType.Integer);
+            var rule = command.Parameters.Add("$rule", SqliteType.Text);
+            var written = command.Parameters.Add("$written", SqliteType.Integer);
+
+            foreach (var approval in carried.Approvals)
+            {
+                hash.Value = approval.ContentHash;
+                field.Value = (int)approval.Field;
+                value.Value = approval.Value;
+                kind.Value = (int)approval.Kind;
+                rule.Value = (object?)approval.Rule ?? DBNull.Value;
+                written.Value = approval.FileWriteUtc.Ticks;
+                await command.ExecuteNonQueryAsync(token);
+            }
+        }
+
+        await using (var command = connection.CreateCommand())
+        {
+            command.Transaction = (SqliteTransaction)transaction;
+            command.CommandText = "INSERT INTO ignored_values (folded_value, value) VALUES ($folded, $value);";
+            var folded = command.Parameters.Add("$folded", SqliteType.Text);
+            var value = command.Parameters.Add("$value", SqliteType.Text);
+
+            foreach (var (foldedValue, original) in carried.IgnoredValues)
+            {
+                folded.Value = foldedValue;
+                value.Value = original;
+                await command.ExecuteNonQueryAsync(token);
+            }
+        }
+
+        await transaction.CommitAsync(token);
+    }
+
+    private static void DeleteDatabaseFiles(string path)
+    {
+        File.Delete(path);
+        File.Delete(path + "-wal");
+        File.Delete(path + "-shm");
+    }
+
+    public async Task<IReadOnlySet<string>> IndexedPathsAsync(CancellationToken token = default)
+    {
+        await _gate.WaitAsync(token);
+        try
+        {
+            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
+            // track_paths on its own, with no join to the tracks. A path whose track is not there
+            // is still a path the library held, and after a rebuild it is every path there is.
+            command.CommandText = "SELECT path FROM track_paths;";
+
+            var paths = new HashSet<string>(StringComparer.Ordinal);
+            await using var reader = await command.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token))
+            {
+                paths.Add(reader.GetString(0));
+            }
+
+            return paths;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task<IReadOnlyDictionary<string, LibraryEntry>> SnapshotByPathAsync(CancellationToken token = default)
@@ -350,28 +641,14 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
-            command.CommandText = "SELECT content_hash, field, value, kind, rule, file_write_utc FROM approvals;";
-
             var byTrack = new Dictionary<string, List<TrackApproval>>(StringComparer.Ordinal);
-            await using var reader = await command.ExecuteReaderAsync(token);
-            while (await reader.ReadAsync(token))
+            foreach (var approval in await ReadApprovalsAsync(await EnsureOpenLockedAsync(token), token))
             {
-                var hash = (byte[])reader["content_hash"];
-                var approval = new TrackApproval
-                {
-                    ContentHash = hash,
-                    Field = (TrackField)reader.GetInt32(1),
-                    Value = reader.GetString(2),
-                    Kind = (ApprovalKind)reader.GetInt32(3),
-                    Rule = reader.IsDBNull(4) ? null : reader.GetString(4),
-                    FileWriteUtc = new DateTime(reader.GetInt64(5), DateTimeKind.Utc)
-                };
-
-                if (!byTrack.TryGetValue(LibraryKey.For(hash), out var list))
+                var key = LibraryKey.For(approval.ContentHash);
+                if (!byTrack.TryGetValue(key, out var list))
                 {
                     list = [];
-                    byTrack[LibraryKey.For(hash)] = list;
+                    byTrack[key] = list;
                 }
 
                 list.Add(approval);
@@ -384,6 +661,36 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         {
             _gate.Release();
         }
+    }
+
+    /// <summary>Every approval there is, flat. The gate must be held.</summary>
+    /// <remarks>
+    /// The numbers the two enums are read back as are the ones pinned on their members. Nothing
+    /// here may guess: a wrong reading turns one answer the DJ gave into another one they never
+    /// gave, and no scan would ever correct it.
+    /// </remarks>
+    private static async Task<List<TrackApproval>> ReadApprovalsAsync(
+        SqliteConnection connection, CancellationToken token)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT content_hash, field, value, kind, rule, file_write_utc FROM approvals;";
+
+        var approvals = new List<TrackApproval>();
+        await using var reader = await command.ExecuteReaderAsync(token);
+        while (await reader.ReadAsync(token))
+        {
+            approvals.Add(new TrackApproval
+            {
+                ContentHash = (byte[])reader["content_hash"],
+                Field = (TrackField)reader.GetInt32(1),
+                Value = reader.GetString(2),
+                Kind = (ApprovalKind)reader.GetInt32(3),
+                Rule = reader.IsDBNull(4) ? null : reader.GetString(4),
+                FileWriteUtc = new DateTime(reader.GetInt64(5), DateTimeKind.Utc)
+            });
+        }
+
+        return approvals;
     }
 
     public async Task ApproveAsync(IReadOnlyCollection<TrackApproval> approvals, CancellationToken token = default)
@@ -761,6 +1068,16 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         _connection = null;
         _gate.Dispose();
     }
+
+    /// <summary>What a rebuild carries across: everything but the one table a scan can work out again.</summary>
+    private sealed record CarriedRows(
+        IReadOnlyList<IndexedPath> Paths,
+        IReadOnlyList<TrackApproval> Approvals,
+        IReadOnlyList<(string Folded, string Value)> IgnoredValues);
+
+    /// <summary>One row of track_paths as it stood, held while the file it came from is replaced.</summary>
+    private sealed record IndexedPath(
+        string Path, byte[] ContentHash, long FileSize, long LastWriteUtc, int Available);
 
     /// <summary>Where one value came from, read from the three columns that hold it.</summary>
     private static DerivedFrom ReadSource(SqliteDataReader reader, int at) => new(

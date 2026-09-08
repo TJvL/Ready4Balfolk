@@ -122,6 +122,11 @@ jobs:
             ${{ matrix.artifact }}.zip
             ${{ matrix.artifact }}.tar.gz
           if-no-files-found: ignore
+          # A release attaches these to the release page in the same run, and nothing else reads
+          # them afterwards. Left at the ninety day default they were most of thirty gigabytes of
+          # stored builds, and an account over its storage quota cannot upload at all: every job
+          # that ends in an upload starts failing with a 403 that reads like an outage.
+          retention-days: 7
 
       # Only the Flatpak build consumes this, and that job does not run on pull requests.
       - name: Upload Flatpak publish
@@ -130,6 +135,8 @@ jobs:
         with:
           name: linux-x64-flatpak-publish
           path: publish-flatpak/
+          # Handed straight to the Flatpak build in the same run.
+          retention-days: 7
 
   # A stable name for the branch ruleset to require, for the same reason verify.yml has one: the
   # matrix legs above are named after their matrix values, and a smoke test that cannot block a
