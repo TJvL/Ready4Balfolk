@@ -6,8 +6,6 @@ using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Queue;
-using Ready4Balfolk.Domain.Stores.Dances;
-using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
@@ -27,8 +25,8 @@ public sealed class TrackCatalogViewModelTests : IDisposable
         new(new ApplicationSettings() with { MusicDirectoryPath = "/music" });
     private readonly IQueueService _queueService = Substitute.For<IQueueService>();
     private readonly INotificationService _notifications = Substitute.For<INotificationService>();
-    private readonly ILibraryIndex _libraryIndex = Substitute.For<ILibraryIndex>();
     private readonly ThrottleClock _throttles = new();
+    private readonly ITrackEditorService _trackEditor;
     private readonly TrackCatalogViewModel _sut;
 
     public TrackCatalogViewModelTests()
@@ -47,9 +45,9 @@ public sealed class TrackCatalogViewModelTests : IDisposable
         settingsStore.Current.Returns(_ => _settings.Value);
         settingsStore.Observe().Returns(_settings);
 
+        _trackEditor = Substitute.For<ITrackEditorService>();
         _sut = new TrackCatalogViewModel(
-            trackStore, _queueService, _notifications, new TrackEditorService(
-                Substitute.For<IDanceListStore>(), _libraryIndex, trackStore), settingsStore,
+            trackStore, _queueService, _notifications, _trackEditor, settingsStore,
             _throttles.Scheduler);
     }
 
@@ -140,18 +138,17 @@ public sealed class TrackCatalogViewModelTests : IDisposable
     {
         // An answer given a week ago, long after the row that gave it was rebuilt out of the review
         // queue. The catalogue is where a track that got through the gate still exists, so this is
-        // where taking its answer back has to live: nowhere else is there anything to press.
-        _libraryIndex.WithdrawIndividualApprovalsAsync(
-            Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>()).Returns(3);
+        // where taking its answer back has to live: nowhere else is there anything to press. What
+        // withdrawing actually does to the library is TrackEditorService's own contract, proved
+        // separately in TrackEditorServiceTests; here it is the seam the ViewModel goes through.
         _tracks.Add(TestData.CreateTrack(title: "Salamandre"));
         Settle();
         var track = _sut.Tracks[0];
+        _trackEditor.WithdrawAsync(track.Track).Returns(true);
 
         await _sut.WithdrawTrackCommand.Execute(track);
 
-        await _libraryIndex.Received(1).WithdrawIndividualApprovalsAsync(
-            Arg.Is<IReadOnlyCollection<string>>(paths => paths.Contains(track.Track.FileInfo.FullName)),
-            Arg.Any<CancellationToken>());
+        await _trackEditor.Received(1).WithdrawAsync(track.Track);
         _notifications.Received(1).Show(
             Arg.Is<string>(said => said.Contains("Salamandre", StringComparison.Ordinal)),
             NotificationSeverity.Information);
@@ -162,10 +159,9 @@ public sealed class TrackCatalogViewModelTests : IDisposable
     {
         // The track is in the library on a rule or on its own tags. A menu entry that quietly does
         // nothing reads as one that failed, and the DJ presses it again.
-        _libraryIndex.WithdrawIndividualApprovalsAsync(
-            Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>()).Returns(0);
         _tracks.Add(TestData.CreateTrack(title: "Salamandre"));
         Settle();
+        _trackEditor.WithdrawAsync(Arg.Any<Track>()).Returns(false);
 
         await _sut.WithdrawTrackCommand.Execute(_sut.Tracks[0]);
 

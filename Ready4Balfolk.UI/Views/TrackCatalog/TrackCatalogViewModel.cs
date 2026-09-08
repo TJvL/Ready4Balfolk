@@ -25,7 +25,7 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
 {
     private readonly IQueueService _queueService;
     private readonly INotificationService _notificationService;
-    private readonly TrackEditorService _trackEditor;
+    private readonly ITrackEditorService _trackEditor;
     private readonly CompositeDisposable _disposables = [];
     private readonly ReadOnlyObservableCollection<TrackViewModel> _tracks;
 
@@ -113,7 +113,7 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
     /// busy one.
     /// </remarks>
     public TrackCatalogViewModel(ITrackStore trackStore, IQueueService queueService,
-        INotificationService notificationService, TrackEditorService trackEditor,
+        INotificationService notificationService, ITrackEditorService trackEditor,
         ISettingsStore settingsStore, IScheduler? searchScheduler = null)
     {
         _queueService = queueService;

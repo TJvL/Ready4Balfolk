@@ -114,7 +114,7 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
                 _logFile.Refresh();
             }
 
-            await File.AppendAllTextAsync(_logFile.FullName, line);
+            await _logFile.FileSystem.File.AppendAllTextAsync(_logFile.FullName, line);
         }
         finally
         {
