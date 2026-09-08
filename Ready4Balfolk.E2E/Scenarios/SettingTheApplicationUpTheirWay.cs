@@ -1,4 +1,6 @@
 using Avalonia.Input;
+using Avalonia.Styling;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -125,6 +127,34 @@ public sealed class SettingTheApplicationUpTheirWay(HeadlessSession session)
             await application.WaitUntil(
                 () => application.SaysAnywhere(UiStrings.Settings_Language),
                 "the settings to read in Dutch");
+        });
+    }
+
+    /// <summary>The screen still restyles when the theme setting arrives off the UI thread.</summary>
+    /// <remarks>
+    /// World: a library of one dance, on an application left at the default (automatic) theme.
+    /// Steps: raise the setting the way the equalizer and the embedded web server really do, from a
+    /// thread of their own, rather than through the settings page.
+    /// Sees: the theme actually applied follows the setting. Restyling every open window is
+    /// Avalonia's, not the scenario's, so this is what would have thrown or corrupted the visual
+    /// tree before the settings observer moved the work back onto the UI thread.
+    /// </remarks>
+    [Fact]
+    public async Task TheScreenStillRestylesWhenTheThemeArrivesOffTheUiThread()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await RunningApplication.ASettingChangesFromABackgroundThread(
+                settings => settings with { ApplicationTheme = ApplicationTheme.Dark });
+
+            await application.WaitUntil(
+                () => RunningApplication.CurrentTheme() == ThemeVariant.Dark,
+                "the theme raised from a background thread to be applied");
         });
     }
 }

@@ -152,6 +152,7 @@ internal sealed class ApplicationStartup(
         _disposables.Add(settingsStore.Observe()
             .Select(s => s.ApplicationTheme)
             .DistinctUntilChanged()
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(appearance.ApplyTheme));
 
         // One subscription, one value. These used to be three separate subscriptions into three
@@ -203,6 +204,7 @@ internal sealed class ApplicationStartup(
         _disposables.Add(settingsStore.Observe()
             .Select(s => s.PresentationDisplayCount)
             .DistinctUntilChanged()
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(SyncPresentationWindows));
     }
 
