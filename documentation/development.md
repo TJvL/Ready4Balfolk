@@ -4,14 +4,15 @@ This document explains the layered architecture, naming conventions, and pattern
 
 ## Overview
 
-Ready4Balfolk is a four-project Avalonia desktop application for managing and playing back folk dance music queues.
+Ready4Balfolk is a five-project Avalonia desktop application for managing and playing back folk dance music queues.
 
 | Project | Purpose | Key dependencies |
 |---------|---------|-----------------|
-| `Ready4Balfolk.Domain` | Models, stores, services. No UI dependencies | System.Reactive, DynamicData, ManagedBass, System.Text.Json, Microsoft.Data.Sqlite |
+| `Ready4Balfolk.Domain` | Models, stores, services. No UI dependencies | DynamicData, ManagedBass, Microsoft.Data.Sqlite, TagLibSharp |
 | `Ready4Balfolk.UI` | Views, ViewModels, converters, UI services. Hosts the other two | Avalonia 12, ReactiveUI, ReactiveUI.SourceGenerators |
 | `Ready4Balfolk.Web` | The presentation display and the phone remote, served from inside the app | ASP.NET Core (via `FrameworkReference`), SignalR |
 | `Ready4Balfolk.Tests` | Unit, integration and ViewModel tests | xunit.v3 on Microsoft.Testing.Platform, NSubstitute, System.IO.Abstractions.TestingHelpers |
+| `Ready4Balfolk.E2E` | End-to-end scenarios that drive the real application headless, one process per scenario | xunit.v3 on Microsoft.Testing.Platform, Avalonia.Headless, Microsoft.Playwright |
 
 **Key principles:**
 
@@ -106,9 +107,10 @@ On a 2685-file library with BigBalfolkList imported and nothing else configured,
 
 - **`Microsoft.Data.Sqlite` appears in `SqliteLibraryIndex` and `QueueHistoryStore` and nowhere else.** Extracting a `.Data` project later should be a file move, not an untangling.
 - `id INTEGER PRIMARY KEY` is an alias for the rowid, so there is no second index to maintain. **`content_hash BLOB UNIQUE` is the natural key** and what an upsert conflicts on, so a renamed or retagged file keeps its row along with everything the user decided about it.
-- The hash is over **the audio stream only** (`AudioContentHasher`, using TagLib's invariant start/end positions). The application writes tags into files itself, and a whole-file hash would make every one of its own edits look like a new track.
+- The hash is over **the audio stream only** (`AudioContentHasher`, using TagLib's invariant start/end positions). Nothing in the application writes tags into a file: a correction from the editor is stored as an approval in the library index (`TrackEditorService.ApplyAsync`), never written back to the tag.
 - The **fast path is path + size + last-write-time**, held in a snapshot read once per scan. Hashing would be a better check and is what the row is keyed by, but it means opening the file, which is the cost the index exists to avoid.
 - The index stores **the slug, not a name**, plus `original_dance` for the review screen to group identical unknown values by. The review count itself is the gate's: the track store publishes how many indexed tracks were held out of the library, so all three hold-back reasons count.
+- **The file carries the shape it was laid out in, in `PRAGMA user_version`.** `SchemaVersion` in `SqliteLibraryIndex` goes up with any change to the schema, and an index stamped with anything else is deleted and laid out again rather than opened: an older stamp and a newer one alike, because going back a build has to work the first time. Only the `tracks` table is thrown away, because only it was worked out from the files and the scan that follows works it out again. **The approvals, the ignored values and the whole of `track_paths` are read out before the file goes and written back after**, all three or none of them. The paths have to come across or the rebuild is itself a way of losing a library: the missing-folder question is asked about the folders the indexed paths name, so an emptied `track_paths` asks nobody anything on a start with the drive unplugged, and the reconciliation that closes the scan then deletes every carried approval for pointing at no track. Every enum the index stores a member of has pinned numeric values, and a test holds them there: a member inserted in front of one would turn every answer into a different one, and the stamp cannot help, because the rebuild reads the old file back out by exactly those numbers.
 - **`track_paths.available` is per path, and a scan never sets it on its own.** A scan cannot tell a drive that has not mounted from a folder emptied on purpose, so when the index holds tracks in a folder and the walk found no music in it, `TrackStore` asks through `IMissingFolderPrompt` before it writes anything, and only an answer marks rows unavailable. Unavailable rows are excluded from the published library, the review queue, folder agreement and the discovery statistics, and any write or scan that finds the file again clears the flag. Per path rather than per audio because one recording can sit on a local disk and on a NAS at once.
 
 ### Nights
@@ -136,8 +138,8 @@ before it existed. The catalogue is deliberately not one of them: it is a table 
 
 1. Create `IXxxStore` in `Stores/{Feature}/` with `Current`, `Observe()`, `LoadAsync()`, `UpdateAsync()`.
 2. Create `XxxStore` implementing the interface. Use `BehaviorSubject<T>`, `SemaphoreSlim`, and JSON serialisation as in existing stores.
-3. Register in `Program.cs` as a singleton: `services.AddSingleton<IXxxStore>(_ => new XxxStore(DataDirectory));`.
-4. Call `LoadAsync()` in `App.axaml.cs` inside the `MainWindow.Opened` handler.
+3. Register in `ConfigureServices` in `ApplicationComposition.cs` as a singleton: `services.AddSingleton<IXxxStore, XxxStore>();`.
+4. Call `LoadAsync()` from `ApplicationStartup.Run`, inside the `MainWindow.Opened` subscription alongside the other stores.
 
 ### Services
 
@@ -160,7 +162,7 @@ Services hold **ephemeral runtime state** and operational logic, queue managemen
 
 1. Create `IXxxService` and `XxxService` in `Services/{Feature}/`.
 2. Inject stores or other services via the constructor.
-3. Register in `Program.cs`: `services.AddSingleton<IXxxService, XxxService>();`.
+3. Register in `ConfigureServices` in `ApplicationComposition.cs`: `services.AddSingleton<IXxxService, XxxService>();`.
 
 ### Queue Guard
 
@@ -211,20 +213,25 @@ The `QueueService` does not contain any validation logic itself. Instead, it del
 
 ### Startup & DI
 
-`Program.cs` is the entry point:
+`Program.cs` picks the windowing backend (and, under `--smoke-test`, the no-sound audio device) and
+hands the builder to `ApplicationComposition.Configure`, which is everything the application is apart
+from the platform it is drawn on: a scenario run hands the same builder to a headless backend instead,
+so what is registered is one description rather than two kept in step by hand.
 
-1. Creates the `FileLoggerService` singleton (writes to `~/.local/share/Ready4Balfolk/`).
-2. Installs three global exception handlers:
+`ApplicationComposition.Configure`:
+
+1. Builds the Avalonia app with `UseReactiveUIWithMicrosoftDependencyResolver(services => ConfigureServices(services, options), withResolver: sp => App.UseServices(sp!), withReactiveUIBuilder: ...)`: the resolver bridges Microsoft DI into Splat so ReactiveUI's `ViewLocator` can resolve views, and the builder installs a `WithExceptionHandler` observer in place of the `RxApp.DefaultExceptionHandler` assignment ReactiveUI 23 removed.
+2. `ConfigureServices(IServiceCollection, ApplicationOptions)` registers all stores, services, and ViewModels (mostly singletons).
+3. `AfterSetup` sets the UI culture from the settings store, wires `FileLogSinkService` as Avalonia's log sink, and installs three more global exception handlers:
    - `AppDomain.CurrentDomain.UnhandledException` → log critical.
    - `TaskScheduler.UnobservedTaskException` → log error, mark observed.
-   - `RxApp.DefaultExceptionHandler` → log unhandled Rx exceptions.
-3. Builds the Avalonia app with `UseReactiveUIWithMicrosoftDependencyResolver(ConfigureServices, withResolver: sp => App.Services = sp!)`: this bridges Microsoft DI into Splat so ReactiveUI's `ViewLocator` can resolve views.
-4. `ConfigureServices(IServiceCollection)` registers all stores, services, and ViewModels (mostly singletons).
-5. `AfterSetup` wires `FileLogSinkService` as Avalonia's log sink.
+   - `Dispatcher.UIThread.UnhandledException` → log error, mark handled so the window stays up instead of Avalonia tearing the loop down.
 
-**`App.Services`** is a static `IServiceProvider` property on `App`. Code-behind uses it to resolve services: `App.Services.GetRequiredService<NavigationService>()`.
+That is four exception handlers in total, none of them in `Program.cs` itself.
 
-**To register a new service or ViewModel:** add a line in `ConfigureServices` in `Program.cs`. Use `AddSingleton` for shared state, `AddTransient` for per-resolution instances.
+**`App.Services`** is a static `IServiceProvider` property on `App`, set once from `App.UseServices` and never afterwards. Code-behind uses it to resolve services: `App.Services.GetRequiredService<NavigationService>()`.
+
+**To register a new service or ViewModel:** add a line in `ConfigureServices` in `ApplicationComposition.cs`. Use `AddSingleton` for shared state, `AddTransient` for per-resolution instances.
 
 ### Setup wizard
 
@@ -251,7 +258,7 @@ Some features also include sub-item ViewModels (e.g. `TrackViewModel`, `DanceCar
 
 ### Source Generators
 
-`ReactiveUI.SourceGenerators` 2.6.1 provides three key attributes:
+`ReactiveUI.SourceGenerators` 3.2.0 provides three key attributes:
 
 | Attribute | What it generates | Usage |
 |-----------|------------------|-------|
@@ -289,10 +296,10 @@ Common cases:
 
 ### Navigation
 
-`NavigationService` holds a `[Reactive] Screen CurrentScreen` property and derived `[ObservableAsProperty]` booleans (`IsMainScreen`, `IsSettingsScreen`, `IsHelpScreen`). The main screen also has `IsHistoryMode` and `IsDanceListMode` toggles for switching between the Queue/History and TrackCatalog/DanceList panels.
+`NavigationService` holds a `[Reactive] Screen CurrentScreen` property and derived `[ObservableAsProperty]` booleans (`IsMainScreen`, `IsSettingsScreen`, `IsHelpScreen`, `IsReviewScreen`, `IsSetupScreen`). The main screen also has `IsHistoryMode` and `IsDanceListMode` toggles for switching between the Queue/History and TrackCatalog/DanceList panels.
 
 ```csharp
-public enum Screen { Main, Settings, Help }
+public enum Screen { Main, Settings, Help, Review, Setup }
 ```
 
 **To add a new screen:**
@@ -300,7 +307,7 @@ public enum Screen { Main, Settings, Help }
 1. Add a value to the `Screen` enum.
 2. Add a derived `[ObservableAsProperty] public partial bool IsXxxScreen { get; }` and wire it in the constructor.
 3. Create the view folder in `Views/{Feature}/` with the standard View + ViewModel.
-4. Register the ViewModel in `Program.cs`.
+4. Register the ViewModel in `ApplicationComposition.cs`.
 5. Add the ViewModel as a property on `MainWindowViewModel` (injected via constructor).
 6. Add a `Panel` in `MainWindow.axaml` with `IsVisible="{Binding Navigation.IsXxxScreen}"`.
 7. Add a navigation button in the toolbar or appropriate location.
@@ -309,10 +316,10 @@ public enum Screen { Main, Settings, Help }
 
 | Service | Purpose |
 |---------|---------|
-| `ConfirmationService` | Shows a modal `ConfirmationDialogView`. Requires `SetOwner(Window)` to be called once at startup (done in `App.axaml.cs`). Returns `Task<bool>`. |
+| `ConfirmationService` | Shows a modal `ConfirmationDialogView`. Requires `SetOwner(Window)` to be called once at startup (done in `ApplicationStartup.Run`). Returns `Task<bool>`. |
 | `MissingFolderPromptService` | Implements the Domain's `IMissingFolderPrompt`: shows `MissingFoldersDialogView` for a scan that found no music where the index says there is some. Marshals onto the UI thread, since a scan does not run on it, and takes its owner window from `ConfirmationService` so a question raised from inside the wizard is parented to the wizard. Keeping the tracks is what an unanswered question means. |
 | `NotificationService` | Toast notifications using a DynamicData `SourceList<NotificationItem>` bound to `NotificationOverlayView`. Auto-dismisses after 4 seconds. Supports `Information`, `Warning`, `Error` severity. |
-| `FileLogSinkService` | Implements Avalonia's `ILogSink` to bridge framework logs into the Domain `ILoggerService`. Wired in `Program.cs` via `AfterSetup`. |
+| `FileLogSinkService` | Implements Avalonia's `ILogSink` to bridge framework logs into the Domain `ILoggerService`. Wired in `ApplicationComposition.cs` via `AfterSetup`. |
 
 ### Converters
 
@@ -330,13 +337,13 @@ public sealed class DurationFormatConverter : IValueConverter
 Text="{Binding Length, Converter={x:Static local:DurationFormatConverter.Instance}}"
 ```
 
-Existing converters: `DurationFormatConverter`, `MarkedBrushConverter`, `WeightConverter`, `SeverityToBrushConverter`, `BoolToStringConverter`.
+Existing converters: `BoolToStringConverter` and `WeightConverter` in `Converters/`; `DurationFormatConverter` and the multi-value `TrackTextConverter` in `Views/Queue/`; `SeverityToBrushConverter` in `Views/Notifications/`; `FolderRoleDisplayConverter` in `Views/Discovery/`; `ReviewStateBrushConverter` and `PickerZIndex` in `Views/Review/`; `LanguageDisplayConverter`, `MinutesOfDayConverter` and `ThemeDisplayConverter` in `Views/Settings/`; `AudioFormatToBrushConverter` and `AudioFormatToIconConverter` in `Views/TrackCatalog/`.
 
 **To add a new converter:** create a class implementing `IValueConverter` with `public static readonly XxxConverter Instance = new();`. Place it in the feature folder where it is used.
 
 ### Presentation Windows
 
-`App.axaml.cs` manages 0–10 presentation windows (for external displays). The count is driven by `ApplicationSettings.PresentationDisplayCount`. Each window's position, size, maximised, and borderless state is saved on exit and restored on startup. The `SyncPresentationWindows` method closes excess windows and opens new ones as the setting changes.
+`ApplicationStartup` manages 0–10 presentation windows (for external displays). The count is driven by `ApplicationSettings.PresentationDisplayCount`. Each window's position, size, maximised, and borderless state is saved on exit and restored on startup. The `SyncPresentationWindows` method closes excess windows and opens new ones as the setting changes.
 
 ---
 
@@ -402,24 +409,39 @@ it is switched on.
 
 ### Exception Handling
 
-Three global handlers in `Program.cs` catch unhandled exceptions and route them to the logger:
+Four global handlers, all installed in `ApplicationComposition.cs`, catch unhandled exceptions and route them to the logger:
 
 1. `AppDomain.CurrentDomain.UnhandledException`: CLR-level (critical).
 2. `TaskScheduler.UnobservedTaskException`: unobserved async failures (error, marked observed).
-3. `RxApp.DefaultExceptionHandler`: unhandled Rx pipeline errors (error).
+3. `Dispatcher.UIThread.UnhandledException`: the last net under the UI thread (error, marked handled so the window stays up instead of Avalonia tearing the loop down).
+4. A `WithExceptionHandler` observer, which replaces the `RxApp.DefaultExceptionHandler` assignment removed in ReactiveUI 23 (error).
 
 UI-level errors (e.g. a failed refresh, missing tracks) are shown to the user via `NotificationService.Show(message, Severity.Error)`.
 
 ### Continuous Integration
 
-`verify.yml` runs on every push and pull request. `release.yml` is triggered by hand with a version and chains everything else: verify → build binaries → package (Flatpak, Inno Setup) → smoke test the packages → publish the release. macOS is not a build target.
+`verify.yml` runs on every push to `main` and every pull request targeting it. `release.yml` is triggered by hand with a version and chains everything else: verify → build binaries → package (Flatpak, Inno Setup) → smoke test the packages → publish the release. macOS is not a build target.
+
+Before opening a pull request, run what `verify.yml` runs:
+
+```bash
+dotnet build Ready4Balfolk.sln -c Release
+dotnet format Ready4Balfolk.sln --verify-no-changes
+python3 scripts/check-translations.py
+dotnet test --project Ready4Balfolk.Tests/Ready4Balfolk.Tests.csproj -c Release
+dotnet test --project Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj -c Release
+```
+
+The same five, because Release is stricter than Debug and CI builds Release. `CONTRIBUTING.md` and the pull request template list the same set.
 
 It is **four jobs that run beside each other**, because a pull request goes green when the slowest one finishes rather than when the longest list of steps does:
 
 - `test`, on Ubuntu and Windows. The tests have to run somewhere they could fail differently: `Directory.Build.targets` resolves the BASS natives from the host OS, and the paths the stores write to are not the same shape on Windows.
 - `style`: `dotnet format --verify-no-changes` and `scripts/check-translations.py`, which compares the `.resx` key sets in both directions. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed. One platform for both: `.gitattributes` normalises line endings, so neither can answer differently per platform.
 - `scenarios`: the end to end suite. Its own job above all because it is the leg that grows every time a scenario is written, and beside the others it grows on its own rather than on top of them.
-- `verify`, which needs the other three and is the only name the branch ruleset requires. A matrix reports one check per leg, so requiring those directly means editing the ruleset every time one is split, and a leg nobody remembered to add is a leg that cannot block a merge.
+- `verify`, which needs the other three. A matrix reports one check per leg, so requiring those directly means editing the ruleset every time one is split, and a leg nobody remembered to add is a leg that cannot block a merge.
+
+The branch ruleset requires three checks, not just `verify`: `check-icons` and `build` (the packaging job in `build-binaries.yml`) also gate the merge, and both run outside `verify.yml`. `check-icons.yml` hashes `Ready4Balfolk.UI/Assets/icon.svg` against a stored hash on every push and pull request targeting `main`; editing the icon without regenerating its derived assets fails the check even though none of the five commands above touch it. Regenerate with `bash scripts/generate-icons.sh` (or `pwsh scripts/generate-icons.ps1` on Windows) and commit the result before opening a pull request that changes the icon.
 
 Coverage is collected as cobertura in the `test` job and uploaded as an artifact. It is deliberately **not** gated on a threshold; the artifact is there to be read.
 
@@ -483,10 +505,10 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 1. **Model**: add sealed records in `Domain/Models/{Feature}/` if new data types are needed.
 2. **Store** (if persistent state): create `IXxxStore` + `XxxStore` in `Domain/Stores/{Feature}/`. Follow the `BehaviorSubject` + `SemaphoreSlim` + JSON pattern.
 3. **Service** (if runtime logic): create `IXxxService` + `XxxService` in `Domain/Services/{Feature}/`.
-4. **Register**: add store/service to `Program.cs` `ConfigureServices`. Call `store.LoadAsync()` in `App.axaml.cs` if it persists data.
+4. **Register**: add store/service to `ConfigureServices` in `ApplicationComposition.cs`. Call `store.LoadAsync()` from `ApplicationStartup.Run` if it persists data.
 5. **ViewModel**: create `{Feature}ViewModel : ReactiveObject` in `UI/Views/{Feature}/`. Use `[Reactive]`, `[ObservableAsProperty]`, `[ReactiveCommand]`. Subscribe to stores/services in the constructor, dispose in `Dispose()`.
 6. **View**: create `{Feature}View.axaml` + `.axaml.cs` extending `ReactiveUserControl<{Feature}ViewModel>`. Set `x:DataType`. Use compiled bindings.
-7. **Register ViewModel**: add to `Program.cs` as singleton. Add as a property on `MainWindowViewModel` if it is a top-level screen.
+7. **Register ViewModel**: add to `ApplicationComposition.cs` as singleton. Add as a property on `MainWindowViewModel` if it is a top-level screen.
 8. **Navigation**: add to `Screen` enum, wire `IsXxxScreen`, add `IsVisible` panel in `MainWindow.axaml`, add toolbar button.
 9. **Converters**: if needed, add with the static `Instance` pattern in the feature folder.
 10. **Strings**: add the English text to `UiStrings.resx`, the Dutch to `UiStrings.nl.resx`, and the property to `UiStrings.Designer.cs`. The three are kept in step by hand.

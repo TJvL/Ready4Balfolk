@@ -385,10 +385,13 @@ public sealed class TrackStore : ITrackStore, IDisposable
             _ = _loggerService.DebugAsync($"Found {audioFiles.Count} audio files to load");
 
             // Asked before a single row is written, so answering "exit" really does leave the index
-            // as it was. Everything the question needs is already in hand: what the walk found, and
-            // what the index holds.
+            // as it was. Every path the index holds rather than the snapshot's keys: a rebuild after
+            // a schema change keeps the paths and throws the derived tracks away, and asking the
+            // snapshot then reports a library of nothing, asks nobody anything, and lets the sweep
+            // at the end of this method delete every approval there was.
+            var indexedPaths = await _libraryIndex.IndexedPathsAsync(cancellationToken);
             var missing = MissingFolders.Detect(
-                known.Keys, walk.DirectoriesWithMusic, walk.UnreadableDirectories, directory.FullName);
+                indexedPaths, walk.DirectoriesWithMusic, walk.UnreadableDirectories, directory.FullName);
             IReadOnlyCollection<string> keptUnavailable = [];
 
             if (missing.Count > 0)
@@ -403,7 +406,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
                             "Library scan abandoned at the user's word; the index is untouched");
                         return;
                     case MissingFolderAnswer.KeepThem:
-                        keptUnavailable = MissingFolders.PathsIn(known.Keys, missing);
+                        keptUnavailable = MissingFolders.PathsIn(indexedPaths, missing);
                         break;
                     case MissingFolderAnswer.ForgetThem:
                     default:

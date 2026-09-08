@@ -112,6 +112,12 @@ setup.
 
 Everything waiting for you, with a count of how many tracks that is. Nothing reaches your library without an artist, a title, a dance from the published list and your agreement, so this is where a library is made rather than a chore at the end of one. See [Review](#review-1) below.
 
+### Display and Remote
+
+These two appear beside Review only while the built-in web server is serving those pages, so what
+the toolbar shows is what a phone can actually reach. Click one for its address as a QR code, with
+the PIN beside the remote's. See [Phone Remote and Web Display](#phone-remote-and-web-display).
+
 ---
 
 ## Playback
@@ -122,9 +128,11 @@ The playback panel shows what is currently playing and provides transport contro
 
 - **Dance name**: Shown prominently at the top
 - **Artist and title**: Displayed below the dance name as "Artist - Title", or in whatever shape the template for that line is set to
-- **Progress bar**: Shows the current position in the track, with elapsed time on the left and total duration on the right
+- **Progress bar**: Shows the current position in the track, with elapsed time on the left and total duration on the right. Click anywhere along it to move to that point. While something is playing a confirmation appears first, unless the confirmations are switched off in settings.
 
-When a message item is playing, the display switches to message mode with auto-scrolling text.
+When a message item is playing, the display switches to message mode. A line wider than the panel
+slides back and forth rather than showing only its first half, which the artist and title line does
+too.
 
 ### Transport Controls
 
@@ -203,22 +211,24 @@ The queue can contain several types of items, each with a distinct appearance:
 
 ### Managing the Queue
 
-- **Reorder**: Drag and drop items to rearrange them
-- **Remove**: Select an item and press the Delete key, or use the Remove button in the toolbar
+- **Reorder**: Drag and drop items to rearrange them, or select one and use **Move up** and **Move down** in the toolbar, or Ctrl+Up and Ctrl+Down
+- **Remove**: Select an item and press the Delete key, or use **Remove selected item** in the toolbar
 - **Double-click a track** in the Track Catalog to add it to the queue
+- **Right-click a track** and choose **Edit track** to correct its dance, artist or title on the spot: see [the catalog](#track-catalog)
 
 ### Queue Toolbar
 
 The toolbar above the queue provides these actions:
 
-- **Toggle to History**: Switch the left panel to show the history view
-- **Queue Random Track**: Add a randomly selected track, drawn from the tags currently in the pool. With nothing chosen it draws from every dance you own a track for.
-- **Enqueue Stop**: Insert a stop marker into the queue
-- **Enqueue Delay**: Insert a delay marker with the duration configured in settings
-- **Request Message**: Opens a dialog where you can type a message and optionally set a duration
-- **End the Night**: Queue the end-of-the-night audio. Switched off until a file is named in the settings, and while one is already queued or playing.
-- **Remove Selected**: Delete the currently selected queue item
-- **Clear Queue**: Remove all items from the queue (with confirmation)
+- **Switch to history**: Switch the left panel to show the history view
+- **Queue random track**: Add a randomly selected track, drawn from the tags currently in the pool. With nothing chosen it draws from every dance you own a track for.
+- **Request stop**: Insert a stop marker into the queue
+- **Request delay**: Insert a delay marker with the duration configured in settings
+- **Request message**: Opens a dialog where you can type a message and optionally set a duration
+- **End the night**: Queue the end-of-the-night audio. Switched off until a file is named in the settings, and while one is already queued or playing.
+- **Remove selected item**: Delete the currently selected queue item
+- **Clear queue**: Remove all items from the queue (with confirmation)
+- **Move up** and **Move down**: Move the selected item one place, the same thing Ctrl+Up and Ctrl+Down do
 
 ### Status Bar
 
@@ -246,9 +256,9 @@ The night's own boundaries are lines in the list: where it began, and where it e
 
 ### History Toolbar
 
-- **Toggle to Queue**: Switch back to the queue view
+- **Switch to queue**: Switch back to the queue view
 - **Which night**: Tonight, or any evening that has been filed. Everything else in this toolbar acts on the night you are looking at.
-- **Export History**: Save that night to a JSON file. Useful for keeping records of what was played at an event. It holds the dances, artists, titles and times, and not where the files sit on your disk, so it can go to an organiser as it is.
+- **Export history**: Save that night to a JSON file. Useful for keeping records of what was played at an event. It holds the dances, artists, titles and times, and not where the files sit on your disk, so it can go to an organiser as it is.
 - **Report**: Save that night as a document instead of as data. It is an RTF file, which any word processor opens, holding a heading for the evening and the artist, title and time of every track that played, in the order they played. That is what a rights organisation asks for, and nobody there should have to read JSON to find it.
 - **New night**: Keep tonight and start a new one (with confirmation). Nothing is deleted: the evening is filed and the history starts empty. Use it after a soundcheck, or on any evening that did not end with the end-of-the-night audio.
 - **Delete**: Throw that night away (with confirmation). This cannot be undone, and it is how the file stays a size somebody chose.
@@ -280,9 +290,11 @@ The catalog displays tracks in a data grid with these columns:
 - **Dance**: The dance type
 - **Artist**: The artist or band name
 - **Title**: The track title
+- A narrow unnamed column carrying a coloured icon for the audio format the file is in
 - **Length**: The track duration in MM:SS format
 
-Click any column header to sort by that column. Click again to reverse the sort order.
+Click any column header to sort by that column, including the format one. Click again to reverse
+the sort order, and a third time to clear the sort and leave the table as it was built, by dance.
 
 ### Searching
 
@@ -309,7 +321,7 @@ is not touched, and anything already in tonight's queue keeps playing. A track t
 library on one of your rules rather than on an answer of yours has nothing to take back, and says
 so: change the rule instead.
 
-### Toggle to Dance List
+### Switch to the dance list
 
 Use the toggle button in the toolbar to switch the right panel to the dance list.
 
@@ -482,7 +494,7 @@ The maximum number of tracks allowed in the queue, between 1 and 100. Delays, me
 
 ### Delay Duration
 
-The default duration (in seconds) for delay markers added to the queue, between 1 and 300 seconds. This value is used when you click "Enqueue Delay" in the queue toolbar.
+The default duration (in seconds) for delay markers added to the queue, between 1 and 300 seconds. This value is used when you click "Request delay" in the queue toolbar.
 
 ### A moment between dances
 
@@ -589,7 +601,7 @@ Click to save the application log file. Useful for troubleshooting issues or sub
 
 ## Presentation Display
 
-Presentation windows are full-screen displays intended for projectors or external monitors, showing the audience what is currently playing and what comes next.
+Presentation windows are displays intended for projectors or external monitors, showing the audience what is currently playing and what comes next.
 
 ### Layout
 
@@ -601,6 +613,10 @@ Presentation windows are full-screen displays intended for projectors or externa
 ### Configuration
 
 Set the number of presentation windows in **Settings > Presentation Displays**. Each window can be moved to a different screen and will remember its position between sessions.
+
+Double-click a presentation window to take its border and title bar off and fill the screen it is
+on. Double-click again to give them back. That is how a projector gets the whole picture rather
+than a window with a title bar across the top of it.
 
 ---
 

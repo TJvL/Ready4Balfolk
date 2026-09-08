@@ -32,21 +32,27 @@ its own pin. Keep a `build/bass-native` from that era if you expect to need it.
 
 ## What CI will check
 
-Run these three before opening a pull request, because Release is stricter than Debug and CI runs
+Run these five before opening a pull request, because Release is stricter than Debug and CI runs
 Release:
 
 ```bash
 dotnet build Ready4Balfolk.sln -c Release
 dotnet format Ready4Balfolk.sln --verify-no-changes
 python3 scripts/check-translations.py
+dotnet test --project Ready4Balfolk.Tests/Ready4Balfolk.Tests.csproj -c Release
+dotnet test --project Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj -c Release
 ```
 
 - **Warnings are errors in Release.** That includes `AVLN5001` from the Avalonia XAML compiler.
 - **Formatting is enforced.** `dotnet format` decides, not your editor.
 - **Both languages, always.** A new user-facing string goes in `UiStrings.resx` *and*
   `UiStrings.nl.resx`. A missing Dutch key silently falls back to English at runtime.
-- **Every artifact is launched.** CI publishes each platform and starts it, then installs the
-  Flatpak and the Windows installer and starts those too. A build that cannot start never merges.
+- **The scenarios drive the real application headless**, one process per scenario, including a
+  real browser for the display page and the phone remote. The first run downloads Chromium through
+  Playwright's own installer; later runs reuse it.
+- **The portable Linux and Windows builds are launched on every pull request** (`build-binaries.yml`):
+  a build that cannot start never merges. The Flatpak and the Windows installer are built, installed
+  and started only as part of a release, not before every merge.
 
 ## Conventions
 

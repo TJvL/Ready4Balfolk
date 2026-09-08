@@ -21,5 +21,6 @@ fails without the change, and say so plainly if it does not.
 
 - [ ] `dotnet build Ready4Balfolk.sln -c Release`
 - [ ] `dotnet format Ready4Balfolk.sln --verify-no-changes`
+- [ ] `python3 scripts/check-translations.py`
 - [ ] `dotnet test --project Ready4Balfolk.Tests/Ready4Balfolk.Tests.csproj -c Release`
-- [ ] New or changed user-facing strings exist in both `.resx` files
+- [ ] `dotnet test --project Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj -c Release`

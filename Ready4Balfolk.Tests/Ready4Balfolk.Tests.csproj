@@ -27,6 +27,9 @@
     <ItemGroup>
         <EmbeddedResource Include="..\scripts\smoke-test-media\scale.mp3" LogicalName="scale.mp3" />
         <EmbeddedResource Include="..\scripts\smoke-test-media\scale.ogg" LogicalName="scale.ogg" />
+        <!-- The manuals themselves, so a test can hold them against the labels the screens show. -->
+        <EmbeddedResource Include="..\documentation\help.md" LogicalName="help.md" />
+        <EmbeddedResource Include="..\documentation\help.nl.md" LogicalName="help.nl.md" WithCulture="false" />
     </ItemGroup>
 
     <ItemGroup>
