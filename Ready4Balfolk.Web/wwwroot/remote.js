@@ -366,7 +366,7 @@
 
   /* The way back in. The remote is still there; this phone simply needs the PIN again. */
   function askForThePinAgain() {
-    try { window.sessionStorage.removeItem("r4b-token"); } catch (e) { /* private mode */ }
+    try { window.localStorage.removeItem("r4b-token"); } catch (e) { /* private mode */ }
 
     id("app").classList.add("is-hidden");
     id("gate").classList.remove("is-hidden");
@@ -415,8 +415,11 @@
         .then(function (response) { return response.json(); })
         .then(function (result) {
           if (result.isGranted) {
-            // Survives a screen lock and a browser restart; the app drops it when the PIN changes.
-            try { window.sessionStorage.setItem("r4b-token", result.token); } catch (e) { /* private mode */ }
+            /* localStorage rather than sessionStorage, which a browser restart empties: a phone
+               whose browser the operating system killed in somebody's pocket would otherwise want
+               the PIN again, and not being asked for it mid-bal is what the token's twelve hour
+               life is for. The app is what ends a token, and it closes the socket with it. */
+            try { window.localStorage.setItem("r4b-token", result.token); } catch (e) { /* private mode */ }
             return connect(result.token);
           }
 
@@ -447,10 +450,10 @@
     wireSearch();
 
     var saved = null;
-    try { saved = window.sessionStorage.getItem("r4b-token"); } catch (e) { saved = null; }
+    try { saved = window.localStorage.getItem("r4b-token"); } catch (e) { saved = null; }
     if (saved) {
       connect(saved).catch(function () {
-        try { window.sessionStorage.removeItem("r4b-token"); } catch (e) { /* ignore */ }
+        try { window.localStorage.removeItem("r4b-token"); } catch (e) { /* ignore */ }
       });
     }
   });

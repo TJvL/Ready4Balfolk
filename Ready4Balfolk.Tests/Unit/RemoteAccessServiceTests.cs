@@ -209,9 +209,13 @@ public sealed class RemoteAccessServiceTests
         var sut = Enabled();
         var token = sut.TryLogin(Pin, Client).Token;
 
-        sut.Configure(true, "654321");
+        var dropped = sut.Configure(true, "654321");
 
         Assert.False(sut.IsTokenValid(token));
+
+        // The caller closes the sockets on this answer. Without it the helper the DJ just shut out
+        // keeps being pushed the queue for as long as they touch nothing.
+        Assert.True(dropped);
     }
 
     [Fact]
@@ -220,9 +224,10 @@ public sealed class RemoteAccessServiceTests
         var sut = Enabled();
         var token = sut.TryLogin(Pin, Client).Token;
 
-        sut.Configure(false, Pin);
+        var dropped = sut.Configure(false, Pin);
 
         Assert.False(sut.IsTokenValid(token));
+        Assert.True(dropped);
     }
 
     [Fact]
@@ -232,9 +237,10 @@ public sealed class RemoteAccessServiceTests
         var token = sut.TryLogin(Pin, Client).Token;
 
         // Any unrelated settings change re-applies the options, and that must not kick everyone off.
-        sut.Configure(true, Pin);
+        var dropped = sut.Configure(true, Pin);
 
         Assert.True(sut.IsTokenValid(token));
+        Assert.False(dropped);
     }
 
     // --- GeneratePin ---

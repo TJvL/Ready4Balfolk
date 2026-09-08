@@ -32,6 +32,7 @@ public sealed class SettingsViewModelTests : IDisposable
     private readonly IConfirmationService _confirmations = Substitute.For<IConfirmationService>();
     private readonly BehaviorSubject<ApplicationSettings> _stored;
     private readonly MockFileSystem _fileSystem = new();
+    private readonly ThrottleClock _throttles = new();
     private readonly PresentationWebServer _webServer;
     private readonly SettingsViewModel _sut;
 
@@ -57,11 +58,11 @@ public sealed class SettingsViewModelTests : IDisposable
             Substitute.For<IServiceProvider>(), new NoOpLoggerService(), TimeProvider.System);
 
         _sut = new SettingsViewModel(_settingsStore, new NoOpLoggerService(), _confirmations,
-            _webServer, _fileSystem, () => _restarts++);
+            _webServer, _fileSystem, () => _restarts++, _throttles.Scheduler);
     }
 
-    /// <summary>Longer than the 300ms the panel waits before writing.</summary>
-    private static async Task SettleAsync() => await Task.Delay(500);
+    /// <summary>Spends the 300ms the panel waits before writing, rather than sleeping past it.</summary>
+    private void Settle() => _throttles.LetTheThrottlesRunOut();
 
     // --- Opening it ---
 
@@ -88,7 +89,7 @@ public sealed class SettingsViewModelTests : IDisposable
         _sut.MaxQueueItems = 7;
         _sut.MaxQueueItems = 8;
         _sut.MaxQueueItems = 9;
-        await SettleAsync();
+        Settle();
 
         await _settingsStore.Received(1).UpdateAsync(Arg.Any<Func<ApplicationSettings, ApplicationSettings>>());
         Assert.Equal(9, _settings.MaxQueueItems);
@@ -100,7 +101,7 @@ public sealed class SettingsViewModelTests : IDisposable
         // The panel listens to the store it writes to. Without the guard, one change from anywhere
         // else in the application becomes a write, which becomes a change, which becomes a write.
         _stored.OnNext(_settings with { MaxQueueItems = 12 });
-        await SettleAsync();
+        Settle();
 
         Assert.Equal(12, _sut.MaxQueueItems);
         await _settingsStore.DidNotReceive().UpdateAsync(Arg.Any<Func<ApplicationSettings, ApplicationSettings>>());
@@ -109,35 +110,35 @@ public sealed class SettingsViewModelTests : IDisposable
     // --- The remote's PIN ---
 
     [Fact]
-    public async Task SwitchingTheRemoteOn_MintsAPinInTheSameWrite()
+    public void SwitchingTheRemoteOn_MintsAPinInTheSameWrite()
     {
         // There must be no moment where the remote is reachable and the PIN is empty.
         _sut.WebRemoteControlEnabled = true;
-        await SettleAsync();
+        Settle();
 
         Assert.True(_settings.WebRemoteControlEnabled);
         Assert.NotEmpty(_settings.WebRemoteControlPin);
     }
 
     [Fact]
-    public async Task SwitchingTheRemoteOn_KeepsAPinYouAlreadyHad()
+    public void SwitchingTheRemoteOn_KeepsAPinYouAlreadyHad()
     {
         // Switching it off and on again must not invalidate the PIN people already typed in.
         _settings = _settings with { WebRemoteControlPin = "123456" };
 
         _sut.WebRemoteControlEnabled = true;
-        await SettleAsync();
+        Settle();
 
         Assert.Equal("123456", _settings.WebRemoteControlPin);
     }
 
     [Fact]
-    public async Task RegeneratePin_ChangesItAndSavesIt()
+    public void RegeneratePin_ChangesItAndSavesIt()
     {
         _settings = _settings with { WebRemoteControlPin = "123456" };
 
         _sut.RegeneratePinCommand.Execute().Subscribe();
-        await SettleAsync();
+        Settle();
 
         Assert.NotEqual("123456", _sut.WebRemoteControlPin);
         Assert.Equal(_sut.WebRemoteControlPin, _settings.WebRemoteControlPin);
@@ -146,35 +147,35 @@ public sealed class SettingsViewModelTests : IDisposable
     // --- The end of the night audio ---
 
     [Fact]
-    public async Task AnEndOfNightPathThatIsNotThere_IsSaidSoWhereItWasTyped()
+    public void AnEndOfNightPathThatIsNotThere_IsSaidSoWhereItWasTyped()
     {
         _sut.EndOfNightAudioPath = "/music/nothing-here.mp3";
-        await SettleAsync();
+        Settle();
 
         Assert.True(_sut.IsEndOfNightAudioMissing);
     }
 
     [Fact]
-    public async Task AnEndOfNightPathThatIsThere_IsNotFlagged()
+    public void AnEndOfNightPathThatIsThere_IsNotFlagged()
     {
         _fileSystem.AddFile("/music/last-waltz.mp3", new MockFileData([1, 2, 3]));
 
         _sut.EndOfNightAudioPath = "/music/last-waltz.mp3";
-        await SettleAsync();
+        Settle();
 
         Assert.False(_sut.IsEndOfNightAudioMissing);
     }
 
     [Fact]
-    public async Task NoEndOfNightPathAtAll_IsNotAProblem()
+    public void NoEndOfNightPathAtAll_IsNotAProblem()
     {
         // Empty is the normal state: until somebody says what the sound of the evening ending is,
         // there is nothing to offer to play.
         _sut.EndOfNightAudioPath = "/music/gone.mp3";
-        await SettleAsync();
+        Settle();
 
         _sut.EndOfNightAudioPath = "";
-        await SettleAsync();
+        Settle();
 
         Assert.False(_sut.IsEndOfNightAudioMissing);
     }
@@ -246,7 +247,7 @@ public sealed class SettingsViewModelTests : IDisposable
             .Returns(true);
 
         _sut.SelectedLanguage = ApplicationLanguage.Dutch;
-        await SettleAsync();
+        Settle();
 
         await _confirmations.Received(1).ConfirmAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>());
@@ -261,7 +262,7 @@ public sealed class SettingsViewModelTests : IDisposable
             .Returns(false);
 
         _sut.SelectedLanguage = ApplicationLanguage.Dutch;
-        await SettleAsync();
+        Settle();
 
         await _confirmations.Received(1).ConfirmAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
@@ -269,7 +270,7 @@ public sealed class SettingsViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task ALanguageChange_Declined_PutsTheChoiceBackAndChangesNothing()
+    public void ALanguageChange_Declined_PutsTheChoiceBackAndChangesNothing()
     {
         // The dropdown has already moved by the time the question is asked, so saying no has to
         // move it back or the panel is lying about what the application is running.
@@ -277,7 +278,7 @@ public sealed class SettingsViewModelTests : IDisposable
             .Returns(false);
 
         _sut.SelectedLanguage = ApplicationLanguage.Dutch;
-        await SettleAsync();
+        Settle();
 
         Assert.Equal(ApplicationLanguage.English, _sut.SelectedLanguage);
         Assert.Equal(ApplicationLanguage.English, _settings.ApplicationLanguage);
@@ -291,12 +292,12 @@ public sealed class SettingsViewModelTests : IDisposable
             .Returns(false);
 
         _sut.SelectedLanguage = ApplicationLanguage.Dutch;
-        await SettleAsync();
+        Settle();
         _confirmations.ClearReceivedCalls();
 
         // Declining put it back to English, which is what the store still says.
         _sut.SelectedLanguage = ApplicationLanguage.English;
-        await SettleAsync();
+        Settle();
 
         await _confirmations.DidNotReceive().ConfirmAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ConfirmationStakes>(), Arg.Any<CancellationToken>());

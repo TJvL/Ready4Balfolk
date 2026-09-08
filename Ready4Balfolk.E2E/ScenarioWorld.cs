@@ -380,13 +380,24 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
     }
 
     /// <summary>The queue stops accepting entries as of now, so the next dance is already too late.</summary>
-    public ScenarioWorld WhereTheCutoffHasArrived(int graceMinutes = 0) =>
-        WithSettings(settings => settings with
+    /// <remarks>
+    /// The evening is put at nine o'clock first and the cutoff read back off the clock the
+    /// application itself reads. Taken from the wall clock, this was a different scenario at every
+    /// hour of the day: a run at ten to midnight crosses into the next day while it is going, and
+    /// which day's instance of the cutoff counts then is a rule of its own that a scenario about
+    /// being refused a dance has no business exercising by accident.
+    /// </remarks>
+    public ScenarioWorld WhereTheCutoffHasArrived(int graceMinutes = 0)
+    {
+        var evening = ScenarioApplication.Clock.MoveOnToTimeOfDay(new TimeOnly(21, 0));
+
+        return WithSettings(settings => settings with
         {
             QueueCutoffEnabled = true,
-            QueueCutoffMinutesOfDay = (int)DateTime.Now.TimeOfDay.TotalMinutes,
+            QueueCutoffMinutesOfDay = (int)evening.TimeOfDay.TotalMinutes,
             QueueCutoffGraceMinutes = graceMinutes
         });
+    }
 
     /// <summary>A settings file that is not settings, which is what an interrupted write leaves.</summary>
     public ScenarioWorld WhereTheSettingsFileIsCorrupt()

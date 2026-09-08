@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -21,7 +22,7 @@ namespace Ready4Balfolk.UI.Views.Queue;
 
 public sealed partial class QueueViewModel : ReactiveObject, IDisposable
 {
-    private readonly TrackEditorService _trackEditor;
+    private readonly ITrackEditorService _trackEditor;
     private readonly TimeProvider _time;
     private readonly IQueueService _queueService;
     private readonly IEndOfNightAudio _endOfNightAudio;
@@ -227,6 +228,13 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         }
     }
 
+    /// <remarks>
+    /// <c>timerScheduler</c> is where the two clocks under the queue run: the sample that keeps a
+    /// tick arriving ten times a second from redrawing the finish time that often, and the half
+    /// minute that moves that time on while nothing else changes. Real time unless a caller says
+    /// otherwise, and only a test does: waiting out thirty seconds of it is how a test that means
+    /// "the finish time follows the clock" comes to mean "eventually".
+    /// </remarks>
     public QueueViewModel(
         IQueueService queueService,
         IQueueConsumptionService consumptionService,
@@ -236,9 +244,11 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         IConfirmationService confirmationService,
         INotificationService notificationService,
         IEndOfNightAudio endOfNightAudio,
-        TrackEditorService trackEditor,
-        TimeProvider time)
+        ITrackEditorService trackEditor,
+        TimeProvider time,
+        IScheduler? timerScheduler = null)
     {
+        var timers = timerScheduler ?? DefaultScheduler.Instance;
         _time = time;
         _trackEditor = trackEditor;
         _queueService = queueService;
@@ -314,9 +324,9 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         var currentItemChanged = consumptionService.WhenCurrentItemChanged.Select(_ => Unit.Default);
         var totalDurationChanged = consumptionService.WhenTotalDurationChanged.Select(_ => Unit.Default);
         var elapsedTick = consumptionService.WhenElapsedChanged
-            .Sample(TimeSpan.FromSeconds(1))
+            .Sample(TimeSpan.FromSeconds(1), timers)
             .Select(_ => Unit.Default);
-        var minuteTimer = Observable.Interval(TimeSpan.FromSeconds(30))
+        var minuteTimer = Observable.Interval(TimeSpan.FromSeconds(30), timers)
             .Select(_ => Unit.Default);
 
         Observable.Merge(queueChanged, currentItemChanged, totalDurationChanged, elapsedTick, minuteTimer)

@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Reactive.Subjects;
 using DynamicData;
+using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
@@ -31,6 +33,11 @@ public sealed class QueueViewModelTests : IDisposable
     private readonly BehaviorSubject<bool> _isPlaying = new(false);
     private readonly Subject<RxUnit> _itemCompleted = new();
     private readonly BehaviorSubject<ApplicationSettings> _settingsSubject;
+    private readonly FakeTimeProvider _time = new();
+    private readonly ThrottleClock _timers = new();
+
+    /// <summary>Where the fixture's clock starts, which every projected finish time is read off.</summary>
+    private readonly DateTime _startOfTheEvening;
 
     private static readonly EndOfNightQueueItem EndOfNight = new("/audio/last-waltz.mp3", TimeSpan.FromMinutes(4));
 
@@ -51,6 +58,7 @@ public sealed class QueueViewModelTests : IDisposable
 
     public QueueViewModelTests()
     {
+        _startOfTheEvening = _time.GetLocalNow().DateTime;
         var settings = new ApplicationSettings();
         _settingsSubject = new BehaviorSubject<ApplicationSettings>(settings);
 
@@ -138,11 +146,9 @@ public sealed class QueueViewModelTests : IDisposable
         _sut = new QueueViewModel(
             _queueService, consumption, settingsStore,
             _randomTrackService, _dancePool, _confirmation, _notification, _endOfNightAudio,
-            new TrackEditorService(
-                Substitute.For<Domain.Stores.Dances.IDanceListStore>(),
-                Substitute.For<Domain.Stores.Library.ILibraryIndex>(),
-                Substitute.For<Domain.Stores.Tracks.ITrackStore>()),
-            TimeProvider.System);
+            Substitute.For<ITrackEditorService>(),
+            _time,
+            _timers.Scheduler);
     }
 
     // --- QueueRandomTrack ---
@@ -415,6 +421,66 @@ public sealed class QueueViewModelTests : IDisposable
 
         Assert.StartsWith("Playlist finishes at:", _sut.FinishTimeText, StringComparison.Ordinal);
     }
+
+    /// <summary>The line under the queue follows the clock while nothing else changes.</summary>
+    /// <remarks>
+    /// Nothing was queued, started or finished here: the evening is exactly what it was, and the
+    /// only thing that moved is the time of day. A finish time is a wall-clock time, so half an
+    /// hour later it has to read half an hour later, and the half minute the panel rechecks on is
+    /// spent rather than waited through.
+    /// </remarks>
+    [Fact]
+    public void FinishTimeText_TimePassingOnItsOwn_MovesTheProjectedEndOn()
+    {
+        _settingsSubject.OnNext(_settingsSubject.Value with { AutoQueueRandomTrack = false });
+        _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
+
+        // The sampled elapsed tick takes its one turn first, so what is left to redraw the line
+        // below is the half-minute recheck and nothing else.
+        _timers.MoveOn(TimeSpan.FromSeconds(2));
+        Assert.Equal(FinishesAt(TimeSpan.FromMinutes(5)), _sut.FinishTimeText);
+
+        _time.Advance(TimeSpan.FromMinutes(30));
+        _timers.MoveOn(TimeSpan.FromSeconds(30));
+
+        Assert.Equal(FinishesAt(TimeSpan.FromMinutes(35)), _sut.FinishTimeText);
+    }
+
+    /// <summary>The line under the queue comes back as the dance playing gets further in.</summary>
+    /// <remarks>
+    /// The elapsed time of what is playing arrives ten times a second, and redrawing a line that
+    /// only ever changes by the minute that often is work nobody sees, so it is sampled. What the
+    /// sample must not do is stop the line ever moving: two minutes into a five minute dance the
+    /// evening ends two minutes sooner, and the DJ deciding whether one more fits reads that off
+    /// this line. The sample's own second is spent here rather than waited through, which is also
+    /// what makes the middle assertion an assertion rather than a race.
+    /// </remarks>
+    [Fact]
+    public void FinishTimeText_TheDancePlayingGettingFurtherIn_BringsTheProjectedEndBack()
+    {
+        _settingsSubject.OnNext(_settingsSubject.Value with { AutoQueueRandomTrack = false });
+        _currentItem.OnNext(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
+        _totalDuration.OnNext(TimeSpan.FromMinutes(5));
+
+        Assert.Equal(FinishesAt(TimeSpan.FromMinutes(5)), _sut.FinishTimeText);
+
+        // Two minutes in, with the wall clock exactly where it was. The panel knows it, because
+        // what it is told the elapsed time for is not throttled, and the line still says what it
+        // said: the redraw is behind the sample and the sample has not come round yet.
+        _elapsed.OnNext(TimeSpan.FromMinutes(2));
+
+        Assert.Equal(FinishesAt(TimeSpan.FromMinutes(5)), _sut.FinishTimeText);
+
+        _timers.MoveOn(TimeSpan.FromSeconds(1));
+
+        Assert.Equal(FinishesAt(TimeSpan.FromMinutes(3)), _sut.FinishTimeText);
+    }
+
+    /// <summary>What the panel should be saying, this long after the evening began.</summary>
+    private string FinishesAt(TimeSpan fromTheStart) => string.Format(
+        CultureInfo.CurrentCulture,
+        "Playlist finishes at: {0}",
+        (_startOfTheEvening + fromTheStart).ToString("HH:mm", CultureInfo.CurrentCulture));
 
     [Fact]
     public void FinishTimeText_AutoQueueOnWithoutCutoff_GivesNoTime()

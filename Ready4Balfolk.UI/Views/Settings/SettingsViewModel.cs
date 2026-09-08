@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.Abstractions;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -31,6 +32,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     private readonly IConfirmationService _confirmationService;
     private readonly PresentationWebServer _webServer;
     private readonly IFileSystem _fileSystem;
+    private readonly IScheduler _saveScheduler;
     private readonly CompositeDisposable _disposables = [];
 
     /// <summary>What ending a language change does. Replaced only by tests.</summary>
@@ -116,16 +118,23 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     /// </remarks>
     public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
         IConfirmationService confirmationService, PresentationWebServer webServer,
-        IFileSystem fileSystem, Action restart)
-        : this(settingsStore, loggerService, confirmationService, webServer, fileSystem)
+        IFileSystem fileSystem, Action restart, IScheduler? saveScheduler = null)
+        : this(settingsStore, loggerService, confirmationService, webServer, fileSystem, saveScheduler)
     {
         _restart = restart;
     }
 
+    /// <remarks>
+    /// <c>saveScheduler</c> is where the three tenths of a second between the last change to a
+    /// control and the write to disk are counted. Real time unless a caller says otherwise, and
+    /// only a test does: sleeping past a real throttle is the failure that passes on a quiet
+    /// machine and fails on a busy one.
+    /// </remarks>
     public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
         IConfirmationService confirmationService, PresentationWebServer webServer,
-        IFileSystem fileSystem)
+        IFileSystem fileSystem, IScheduler? saveScheduler = null)
     {
+        _saveScheduler = saveScheduler ?? DefaultScheduler.Instance;
         _settingsStore = settingsStore;
         _loggerService = loggerService;
         _confirmationService = confirmationService;
@@ -264,7 +273,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         // Checked here as well as at the queue's button, so a path that resolves to nothing is
         // answered where it was typed.
         this.WhenAnyValue(x => x.EndOfNightAudioPath)
-            .Throttle(TimeSpan.FromMilliseconds(300))
+            .Throttle(TimeSpan.FromMilliseconds(300), _saveScheduler)
             .Select(path => path.Length > 0 && !fileSystem.File.Exists(path))
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(missing => IsEndOfNightAudioMissing = missing)
@@ -414,7 +423,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             // SyncFromStore has long since put the flag back down and a change that arrived from
             // the store is written straight back out.
             .Where(_ => !_syncing)
-            .Throttle(TimeSpan.FromMilliseconds(300))
+            .Throttle(TimeSpan.FromMilliseconds(300), _saveScheduler)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(value => CommitDirectAsync(transform(value)).SafeFireAndForget(exception =>
                 _loggerService.ErrorAsync("Failed to save settings", exception)))

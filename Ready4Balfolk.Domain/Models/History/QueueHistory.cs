@@ -10,7 +10,7 @@ namespace Ready4Balfolk.Domain.Models.History;
 /// </remarks>
 public sealed record QueueHistory(
     DateTime? StartedAt,
-    List<QueueHistoryEntry> Entries)
+    IReadOnlyList<QueueHistoryEntry> Entries)
 {
     public static QueueHistory Empty { get; } = new(null, []);
 

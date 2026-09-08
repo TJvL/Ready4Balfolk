@@ -25,4 +25,41 @@ public sealed class ScenarioClock : TimeProvider
 
     /// <summary>Puts the evening this much further along.</summary>
     public void MoveOn(TimeSpan howFar) => _pushedOn += howFar;
+
+    /// <summary>Puts the evening at this time of day, and says what the clock now reads.</summary>
+    /// <remarks>
+    /// For the scenarios whose subject is a time of day rather than a length of time. Read off the
+    /// wall clock instead, one of those is a different scenario at every hour: a cutoff taken from
+    /// nine in the evening and one taken from ten to midnight are not the same question, because
+    /// the second of them crosses into the next day while the run is still going. The clock only
+    /// ever moves forward, so an hour that has gone by today is the same hour tomorrow.
+    /// </remarks>
+    public DateTime MoveOnToTimeOfDay(TimeOnly timeOfDay)
+    {
+        var today = GetLocalNow().Date;
+        var target = TheInstantOf(today, timeOfDay);
+
+        if (target <= GetUtcNow())
+        {
+            target = TheInstantOf(today.AddDays(1), timeOfDay);
+        }
+
+        MoveOn(target - GetUtcNow());
+        return target.DateTime;
+    }
+
+    /// <summary>The one moment in time at which the wall clock here reads that day at that hour.</summary>
+    /// <remarks>
+    /// Through the local zone rather than by subtracting two wall-clock readings, because on the
+    /// two nights a year the offset changes those two are not the same length: the span between
+    /// tonight at ten and tomorrow at nine is twenty-three hours on one of them and twenty-five on
+    /// the other, and a clock moved on by the wrong one of those lands an hour off the hour it was
+    /// asked for while the cutoff read back off it still says nine.
+    /// </remarks>
+    private DateTimeOffset TheInstantOf(DateTime day, TimeOnly timeOfDay)
+    {
+        var wallClock = day.Date + timeOfDay.ToTimeSpan();
+
+        return new DateTimeOffset(wallClock, LocalTimeZone.GetUtcOffset(wallClock));
+    }
 }
