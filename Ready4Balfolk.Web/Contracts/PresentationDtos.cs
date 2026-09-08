@@ -9,10 +9,11 @@ namespace Ready4Balfolk.Web.Contracts;
 /// <paramref name="Kind"/> travels as its name rather than an ordinal so the browser reads
 /// <c>"Delay"</c> instead of <c>3</c>, and so inserting an item type cannot silently renumber it.
 /// </remarks>
-public sealed record PresentationItemDto(string Kind, string Primary, string Artist, string Title)
+public sealed record PresentationItemDto(
+    string Kind, string Primary, string Artist, string Title, double? DurationSeconds)
 {
     public static PresentationItemDto From(PresentationItem item) =>
-        new(item.Kind.ToString(), item.Primary, item.Artist, item.Title);
+        new(item.Kind.ToString(), item.Primary, item.Artist, item.Title, item.Duration?.TotalSeconds);
 }
 
 /// <summary>Everything a display page draws, in one message.</summary>
