@@ -26,6 +26,12 @@ jobs:
 
       - name: Install Flatpak and smoke test dependencies
         run: |
+          # The runner image ships apt sources this job has no use for, and apt-get update exits
+          # non-zero if any one of them fails. That is how a release came to be blocked by Google's
+          # Chrome repository serving a Packages.gz that did not match its own Release file: every
+          # package below comes from Ubuntu's own archive, and nothing here has ever wanted Chrome.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             flatpak xvfb cage libx11-6 libice6 libsm6 libfontconfig1 fonts-dejavu-core

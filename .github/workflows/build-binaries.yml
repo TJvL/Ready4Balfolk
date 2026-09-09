@@ -75,6 +75,10 @@ jobs:
       - name: Install smoke test dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
+          # See smoke-test-packages.yml: apt-get update fails the step if any source on the runner
+          # image fails, including ones nothing here installs from.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             xvfb cage libx11-6 libice6 libsm6 libfontconfig1 fonts-dejavu-core
