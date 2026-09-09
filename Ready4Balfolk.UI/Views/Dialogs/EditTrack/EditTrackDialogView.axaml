@@ -35,6 +35,7 @@
         <StackPanel Spacing="4">
             <TextBlock Text="{x:Static res:UiStrings.Discovery_FieldDance}" />
             <TextBox x:Name="DanceBox"
+                     AutomationProperties.AutomationId="edit-track.dance"
                      AutomationProperties.Name="{x:Static res:UiStrings.Discovery_FieldDance}"
                      Text="{CompiledBinding Dance}" />
             <!-- Inline rather than a Popup: a popup steals focus from the box being typed into.
@@ -67,13 +68,15 @@
 
         <StackPanel Spacing="4">
             <TextBlock Text="{x:Static res:UiStrings.Discovery_FieldArtist}" />
-            <TextBox AutomationProperties.Name="{x:Static res:UiStrings.Discovery_FieldArtist}"
+            <TextBox AutomationProperties.AutomationId="edit-track.artist"
+                     AutomationProperties.Name="{x:Static res:UiStrings.Discovery_FieldArtist}"
                      Text="{CompiledBinding Artist}" />
         </StackPanel>
 
         <StackPanel Spacing="4">
             <TextBlock Text="{x:Static res:UiStrings.Discovery_FieldTitle}" />
-            <TextBox AutomationProperties.Name="{x:Static res:UiStrings.Discovery_FieldTitle}"
+            <TextBox AutomationProperties.AutomationId="edit-track.title"
+                     AutomationProperties.Name="{x:Static res:UiStrings.Discovery_FieldTitle}"
                      Text="{CompiledBinding Title}" />
         </StackPanel>
 
@@ -81,13 +84,15 @@
                     HorizontalAlignment="Right"
                     Spacing="8"
                     Margin="0,8,0,0">
-            <Button Content="{x:Static res:UiStrings.Dialog_Cancel}"
+            <Button AutomationProperties.AutomationId="edit-track.cancel"
+                    Content="{x:Static res:UiStrings.Dialog_Cancel}"
                     Command="{CompiledBinding CancelCommand}"
                     MinWidth="80"
                     IsCancel="True" />
             <!-- The accent class is provided by FluentAvalonia at runtime, so these are false positives. -->
             <!-- ReSharper disable once Xaml.StyleClassNotFound -->
-            <Button Content="{x:Static res:UiStrings.Dialog_OK}"
+            <Button AutomationProperties.AutomationId="edit-track.save"
+                    Content="{x:Static res:UiStrings.Dialog_OK}"
                     Command="{CompiledBinding SaveCommand}"
                     MinWidth="80"
                     Classes="accent"

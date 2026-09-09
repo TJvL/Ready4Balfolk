@@ -1,4 +1,5 @@
 using System.Globalization;
+using Avalonia;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -267,6 +268,72 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
             await application.WaitUntil(
                 () => application.ScreensShowing() == 0,
                 "the screen to come down");
+        });
+    }
+
+    /// <summary>A double click takes a screen's border off for the projector, and gives it back.</summary>
+    /// <remarks>
+    /// World: a library of one dance and a screen up for the room.
+    /// Steps: double-click the screen, move and resize it where it now sits, and double-click it
+    /// again before the evening ends.
+    /// Sees: the screen borderless after the first double-click and back to a titled window after
+    /// the second, and the position and size that were on it at closing time written down without
+    /// the borderless flag, since giving the border back is what the DJ did last.
+    /// </remarks>
+    [Fact]
+    public async Task DjTakesTheScreensBorderOffAndGivesItBack()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                PresentationDisplayCount = 1
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.ScreensShowing() == 1,
+                "the screen the DJ put up");
+
+            application.DoubleClick(application.Find("display.idle"));
+
+            Assert.True(
+                application.ScreenIsBorderless(0),
+                "Double-clicking the screen did not take its border off.");
+
+            application.DoubleClick(application.Find("display.idle"));
+
+            Assert.False(
+                application.ScreenIsBorderless(0),
+                "Double-clicking it again did not give the border back.");
+
+            // Set after both double clicks, so what is asserted below can only have come from the
+            // window that was actually closed, borderless or not.
+            application.TheDjMovesAndResizesTheScreen(0, new PixelPoint(300, 40), 960, 540);
+
+            application.Click("toolbar.exit");
+
+            await application.WaitUntil(
+                () => application.IsShowing("dialog.confirm"),
+                "the application to ask whether to close");
+
+            application.Click("dialog.confirm");
+
+            await application.WaitUntil(
+                () => !application.Window.IsVisible,
+                "the window to close");
+
+            var saved = world.SettingsOnDisk().PresentationWindowStates.Single();
+
+            Assert.False(saved.IsBorderless, "The screen was left asking to come back borderless.");
+            Assert.Equal(300, saved.X);
+            Assert.Equal(40, saved.Y);
+            Assert.Equal(960, saved.Width);
+            Assert.Equal(540, saved.Height);
         });
     }
 

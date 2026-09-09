@@ -10,9 +10,11 @@ using Avalonia.Input;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using ManagedBass;
 using Microsoft.Extensions.DependencyInjection;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI;
@@ -325,6 +327,40 @@ public sealed class RunningApplication : IAsyncDisposable
     /// <summary>How far along the bar with this automation id has run.</summary>
     public double ProgressOf(string automationId) => ((ProgressBar)Find(automationId)).Value;
 
+    /// <summary>Where the slider with this automation id currently sits.</summary>
+    public double ValueOf(string automationId) => ((Slider)Find(automationId)).Value;
+
+    /// <summary>
+    /// Puts a slider at a value directly, the way <see cref="TheDjMovesAndResizesTheWindow"/> puts
+    /// a window at a size: there is no drag to simulate in a headless session, so this is the DJ's
+    /// hand having already finished moving it, which is what a two way binding cannot tell apart
+    /// from a real one.
+    /// </summary>
+    public void Move(string automationId, double value)
+    {
+        ((Slider)Find(automationId)).Value = value;
+        Settle();
+    }
+
+    /// <summary>What BASS is holding as the volume trim on the stream that is playing.</summary>
+    /// <remarks>
+    /// The one thing the settings file cannot answer: whether the number the panel wrote is the
+    /// number the audio engine is applying. Applying the equalizer sets the channel's own volume,
+    /// so a stream carrying the trim is a stream the chain reached and a stream left at 1 is one it
+    /// did not. The handles are internal to the playback service, which is why Ready4Balfolk.Domain
+    /// makes its internals visible to this project as well as to the unit tests.
+    /// </remarks>
+    public static double TrimOnThePlayingStream()
+    {
+        var audio = (ManagedBassAudioPlaybackService)App.Services.GetRequiredService<IAudioPlaybackService>();
+        var (playing, _) = audio.OpenChannels;
+
+        Assert.NotEqual(0, playing);
+        Bass.ChannelGetAttribute(playing, ChannelAttribute.Volume, out var trim);
+
+        return trim;
+    }
+
     /// <summary>The rows of the list with this automation id, in the order they are shown.</summary>
     public IReadOnlyList<string> RowsOf(string automationId)
     {
@@ -543,6 +579,24 @@ public sealed class RunningApplication : IAsyncDisposable
         Window.Height = height;
         Settle();
     }
+
+    /// <summary>Moves and resizes a screen, the way a DJ does before pointing it at a projector.</summary>
+    /// <remarks>
+    /// A place and a size the world did not lay down, for the same reason
+    /// <see cref="TheDjMovesAndResizesTheWindow"/> moves the main one: what closing time writes down
+    /// can then only have come from reading the screen back.
+    /// </remarks>
+    public void TheDjMovesAndResizesTheScreen(int index, PixelPoint to, double width, double height)
+    {
+        var screen = _startup.PresentationWindows[index];
+        screen.Position = to;
+        screen.Width = width;
+        screen.Height = height;
+        Settle();
+    }
+
+    /// <summary>Whether a screen is currently showing without its border and title bar.</summary>
+    public bool ScreenIsBorderless(int index) => _startup.PresentationWindows[index].IsBorderless;
 
     /// <summary>Puts the evening further along, for the things that are minutes or hours away.</summary>
     public static void TimePassed(TimeSpan howLong) => ScenarioApplication.Clock.MoveOn(howLong);

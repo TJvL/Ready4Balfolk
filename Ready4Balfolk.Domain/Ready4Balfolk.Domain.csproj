@@ -20,8 +20,14 @@
     <ItemGroup>
       <!--The audio internals are internal because they are how the playback service shapes a BASS
           channel rather than a surface anything else calls: the effect chain, and the raw stream
-          handles a test needs so it can ask BASS what was actually done to those streams.-->
+          handles a test needs so it can ask BASS what was actually done to those streams.
+
+          Both test projects, and for the same reason. A settings file saying the preamp is at -6
+          proves nothing about what the room hears: only the trim BASS is holding on the stream
+          that is playing does, and reading that needs these handles. A scenario driving the real
+          panel is the one place that question can be asked end to end.-->
       <InternalsVisibleTo Include="Ready4Balfolk.Tests" />
+      <InternalsVisibleTo Include="Ready4Balfolk.E2E" />
     </ItemGroup>
 
     <ItemGroup>
