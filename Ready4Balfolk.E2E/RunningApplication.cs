@@ -544,6 +544,24 @@ public sealed class RunningApplication : IAsyncDisposable
         Settle();
     }
 
+    /// <summary>Moves and resizes a screen, the way a DJ does before pointing it at a projector.</summary>
+    /// <remarks>
+    /// A place and a size the world did not lay down, for the same reason
+    /// <see cref="TheDjMovesAndResizesTheWindow"/> moves the main one: what closing time writes down
+    /// can then only have come from reading the screen back.
+    /// </remarks>
+    public void TheDjMovesAndResizesTheScreen(int index, PixelPoint to, double width, double height)
+    {
+        var screen = _startup.PresentationWindows[index];
+        screen.Position = to;
+        screen.Width = width;
+        screen.Height = height;
+        Settle();
+    }
+
+    /// <summary>Whether a screen is currently showing without its border and title bar.</summary>
+    public bool ScreenIsBorderless(int index) => _startup.PresentationWindows[index].IsBorderless;
+
     /// <summary>Puts the evening further along, for the things that are minutes or hours away.</summary>
     public static void TimePassed(TimeSpan howLong) => ScenarioApplication.Clock.MoveOn(howLong);
 

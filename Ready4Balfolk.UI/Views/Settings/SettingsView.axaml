@@ -440,7 +440,8 @@
 
                 <!-- Troubleshooting section -->
                 <StackPanel Spacing="8">
-                    <Button Content="{x:Static res:UiStrings.Settings_ExportLog}"
+                    <Button AutomationProperties.AutomationId="settings.export-log"
+                            Content="{x:Static res:UiStrings.Settings_ExportLog}"
                             Click="OnExportLogClick"
                             HorizontalAlignment="Left" />
                     <TextBlock Text="{x:Static res:UiStrings.Settings_ExportLogDescription}"

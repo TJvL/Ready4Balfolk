@@ -157,4 +157,48 @@ public sealed class SettingTheApplicationUpTheirWay(HeadlessSession session)
                 "the theme raised from a background thread to be applied");
         });
     }
+
+    /// <summary>The DJ exports the log to attach to a bug report.</summary>
+    /// <remarks>
+    /// World: a library of one dance, so the application has been running long enough to have
+    /// something in its log.
+    /// Steps: open the settings and export the log to a file of the DJ's choosing.
+    /// Sees: a file holding what the application actually logged at startup, not an empty one a
+    /// button that merely opened a picker would also produce.
+    /// </remarks>
+    [Fact]
+    public async Task DjExportsTheLogFile()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .Save();
+
+        var export = Path.Combine(world.DirectoryInfoRoot.FullName, "for the bug report.log");
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.Click("toolbar.settings");
+
+            await application.WaitUntil(
+                () => application.IsShowing("settings.export-log"),
+                "the settings to come up");
+
+            RunningApplication.TheDjWillPick(export);
+            application.Click("settings.export-log");
+
+            await application.WaitUntil(
+                () => File.Exists(export) && File.ReadAllText(export).Contains("Window opened", StringComparison.Ordinal),
+                "the log the application actually wrote to be exported");
+
+            Assert.Contains(
+                "[INFO]",
+                await File.ReadAllTextAsync(export, TestContext.Current.CancellationToken),
+                StringComparison.Ordinal);
+        });
+    }
 }
