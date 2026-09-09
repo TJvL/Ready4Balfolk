@@ -26,7 +26,8 @@
         DoubleTapped="DataGridDoubleTapped">
         <DataGrid.ContextMenu>
             <ContextMenu>
-                <MenuItem Header="{x:Static res:UiStrings.TrackCatalog_EditTrack}"
+                <MenuItem AutomationProperties.AutomationId="catalog.edit-track"
+                          Header="{x:Static res:UiStrings.TrackCatalog_EditTrack}"
                           Command="{Binding EditTrackCommand}">
                     <MenuItem.Icon>
                         <PathIcon Data="{StaticResource IconPencil}" Width="14" Height="14" />
@@ -70,18 +71,30 @@
             </Style>
         </DataGrid.Styles>
         <DataGrid.Columns>
-            <DataGridTextColumn Header="{x:Static res:UiStrings.TrackCatalog_ColumnDance}"
-                                Binding="{ReflectionBinding Dance}"
+            <DataGridTextColumn Binding="{ReflectionBinding Dance}"
                                 SortMemberPath="Dance"
-                                Width="*" />
-            <DataGridTextColumn Header="{x:Static res:UiStrings.TrackCatalog_ColumnArtist}"
-                                Binding="{ReflectionBinding Artist}"
+                                Width="*">
+                <DataGridTextColumn.Header>
+                    <TextBlock AutomationProperties.AutomationId="catalog.column-dance"
+                               Text="{x:Static res:UiStrings.TrackCatalog_ColumnDance}" />
+                </DataGridTextColumn.Header>
+            </DataGridTextColumn>
+            <DataGridTextColumn Binding="{ReflectionBinding Artist}"
                                 SortMemberPath="Artist"
-                                Width="*" />
-            <DataGridTextColumn Header="{x:Static res:UiStrings.TrackCatalog_ColumnTitle}"
-                                Binding="{ReflectionBinding Title}"
+                                Width="*">
+                <DataGridTextColumn.Header>
+                    <TextBlock AutomationProperties.AutomationId="catalog.column-artist"
+                               Text="{x:Static res:UiStrings.TrackCatalog_ColumnArtist}" />
+                </DataGridTextColumn.Header>
+            </DataGridTextColumn>
+            <DataGridTextColumn Binding="{ReflectionBinding Title}"
                                 SortMemberPath="Title"
-                                Width="2*" />
+                                Width="2*">
+                <DataGridTextColumn.Header>
+                    <TextBlock AutomationProperties.AutomationId="catalog.column-title"
+                               Text="{x:Static res:UiStrings.TrackCatalog_ColumnTitle}" />
+                </DataGridTextColumn.Header>
+            </DataGridTextColumn>
             <DataGridTemplateColumn SortMemberPath="Format"
                                     Width="36">
                 <DataGridTemplateColumn.CellTemplate>
@@ -94,10 +107,14 @@
                     </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTextColumn Header="{x:Static res:UiStrings.TrackCatalog_ColumnLength}"
-                                Binding="{ReflectionBinding LengthFormatted}"
+            <DataGridTextColumn Binding="{ReflectionBinding LengthFormatted}"
                                 SortMemberPath="Track.Length"
-                                Width="100" />
+                                Width="100">
+                <DataGridTextColumn.Header>
+                    <TextBlock AutomationProperties.AutomationId="catalog.column-length"
+                               Text="{x:Static res:UiStrings.TrackCatalog_ColumnLength}" />
+                </DataGridTextColumn.Header>
+            </DataGridTextColumn>
         </DataGrid.Columns>
     </DataGrid>
 

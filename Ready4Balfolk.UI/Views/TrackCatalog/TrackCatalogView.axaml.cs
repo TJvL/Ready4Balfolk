@@ -43,11 +43,14 @@ public partial class TrackCatalogView : ReactiveUserControl<TrackCatalogViewMode
             return;
         }
 
-        var columnHeader = e.Column.Header?.ToString();
+        // The sort member rather than the header's text: the header is a control carrying an
+        // automation id for the scenarios, and a control's ToString is its type name, the same for
+        // every column, which would make every second click look like the first click on a new one.
+        var columnKey = e.Column.SortMemberPath;
 
-        if (columnHeader != _lastSortColumn)
+        if (columnKey != _lastSortColumn)
         {
-            _lastSortColumn = columnHeader;
+            _lastSortColumn = columnKey;
             _clickCount = 1;
             return; // Let default sorting happen (ascending)
         }
