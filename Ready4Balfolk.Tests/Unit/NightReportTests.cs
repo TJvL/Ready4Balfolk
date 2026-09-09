@@ -49,15 +49,32 @@ public sealed class NightReportTests
     }
 
     [Fact]
-    public void Render_IsAnRtfDocumentAWordProcessorWillOpen()
+    public void Render_IsOneHtmlFileABrowserWillOpen()
     {
         var document = NightReport.Render(Night(Track("Naragonia", "Salamandre", Evening)));
 
-        Assert.StartsWith(@"{\rtf1", document, StringComparison.Ordinal);
-        Assert.EndsWith("}\n", document, StringComparison.Ordinal);
+        Assert.StartsWith("<!doctype html>", document, StringComparison.Ordinal);
+        Assert.EndsWith("</html>\n", document, StringComparison.Ordinal);
+        Assert.Contains("<meta charset=\"utf-8\">", document, StringComparison.Ordinal);
 
-        // Every brace the document opens is one it closes, or nothing will open it at all.
-        Assert.Equal(document.Count(c => c == '{'), document.Count(c => c == '}'));
+        // The styles travel inside the file. A second file to carry them is an archive to unpack
+        // rather than a document to open, which is the whole reason this is one file.
+        Assert.Contains("<style>", document, StringComparison.Ordinal);
+        Assert.DoesNotContain("<link", document, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Render_PutsTheTracksInATableSoTheyPasteIntoASpreadsheet()
+    {
+        var document = NightReport.Render(Night(
+            Track("Naragonia", "Salamandre", Evening),
+            Track("Trio Loubelya", "La Belle", Evening.AddMinutes(4))));
+
+        // A real table rather than laid-out text: copied out of the browser it arrives in a
+        // spreadsheet with the three columns still three columns.
+        Assert.Equal(3, document.Split("<th>").Length - 1);
+        Assert.Equal(2, document.Split("<tr>").Length - 1 - 1);
+        Assert.Equal(6, document.Split("<td>").Length - 1);
     }
 
     [Fact]
@@ -97,25 +114,25 @@ public sealed class NightReportTests
     }
 
     [Fact]
-    public void Render_WritesAnAccentAsAnEscapeRatherThanAsAByteRtfCannotCarry()
+    public void Render_WritesAnAccentAsItself()
     {
         var document = NightReport.Render(Night(Track("Arsène", "Bourrée", Evening)));
 
-        // RTF is seven-bit: an accent that went in raw would be read as a different letter.
-        Assert.DoesNotContain('è', document);
-        Assert.DoesNotContain('é', document);
-        Assert.Contains(@"Ars\u232?ne", document, StringComparison.Ordinal);
-        Assert.Contains(@"Bourr\u233?e", document, StringComparison.Ordinal);
+        // The file is UTF-8 and says so in its own head, so a name is spelled the way it is spelled.
+        Assert.Contains("Arsène", document, StringComparison.Ordinal);
+        Assert.Contains("Bourrée", document, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Render_EscapesABraceInATitleRatherThanLettingItCloseTheDocument()
+    public void Render_EscapesMarkupInATitleRatherThanLettingItCloseTheElement()
     {
-        var document = NightReport.Render(Night(Track(@"A\B", "{Live}", Evening)));
+        var document = NightReport.Render(Night(Track("Isaac & Nora", "<Live>", Evening)));
 
-        Assert.Contains(@"A\\B", document, StringComparison.Ordinal);
-        Assert.Contains(@"\{Live\}", document, StringComparison.Ordinal);
-        Assert.Equal(document.Count(c => c == '{'), document.Count(c => c == '}'));
+        Assert.Contains("Isaac &amp; Nora", document, StringComparison.Ordinal);
+        Assert.Contains("&lt;Live&gt;", document, StringComparison.Ordinal);
+
+        // The row is still a row rather than a title that opened an element of its own.
+        Assert.Equal(3, document.Split("<td>").Length - 1);
     }
 
     [Fact]
@@ -123,7 +140,7 @@ public sealed class NightReportTests
     {
         var document = NightReport.Render(Night(Track("Ar\u001bt", "Ti\u0008tle", Evening)));
 
-        // A control character has no plain-text spelling in RTF, so it cannot go in raw.
+        // A control character has no spelling in HTML, so it cannot go in raw.
         Assert.DoesNotContain('\u001b', document);
         Assert.DoesNotContain('\u0008', document);
         Assert.Contains("Art", document, StringComparison.Ordinal);
@@ -135,9 +152,9 @@ public sealed class NightReportTests
     {
         var document = NightReport.Render(QueueHistory.Empty);
 
-        Assert.StartsWith(@"{\rtf1", document, StringComparison.Ordinal);
+        Assert.StartsWith("<!doctype html>", document, StringComparison.Ordinal);
         Assert.Contains(DomainStrings.NightReport_Heading, document, StringComparison.Ordinal);
-        Assert.EndsWith("}\n", document, StringComparison.Ordinal);
+        Assert.EndsWith("</html>\n", document, StringComparison.Ordinal);
     }
 
     private static QueueHistory Night(params QueueHistoryEntry[] entries) =>

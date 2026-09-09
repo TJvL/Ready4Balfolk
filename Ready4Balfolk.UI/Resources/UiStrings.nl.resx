@@ -112,6 +112,9 @@
   <data name="HistoryToolbar_ExportReportLabel" xml:space="preserve">
     <value>Rapport</value>
   </data>
+  <data name="HistoryToolbar_ExportSpreadsheetLabel" xml:space="preserve">
+    <value>Spreadsheet</value>
+  </data>
   <data name="HistoryToolbar_NewNightLabel" xml:space="preserve">
     <value>Nieuwe avond</value>
   </data>
@@ -497,6 +500,9 @@
   <data name="HistoryToolbar_ExportReport" xml:space="preserve">
     <value>Rapport van gedraaide nummers exporteren</value>
   </data>
+  <data name="HistoryToolbar_ExportSpreadsheet" xml:space="preserve">
+    <value>Gedraaide nummers exporteren als rijen die een spreadsheet opent</value>
+  </data>
   <data name="HistoryToolbar_NewNight" xml:space="preserve">
     <value>Begin een nieuwe avond</value>
   </data>
@@ -529,6 +535,9 @@
   </data>
   <data name="HistoryToolbar_ExportReportTitle" xml:space="preserve">
     <value>Rapport exporteren</value>
+  </data>
+  <data name="HistoryToolbar_ExportSpreadsheetTitle" xml:space="preserve">
+    <value>Spreadsheet exporteren</value>
   </data>
 
   <!-- Playback -->
@@ -1483,6 +1492,9 @@ De bibliotheek kent er {2} nummers.</value>
   </data>
   <data name="HistoryToolbar_ExportReportFailed" xml:space="preserve">
     <value>Het rapport van gedraaide nummers kon niet geëxporteerd worden</value>
+  </data>
+  <data name="HistoryToolbar_ExportSpreadsheetFailed" xml:space="preserve">
+    <value>De gedraaide nummers konden niet als spreadsheet geëxporteerd worden</value>
   </data>
   <data name="Toolbar_DisplayAddressFailed" xml:space="preserve">
     <value>Het adres van de schermpagina kon niet getoond worden</value>

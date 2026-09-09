@@ -259,7 +259,8 @@ The night's own boundaries are lines in the list: where it began, and where it e
 - **Switch to queue**: Switch back to the queue view
 - **Which night**: Tonight, or any evening that has been filed. Everything else in this toolbar acts on the night you are looking at.
 - **Export history**: Save that night to a JSON file. Useful for keeping records of what was played at an event. It holds the dances, artists, titles and times, and not where the files sit on your disk, so it can go to an organiser as it is.
-- **Report**: Save that night as a document instead of as data. It is an RTF file, which any word processor opens, holding a heading for the evening and the artist, title and time of every track that played, in the order they played. That is what a rights organisation asks for, and nobody there should have to read JSON to find it.
+- **Report**: Save that night as a document instead of as data. It is one HTML file, styles and all, which any browser on any machine or phone opens, holding a heading for the evening and the artist, title and time of every track that played, in the order they played. Print it from the browser if whoever asked wanted a PDF. That is what a rights organisation asks for, and nobody there should have to read JSON to find it.
+- **Spreadsheet**: The same three columns as rows instead, as a CSV file any spreadsheet opens. For a rights organisation that takes an upload or hands out a template, where a document is the wrong shape and the report's table would have to be retyped.
 - **New night**: Keep tonight and start a new one (with confirmation). Nothing is deleted: the evening is filed and the history starts empty. Use it after a soundcheck, or on any evening that did not end with the end-of-the-night audio.
 - **Delete**: Throw that night away (with confirmation). This cannot be undone, and it is how the file stays a size somebody chose.
 

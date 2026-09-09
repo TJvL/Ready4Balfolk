@@ -209,7 +209,8 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
             .Save();
 
         var export = Path.Combine(world.DirectoryInfoRoot.FullName, "for the organisers.json");
-        var report = Path.Combine(world.DirectoryInfoRoot.FullName, "for the organisers.rtf");
+        var report = Path.Combine(world.DirectoryInfoRoot.FullName, "for the organisers.html");
+        var spreadsheet = Path.Combine(world.DirectoryInfoRoot.FullName, "for the organisers.csv");
 
         await session.RunAsync(world, async application =>
         {
@@ -253,9 +254,24 @@ public sealed partial class LookingBackAtTheNight(HeadlessSession session)
                 "the evening to be written out as a document");
 
             var document = await File.ReadAllTextAsync(report, TestContext.Current.CancellationToken);
-            Assert.StartsWith(@"{\rtf1", document, StringComparison.Ordinal);
+            Assert.StartsWith("<!doctype html>", document, StringComparison.Ordinal);
             Assert.Contains("Naragonia", document, StringComparison.Ordinal);
             Assert.Contains(DomainStrings.NightReport_Heading, document, StringComparison.Ordinal);
+
+            // And the same evening as rows, for an organiser that imports what it is sent rather
+            // than reading it.
+            RunningApplication.TheDjWillPick(spreadsheet);
+            application.Click("history.export-spreadsheet");
+
+            await application.WaitUntil(
+                () => File.Exists(spreadsheet)
+                      && File.ReadAllText(spreadsheet).Contains("Salamandre", StringComparison.Ordinal),
+                "the evening to be written out as rows");
+
+            var rows = await File.ReadAllTextAsync(spreadsheet, TestContext.Current.CancellationToken);
+            Assert.Contains($"{DomainStrings.NightReport_ArtistColumn}", rows, StringComparison.Ordinal);
+            Assert.Contains("Naragonia,Salamandre", rows, StringComparison.Ordinal);
+            Assert.DoesNotContain(world.MusicDirectory.FullName, rows, StringComparison.Ordinal);
         });
     }
 

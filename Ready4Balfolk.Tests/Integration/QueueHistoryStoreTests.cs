@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
@@ -147,6 +148,62 @@ public sealed class QueueHistoryStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ExportAsync_WritesAccentedNamesAsThemselvesRatherThanAsEscapes()
+    {
+        // An export is opened and read by whoever asked for one, and half the repertoire is
+        // spelled with something outside ASCII. The default encoder escapes those so that JSON is
+        // safe to drop into an HTML page; nothing embeds this file, so the escapes cost a reader
+        // and buy nothing.
+        await _sut.AddAsync(new TrackHistoryEntry(
+            TrackPath, "Bourrée", "Naragonia", "Ó Riada",
+            TimeSpan.FromMinutes(3), false, CompletionStatus.Finished, DateTime.Now));
+
+        var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "history.json"));
+        await _sut.ExportAsync(_sut.Current.Id, exportFile.FullName);
+
+        var content = await File.ReadAllTextAsync(exportFile.FullName, TestContext.Current.CancellationToken);
+        Assert.Contains("Bourrée", content, StringComparison.Ordinal);
+        Assert.Contains("Ó Riada", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\u00", content, StringComparison.Ordinal);
+
+        // And it is still JSON, which is the half of the trade that must not have been given away.
+        using var parsed = JsonDocument.Parse(content);
+        Assert.Equal(JsonValueKind.Object, parsed.RootElement.ValueKind);
+    }
+
+    [Fact]
+    public async Task ExportReportAsync_WritesTheDocumentWithNoByteOrderMarkInFrontOfIt()
+    {
+        await _sut.AddAsync(Track());
+
+        var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "night.html"));
+        await _sut.ExportReportAsync(_sut.Current.Id, exportFile.FullName);
+
+        // The document says its own encoding in its head. A mark in front of the doctype is
+        // content as far as the browser is concerned, and it draws it above the heading.
+        var bytes = await File.ReadAllBytesAsync(exportFile.FullName, TestContext.Current.CancellationToken);
+        Assert.Equal("<!doctype"u8.ToArray(), bytes[..9]);
+    }
+
+    [Fact]
+    public async Task ExportSpreadsheetAsync_WritesTheRowsWithAByteOrderMarkSoExcelReadsThemAsUtf8()
+    {
+        await _sut.AddAsync(Track() with { Artist = "Naragonia", Title = "Bourrée" });
+
+        var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "night.csv"));
+        await _sut.ExportSpreadsheetAsync(_sut.Current.Id, exportFile.FullName);
+
+        // The opposite call to the report's, and for the opposite reason: CSV carries no way to say
+        // what it is encoded in, so Excel opens one without a mark in the machine's own code page
+        // and every accented name in the evening arrives as mojibake.
+        var bytes = await File.ReadAllBytesAsync(exportFile.FullName, TestContext.Current.CancellationToken);
+        Assert.Equal(new byte[] { 0xEF, 0xBB, 0xBF }, bytes[..3]);
+
+        var content = await File.ReadAllTextAsync(exportFile.FullName, TestContext.Current.CancellationToken);
+        Assert.Contains("Naragonia,Bourrée", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ExportAsync_LeavesOutWhereTheFilesAre()
     {
         await _sut.AddAsync(Track());
@@ -253,7 +310,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
     {
         await _sut.AddAsync(Track() with { Artist = "Naragonia", Title = "Salamandre" });
 
-        var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "history.rtf"));
+        var exportFile = new FileInfo(Path.Combine(_tempDir.FullName, "export", "history.html"));
         await _sut.ExportReportAsync(_sut.Current.Id, exportFile.FullName);
 
         Assert.True(exportFile.Exists);
@@ -261,7 +318,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
 
         // What a rights organisation is being shown: who played what, under a heading, and no
         // description of the DJ's disk.
-        Assert.StartsWith(@"{\rtf1", content, StringComparison.Ordinal);
+        Assert.StartsWith("<!doctype html>", content, StringComparison.Ordinal);
         Assert.Contains(DomainStrings.NightReport_Heading, content, StringComparison.Ordinal);
         Assert.Contains("Naragonia", content, StringComparison.Ordinal);
         Assert.Contains("Salamandre", content, StringComparison.Ordinal);

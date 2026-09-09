@@ -23,10 +23,16 @@ public sealed class FilePickerService : IFilePickerService
         MimeTypes = ["text/plain"]
     };
 
-    private static readonly FilePickerFileType Rtf = new("Rich Text Format (*.rtf)")
+    private static readonly FilePickerFileType Html = new("Web page (*.html)")
     {
-        Patterns = ["*.rtf"],
-        MimeTypes = ["application/rtf"]
+        Patterns = ["*.html"],
+        MimeTypes = ["text/html"]
+    };
+
+    private static readonly FilePickerFileType Csv = new("Comma separated values (*.csv)")
+    {
+        Patterns = ["*.csv"],
+        MimeTypes = ["text/csv"]
     };
 
     private Window? _owner;
@@ -93,7 +99,8 @@ public sealed class FilePickerService : IFilePickerService
     {
         FileKind.Json => [Json],
         FileKind.Text => [Text],
-        FileKind.Rtf => [Rtf],
+        FileKind.Html => [Html],
+        FileKind.Csv => [Csv],
         FileKind.Audio => [AudioFiles()],
         _ => null
     };

@@ -96,6 +96,9 @@ public static class UiStrings
     public static string HistoryToolbar_ExportReportLabel =>
         ResourceManager.GetString("HistoryToolbar_ExportReportLabel", Culture)!;
 
+    public static string HistoryToolbar_ExportSpreadsheetLabel =>
+        ResourceManager.GetString("HistoryToolbar_ExportSpreadsheetLabel", Culture)!;
+
     public static string HistoryToolbar_NewNightLabel =>
         ResourceManager.GetString("HistoryToolbar_NewNightLabel", Culture)!;
 
@@ -476,6 +479,9 @@ public static class UiStrings
     public static string HistoryToolbar_ExportReport =>
         ResourceManager.GetString("HistoryToolbar_ExportReport", Culture)!;
 
+    public static string HistoryToolbar_ExportSpreadsheet =>
+        ResourceManager.GetString("HistoryToolbar_ExportSpreadsheet", Culture)!;
+
     public static string HistoryToolbar_NewNight =>
         ResourceManager.GetString("HistoryToolbar_NewNight", Culture)!;
 
@@ -508,6 +514,9 @@ public static class UiStrings
 
     public static string HistoryToolbar_ExportReportTitle =>
         ResourceManager.GetString("HistoryToolbar_ExportReportTitle", Culture)!;
+
+    public static string HistoryToolbar_ExportSpreadsheetTitle =>
+        ResourceManager.GetString("HistoryToolbar_ExportSpreadsheetTitle", Culture)!;
 
     // Playback
     public static string Playback_ProgressName =>
@@ -1410,6 +1419,9 @@ public static class UiStrings
 
     public static string HistoryToolbar_ExportReportFailed =>
         ResourceManager.GetString("HistoryToolbar_ExportReportFailed", Culture)!;
+
+    public static string HistoryToolbar_ExportSpreadsheetFailed =>
+        ResourceManager.GetString("HistoryToolbar_ExportSpreadsheetFailed", Culture)!;
     public static string Toolbar_DisplayAddressFailed =>
         ResourceManager.GetString("Toolbar_DisplayAddressFailed", Culture)!;
     public static string Toolbar_RemoteAddressFailed =>

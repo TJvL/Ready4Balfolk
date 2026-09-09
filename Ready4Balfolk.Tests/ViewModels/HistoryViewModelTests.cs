@@ -149,10 +149,24 @@ public sealed class HistoryViewModelTests : IDisposable
             new QueueHistory(Yesterday, [Track("Salamandre")]) { Id = 7, EndedAt = Yesterday.AddHours(4) }));
 
         await _sut.RefreshNightsAsync();
-        await _sut.ExportReportAsync("/tmp/for the organisers.rtf");
+        await _sut.ExportReportAsync("/tmp/for the organisers.html");
 
         // The night on screen, not the empty one that is running.
-        await _historyStore.Received(1).ExportReportAsync(7, "/tmp/for the organisers.rtf");
+        await _historyStore.Received(1).ExportReportAsync(7, "/tmp/for the organisers.html");
+    }
+
+    [Fact]
+    public async Task ExportSpreadsheet_WritesTheNightThatIsBeingRead()
+    {
+        _historyStore.ListNightsAsync().Returns(Task.FromResult<IReadOnlyList<NightSummary>>(
+            [new NightSummary(7, Yesterday, Yesterday.AddHours(4), 1)]));
+        _historyStore.ReadNightAsync(7).Returns(Task.FromResult<QueueHistory?>(
+            new QueueHistory(Yesterday, [Track("Salamandre")]) { Id = 7, EndedAt = Yesterday.AddHours(4) }));
+
+        await _sut.RefreshNightsAsync();
+        await _sut.ExportSpreadsheetAsync("/tmp/for the organisers.csv");
+
+        await _historyStore.Received(1).ExportSpreadsheetAsync(7, "/tmp/for the organisers.csv");
     }
 
     [Fact]

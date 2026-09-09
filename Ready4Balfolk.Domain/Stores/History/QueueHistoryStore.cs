@@ -3,6 +3,7 @@ using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -53,6 +54,13 @@ public sealed class QueueHistoryStore(
     /// </remarks>
     private static readonly JsonSerializerOptions ExportJsonOptions = new(JsonOptions)
     {
+        // A name is written as itself rather than as escapes. The default encoder escapes every
+        // non-ASCII character so that JSON can be dropped straight into an HTML page, and an export
+        // is a file somebody opens and reads: nothing embeds it, so the defence buys nothing here
+        // and costs a DJ a night of Bourrees written as Bourr\u00e9es. "Unsafe" means unsafe to
+        // embed; quotes, backslashes and control characters are still escaped, so this is the same
+        // JSON either way and parses to the same strings.
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         TypeInfoResolver = new DefaultJsonTypeInfoResolver
         {
             Modifiers =
@@ -251,11 +259,22 @@ public sealed class QueueHistoryStore(
     public Task ExportReportAsync(long nightId, string destinationPath) =>
         WriteExportAsync(nightId, destinationPath, async (stream, night) =>
         {
-            // RTF is seven-bit and the report escapes everything above it, so what is written is
-            // the bytes that were built and no encoding preamble in front of them. The stream is
-            // left open because the caller owns it, the same as it does for the JSON export.
+            // No byte order mark: the document says it is UTF-8 in its own head, and a browser that
+            // reads that mark as content puts it on screen above the heading. The stream is left
+            // open because the caller owns it, the same as it does for the JSON export.
             await using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
             await writer.WriteAsync(NightReport.Render(night));
+        });
+
+    public Task ExportSpreadsheetAsync(long nightId, string destinationPath) =>
+        WriteExportAsync(nightId, destinationPath, async (stream, night) =>
+        {
+            // With a byte order mark, which is the opposite call to the report's and for the same
+            // reason: CSV carries no way to say what it is encoded in, and Excel opened without one
+            // reads the file in the machine's own code page. That turns every accented name in a
+            // balfolk evening into mojibake, which is most of them.
+            await using var writer = new StreamWriter(stream, new UTF8Encoding(true), leaveOpen: true);
+            await writer.WriteAsync(NightSpreadsheet.Render(night));
         });
 
     public void Dispose()

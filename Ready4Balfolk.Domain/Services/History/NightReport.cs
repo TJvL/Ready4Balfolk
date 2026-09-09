@@ -8,56 +8,85 @@ namespace Ready4Balfolk.Domain.Services.History;
 /// <summary>An evening written out as a document a stranger reads.</summary>
 /// <remarks>
 /// <para>
-/// The JSON export is the night as the application holds it. This one is what gets handed to a
-/// rights organisation to show what was played, so it says a time, an artist and a title under a
-/// heading naming the evening, and nothing else the night carries.
+/// The JSON export is the night as the application holds it, and the spreadsheet is the night as
+/// something else imports it. This one is what gets handed to a rights organisation to show what
+/// was played, so it says a time, an artist and a title under a heading naming the evening, and
+/// nothing else the night carries.
 /// </para>
 /// <para>
-/// RTF because every word processor and every viewer on every machine opens one, and it is a few
-/// hundred bytes of text a string builder writes: no dependency to install and nothing to go
-/// looking for in a hall with no internet.
+/// One HTML file, styles and all. A browser exists on every machine and every phone, which no word
+/// processor does, and a mail client shows this inline where an attachment it cannot read is a
+/// dead end. It prints from the browser for anyone who wanted a PDF, its table pastes into a
+/// spreadsheet with the columns intact, and it is a few hundred bytes a string builder writes:
+/// no dependency to install and nothing to go looking for in a hall with no internet.
+/// </para>
+/// <para>
+/// Self-contained on purpose. A separate stylesheet would be a second file, and a second file is
+/// an archive to unpack rather than a document to open.
 /// </para>
 /// </remarks>
 public static class NightReport
 {
-    /// <summary>Where the artist and the title start, in twips, so the three columns line up.</summary>
-    private const string TabStops = @"\tx1000\tx4600";
-
-    /// <summary>The night as an RTF document.</summary>
+    /// <summary>The night as an HTML document.</summary>
     public static string Render(QueueHistory night)
     {
         var document = new StringBuilder();
-        document.Append(@"{\rtf1\ansi\ansicpg1252\uc1\deff0{\fonttbl{\f0\fswiss\fcharset0 Calibri;}}")
-            .Append('\n');
 
-        Paragraph(document, @"\pard\sa120\b\fs32 ", DomainStrings.NightReport_Heading);
+        document.Append("<!doctype html>\n<html lang=\"")
+            .Append(CultureInfo.CurrentCulture.TwoLetterISOLanguageName)
+            .Append("\">\n<head>\n<meta charset=\"utf-8\">\n")
+            .Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>");
+        AppendEscaped(document, DomainStrings.NightReport_Heading);
+        document.Append("</title>\n").Append(Style).Append("</head>\n<body>\n<h1>");
+        AppendEscaped(document, DomainStrings.NightReport_Heading);
+        document.Append("</h1>\n");
 
         if (night.StartedAt is { } startedAt)
         {
-            Paragraph(document, @"\pard\sa240\fs22 ", startedAt.ToString("D", CultureInfo.CurrentCulture));
+            document.Append("<p class=\"evening\">");
+            AppendEscaped(document, startedAt.ToString("D", CultureInfo.CurrentCulture));
+            document.Append("</p>\n");
         }
 
-        document.Append(@"\pard").Append(TabStops).Append(@"\sa60\fs22\b ");
-        AppendEscaped(document, DomainStrings.NightReport_TimeColumn);
-        document.Append(@"\tab ");
-        AppendEscaped(document, DomainStrings.NightReport_ArtistColumn);
-        document.Append(@"\tab ");
-        AppendEscaped(document, DomainStrings.NightReport_TitleColumn);
-        document.Append(@"\b0\par").Append('\n');
+        document.Append("<table>\n<thead>\n<tr>");
+        Cell(document, "th", DomainStrings.NightReport_TimeColumn);
+        Cell(document, "th", DomainStrings.NightReport_ArtistColumn);
+        Cell(document, "th", DomainStrings.NightReport_TitleColumn);
+        document.Append("</tr>\n</thead>\n<tbody>\n");
 
         foreach (var track in Played(night))
         {
-            document.Append(@"\pard").Append(TabStops).Append(@"\fs22 ");
-            AppendEscaped(document, track.StartedAt?.ToString("HH:mm", CultureInfo.CurrentCulture) ?? string.Empty);
-            document.Append(@"\tab ");
-            AppendEscaped(document, track.Artist);
-            document.Append(@"\tab ");
-            AppendEscaped(document, track.Title);
-            document.Append(@"\par").Append('\n');
+            document.Append("<tr>");
+            Cell(document, "td", track.StartedAt?.ToString("HH:mm", CultureInfo.CurrentCulture) ?? string.Empty);
+            Cell(document, "td", track.Artist);
+            Cell(document, "td", track.Title);
+            document.Append("</tr>\n");
         }
 
-        return document.Append("}\n").ToString();
+        return document.Append("</tbody>\n</table>\n</body>\n</html>\n").ToString();
     }
+
+    /// <summary>
+    /// Enough to read on a phone and to print, and no more.
+    /// </summary>
+    /// <remarks>
+    /// A colour scheme is left to the reader's: this is a document somebody files, not a screen in
+    /// the application, and one that prints black on white whatever the machine is set to is the
+    /// one a rights organisation can put away.
+    /// </remarks>
+    private const string Style =
+        """
+        <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 40rem; color: #111; background: #fff; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+        .evening { margin-top: 0; color: #555; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { text-align: left; padding: 0.35rem 0.75rem 0.35rem 0; border-bottom: 1px solid #ddd; vertical-align: top; }
+        th { border-bottom-width: 2px; white-space: nowrap; }
+        td:first-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+        </style>
+
+        """;
 
     /// <summary>The tracks the evening actually played, in the order it played them.</summary>
     /// <remarks>
@@ -65,24 +94,24 @@ public static class NightReport
     /// organisation is being told what was heard. Everything else in a night, the messages, the
     /// pauses and the stops, is the running of the evening rather than music that was played.
     /// </remarks>
-    private static IEnumerable<TrackHistoryEntry> Played(QueueHistory night) =>
+    internal static IEnumerable<TrackHistoryEntry> Played(QueueHistory night) =>
         night.Entries
             .OfType<TrackHistoryEntry>()
             .Where(track => track.CompletionStatus != CompletionStatus.FileMissing);
 
-    private static void Paragraph(StringBuilder document, string formatting, string text)
+    private static void Cell(StringBuilder document, string tag, string text)
     {
-        document.Append(formatting);
+        document.Append('<').Append(tag).Append('>');
         AppendEscaped(document, text);
-        document.Append(@"\par").Append('\n');
+        document.Append("</").Append(tag).Append('>');
     }
 
     /// <summary>Writes text that a reader is meant to see rather than a reader's parser.</summary>
     /// <remarks>
-    /// RTF is seven-bit, so an accent in a title goes in as its code point and the <c>?</c> after
-    /// it is the character a reader too old to know the escape shows instead. A control character
-    /// has no plain-text spelling at all, so tabs and line breaks become a space and the rest of
-    /// them are left out.
+    /// The file is UTF-8 and says so, so an accent goes in as itself. What cannot go in as itself
+    /// is the punctuation that would end the element early, and a control character, which has no
+    /// spelling in HTML at all: a tag written by something that got its bytes wrong carries the odd
+    /// one, so tabs and line breaks become a space and the rest are left out.
     /// </remarks>
     private static void AppendEscaped(StringBuilder document, string text)
     {
@@ -90,10 +119,17 @@ public static class NightReport
         {
             switch (character)
             {
-                case '\\':
-                case '{':
-                case '}':
-                    document.Append('\\').Append(character);
+                case '&':
+                    document.Append("&amp;");
+                    break;
+                case '<':
+                    document.Append("&lt;");
+                    break;
+                case '>':
+                    document.Append("&gt;");
+                    break;
+                case '"':
+                    document.Append("&quot;");
                     break;
                 case '\t':
                 case '\r':
@@ -101,17 +137,8 @@ public static class NightReport
                     document.Append(' ');
                     break;
                 default:
-                    if (character >= 128)
+                    if (!char.IsControl(character))
                     {
-                        document.Append(@"\u")
-                            .Append(((short)character).ToString(CultureInfo.InvariantCulture))
-                            .Append('?');
-                    }
-                    else if (!char.IsControl(character))
-                    {
-                        // A tag written by something that got its bytes wrong carries the odd
-                        // control character, and RTF has no plain-text spelling for one, so
-                        // anything left down there is left out of the document entirely.
                         document.Append(character);
                     }
 

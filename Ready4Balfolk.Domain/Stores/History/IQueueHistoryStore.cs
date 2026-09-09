@@ -52,4 +52,11 @@ public interface IQueueHistoryStore : ILoadableStore, IDisposable
     /// answer to that question anybody outside this application should have to read.
     /// </remarks>
     Task ExportReportAsync(long nightId, string destinationPath);
+
+    /// <summary>Writes one night out as rows, for a spreadsheet or an upload rather than a reader.</summary>
+    /// <remarks>
+    /// The same three columns the report shows. Which of the two a rights organisation wants is
+    /// theirs to say, and neither is a conversion of the other.
+    /// </remarks>
+    Task ExportSpreadsheetAsync(long nightId, string destinationPath);
 }

@@ -29,11 +29,23 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
         Handlers.Run(UiStrings.HistoryToolbar_ExportReportFailed, async () =>
         {
             var path = await App.Services.GetRequiredService<IFilePickerService>()
-                .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportReportTitle, "queue_history", FileKind.Rtf);
+                .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportReportTitle, "queue_history", FileKind.Html);
 
             if (path is not null)
             {
                 await ViewModel!.ExportReportAsync(path);
+            }
+        });
+
+    private void OnExportSpreadsheetClick(object? sender, RoutedEventArgs e) =>
+        Handlers.Run(UiStrings.HistoryToolbar_ExportSpreadsheetFailed, async () =>
+        {
+            var path = await App.Services.GetRequiredService<IFilePickerService>()
+                .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportSpreadsheetTitle, "queue_history", FileKind.Csv);
+
+            if (path is not null)
+            {
+                await ViewModel!.ExportSpreadsheetAsync(path);
             }
         });
 

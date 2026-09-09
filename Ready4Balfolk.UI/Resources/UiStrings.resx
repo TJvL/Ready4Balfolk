@@ -187,6 +187,9 @@
   <data name="HistoryToolbar_ExportReportLabel" xml:space="preserve">
     <value>Report</value>
   </data>
+  <data name="HistoryToolbar_ExportSpreadsheetLabel" xml:space="preserve">
+    <value>Spreadsheet</value>
+  </data>
   <data name="HistoryToolbar_NewNightLabel" xml:space="preserve">
     <value>New night</value>
   </data>
@@ -572,6 +575,9 @@
   <data name="HistoryToolbar_ExportReport" xml:space="preserve">
     <value>Export a report of the tracks played</value>
   </data>
+  <data name="HistoryToolbar_ExportSpreadsheet" xml:space="preserve">
+    <value>Export the tracks played as rows a spreadsheet opens</value>
+  </data>
   <data name="HistoryToolbar_NewNight" xml:space="preserve">
     <value>Start a new night</value>
   </data>
@@ -604,6 +610,9 @@
   </data>
   <data name="HistoryToolbar_ExportReportTitle" xml:space="preserve">
     <value>Export Report</value>
+  </data>
+  <data name="HistoryToolbar_ExportSpreadsheetTitle" xml:space="preserve">
+    <value>Export Spreadsheet</value>
   </data>
 
   <!-- Playback -->
@@ -1558,6 +1567,9 @@ It holds {2} tracks in the library.</value>
   </data>
   <data name="HistoryToolbar_ExportReportFailed" xml:space="preserve">
     <value>Failed to export the report of the tracks played</value>
+  </data>
+  <data name="HistoryToolbar_ExportSpreadsheetFailed" xml:space="preserve">
+    <value>Failed to export the tracks played as a spreadsheet</value>
   </data>
   <data name="Toolbar_DisplayAddressFailed" xml:space="preserve">
     <value>Failed to show the display address</value>

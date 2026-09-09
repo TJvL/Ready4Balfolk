@@ -121,6 +121,15 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
         }
     }
 
+    /// <summary>The same night again, as rows for whoever imports it rather than reads it.</summary>
+    public async Task ExportSpreadsheetAsync(string path)
+    {
+        if (SelectedNight is { } night)
+        {
+            await _historyStore.ExportSpreadsheetAsync(IdOf(night), path);
+        }
+    }
+
     public HistoryViewModel(
         IQueueHistoryStore historyStore,
         ISettingsStore settingsStore,

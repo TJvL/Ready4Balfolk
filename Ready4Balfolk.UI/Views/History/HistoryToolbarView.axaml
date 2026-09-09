@@ -41,7 +41,7 @@
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ExportHistory}"
                 IsEnabled="{Binding HasItems}"
                 Padding="8">
-            <controls:ButtonContent Icon="{StaticResource IconDownload}"
+            <controls:ButtonContent Icon="{StaticResource IconFormatJson}"
                                     Text="{x:Static res:UiStrings.HistoryToolbar_ExportLabel}"
                                     IconSize="16" />
         </Button>
@@ -52,8 +52,19 @@
                 ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ExportReport}"
                 IsEnabled="{Binding HasItems}"
                 Padding="8">
-            <controls:ButtonContent Icon="{StaticResource IconFileExport}"
+            <controls:ButtonContent Icon="{StaticResource IconFormatHtml}"
                                     Text="{x:Static res:UiStrings.HistoryToolbar_ExportReportLabel}"
+                                    IconSize="16" />
+        </Button>
+        <!-- And as rows, for a rights organisation that imports what it is sent rather than
+             reading it. -->
+        <Button AutomationProperties.AutomationId="history.export-spreadsheet"
+                Click="OnExportSpreadsheetClick"
+                ToolTip.Tip="{x:Static res:UiStrings.HistoryToolbar_ExportSpreadsheet}"
+                IsEnabled="{Binding HasItems}"
+                Padding="8">
+            <controls:ButtonContent Icon="{StaticResource IconFormatCsv}"
+                                    Text="{x:Static res:UiStrings.HistoryToolbar_ExportSpreadsheetLabel}"
                                     IconSize="16" />
         </Button>
         <Button AutomationProperties.AutomationId="history.new-night"
