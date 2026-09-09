@@ -47,7 +47,7 @@
             before the scenario's own patience runs out: the seek scenario needs a track where
             landing near the middle proves the seek moved it, which 1.5 s of scale is too short to
             tell apart from ordinary elapsed playback.-->
-        <None Include="..\scripts\smoke-test-media\seek-test.mp3" Link="Media\seek-test.mp3" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="Fixtures\seek-test.mp3" Link="Media\seek-test.mp3" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>
