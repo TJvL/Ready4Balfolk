@@ -3,6 +3,7 @@ using System.Reactive.Threading.Tasks;
 using ManagedBass;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
@@ -129,6 +130,47 @@ public sealed class ManagedBassPlaybackTests : IDisposable
         Assert.Equal(0, announcements);
         Assert.False(lost);
         Assert.True(_sut.IsStopped);
+    }
+
+    /// <summary>
+    /// A start BASS refuses is the device having gone, not this one track's problem, and is
+    /// announced as the output being gone rather than left for the DJ to notice from a dance that
+    /// never starts.
+    /// </summary>
+    /// <remarks>
+    /// An interface unplugged mid-set is stood in for by freeing BASS itself out from under the
+    /// service between the select and the play: the stream the select opened is still held, but
+    /// there is nothing behind it any more to play anything on, which is exactly what
+    /// <c>Bass.ChannelPlay</c> refuses. Playing again afterwards is what a DJ pressing the button
+    /// a second time looks like, and the device still being gone must not turn into a second
+    /// notice: the first one already said what needed saying.
+    /// </remarks>
+    [Fact]
+    public async Task ARefusedStart_SaysTheOutputIsGoneRatherThanLeavingTheDeckSilentAboutWhy()
+    {
+        await _sut.SelectAsync(_track);
+
+        Bass.Free();
+
+        var lost = false;
+        using (_sut.WhenAvailabilityChanged.Subscribe(available => lost |= !available))
+        {
+            await _sut.PlayAsync();
+
+            var reported = await _logger.NextErrorAsync(TestContext.Current.CancellationToken);
+            Assert.Equal(DomainStrings.Audio_OutputGone, reported.Message);
+
+            // Asked again, which is what a DJ pressing play a second time looks like: the device
+            // is still gone, but the notice already said so once.
+            await _sut.PlayAsync();
+        }
+
+        Assert.True(lost);
+        Assert.Single(_logger.Errors);
+
+        // Left usable for whatever runs after this test, rather than freed for the rest of the
+        // process: the no-sound device comes back up the same way it did the first time.
+        Assert.True(Bass.Init(0), $"BASS did not come back up after being freed: {Bass.LastError}");
     }
 
     /// <summary>
