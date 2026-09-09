@@ -1,6 +1,7 @@
 using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Microsoft.Playwright;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -643,6 +644,228 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             await application.WaitUntil(
                 () => application.RowsOf("queue.items").Count == 1,
                 "tonight's PIN to let the same phone back in");
+        });
+    }
+
+    /// <summary>A helper runs the transport from their phone, the way they run it from the desk.</summary>
+    /// <remarks>
+    /// World: a library of one dance, the server and the remote on, and auto queue off.
+    /// Steps: start the evening at the desktop, then from the phone pause it, resume it, and
+    /// restart it from the top.
+    /// Sees: the desktop's own progress bar hold while paused, pick back up on resume, and drop
+    /// back to the beginning on restart, none of it touched from the desktop itself. The hub methods
+    /// behind these three buttons are unit tested; what is not is that the page's play, pause and
+    /// restart buttons call them.
+    /// </remarks>
+    [Fact]
+    public async Task HelperRunsTheTransportFromThePhone()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "271828")
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "271828");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.ProgressOf("playback.progress") > 0,
+                "the dance to get under way");
+
+            // Pause: the desk's own progress bar has to hold, not just the phone's clock.
+            await phone.Tap("pp");
+            var heldAt = application.ProgressOf("playback.progress");
+
+            await Task.Delay(300);
+            application.Settle();
+
+            Assert.Equal(heldAt, application.ProgressOf("playback.progress"));
+
+            // Play again: the desk picks up from where it was held, not from the top.
+            await phone.Tap("pp");
+
+            await application.WaitUntil(
+                () => application.ProgressOf("playback.progress") > heldAt,
+                "the desktop to carry on from where the phone held it");
+
+            await application.WaitUntil(
+                () => application.ProgressOf("playback.progress") > 0.4,
+                "the dance to run on far enough for a restart to be visible");
+            var playedTo = application.ProgressOf("playback.progress");
+
+            await phone.Tap("restart");
+
+            await application.WaitUntil(
+                () => application.ProgressOf("playback.progress") < playedTo,
+                "the phone's restart to send the desktop back to the top");
+
+            Assert.Contains("Salamandre", application.TextOf("playback.track"), StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>A helper queues a stop, a delay, a message and the closing track from their phone.</summary>
+    /// <remarks>
+    /// World: a library of one dance, the server and the remote on, a file nominated to close the
+    /// night, and auto queue off so nothing reaches the queue that the phone did not put there.
+    /// Steps: unlock the remote, move to the tab that adds, and tap each of the four in turn.
+    /// Sees: the desktop's own queue grow by one each time, showing the marker for what was tapped,
+    /// and the exact words of the message rather than any placeholder.
+    /// </remarks>
+    [Fact]
+    public async Task HelperQueuesAStopADelayAMessageAndTheClosingTrackFromThePhone()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithEndOfNightAudio()
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "577215")
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "577215");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            Assert.Empty(application.RowsOf("queue.items"));
+
+            await phone.Page.Locator("[data-tab='add']").ClickAsync();
+
+            await phone.Page.Locator("[data-act='stop']").ClickAsync();
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 1,
+                "the stop the phone tapped to reach the queue");
+            Assert.Contains(UiStrings.Queue_StopMarker, application.RowsOf("queue.items")[0], StringComparison.Ordinal);
+
+            // The stepper starts at 30 seconds, and the marker's own duration is where that argument
+            // shows up on the desktop, so this is what says the phone sent the number it did.
+            await phone.Page.Locator("[data-act='delay']").ClickAsync();
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 2,
+                "the delay the phone tapped to reach the queue");
+            var delayRow = application.RowsOf("queue.items")[1];
+            Assert.Contains(UiStrings.Queue_DelayMarker, delayRow, StringComparison.Ordinal);
+            Assert.Contains("0:30", delayRow, StringComparison.Ordinal);
+
+            await phone.TypeInto("messageText", "Bar closes at eleven");
+            await phone.Page.Locator("[data-act='message']").ClickAsync();
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 3,
+                "the message the phone wrote to reach the queue");
+            var messageRow = application.RowsOf("queue.items")[2];
+            Assert.Contains(UiStrings.Queue_MessageMarker, messageRow, StringComparison.Ordinal);
+            Assert.Contains("Bar closes at eleven", messageRow, StringComparison.Ordinal);
+
+            await phone.Page.Locator("[data-act='endofnight']").ClickAsync();
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 4,
+                "the closing track the phone tapped to reach the queue");
+            Assert.Contains(
+                UiStrings.Queue_EndOfNightMarker,
+                application.RowsOf("queue.items")[3],
+                StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>A helper finds a dance from their phone, then moves it up and back down the queue.</summary>
+    /// <remarks>
+    /// World: a library of two dances, the server and the remote on, and auto queue off. The DJ has
+    /// already queued the first one, so the phone is adding to a queue rather than starting one.
+    /// Steps: unlock the remote, search for the second dance and tap the hit it turns up, then open
+    /// that row in the queue tab and move it up and back down.
+    /// Sees: the desktop's own queue gaining exactly the dance that was searched for, then swapping
+    /// order on the move up, and swapping back on the move down.
+    /// </remarks>
+    [Fact]
+    public async Task HelperSearchesAndReordersTheQueueFromThePhone()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "161803")
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "161803");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            var hits = phone.Page.Locator("#hits .hit");
+
+            // Opening the tab runs a search of its own with whatever the box holds, which at this
+            // point is nothing: that listing has to settle before typing narrows it, or the two
+            // requests race and whichever answer lands second is what the phone ends up showing.
+            await phone.Page.Locator("[data-tab='find']").ClickAsync();
+            await hits.Nth(1).WaitForAsync();
+
+            await phone.TypeInto("search", "Belle");
+
+            // The dance that does not match has to actually leave the list, not merely be joined by
+            // the one that does: "La Belle" is in the unfiltered listing too, so waiting for it alone
+            // would pass whether or not the term ever reached the search.
+            await hits.Filter(new LocatorFilterOptions { HasTextString = "Salamandre" })
+                .WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Detached });
+            Assert.Equal(1, await hits.CountAsync());
+
+            await hits.ClickAsync();
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 2,
+                "the dance the phone searched for to reach the queue");
+            Assert.Contains("La Belle", application.RowsOf("queue.items")[1], StringComparison.Ordinal);
+
+            await phone.Page.Locator("[data-tab='queue']").ClickAsync();
+
+            var row = phone.Page.Locator("#queueList .qrow")
+                .Filter(new LocatorFilterOptions { HasTextString = "La Belle" });
+            await row.Locator(".qmain").ClickAsync();
+            await row.Locator("[data-move='up']").ClickAsync();
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items")[0].Contains("La Belle", StringComparison.Ordinal),
+                "the dance the phone moved up to be first");
+
+            await row.Locator("[data-move='down']").ClickAsync();
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items")[1].Contains("La Belle", StringComparison.Ordinal),
+                "the dance the phone moved back down to be second again");
         });
     }
 }
