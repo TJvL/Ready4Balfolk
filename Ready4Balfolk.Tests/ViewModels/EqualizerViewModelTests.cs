@@ -1,9 +1,9 @@
-using System.Diagnostics;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Views.Equalizer;
 
 namespace Ready4Balfolk.Tests.ViewModels;
@@ -12,6 +12,7 @@ public sealed class EqualizerViewModelTests : IDisposable
 {
     private readonly IAudioPlaybackService _audio = Substitute.For<IAudioPlaybackService>();
     private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
+    private readonly ThrottleClock _throttles = new();
     private readonly List<ApplicationSettings> _saved = [];
     private readonly EqualizerViewModel _sut;
 
@@ -38,8 +39,11 @@ public sealed class EqualizerViewModelTests : IDisposable
                 return Task.CompletedTask;
             });
 
-        _sut = new EqualizerViewModel(_audio, _settingsStore, Substitute.For<ILoggerService>());
+        _sut = new EqualizerViewModel(_audio, _settingsStore, Substitute.For<ILoggerService>(), _throttles.Scheduler);
     }
+
+    /// <summary>Spends the 300ms the panel waits before writing, rather than sleeping past it.</summary>
+    private void Settle() => _throttles.LetTheThrottlesRunOut();
 
     [Fact]
     public void Construction_RestoresTheStoredEqualizer()
@@ -49,7 +53,8 @@ public sealed class EqualizerViewModelTests : IDisposable
             EqualizerOrNull = EqualizerSettings.Flat with { Enabled = true, PreampDecibels = -4 }
         };
 
-        using var sut = new EqualizerViewModel(_audio, _settingsStore, Substitute.For<ILoggerService>());
+        using var sut = new EqualizerViewModel(
+            _audio, _settingsStore, Substitute.For<ILoggerService>(), _throttles.Scheduler);
 
         Assert.True(sut.Enabled);
         Assert.Equal(-4, sut.PreampDecibels);
@@ -73,49 +78,52 @@ public sealed class EqualizerViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task EnablingIsPersisted()
+    public void EnablingIsPersisted()
     {
         _sut.Enabled = true;
+        Settle();
 
-        var saved = await WaitForSaveAsync();
-
-        Assert.True(saved.Equalizer.Enabled);
+        Assert.True(SavedSnapshot()[^1].Equalizer.Enabled);
     }
 
     [Fact]
-    public async Task BandGainIsPersistedAtItsIndex()
+    public void BandGainIsPersistedAtItsIndex()
     {
         _sut.Bands[2].Gain = -6;
+        Settle();
 
-        var saved = await WaitForSaveAsync();
+        var saved = SavedSnapshot()[^1];
 
         Assert.Equal(-6, saved.Equalizer.BandGains[2]);
         Assert.Equal(0, saved.Equalizer.BandGains[0]);
     }
 
     [Fact]
-    public async Task LowCutIsPersisted()
+    public void LowCutIsPersisted()
     {
         _sut.LowCutEnabled = true;
         _sut.LowCutHertz = 65;
+        Settle();
 
-        var saved = await WaitForSaveAsync();
+        var saved = SavedSnapshot()[^1];
 
         Assert.True(saved.Equalizer.LowCutEnabled);
         Assert.Equal(65, saved.Equalizer.LowCutHertz);
     }
 
     [Fact]
-    public async Task ResetToFlat_ClearsEverythingButLeavesTheEqualizerEnabled()
+    public void ResetToFlat_ClearsEverythingButLeavesTheEqualizerEnabled()
     {
         _sut.Enabled = true;
         _sut.Bands[1].Gain = 9;
         _sut.PreampDecibels = -5;
         _sut.LowCutEnabled = true;
+        Settle();
 
         _sut.ResetToFlatCommand.Execute().Subscribe();
+        Settle();
 
-        var saved = await WaitForSaveAsync(settings => settings.Equalizer.IsFlat);
+        var saved = SavedSnapshot()[^1];
 
         Assert.True(saved.Equalizer.Enabled);
         Assert.True(saved.Equalizer.IsFlat);
@@ -128,26 +136,6 @@ public sealed class EqualizerViewModelTests : IDisposable
         {
             return [.. _saved];
         }
-    }
-
-    /// <summary>Waits out the view model's save throttle rather than sleeping a fixed period.</summary>
-    private async Task<ApplicationSettings> WaitForSaveAsync(Func<ApplicationSettings, bool>? predicate = null)
-    {
-        var stopwatch = Stopwatch.StartNew();
-
-        while (stopwatch.Elapsed < TimeSpan.FromSeconds(5))
-        {
-            var match = SavedSnapshot().LastOrDefault(settings => predicate?.Invoke(settings) ?? true);
-
-            if (match != null)
-            {
-                return match;
-            }
-
-            await Task.Delay(20);
-        }
-
-        throw new TimeoutException("The equalizer was never saved.");
     }
 
     public void Dispose() => _sut.Dispose();

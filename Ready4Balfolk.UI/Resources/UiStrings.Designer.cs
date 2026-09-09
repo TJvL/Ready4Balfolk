@@ -139,9 +139,6 @@ public static class UiStrings
         ResourceManager.GetString("Toolbar_Settings", Culture)!;
 
     // Settings
-    public static string Settings_Title =>
-        ResourceManager.GetString("Settings_Title", Culture)!;
-
     public static string Settings_MusicDirectory =>
         ResourceManager.GetString("Settings_MusicDirectory", Culture)!;
 
@@ -791,9 +788,6 @@ public static class UiStrings
         ResourceManager.GetString("Settings_WebServerStopping", Culture)!;
 
     // Setup wizard
-    public static string Wizard_Title =>
-        ResourceManager.GetString("Wizard_Title", Culture)!;
-
     public static string Wizard_StepFormat =>
         ResourceManager.GetString("Wizard_StepFormat", Culture)!;
 
@@ -826,9 +820,6 @@ public static class UiStrings
 
     public static string Settings_RunSetupAgain =>
         ResourceManager.GetString("Settings_RunSetupAgain", Culture)!;
-
-    public static string Settings_RunSetupAgainDescription =>
-        ResourceManager.GetString("Settings_RunSetupAgainDescription", Culture)!;
 
     // Dance panel
     public static string Wizard_DanceList_Summary =>
@@ -918,9 +909,6 @@ public static class UiStrings
     public static string Wizard_DanceList_SourceUrl =>
         ResourceManager.GetString("Wizard_DanceList_SourceUrl", Culture)!;
 
-    public static string DanceList_Title =>
-        ResourceManager.GetString("DanceList_Title", Culture)!;
-
     // Setup wizard: emptying the list
     // Dance list scope
     public static string DanceListToolbar_SwitchToTrackList =>
@@ -988,15 +976,6 @@ public static class UiStrings
         ResourceManager.GetString("Settings_MusicDirectoryChangeHint", Culture)!;
 
     // Advanced discovery
-    public static string Settings_AdvancedDiscovery =>
-        ResourceManager.GetString("Settings_AdvancedDiscovery", Culture)!;
-
-    public static string Settings_AdvancedDiscoveryHint =>
-        ResourceManager.GetString("Settings_AdvancedDiscoveryHint", Culture)!;
-
-    public static string Discovery_Title =>
-        ResourceManager.GetString("Discovery_Title", Culture)!;
-
     public static string Discovery_Intro =>
         ResourceManager.GetString("Discovery_Intro", Culture)!;
 

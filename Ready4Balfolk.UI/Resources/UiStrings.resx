@@ -231,9 +231,6 @@
   </data>
 
   <!-- Settings -->
-  <data name="Settings_Title" xml:space="preserve">
-    <value>Settings</value>
-  </data>
   <data name="Settings_MusicDirectory" xml:space="preserve">
     <value>Music Directory</value>
   </data>
@@ -898,9 +895,6 @@
   </data>
 
   <!-- Setup wizard -->
-  <data name="Wizard_Title" xml:space="preserve">
-    <value>Set up Ready4Balfolk</value>
-  </data>
   <data name="Wizard_StepFormat" xml:space="preserve">
     <value>Step {0} of {1}</value>
   </data>
@@ -933,9 +927,6 @@
   </data>
   <data name="Settings_RunSetupAgain" xml:space="preserve">
     <value>Run setup again</value>
-  </data>
-  <data name="Settings_RunSetupAgainDescription" xml:space="preserve">
-    <value>Opens the setup wizard. Your dance list and your music folder stay as they are unless you change them there.</value>
   </data>
 
   <!-- Dance panel -->
@@ -1026,9 +1017,6 @@
   <data name="Wizard_DanceList_SourceUrl" xml:space="preserve">
     <value>github.com/TJvL/BigBalfolkList</value>
   </data>
-  <data name="DanceList_Title" xml:space="preserve">
-    <value>Dance list</value>
-  </data>
 
   <!-- Setup wizard: emptying the list -->
 
@@ -1083,15 +1071,6 @@
   </data>
 
   <!-- Advanced discovery -->
-  <data name="Settings_AdvancedDiscovery" xml:space="preserve">
-    <value>Advanced discovery</value>
-  </data>
-  <data name="Settings_AdvancedDiscoveryHint" xml:space="preserve">
-    <value>Tell the application how your files are named and arranged. Nothing is assumed about your library until you do.</value>
-  </data>
-  <data name="Discovery_Title" xml:space="preserve">
-    <value>Advanced discovery</value>
-  </data>
   <data name="Discovery_Intro" xml:space="preserve">
     <value>Your library is read as it is found: no folder is assumed to be an artist and no file name is assumed to have fields in it. Tick the ways your library is arranged and fill those in. What is not ticked does nothing, so a rule you cannot see never reaches your files.</value>
   </data>
