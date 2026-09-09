@@ -290,6 +290,80 @@ public sealed class GettingMusicIntoTheLibrary(HeadlessSession session)
         });
     }
 
+    /// <summary>The DJ fixes a typo where they see it, from the catalog and from the queue.</summary>
+    /// <remarks>
+    /// World: one track in the library.
+    /// Steps: right-click it in the catalogue and correct the artist, then queue it and right-click
+    /// it there too, correcting the title.
+    /// Sees: the catalogue carrying both corrections at once, because either surface writes to the
+    /// same library track. The queue row does not: it keeps the snapshot it was enqueued with, so
+    /// the correction made from inside the queue shows up everywhere except on the very row that
+    /// asked for it.
+    /// </remarks>
+    [Fact]
+    public async Task DjFixesATypoFromTheCatalogAndFromTheQueue()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the track to reach the catalogue");
+
+            var catalogRow = application.Row("catalog.tracks", "Salamandre");
+            application.Click(catalogRow);
+            application.RightClick(catalogRow);
+            application.Click("catalog.edit-track");
+
+            await application.WaitUntil(
+                () => application.IsShowing("edit-track.artist"),
+                "the edit dialog to come up");
+
+            application.TypeInto("edit-track.artist", "Naragonia Quartet");
+            application.Click("edit-track.save");
+
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks")
+                    .Any(row => row.Contains("Naragonia Quartet", StringComparison.Ordinal)),
+                "the corrected artist to reach the catalogue");
+
+            // Into the queue under the artist that was just corrected, so a stale snapshot below
+            // can only be blamed on the second edit, never on this one.
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items")
+                    .Any(row => row.Contains("Naragonia Quartet", StringComparison.Ordinal)),
+                "the track to reach the queue under its corrected artist");
+
+            var queueRow = application.Row("queue.items", "Salamandre");
+            application.Click(queueRow);
+            application.RightClick(queueRow);
+            application.Click("queue.edit-track");
+
+            await application.WaitUntil(
+                () => application.IsShowing("edit-track.title"),
+                "the edit dialog to come up from the queue");
+
+            application.TypeInto("edit-track.title", "Salamandre Remastered");
+            application.Click("edit-track.save");
+
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks")
+                    .Any(row => row.Contains("Salamandre Remastered", StringComparison.Ordinal)),
+                "the title corrected from the queue to reach the catalogue too");
+
+            Assert.Contains(
+                application.RowsOf("queue.items"),
+                row => row.Contains("Salamandre", StringComparison.Ordinal)
+                       && !row.Contains("Salamandre Remastered", StringComparison.Ordinal));
+        });
+    }
+
     /// <summary>A dance the published list has never heard of keeps its track out.</summary>
     /// <remarks>
     /// World: a library whose tags the DJ trusts, holding one track whose dance is a name

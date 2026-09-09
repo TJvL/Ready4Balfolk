@@ -110,8 +110,17 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
     /// said it does, never because the application assumed.
     /// The file name may be a relative path, for the worlds whose music is in folders: a review row
     /// is only part of a folder when there is a directory under the music root to be part of.
+    /// <paramref name="sourceMedia"/> is the audio fixture to copy, not the name it is filed
+    /// under: almost every scenario wants the 1.5 s scale that keeps the suite fast, but a scenario
+    /// that reasons about where in the track playback landed needs one long enough that ordinary
+    /// elapsed playback cannot be mistaken for the thing being proved.
     /// </remarks>
-    public ScenarioWorld WithTrack(string dance, string artist, string title, string fileName = "")
+    public ScenarioWorld WithTrack(
+        string dance,
+        string artist,
+        string title,
+        string fileName = "",
+        string sourceMedia = "scale.mp3")
     {
         var name = string.IsNullOrEmpty(fileName)
             ? $"{artist} - {title}.mp3"
@@ -120,7 +129,7 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
-        File.Copy(Path.Combine(AppContext.BaseDirectory, "Media", "scale.mp3"), path, overwrite: true);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Media", sourceMedia), path, overwrite: true);
 
         // Every track gets its own tail of bytes, because the application keys a recording by the
         // hash of its audio rather than by its path: two copies of one file are one track to it,

@@ -56,7 +56,8 @@
                      DragDrop.AllowDrop="True">
                 <ListBox.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="{x:Static res:UiStrings.TrackCatalog_EditTrack}"
+                        <MenuItem AutomationProperties.AutomationId="queue.edit-track"
+                                  Header="{x:Static res:UiStrings.TrackCatalog_EditTrack}"
                                   Command="{Binding EditSelectedTrackCommand}">
                             <MenuItem.Icon>
                                 <PathIcon Data="{StaticResource IconPencil}" Width="14" Height="14" />
