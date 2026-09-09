@@ -54,9 +54,6 @@ public sealed class PresentationWebServer(
     /// </summary>
     public IObservable<Unit> WhenChanged => _changed.AsObservable();
 
-    /// <summary>Whether the listener is up.</summary>
-    public bool IsRunning => _app is not null;
-
     /// <summary>What the server is doing, including the slow bits in between.</summary>
     public WebServerState State { get; private set; } = WebServerState.Stopped;
 

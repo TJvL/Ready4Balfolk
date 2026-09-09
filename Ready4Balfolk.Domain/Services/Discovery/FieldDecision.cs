@@ -55,7 +55,5 @@ public sealed record FieldDecision
     /// <summary>The claims that carried it, so a person can see what spoke and disagree with it.</summary>
     public IReadOnlyList<Claim> Chosen { get; init; } = [];
 
-    public bool IsDecided => Value is not null;
-
     public bool IsCorroborated => Reason is DecisionReason.Corroborated;
 }

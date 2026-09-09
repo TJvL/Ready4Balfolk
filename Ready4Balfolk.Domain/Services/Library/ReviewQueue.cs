@@ -80,9 +80,6 @@ public sealed record ReviewGroup
 
     /// <summary>How sure the application is about the least sure track in it.</summary>
     public int Confidence => Tracks.Count == 0 ? 0 : Tracks.Min(track => track.Confidence);
-
-    /// <summary>False for the music directory itself, which is where the unfiled tracks are.</summary>
-    public bool IsFolder => Folder.Length > 0;
 }
 
 /// <summary>

@@ -37,8 +37,4 @@ public static class ArtistNames
         // name and which would sort every such file together under "07".
         return folded.All(c => char.IsDigit(c) || c == ' ') || RipperDefaults.Contains(folded);
     }
-
-    /// <summary>The first value that is worth believing, or null when none of them are.</summary>
-    public static string? FirstUsable(params string?[] candidates) =>
-        candidates.FirstOrDefault(candidate => !IsPlaceholder(candidate))?.Trim();
 }

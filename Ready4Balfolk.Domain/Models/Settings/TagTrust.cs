@@ -35,9 +35,6 @@ public sealed record TagTrust
 
     public IReadOnlyList<TagField>? Dance { get; init; }
 
-    /// <summary>True when the user has stated something here, rather than the defaults applying.</summary>
-    public bool IsDeclared => Artist is not null || Title is not null || Dance is not null;
-
     /// <summary>Compares what was declared rather than which list objects hold it.</summary>
     public bool Equals(TagTrust? other) =>
         other is not null

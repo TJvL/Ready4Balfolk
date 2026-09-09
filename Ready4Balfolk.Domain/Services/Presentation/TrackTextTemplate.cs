@@ -18,9 +18,6 @@ namespace Ready4Balfolk.Domain.Services.Presentation;
 /// </remarks>
 public static class TrackTextTemplate
 {
-    /// <summary>The dance, the artist and the title, which is all a track carries to say.</summary>
-    public const string Placeholders = "%d %a %t";
-
     /// <summary>Writes the track the way the template says, or nothing when it says nothing.</summary>
     public static string Render(string? template, Track? track)
     {
