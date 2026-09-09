@@ -28,16 +28,10 @@ public sealed class ShapingTheSound(HeadlessSession session)
     /// describe breaking, so the two halves of the round trip are proven with one application
     /// rather than two.
     ///
-    /// What this does not see is the other half of the risk the panel carries: whether the trim it
-    /// saves is the trim BASS is actually holding on the stream that is playing, as opposed to a
-    /// number sitting correctly in a settings file that nothing downstream reads. That is what
-    /// <c>ManagedBassAudioPlaybackService.OpenChannels</c> is for, and what
-    /// <c>ManagedBassPlaybackTests.EveryStreamGetsItsEffectChain</c> already measures by reading it
-    /// after applying the same kind of change. That accessor is internal to Ready4Balfolk.Domain,
-    /// which grants <c>InternalsVisibleTo</c> to Ready4Balfolk.Tests only, not to this project, so
-    /// the same read does not compile from a scenario. Widening that visibility, or giving this
-    /// project a seam of its own, is a decision about the boundary between the two test projects
-    /// that this scenario should not make unasked.
+    /// The trim is also read back off the audio engine rather than only off the file, because a
+    /// number saved correctly into a settings file that nothing downstream reads is exactly the
+    /// failure a panel can have while every unit test passes. Ready4Balfolk.Domain makes the
+    /// playback service's stream handles visible to this project for that read.
     /// </remarks>
     [Fact]
     public async Task DjPullsThePreampDownAndItSurvivesARestart()
@@ -84,6 +78,13 @@ public sealed class ShapingTheSound(HeadlessSession session)
             await application.WaitUntil(
                 () => world.SettingsOnDisk().Equalizer is { Enabled: true, PreampDecibels: -6 },
                 "the preamp to reach the settings file");
+
+            // And what the room hears, which the file cannot answer for. Half the amplitude, which
+            // is what -6 dB is as the trim BASS holds it in.
+            var trim = Math.Pow(10, -6 / 20.0);
+            await application.WaitUntil(
+                () => Math.Abs(RunningApplication.TrimOnThePlayingStream() - trim) < 0.001,
+                "the trim the DJ pulled to reach the stream that is playing");
         });
     }
 }
