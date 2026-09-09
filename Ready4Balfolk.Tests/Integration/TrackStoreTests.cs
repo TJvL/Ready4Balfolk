@@ -987,6 +987,16 @@ public sealed class TrackStoreTests : IDisposable
         var writeWasCancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var holdTheFirstWrite = true;
 
+        // Set the moment the handler on the held write reports anything, so the assertion below can
+        // wait on that rather than on a sleep it hopes outlasts the handler.
+        var reported = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _loggerService.ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>())
+            .Returns(call =>
+            {
+                reported.TrySetResult(call.ArgAt<string>(0));
+                return Task.CompletedTask;
+            });
+
         _libraryIndex.WriteAsync(Arg.Any<IReadOnlyCollection<LibraryEntry>>(), Arg.Any<CancellationToken>())
             .Returns(async call =>
             {
@@ -1024,9 +1034,10 @@ public sealed class TrackStoreTests : IDisposable
         await load.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         await writeWasCancelled.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
-        // Long enough for the handler on the held write to have run, since the assertion below is
-        // that it reported nothing and there is no event to wait for.
-        await Task.Delay(250, TestContext.Current.CancellationToken);
+        // Races the handler's own report against a generous give-up, so a handler slower than any
+        // fixed sleep still gets caught reporting instead of passing for the wrong reason.
+        await Task.WhenAny(reported.Task, Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+        Assert.False(reported.Task.IsCompleted, "the superseded write's cancellation was reported as a failure");
 
         await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));

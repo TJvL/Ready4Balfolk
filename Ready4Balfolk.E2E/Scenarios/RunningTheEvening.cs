@@ -138,7 +138,10 @@ public sealed class RunningTheEvening(HeadlessSession session)
     /// <summary>A clicked seek bar asks once, however many times it is clicked.</summary>
     /// <remarks>
     /// World: a library of one dance, auto queue off, and the confirmations a DJ is asked for left
-    /// on.
+    /// on. The track is the long fixture rather than the usual 1.5 s scale: the scenario proves the
+    /// seek landed by where playback ends up relative to the middle of the track, and on a clip
+    /// that short, ordinary unseeked playback drifts through that window on its own before the seek
+    /// is even confirmed, so the assertion would pass whether or not the seek did anything.
     /// Steps: start the track, click the seek bar, and click it again while the confirmation is
     /// still up, the way a hand does when the first click looks like it did nothing.
     /// Sees: one confirmation, and nothing left behind after answering it. A second confirmation
@@ -149,7 +152,7 @@ public sealed class RunningTheEvening(HeadlessSession session)
     public async Task ClickingTheSeekBarTwiceAsksOnce()
     {
         using var world = ScenarioWorld.Create()
-            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre", sourceMedia: "seek-test.mp3")
             .WhereTheTagsAreTrusted()
             .WithSettings(settings => settings with
             {
@@ -183,6 +186,12 @@ public sealed class RunningTheEvening(HeadlessSession session)
 
             Assert.Single(application.Window.OwnedWindows);
 
+            // Every click lands in the middle of the bar, so the seek asked for is to roughly half
+            // the track's length. Answering "yes" is the part of the flow that is supposed to move
+            // the track, and nothing here proves it does without checking where playback landed.
+            var progressBar = (ProgressBar)application.Find("playback.progress");
+            var seekedTo = progressBar.Maximum / 2;
+
             application.Click("dialog.confirm");
 
             await application.WaitUntil(
@@ -190,6 +199,14 @@ public sealed class RunningTheEvening(HeadlessSession session)
                 "the question to be answered and gone");
 
             Assert.Empty(application.Window.OwnedWindows);
+
+            // The seek's own work (the BASS call and the elapsed update that follows it) keeps
+            // running after the dialog closes, so the bar is read once it catches up rather than
+            // the instant the confirmation is gone.
+            var tolerance = progressBar.Maximum * 0.1;
+            await application.WaitUntil(
+                () => Math.Abs(application.ProgressOf("playback.progress") - seekedTo) < tolerance,
+                $"playback to land near {seekedTo:F1}s after the confirmed seek");
         });
     }
 
@@ -525,15 +542,15 @@ public sealed class RunningTheEvening(HeadlessSession session)
         });
     }
 
-    /// <summary>The DJ is stopped from playing the same track twice in one evening.</summary>
+    /// <summary>The DJ is stopped from queueing the same track twice in one evening.</summary>
     /// <remarks>
     /// World: a library of one track, auto queue off, and duplicates refused, which is the default
     /// and the reason a DJ can queue quickly without keeping a list in their head.
-    /// Steps: queue the dance, then try to queue it again.
+    /// Steps: queue the dance, then try to queue it again while it is still sitting there.
     /// Sees: one entry in the queue, and a message saying why the second one was refused.
     /// </remarks>
     [Fact]
-    public async Task DjIsRefusedARepeatOfATrackAlreadyPlayed()
+    public async Task DjIsRefusedARepeatOfATrackAlreadyQueued()
     {
         using var world = ScenarioWorld.Create()
             .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
@@ -559,6 +576,53 @@ public sealed class RunningTheEvening(HeadlessSession session)
                 "the application to say why the second one was refused");
 
             Assert.Single(application.RowsOf("queue.items"));
+        });
+    }
+
+    /// <summary>The DJ is stopped from queueing a track the room has already had tonight.</summary>
+    /// <remarks>
+    /// World: a library of one track, auto queue off, and duplicates refused.
+    /// Steps: queue the dance, let it play out into history, then try to queue it again.
+    /// Sees: the queue still empty, and a message saying why it was refused, because a track
+    /// already finished is not owed a place in the queue any less than one still sitting there.
+    /// </remarks>
+    [Fact]
+    public async Task DjIsRefusedARepeatOfATrackAlreadyPlayed()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                AllowDuplicateTracksInQueue = false
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
+                "the track to start playing");
+
+            await application.WaitUntil(
+                () => !application.IsShowing("playback.track"),
+                "the track to play out into history");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+
+            await application.WaitUntil(
+                () => application.IsShowing("notification.message"),
+                "the application to say why a track already played was refused");
+
+            Assert.Empty(application.RowsOf("queue.items"));
         });
     }
 
