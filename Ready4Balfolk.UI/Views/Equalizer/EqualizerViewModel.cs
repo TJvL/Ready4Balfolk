@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -30,6 +31,7 @@ public sealed partial class EqualizerViewModel : ReactiveObject, IDisposable
     private readonly IAudioPlaybackService _audioPlaybackService;
     private readonly ISettingsStore _settingsStore;
     private readonly ILoggerService _loggerService;
+    private readonly IScheduler _saveScheduler;
     private readonly Subject<EqualizerSettings> _pendingSave = new();
     private readonly CompositeDisposable _disposables = [];
 
@@ -46,14 +48,21 @@ public sealed partial class EqualizerViewModel : ReactiveObject, IDisposable
 
     public ObservableCollection<EqualizerBandViewModel> Bands { get; } = [];
 
+    /// <remarks>
+    /// <c>saveScheduler</c> is where the 300ms between the last slider move and the write to disk
+    /// are counted. Real time unless a caller says otherwise, and only a test does: sleeping past
+    /// a real throttle is the failure that passes on a quiet machine and fails on a busy one.
+    /// </remarks>
     public EqualizerViewModel(
         IAudioPlaybackService audioPlaybackService,
         ISettingsStore settingsStore,
-        ILoggerService loggerService)
+        ILoggerService loggerService,
+        IScheduler? saveScheduler = null)
     {
         _audioPlaybackService = audioPlaybackService;
         _settingsStore = settingsStore;
         _loggerService = loggerService;
+        _saveScheduler = saveScheduler ?? DefaultScheduler.Instance;
 
         IsAvailable = audioPlaybackService.IsEqualizerAvailable;
 
@@ -90,7 +99,7 @@ public sealed partial class EqualizerViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
 
         _pendingSave
-            .Throttle(SaveThrottle)
+            .Throttle(SaveThrottle, _saveScheduler)
             .Subscribe(Save)
             .DisposeWith(_disposables);
     }
