@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ReactiveUI.Avalonia.Reactive;
+using ReactiveUI.Reactive;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
@@ -32,7 +33,52 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         // Tunnelled, because these keys belong to the queue before they belong to a text box: Tab
         // would otherwise carry the focus out of the row, and Enter would be swallowed entirely.
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+
+        // The caret starts in the queue rather than nowhere, because every key below only reaches
+        // this view while the focus is inside it. With the caret nowhere, Enter belongs to whatever
+        // else on the window is listening for it, and in the wizard that is the Continue button of
+        // its last step: the first press meant to answer a row finished setup instead.
+        //
+        // Hooked on visibility rather than activation, and on the row rather than the view: in the
+        // main window the view is made once and shown by toggling IsVisible, and in both hosts the
+        // queue is read after it is on screen, so there is nothing to put the caret in yet. The
+        // first row to be selected after each appearance, and only the first, or a click into a
+        // title would be thrown back to the first empty field.
+        this.GetObservable(IsVisibleProperty)
+            .Where(visible => visible)
+            .Select(_ => this.WhenAnyValue(view => view.ViewModel!.Selected)
+                .Where(row => row is not null)
+                .Take(1))
+            .Switch()
+            .Subscribe(_ => FocusFirstRowOnceItIsThere());
     }
+
+    /// <summary>Puts the caret in the queue once the queue has something to put it in.</summary>
+    /// <remarks>
+    /// One pass is what <see cref="FocusMovedRow" /> needs and not what this needs. That one moves
+    /// along a list already on screen; this runs as the list is first filled, and the container the
+    /// queue realises first is replaced by the pass that follows, taking the focus just given to it
+    /// with it. So it asks again until the keyboard is provably inside this view, and stops the
+    /// moment it is: two passes in practice, and a bound rather than a wait, because a queue that
+    /// never realises a row is a queue with nothing in it.
+    /// </remarks>
+    private void FocusFirstRowOnceItIsThere(int attemptsLeft = 10) =>
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (attemptsLeft <= 0 || TheKeyboardIsInTheQueue())
+                {
+                    return;
+                }
+
+                FocusFirstEmptyField();
+                FocusFirstRowOnceItIsThere(attemptsLeft - 1);
+            },
+            DispatcherPriority.Background);
+
+    private bool TheKeyboardIsInTheQueue() =>
+        TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is Visual focused
+        && this.IsVisualAncestorOf(focused);
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {

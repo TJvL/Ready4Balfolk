@@ -144,6 +144,76 @@ public sealed class SettingUpForTheFirstTime(HeadlessSession session)
         });
     }
 
+    /// <summary>Enter on the wizard's last step answers a row instead of finishing setup.</summary>
+    /// <remarks>
+    /// World: a machine nobody has set up, and a music directory of one tagged track.
+    /// Steps: through the wizard to the review queue it ends on, and Enter, twice: once to take the
+    /// dance the list offers for what was typed, once to answer the row.
+    /// Sees: the caret waiting in the queue rather than nowhere, the track in the library, and the
+    /// wizard still open. The queue is answered a row per press for a whole sitting, and the button
+    /// that keystroke would otherwise reach on this step is the one that says Finish.
+    /// </remarks>
+    [Fact]
+    public async Task EnterOnTheWizardsReviewStepAnswersTheRowRatherThanFinishing()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereNothingHasBeenSetUpYet()
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(() => application.IsShowing("wizard"), "the wizard to open");
+
+            application.Click("wizard.continue");
+            application.Click("wizard.continue");
+
+            await application.WaitUntil(
+                () => application.IsShowing("wizard.browse"),
+                "the step that asks where the music is");
+
+            RunningApplication.TheDjWillPick(world.MusicDirectory.FullName);
+            application.Click("wizard.browse");
+            application.Click("wizard.continue");
+
+            await application.WaitUntil(
+                () => application.IsShowing("discovery.uses-tags"),
+                "the step that asks how the library is arranged");
+
+            application.Click("discovery.uses-tags");
+            application.Click("wizard.continue");
+
+            await application.WaitUntil(
+                () => application.RowsOf("review.rows").Count == 1,
+                "the track to be waiting for a person");
+
+            var row = application.Row("review.rows", "Salamandre");
+
+            // The queue took the keyboard when it appeared. Without this the DJ has to reach for
+            // the pointer before the first keystroke does anything, which is the whole cost this
+            // screen exists to avoid.
+            await application.WaitUntil(
+                () => application.TheKeyboardIsOn(RunningApplication.Within(row, "review.dance")),
+                $"the caret to start in the row, not on {application.WhateverHasTheKeyboardIsCalled()}");
+
+            application.Type("Mazurka");
+            application.Press(PhysicalKey.Enter);
+            application.Press(PhysicalKey.Enter);
+
+            await application.WaitUntil(
+                () => !RunningApplication.IsShowingWithin(
+                    application.Row("review.rows", "Salamandre"), "review.approve"),
+                "the row to be answered");
+
+            Assert.True(
+                application.IsShowing("wizard"),
+                "Enter finished setup instead of answering the row.");
+            Assert.False(
+                world.SettingsOnDisk().SetupCompleted,
+                "Enter finished setup instead of answering the row.");
+        });
+    }
+
     /// <summary>The DJ points setup at a folder with nothing in it.</summary>
     /// <remarks>
     /// World: a machine nobody has set up, and a music directory with no music in it.

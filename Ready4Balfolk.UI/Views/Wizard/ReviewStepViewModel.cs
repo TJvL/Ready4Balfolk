@@ -22,5 +22,8 @@ public sealed class ReviewStepViewModel(ReviewViewModel review) : WizardStepView
 
     public override string Explanation => UiStrings.Wizard_Review_Explanation;
 
+    /// <summary>Enter answers the row the caret is in, which is the whole point of this screen.</summary>
+    public override bool EnterContinues => false;
+
     public override Task EnterAsync() => Review.RefreshCommand.Execute().FirstAsync().ToTask();
 }

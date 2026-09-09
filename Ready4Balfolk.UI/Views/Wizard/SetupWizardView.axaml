@@ -47,7 +47,7 @@
                     AutomationProperties.AutomationId="wizard.continue"
                     Classes="accent"
                     MinWidth="100"
-                    IsDefault="True" />
+                    IsDefault="{CompiledBinding CurrentStep.EnterContinues}" />
         </StackPanel>
 
         <rxui:ViewModelViewHost ViewModel="{CompiledBinding CurrentStep}" />

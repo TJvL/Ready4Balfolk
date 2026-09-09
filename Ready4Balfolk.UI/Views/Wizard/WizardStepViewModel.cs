@@ -29,6 +29,15 @@ public abstract class WizardStepViewModel : ReactiveObject
     /// </remarks>
     public virtual IObservable<string> BlockedReason => Observable.Return(string.Empty);
 
+    /// <summary>Whether Enter on this step means "continue".</summary>
+    /// <remarks>
+    /// False on a step whose own screen answers with Enter. A default button listens on the window,
+    /// so it takes the keystroke every time the caret is not somewhere that claimed it first, and
+    /// the step that reads that way is the review queue: one press per row, for as long as the
+    /// sitting lasts, on the step whose Continue button says Finish.
+    /// </remarks>
+    public virtual bool EnterContinues => true;
+
     /// <summary>Runs when the step is shown, so it can pick up state a previous step wrote.</summary>
     public virtual Task EnterAsync() => Task.CompletedTask;
 
