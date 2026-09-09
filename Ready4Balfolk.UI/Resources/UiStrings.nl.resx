@@ -156,9 +156,6 @@
   </data>
 
   <!-- Settings -->
-  <data name="Settings_Title" xml:space="preserve">
-    <value>Instellingen</value>
-  </data>
   <data name="Settings_MusicDirectory" xml:space="preserve">
     <value>Muziekmap</value>
   </data>
@@ -823,9 +820,6 @@
   </data>
 
   <!-- Setup wizard -->
-  <data name="Wizard_Title" xml:space="preserve">
-    <value>Ready4Balfolk instellen</value>
-  </data>
   <data name="Wizard_StepFormat" xml:space="preserve">
     <value>Stap {0} van {1}</value>
   </data>
@@ -858,9 +852,6 @@
   </data>
   <data name="Settings_RunSetupAgain" xml:space="preserve">
     <value>Instellen opnieuw doorlopen</value>
-  </data>
-  <data name="Settings_RunSetupAgainDescription" xml:space="preserve">
-    <value>Opent de instelwizard. Je dansenlijst en je muziekmap blijven zoals ze zijn, tenzij je ze daar verandert.</value>
   </data>
 
   <!-- Dance panel -->
@@ -951,9 +942,6 @@
   <data name="Wizard_DanceList_SourceUrl" xml:space="preserve">
     <value>github.com/TJvL/BigBalfolkList</value>
   </data>
-  <data name="DanceList_Title" xml:space="preserve">
-    <value>Dansenlijst</value>
-  </data>
 
   <!-- Setup wizard: emptying the list -->
 
@@ -1008,15 +996,6 @@
   </data>
 
   <!-- Advanced discovery -->
-  <data name="Settings_AdvancedDiscovery" xml:space="preserve">
-    <value>Geavanceerde herkenning</value>
-  </data>
-  <data name="Settings_AdvancedDiscoveryHint" xml:space="preserve">
-    <value>Vertel de applicatie hoe je bestanden heten en geordend zijn. Zolang je dat niet doet, wordt er niets over je bibliotheek aangenomen.</value>
-  </data>
-  <data name="Discovery_Title" xml:space="preserve">
-    <value>Geavanceerde herkenning</value>
-  </data>
   <data name="Discovery_Intro" xml:space="preserve">
     <value>Je bibliotheek wordt gelezen zoals hij is: geen map wordt aangenomen als artiest en van geen bestandsnaam wordt aangenomen dat er velden in zitten. Vink aan hoe jouw bibliotheek is ingedeeld en vul dat in. Wat niet aangevinkt staat doet niets, dus een regel die je niet ziet raakt je bestanden nooit.</value>
   </data>
