@@ -325,6 +325,21 @@ public sealed class RunningApplication : IAsyncDisposable
     /// <summary>How far along the bar with this automation id has run.</summary>
     public double ProgressOf(string automationId) => ((ProgressBar)Find(automationId)).Value;
 
+    /// <summary>Where the slider with this automation id currently sits.</summary>
+    public double ValueOf(string automationId) => ((Slider)Find(automationId)).Value;
+
+    /// <summary>
+    /// Puts a slider at a value directly, the way <see cref="TheDjMovesAndResizesTheWindow"/> puts
+    /// a window at a size: there is no drag to simulate in a headless session, so this is the DJ's
+    /// hand having already finished moving it, which is what a two way binding cannot tell apart
+    /// from a real one.
+    /// </summary>
+    public void Move(string automationId, double value)
+    {
+        ((Slider)Find(automationId)).Value = value;
+        Settle();
+    }
+
     /// <summary>The rows of the list with this automation id, in the order they are shown.</summary>
     public IReadOnlyList<string> RowsOf(string automationId)
     {
