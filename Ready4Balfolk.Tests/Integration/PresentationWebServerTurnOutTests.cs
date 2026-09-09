@@ -168,7 +168,25 @@ public sealed class PresentationWebServerTurnOutTests
 
         var connection = Building(
             $"http://127.0.0.1:{server.Port}/hubs/remote?access_token={Uri.EscapeDataString(login.Token)}");
+
+        // Registered before the socket opens, because the hub pushes this the moment it is let in.
+        var established = new TaskCompletionSource();
+        connection.On<PresentationSnapshotDto>(DisplayHub.SnapshotMethod, _ => established.TrySetResult());
+
         await connection.StartAsync(cancellationToken);
+
+        // StartAsync returns on the handshake, which is only the client's half of being connected. The
+        // hub checks the token, registers the socket, and pushes the snapshot above as the last thing
+        // it does, all after that. Waiting for the snapshot is therefore what makes a phone connected
+        // at both ends.
+        //
+        // It matters because a token's expiry slides forward every time it is read. A test that moves
+        // the clock the instant this returns can have the check land on the far side of the jump, which
+        // slides the expiry to twelve hours past the new time and makes a token from last night read as
+        // fresh. That is a real failure of the test rather than of the application, and it only shows up
+        // on a machine loaded enough to reorder the two.
+        await established.Task.WaitAsync(Patience, cancellationToken);
+
         return connection;
     }
 
