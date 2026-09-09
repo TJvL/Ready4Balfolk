@@ -39,7 +39,10 @@ public sealed class RemoteAccessService(TimeProvider? timeProvider = null)
     /// <summary>Whether the remote is switched on at all.</summary>
     public bool IsEnabled { get; private set; }
 
-    /// <summary>Applies the current settings, dropping every issued token if the PIN changed.</summary>
+    /// <summary>
+    /// Applies the current settings, dropping every issued token when the PIN changed or the remote
+    /// went off.
+    /// </summary>
     /// <returns>
     /// Whether the tokens were dropped, which is the caller's cue to close the sockets that were
     /// opened with them. Clearing the dictionary only stops the next command being let through:
@@ -74,35 +77,39 @@ public sealed class RemoteAccessService(TimeProvider? timeProvider = null)
         }
 
         var now = _timeProvider.GetUtcNow();
-        var attempts = _attempts.GetOrAdd(clientKey, _ => new Attempts());
+        var attempts = _attempts.GetValueOrDefault(clientKey);
 
-        lock (attempts)
+        if (attempts is { } held && held.LockedUntil > now)
         {
-            if (attempts.LockedUntil > now)
-            {
-                return RemoteLoginResult.LockedOut((attempts.LockedUntil - now).TotalSeconds);
-            }
+            return RemoteLoginResult.LockedOut((held.LockedUntil - now).TotalSeconds);
+        }
 
-            // Fixed-time comparison: a PIN is short enough that a timing side channel is not
-            // theoretical, and the comparison costs nothing.
-            var ok = _pin.Length > 0 && CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(_pin),
-                Encoding.UTF8.GetBytes(pin ?? string.Empty));
+        // Fixed-time comparison: a PIN is short enough that a timing side channel is not
+        // theoretical, and the comparison costs nothing.
+        var ok = _pin.Length > 0 && CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(_pin),
+            Encoding.UTF8.GetBytes(pin ?? string.Empty));
 
-            if (!ok)
-            {
-                attempts.Failed++;
-                if (attempts.Failed >= MaxAttempts)
-                {
-                    attempts.Failed = 0;
-                    attempts.LockedUntil = now + LockoutDuration;
-                    return RemoteLoginResult.LockedOut(LockoutDuration.TotalSeconds);
-                }
+        if (!ok)
+        {
+            // Counted against whatever the entry holds by the time the count lands, not against
+            // the one read above. A prune can have taken the entry in between, and the strike then
+            // starts a fresh one rather than landing on a record nothing holds any more.
+            var struck = _attempts.AddOrUpdate(
+                clientKey,
+                _ => Attempts.None.Struck(now),
+                (_, current) => current.Struck(now));
 
-                return RemoteLoginResult.Rejected;
-            }
+            return struck.LockedUntil > now
+                ? RemoteLoginResult.LockedOut((struck.LockedUntil - now).TotalSeconds)
+                : RemoteLoginResult.Rejected;
+        }
 
-            attempts.Failed = 0;
+        // The right PIN wipes the strikes, and only the strikes that were read: an address locked
+        // out by another guess in the meantime stays locked.
+        if (attempts is not null)
+        {
+            _attempts.TryRemove(KeyValuePair.Create(clientKey, attempts));
         }
 
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
@@ -139,10 +146,12 @@ public sealed class RemoteAccessService(TimeProvider? timeProvider = null)
     /// Drops what has aged out of both dictionaries.
     /// </summary>
     /// <remarks>
-    /// Called from the login path only, which is the rare one, and safe against a login racing it:
-    /// an attempts entry is only ever removed while it holds no failures and no live lockout, so
-    /// there is nothing a race could reset. Without this, both grew for the life of the process,
-    /// one entry per login and one per address that ever guessed wrong.
+    /// Called from the login path only, which is the rare one. An attempts entry is removed only
+    /// while it is still the one that was judged, holding no strikes and no live lockout: a strike
+    /// makes a new entry rather than changing the old one, so a guess that lands between the
+    /// judging and the removing leaves the remove with nothing to match and the strike stands.
+    /// Without this, both grew for the life of the process, one entry per login and one per
+    /// address that ever guessed wrong.
     /// </remarks>
     private void Prune(DateTimeOffset now)
     {
@@ -156,20 +165,41 @@ public sealed class RemoteAccessService(TimeProvider? timeProvider = null)
 
         foreach (var (client, attempts) in _attempts)
         {
-            lock (attempts)
+            if (attempts.IsIdle(now))
             {
-                if (attempts.Failed == 0 && attempts.LockedUntil <= now)
-                {
-                    _attempts.TryRemove(client, out _);
-                }
+                _attempts.TryRemove(KeyValuePair.Create(client, attempts));
             }
         }
     }
 
-    private sealed class Attempts
+    /// <summary>
+    /// What an address has done wrong lately. Never changed in place: a strike makes a new one,
+    /// which is what lets the prune remove only an entry that is still the one it judged.
+    /// </summary>
+    private sealed class Attempts(int failed, DateTimeOffset lockedUntil)
     {
-        public int Failed;
-        public DateTimeOffset LockedUntil;
+        public static readonly Attempts None = new(0, DateTimeOffset.MinValue);
+
+        public int Failed { get; } = failed;
+
+        public DateTimeOffset LockedUntil { get; } = lockedUntil;
+
+        public bool IsIdle(DateTimeOffset now) => Failed == 0 && LockedUntil <= now;
+
+        /// <summary>One more wrong guess, or the lockout it tipped the address into.</summary>
+        public Attempts Struck(DateTimeOffset now)
+        {
+            if (LockedUntil > now)
+            {
+                // A guess during a lockout is refused before it is counted, and one that slipped in
+                // beside the guess that locked the address must not restart the count.
+                return this;
+            }
+
+            return Failed + 1 >= MaxAttempts
+                ? new Attempts(0, now + LockoutDuration)
+                : new Attempts(Failed + 1, LockedUntil);
+        }
     }
 }
 

@@ -294,10 +294,6 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         }
     }
 
-    /// <summary>
-    /// Closes a row's picker the moment its box is left. The picker overlays the rows beneath, so
-    /// one left open under another would paint two lists into the same space.
-    /// </summary>
     /// <summary>Enough vertical room for the picker's twelve rows and its border.</summary>
     private const double PickerAllowance = 340;
 

@@ -2,13 +2,13 @@ using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Stores.Library;
 
-/// <summary>The index of what is in the music directory, so a startup can avoid opening files.</summary>
 /// <summary>One field a person answered, for approving a row in a single transaction.</summary>
 public readonly record struct FieldAnswer(TrackField Field, string Value);
 
 /// <summary>One indexed path that is now somewhere else, the file itself untouched.</summary>
 public readonly record struct PathMove(string From, string To);
 
+/// <summary>The index of what is in the music directory, so a startup can avoid opening files.</summary>
 public interface ILibraryIndex : IDisposable
 {
     /// <summary>Opens the database and creates the schema if it is not there yet.</summary>
@@ -134,11 +134,6 @@ public interface ILibraryIndex : IDisposable
 
     Task StopIgnoringValueAsync(string value, CancellationToken token = default);
 
-    /// <summary>How many files are waiting for a person rather than sitting in the library.</summary>
-    /// <remarks>
-    /// Over paths, because that is what the user sees. A track is in the library or in review and
-    /// never both, so this is the number the review badge is for.
-    /// </remarks>
     /// <summary>
     /// How many files the index knows and can reach, for a scan's progress line. Whether one is in
     /// review is the gate's decision, not a query: the published library reports that count itself.

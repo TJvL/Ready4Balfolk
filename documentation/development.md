@@ -443,7 +443,7 @@ It is **four jobs that run beside each other**, because a pull request goes gree
 
 The branch ruleset requires three checks, not just `verify`: `check-icons` and `build` (the packaging job in `build-binaries.yml`) also gate the merge, and both run outside `verify.yml`. `check-icons.yml` hashes `Ready4Balfolk.UI/Assets/icon.svg` against a stored hash on every push and pull request targeting `main`; editing the icon without regenerating its derived assets fails the check even though none of the five commands above touch it. Regenerate with `bash scripts/generate-icons.sh` (or `pwsh scripts/generate-icons.ps1` on Windows) and commit the result before opening a pull request that changes the icon.
 
-Coverage is collected as cobertura in the `test` job and uploaded as an artifact. It is deliberately **not** gated on a threshold; the artifact is there to be read.
+No coverage is collected. It was, as an artifact on every run, and nothing ever read it or gated on it: it was storage paid for a number nobody looked at, and stored artifacts are what put the account over its quota and turned upload steps into random 403s.
 
 **Native debug symbols are dropped from the output** (`DropNativeDebugSymbols` in `Directory.Build.props`). SkiaSharp and HarfBuzz ship a `.pdb` beside every native library for every runtime they support, and MSBuild copies them: `libSkiaSharp.pdb` alone is 81 MB and arrives once per Windows runtime in each project's output. It made the four outputs of this solution 2.2 GB, nearly all of it copying rather than compiling, and none of it usable on the machine doing the copying. Only the natives are stripped; the symbols of the code in this repository are what a stack trace is read from.
 

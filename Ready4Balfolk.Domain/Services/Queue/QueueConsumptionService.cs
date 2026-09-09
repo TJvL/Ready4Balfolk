@@ -44,8 +44,8 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     /// <summary>Set the moment the application starts closing, and never put down again.</summary>
     private volatile bool _closing;
 
-    /// <summary>The quiet between two dances, while it is running. Nothing else is.</summary>
-    // Captured when the item starts, since the history entry is only built once it ends.
+    /// <summary>When the current item started.</summary>
+    /// <remarks>Captured as it starts, since the history entry is only built once it ends.</remarks>
     private DateTime? _currentItemStartedAt;
 
     public IQueueItem? CurrentItem => _currentItem.Value;
@@ -208,12 +208,13 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     {
         _ = _loggerService.DebugAsync($"A gap of {gap.TotalSeconds:0} seconds before the next dance");
 
-        // The dance that just ended is let go here, exactly as a delay lets it go. Left loaded it is
-        // still there to be played, and a Restart during the gap put the finished dance back through
-        // the hall while every screen said the floor was between two of them.
+        // The dance that just ended is let go here, for the reason a delay lets it go: left loaded it
+        // is still there to be played, and a Restart during the gap put the finished dance back
+        // through the hall while every screen said the floor was between two of them.
         //
-        // Only the finished one. Letting everything go took the coming dance's stream with it, so
-        // the gap threw away the head start it exists to give and opened that file a second time.
+        // Only the finished one, though, where a delay lets the whole player go. Letting everything
+        // go took the coming dance's stream with it, so the gap threw away the head start it exists
+        // to give and opened that file a second time.
         await _audio.ClearPlayingAsync();
 
         _itemFinishedNaturally = false;

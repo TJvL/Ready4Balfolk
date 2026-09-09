@@ -62,7 +62,7 @@ public sealed class RunningTheEvening(HeadlessSession session)
         });
     }
 
-    /// <summary>The gap is nowhere: not in the queue, not on the screen, not in the night.</summary>
+    /// <summary>The gap is not a row: not in the queue, and not in the night.</summary>
     /// <remarks>
     /// World: a library of two dances, a screen for the room, and the gap switched on.
     /// Steps: play both dances through, then read the queue, the screen and the history.
@@ -199,8 +199,8 @@ public sealed class RunningTheEvening(HeadlessSession session)
     /// DJ did not put there.
     /// Steps: find the track in the catalogue, put it in the queue, press next to start the
     /// evening, and let the track play out.
-    /// Sees: the track in the queue, then playing, and then in the history with the time it ran and
-    /// the fact that it finished rather than being cut short.
+    /// Sees: the track in the queue, then playing, and then in the history as finished rather than
+    /// cut short.
     /// </remarks>
     [Fact]
     public async Task DjQueuesADanceAndPlaysItThrough()

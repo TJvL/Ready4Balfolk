@@ -326,10 +326,10 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         var elapsedTick = consumptionService.WhenElapsedChanged
             .Sample(TimeSpan.FromSeconds(1), timers)
             .Select(_ => Unit.Default);
-        var minuteTimer = Observable.Interval(TimeSpan.FromSeconds(30), timers)
+        var halfMinuteTimer = Observable.Interval(TimeSpan.FromSeconds(30), timers)
             .Select(_ => Unit.Default);
 
-        Observable.Merge(queueChanged, currentItemChanged, totalDurationChanged, elapsedTick, minuteTimer)
+        Observable.Merge(queueChanged, currentItemChanged, totalDurationChanged, elapsedTick, halfMinuteTimer)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateFinishTimeText())
             .DisposeWith(_disposables);
@@ -338,7 +338,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         // an answer from earlier in the evening.
         var settingsChanged = settingsStore.Observe().Select(_ => Unit.Default);
         UpdateEndOfNightAvailability();
-        Observable.Merge(queueChanged, currentItemChanged, settingsChanged, minuteTimer)
+        Observable.Merge(queueChanged, currentItemChanged, settingsChanged, halfMinuteTimer)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateEndOfNightAvailability())
             .DisposeWith(_disposables);
