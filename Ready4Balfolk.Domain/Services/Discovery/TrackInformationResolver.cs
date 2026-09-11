@@ -32,7 +32,7 @@ public static class TrackInformationResolver
         DanceListIndex index,
         DeclaredDiscovery? declared = null,
         string? folderDance = null) =>
-        Decide(TrackClaims.Collect(evidence, index, declared, folderDance), index);
+        Decide(TrackClaims.Collect(evidence, index, declared, folderDance).ToArray(), index);
 
     /// <summary>Decides every field from claims alone, keeping all of them.</summary>
     public static TrackResolution Decide(IReadOnlyList<Claim> claims, DanceListIndex index)
@@ -162,7 +162,9 @@ public static class TrackInformationResolver
 
         // Dances are a closed set and get a whitelist; artists and titles are open sets and get a
         // blocklist instead. "Unknown Artist" is what a ripper writes when it knows nothing.
-        var chosen = claims.FirstOrDefault(claim => !ArtistNames.IsPlaceholder(claim.Value));
+        var chosen = claims
+            .OrderByDescending(r => r.Trust)
+            .FirstOrDefault(claim => !ArtistNames.IsPlaceholder(claim.Value));
         if (chosen is null)
         {
             return new FieldDecision { Field = field, Reason = DecisionReason.Unusable };
@@ -179,12 +181,23 @@ public static class TrackInformationResolver
         {
             Field = field,
             Value = chosen.Value,
-            Reason = kinds > 1
-                ? DecisionReason.Corroborated
-                : claims.Count > 1
-                    ? DecisionReason.Preferred
-                    : DecisionReason.SoleValue,
+            Reason = ExtractReason(kinds, claims),
             Chosen = agreeing
+        };
+    }
+
+    private static DecisionReason ExtractReason(int kinds, List<Claim> claims)
+    {
+        if (kinds > 1)
+        {
+            return DecisionReason.Corroborated;
+        }
+
+        return claims.Count switch
+        {
+            > 1 => DecisionReason.Preferred,
+            1 => DecisionReason.SoleValue,
+            _ => throw new ArgumentOutOfRangeException(nameof(claims), claims.Count, null)
         };
     }
 

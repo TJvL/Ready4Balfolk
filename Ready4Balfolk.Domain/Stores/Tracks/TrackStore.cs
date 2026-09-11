@@ -624,8 +624,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// row is keyed by, but it means opening the file, which is the cost this exists to avoid.
     /// </remarks>
     private Track LoadTrack(
-        IFileInfo file, IDirectoryInfo root,
-        IReadOnlyDictionary<string, LibraryEntry> known, ConcurrentBag<ScannedFile> scanned, bool reread)
+        IFileInfo file,
+        IDirectoryInfo root,
+        IReadOnlyDictionary<string, LibraryEntry> known,
+        ConcurrentBag<ScannedFile> scanned,
+        bool reread)
     {
         // A re-read is asked for when the rules changed, and what the index holds was derived under
         // the old ones, so the shortcut is exactly what must not fire.
