@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Microsoft.Playwright;
@@ -629,7 +630,11 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             RunningApplication.TimePassed(TimeSpan.FromHours(13));
 
             await phone.Page.ReloadAsync();
-            await phone.Page.Locator("#gate").WaitForAsync();
+
+            // The gate shows on load already; the reason arrives once the hub turns the token out.
+            await phone.Page.Locator("#gateError")
+                .Filter(new LocatorFilterOptions { HasTextRegex = new Regex(@"\S") })
+                .WaitForAsync();
 
             Assert.False(await phone.IsShowing("app"), "The phone still looked like a working remote.");
             Assert.NotEqual(string.Empty, await phone.Reads("gateError"));
