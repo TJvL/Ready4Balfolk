@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.IO.Abstractions;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
@@ -18,6 +16,7 @@ using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.UI.Platform;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.Web;
@@ -36,7 +35,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     private readonly CompositeDisposable _disposables = [];
 
     /// <summary>What ending a language change does. Replaced only by tests.</summary>
-    private readonly Action _restart = RestartApplication;
+    private readonly Action _restart = ApplicationRestart.Run;
 
     private bool _syncing;
 
@@ -497,24 +496,6 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         {
             _loggerService.Report("Failed to change language", ex);
         }
-    }
-
-    private static void RestartApplication()
-    {
-        var exePath = Environment.ProcessPath;
-        if (exePath is not null)
-        {
-            // Use setsid to start in a new session, fully detached from parent
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "setsid",
-                Arguments = $"--fork /bin/sh -c \"sleep 0.3 && '{exePath}'\"",
-                WorkingDirectory = Path.GetDirectoryName(exePath)!,
-                UseShellExecute = false
-            });
-        }
-
-        Environment.Exit(0);
     }
 
     public void Dispose() => _disposables.Dispose();
