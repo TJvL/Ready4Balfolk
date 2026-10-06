@@ -114,7 +114,13 @@
 
     connection.onreconnecting(function () { el.lost.hidden = false; });
     connection.onreconnected(function () { el.lost.hidden = true; });
-    connection.onclose(function () { el.lost.hidden = false; });
+    // SignalR's own retries end about eighteen seconds in. A laptop that sleeps through the break,
+    // or the application closed and started again, takes longer than that, so the page starts
+    // over rather than saying it is reconnecting for the rest of the evening.
+    connection.onclose(function () {
+      el.lost.hidden = false;
+      start();
+    });
 
     function start() {
       connection.start()

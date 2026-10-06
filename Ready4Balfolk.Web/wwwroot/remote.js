@@ -381,11 +381,24 @@
     }
   }
 
+  /* SignalR's own retries end about eighteen seconds in, and a laptop that sleeps through the break
+     or an application started again takes longer than that. A phone that still holds its token
+     keeps trying. One that was turned out has had its connection taken away, and stops. */
+  function connectAgainLater(token, lost) {
+    window.setTimeout(function () {
+      if (connection !== lost) return;
+      connect(token).then(
+        function () { text("link", ""); },
+        function () { connectAgainLater(token, connection); });
+    }, 3000);
+  }
+
   function connect(token) {
-    connection = new signalR.HubConnectionBuilder()
+    var mine = new signalR.HubConnectionBuilder()
       .withUrl("/hubs/remote?access_token=" + encodeURIComponent(token))
       .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
       .build();
+    connection = mine;
 
     connection.on("snapshot", function (snapshot) {
       showRemote();
@@ -396,7 +409,10 @@
 
     connection.onreconnecting(function () { text("link", t("reconnecting")); });
     connection.onreconnected(function () { text("link", ""); });
-    connection.onclose(function () { text("link", t("connectionLost")); });
+    connection.onclose(function () {
+      text("link", t("connectionLost"));
+      if (connection === mine) connectAgainLater(token, mine);
+    });
 
     return connection.start();
   }
