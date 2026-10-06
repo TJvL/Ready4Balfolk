@@ -13,6 +13,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Equalizer;
 
@@ -102,6 +103,8 @@ public sealed partial class EqualizerViewModel : ReactiveObject, IDisposable
             .Throttle(SaveThrottle, _saveScheduler)
             .Subscribe(Save)
             .DisposeWith(_disposables);
+
+        _disposables.Add(ResetToFlatCommand.ReportFailures(_loggerService, "Failed to reset the equalizer"));
     }
 
     [ReactiveCommand]

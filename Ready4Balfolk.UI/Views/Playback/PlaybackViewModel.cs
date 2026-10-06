@@ -8,6 +8,7 @@ using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Audio;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -25,6 +26,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     private readonly INotificationService _notificationService;
     private readonly ISettingsStore _settingsStore;
     private readonly CompositeDisposable _disposables = [];
+    private readonly ILoggerService _loggerService;
 
     /// <summary>What is on screen, so it can be written again when the templates change.</summary>
     private IQueueItem? _showing;
@@ -174,8 +176,9 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
     private void ReportTooLate() =>
         _notificationService.Show(UiStrings.Playback_AnswerTooLate, NotificationSeverity.Warning);
 
-    public PlaybackViewModel(IQueueConsumptionService consumptionService, IQueueService queueService, IConfirmationService confirmationService, INotificationService notificationService, ISettingsStore settingsStore, IAudioPlaybackService audioPlaybackService)
+    public PlaybackViewModel(IQueueConsumptionService consumptionService, IQueueService queueService, IConfirmationService confirmationService, INotificationService notificationService, ISettingsStore settingsStore, IAudioPlaybackService audioPlaybackService, ILoggerService loggerService)
     {
+        _loggerService = loggerService;
         _consumptionService = consumptionService;
         _queueService = queueService;
         _confirmationService = confirmationService;
@@ -248,6 +251,11 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => ShowNextIcon = _queueService.Count > 0)
             .DisposeWith(_disposables);
+
+        _disposables.Add(PlayPauseCommand.ReportFailures(_loggerService, "Failed to play or pause"));
+        _disposables.Add(RestartCommand.ReportFailures(_loggerService, "Failed to start the track again"));
+        _disposables.Add(NextOrClearCommand.ReportFailures(_loggerService, "Failed to move on to the next item"));
+        _disposables.Add(SeekCommand.ReportFailures(_loggerService, "Failed to move through the track"));
     }
 
     private void OnCurrentItemChanged(IQueueItem? item)

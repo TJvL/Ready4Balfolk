@@ -165,6 +165,13 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             .Subscribe(count => ScanProgressText = string.Format(
                 CultureInfo.CurrentCulture, UiStrings.Review_Scanning, count))
             .DisposeWith(_disposables);
+
+        _disposables.Add(RefreshCommand.ReportFailures(_loggerService, "Failed to build the review queue"));
+        _disposables.Add(ApproveCommand.ReportFailures(_loggerService, "Failed to approve the track"));
+        _disposables.Add(WithdrawCommand.ReportFailures(_loggerService, "Failed to take back the answer"));
+        _disposables.Add(ApproveFolderCommand.ReportFailures(_loggerService, "Failed to approve the folder"));
+        _disposables.Add(UseDanceForAllCommand.ReportFailures(_loggerService, "Failed to use the dance for every track"));
+        _disposables.Add(NotADanceCommand.ReportFailures(_loggerService, "Failed to mark the value as not a dance"));
     }
 
     /// <summary>True while the library is being read, which on a first run is most of this screen.</summary>

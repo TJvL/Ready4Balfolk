@@ -198,6 +198,9 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             .DisposeWith(_disposables);
 
         _sourceList.DisposeWith(_disposables);
+
+        _disposables.Add(StartNewNightCommand.ReportFailures(_loggerService, "Failed to start a new night"));
+        _disposables.Add(DeleteNightCommand.ReportFailures(_loggerService, "Failed to delete the night"));
     }
 
     /// <summary>Reads the nights on file, for the first look at this screen.</summary>

@@ -307,6 +307,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateWebServerStatus())
             .DisposeWith(_disposables);
+
+        _disposables.Add(RegeneratePinCommand.ReportFailures(_loggerService, "Failed to make a new PIN"));
     }
 
     /// <summary>

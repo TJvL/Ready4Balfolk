@@ -20,6 +20,7 @@ using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Discovery;
 
@@ -134,6 +135,15 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => PreviewDraft())
             .DisposeWith(_disposables);
+
+        _disposables.Add(RefreshCommand.ReportFailures(_loggerService, "Failed to read the library for the discovery screen"));
+        _disposables.Add(DeclareDraftCommand.ReportFailures(_loggerService, "Failed to declare the pattern"));
+        _disposables.Add(RemovePatternCommand.ReportFailures(_loggerService, "Failed to remove the pattern"));
+        _disposables.Add(MovePatternUpCommand.ReportFailures(_loggerService, "Failed to move the pattern"));
+        _disposables.Add(MovePatternDownCommand.ReportFailures(_loggerService, "Failed to move the pattern"));
+        _disposables.Add(ApplyRolesAndTagsCommand.ReportFailures(_loggerService, "Failed to save the folder roles and tag fields"));
+        _disposables.Add(AcceptProposalCommand.ReportFailures(_loggerService, "Failed to take the proposal"));
+        _disposables.Add(DismissProposalCommand.ReportFailures(_loggerService, "Failed to turn the proposal down"));
     }
 
     [Reactive] public partial bool IsBusy { get; private set; }

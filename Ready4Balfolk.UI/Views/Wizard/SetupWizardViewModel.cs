@@ -121,6 +121,9 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
 
         Steps[0].EnterAsync().SafeFireAndForget(
             exception => _loggerService.Report("Failed to enter the first setup step", exception));
+
+        _disposables.Add(BackCommand.ReportFailures(_loggerService, "Failed to go back a step"));
+        _disposables.Add(ContinueCommand.ReportFailures(_loggerService, "Setup wizard step failed"));
     }
 
     /// <summary>

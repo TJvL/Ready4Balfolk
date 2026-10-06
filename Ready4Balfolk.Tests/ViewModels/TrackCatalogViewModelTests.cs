@@ -28,6 +28,7 @@ public sealed class TrackCatalogViewModelTests : IDisposable
     private readonly ThrottleClock _throttles = new();
     private readonly ITrackEditorService _trackEditor;
     private readonly TrackCatalogViewModel _sut;
+    private readonly RecordingLoggerService _logger = new();
 
     public TrackCatalogViewModelTests()
     {
@@ -47,8 +48,33 @@ public sealed class TrackCatalogViewModelTests : IDisposable
 
         _trackEditor = Substitute.For<ITrackEditorService>();
         _sut = new TrackCatalogViewModel(
-            trackStore, _queueService, _notifications, _trackEditor, settingsStore,
+            trackStore, _queueService, _notifications, _trackEditor, settingsStore, _logger,
             _throttles.Scheduler);
+    }
+
+    [Fact]
+    public async Task AnEditThatFails_SaysTheTrackWasNotEdited()
+    {
+        _tracks.Add(TestData.CreateTrack(title: "Salamandre"));
+        Settle();
+        _trackEditor.EditAsync(Arg.Any<Track>()).Returns(Task.FromException(new IOException("No space left on device")));
+
+        await Assert.ThrowsAsync<IOException>(async () => await _sut.EditTrackCommand.Execute(_sut.Tracks[0]));
+
+        Assert.Equal("Failed to edit the track", Assert.Single(_logger.Errors).Message);
+    }
+
+    [Fact]
+    public async Task AWithdrawalThatFails_SaysTheTrackWasNotSentBack()
+    {
+        _tracks.Add(TestData.CreateTrack(title: "Salamandre"));
+        Settle();
+        _trackEditor.WithdrawAsync(Arg.Any<Track>())
+            .Returns(Task.FromException<bool>(new IOException("No space left on device")));
+
+        await Assert.ThrowsAsync<IOException>(async () => await _sut.WithdrawTrackCommand.Execute(_sut.Tracks[0]));
+
+        Assert.Equal("Failed to send the track back to review", Assert.Single(_logger.Errors).Message);
     }
 
     /// <summary>Spends the 300ms the grid waits after the last keystroke, rather than sleeping past it.</summary>
