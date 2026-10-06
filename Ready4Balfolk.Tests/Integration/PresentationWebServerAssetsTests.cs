@@ -1,4 +1,6 @@
+using System.Reflection;
 using Ready4Balfolk.Tests.Helpers;
+using Ready4Balfolk.Web.Contracts;
 
 namespace Ready4Balfolk.Tests.Integration;
 
@@ -50,5 +52,47 @@ public sealed class PresentationWebServerAssetsTests
 
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.NotEmpty(body);
+    }
+
+    /// <summary>
+    /// The hub sends its own refusals as a code and the phone page words them, so a code with no
+    /// string behind it reaches the helper as the bare code. Read from the strings.js a browser is
+    /// actually served, once for each language table in it.
+    /// </summary>
+    [Fact]
+    public async Task EveryRefusalTheHubSends_HasWordsInBothLanguages()
+    {
+        await using var server = await RunningWebServer.StartAsync();
+
+        using var client = new HttpClient();
+        var script = await client.GetStringAsync(
+            new Uri($"http://127.0.0.1:{server.Port}/strings.js"), TestContext.Current.CancellationToken);
+
+        var english = script.IndexOf("en: {", StringComparison.Ordinal);
+        var dutch = script.IndexOf("nl: {", StringComparison.Ordinal);
+        Assert.True(english >= 0 && dutch > english, "strings.js no longer has an en table and then an nl one");
+
+        var tables = new Dictionary<string, string>
+        {
+            ["en"] = script[english..dutch],
+            ["nl"] = script[dutch..script.IndexOf("};", dutch, StringComparison.Ordinal)]
+        };
+
+        var codes = typeof(RemoteRefusal)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(field => field.IsLiteral)
+            .Select(field => (string)field.GetRawConstantValue()!)
+            .ToList();
+        Assert.NotEmpty(codes);
+
+        foreach (var (language, table) in tables)
+        {
+            foreach (var code in codes)
+            {
+                Assert.True(
+                    table.Contains($"{code}: \"", StringComparison.Ordinal),
+                    $"strings.js has no {language} words for the refusal {code}");
+            }
+        }
     }
 }

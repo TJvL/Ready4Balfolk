@@ -255,8 +255,8 @@
   <data name="Queue_NoRandomTrack" xml:space="preserve">
     <value>Geen nummers om uit te kiezen</value>
   </data>
-  <data name="Queue_CutoffPaused" xml:space="preserve">
-    <value>limiet gepauzeerd voor de stop</value>
+  <data name="Queue_PlaylistHaltsAtCutoffPaused" xml:space="preserve">
+    <value>Afspeellijst stopt om: {0} - limiet gepauzeerd voor de stop</value>
   </data>
   <data name="Queue_ItemAlreadyGone" xml:space="preserve">
     <value>Die regel stond al niet meer in de wachtrij</value>
@@ -720,6 +720,18 @@
   </data>
   <data name="Dialog_CharacterCountFormat" xml:space="preserve">
     <value>{0}/60</value>
+  </data>
+  <data name="Dialog_JsonFiles" xml:space="preserve">
+    <value>JSON-bestanden</value>
+  </data>
+  <data name="Dialog_TextFiles" xml:space="preserve">
+    <value>Tekstbestanden</value>
+  </data>
+  <data name="Dialog_HtmlFiles" xml:space="preserve">
+    <value>Webpagina (*.html)</value>
+  </data>
+  <data name="Dialog_CsvFiles" xml:space="preserve">
+    <value>Kommagescheiden waarden (*.csv)</value>
   </data>
 
   <!-- App -->

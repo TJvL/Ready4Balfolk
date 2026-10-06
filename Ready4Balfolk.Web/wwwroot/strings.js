@@ -57,12 +57,16 @@
       fromPool: "from the pool set at the computer",
       openEnded: "open ended",
       delayLength: "Delay length",
+      delayShorter: "{0} seconds shorter",
+      delayLonger: "{0} seconds longer",
       queueDelay: "Queue delay",
       queueMessage: "Queue message",
       queueEndOfNight: "End the night",
       messagePlaceholder: "Bar closes at midnight",
       queued: "Queued",
+      queuedDance: "Queued {0}",
 
+      searchLabel: "Search",
       searchPlaceholder: "Dance, artist or title",
       noMatches: "Nothing matches that",
       searchHint: "Search the library",
@@ -72,14 +76,26 @@
       onScreen: "On screen",
       nothingFollows: "Nothing follows this",
 
+      remoteTitle: "Ready4Balfolk remote",
       pinTitle: "Remote",
+      pinLabel: "PIN",
       pinHint: "Enter the PIN shown in the app's settings",
       pinButton: "Connect",
       pinWrong: "That PIN is not right",
       pinLocked: "Too many tries. Wait {0} seconds",
       pinDisabled: "The remote is switched off in the app",
       turnedOut: "This remote is no longer let in. Ask for the PIN and enter it again",
-      connectionLost: "Connection lost, reconnecting"
+      connectionLost: "Connection lost, reconnecting",
+
+      /* The hub's own refusals, which it sends as these keys rather than as words. */
+      noTrackToPick: "No track could be picked from the dance list",
+      noEndOfNightAudio: "No end-of-the-night audio has been chosen at the computer",
+      messageEmpty: "A message needs some text",
+      messageTooLong: "A message can be at most {0} characters",
+      trackGone: "That track is no longer in the library",
+      cannotMoveUp: "That item cannot move up",
+      cannotMoveDown: "That item cannot move down",
+      cannotRemove: "That item cannot be removed"
     },
 
     nl: {
@@ -131,12 +147,16 @@
       fromPool: "uit de pool die op de computer is ingesteld",
       openEnded: "zonder eindtijd",
       delayLength: "Pauzeduur",
+      delayShorter: "{0} seconden korter",
+      delayLonger: "{0} seconden langer",
       queueDelay: "Pauze toevoegen",
       queueMessage: "Bericht toevoegen",
       queueEndOfNight: "Avond afsluiten",
       messagePlaceholder: "De bar sluit om middernacht",
       queued: "Toegevoegd",
+      queuedDance: "{0} toegevoegd",
 
+      searchLabel: "Zoeken",
       searchPlaceholder: "Dans, artiest of titel",
       noMatches: "Niets gevonden",
       searchHint: "Doorzoek de bibliotheek",
@@ -146,14 +166,25 @@
       onScreen: "Op het scherm",
       nothingFollows: "Hierna komt niets meer",
 
+      remoteTitle: "Ready4Balfolk-afstandsbediening",
       pinTitle: "Afstandsbediening",
+      pinLabel: "Pincode",
       pinHint: "Voer de pincode in die in de instellingen staat",
       pinButton: "Verbinden",
       pinWrong: "Die pincode klopt niet",
       pinLocked: "Te veel pogingen. Wacht {0} seconden",
       pinDisabled: "De afstandsbediening staat uit in de app",
       turnedOut: "Deze afstandsbediening wordt niet meer toegelaten. Vraag de pincode en voer hem opnieuw in",
-      connectionLost: "Verbinding verbroken, opnieuw verbinden"
+      connectionLost: "Verbinding verbroken, opnieuw verbinden",
+
+      noTrackToPick: "Er kon geen nummer uit de dansenlijst gekozen worden",
+      noEndOfNightAudio: "Er is op de computer nog geen slotmuziek gekozen",
+      messageEmpty: "Een bericht heeft wat tekst nodig",
+      messageTooLong: "Een bericht mag hoogstens {0} tekens lang zijn",
+      trackGone: "Dat nummer staat niet meer in de bibliotheek",
+      cannotMoveUp: "Dat item kan niet omhoog",
+      cannotMoveDown: "Dat item kan niet omlaag",
+      cannotRemove: "Dat item kan niet verwijderd worden"
     }
   };
 

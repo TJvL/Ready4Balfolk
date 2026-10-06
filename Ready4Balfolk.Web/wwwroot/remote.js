@@ -7,6 +7,7 @@
   var t = null;          /* bound after the config load */
   var connection = null;
   var delaySeconds = 30;
+  var DELAY_STEP = 15;   /* seconds, one press of the stepper */
   var openRow = null;    /* the id of the open row, not its position: the list renumbers itself */
   var showing = null;    /* the id of the item on screen, which is what a skip is about */
   var queue = [];
@@ -47,10 +48,21 @@
      the same way the list does. */
   function report(result, okMessage, movedOn) {
     if (result && result.accepted === false) {
-      toast(result.queueChanged ? (movedOn || t("queueMovedOn")) : (result.reason || ""), true);
+      toast(result.queueChanged ? (movedOn || t("queueMovedOn")) : refusalOf(result), true);
       return;
     }
     if (okMessage) toast(okMessage);
+  }
+
+  /* What a refusal says. The rules behind the queue answer in the app's own language, which is this
+     page's language too, so their reason is shown as it came. The hub's own refusals come as a key
+     instead, and this page words them: written out on the computer they were English, and a Dutch
+     phone read them between the rules' Dutch ones. The longest message is the one number in them,
+     and the textarea holds the same limit the hub does. */
+  function refusalOf(result) {
+    if (result.refusal === "messageTooLong") return t("messageTooLong", id("messageText").maxLength);
+    if (result.refusal) return t(result.refusal);
+    return result.reason || "";
   }
 
   function subtitleOf(item) {
@@ -188,7 +200,8 @@
         '<span class="plus">+</span>';
 
       button.addEventListener("click", function () {
-        send("QueueTrack", hit.id, t("queued") + " " + hit.dance);
+        // One sentence with the dance in it, so a language that names the dance first can.
+        send("QueueTrack", hit.id, t("queuedDance", hit.dance));
       });
 
       host.appendChild(button);
@@ -216,9 +229,12 @@
   /* --------------------------------------------------------------------- wire */
 
   function applyStaticText() {
+    document.title = t("remoteTitle");
+
     text("gateTitle", t("pinTitle"));
     text("gateHint", t("pinHint"));
     text("gateButton", t("pinButton"));
+    id("pin").setAttribute("aria-label", t("pinLabel"));
 
     text("nowKicker", t("playing"));
     text("restartLabel", t("restart"));
@@ -238,6 +254,12 @@
     text("endOfNightHint", t("nothingFollows"));
     id("messageText").placeholder = t("messagePlaceholder");
     id("search").placeholder = t("searchPlaceholder");
+    id("search").setAttribute("aria-label", t("searchLabel"));
+
+    /* The stepper's buttons show only a sign, so what a screen reader says for them is the whole of
+       what they do. */
+    id("delayDown").setAttribute("aria-label", t("delayShorter", DELAY_STEP));
+    id("delayUp").setAttribute("aria-label", t("delayLonger", DELAY_STEP));
 
     text("tabNow", t("tabNow"));
     text("tabQueue", t("tabQueue"));
@@ -277,11 +299,11 @@
         case "endofnight": send("QueueEndOfNight", undefined, t("queued")); break;
         case "delay": send("QueueDelay", delaySeconds, t("queued")); break;
         case "delay-up":
-          delaySeconds = Math.min(600, delaySeconds + 15);
+          delaySeconds = Math.min(600, delaySeconds + DELAY_STEP);
           text("delayValue", delaySeconds + "s");
           break;
         case "delay-down":
-          delaySeconds = Math.max(15, delaySeconds - 15);
+          delaySeconds = Math.max(DELAY_STEP, delaySeconds - DELAY_STEP);
           text("delayValue", delaySeconds + "s");
           break;
         case "message": {

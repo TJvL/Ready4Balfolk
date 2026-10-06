@@ -78,11 +78,49 @@ public sealed record TrackHitDto(string Id, string Dance, string Artist, string 
 /// more" is not a rule saying no, it is this phone's list being out of date, and the page says so in
 /// its own language and redraws. A transport command about a dance that has since ended is the same
 /// thing about the top of the screen rather than the list, and comes back the same way.
+///
+/// <paramref name="Refusal"/> is the hub's own no, which the page words for itself too: one of the
+/// <see cref="RemoteRefusal"/> codes. The rules behind the queue answer in the application's own
+/// language, so their <paramref name="Reason"/> can travel as it is written. The hub's refusals used
+/// to travel the same way, as English written here, and a Dutch phone read "That item cannot move
+/// up" one tap after a Dutch refusal from the cutoff.
 /// </remarks>
-public sealed record CommandResultDto(bool Accepted, string? Reason = null, bool QueueChanged = false)
+public sealed record CommandResultDto(
+    bool Accepted, string? Reason = null, bool QueueChanged = false, string? Refusal = null)
 {
     public static readonly CommandResultDto Ok = new(true);
 
     /// <summary>The row is gone: whoever asked was reading a queue that has since moved on.</summary>
     public static readonly CommandResultDto Stale = new(false, null, true);
+
+    /// <summary>The hub saying no for itself, before any rule was asked.</summary>
+    public static CommandResultDto Refused(string refusal) => new(false, Refusal: refusal);
+}
+
+/// <summary>Why the hub itself refused a command, as a code the phone page words.</summary>
+/// <remarks>
+/// Each code is the key of the page's own string for it in <c>strings.js</c>, which has one in every
+/// language the page speaks. A code added here without a string there reads as the code itself.
+/// </remarks>
+public static class RemoteRefusal
+{
+    /// <summary>The dance pool set at the computer has nothing to draw from.</summary>
+    public const string NoTrackToPick = "noTrackToPick";
+
+    /// <summary>No end-of-the-night audio has been chosen in the settings.</summary>
+    public const string NoEndOfNightAudio = "noEndOfNightAudio";
+
+    public const string MessageEmpty = "messageEmpty";
+
+    /// <summary>Longer than the desktop dialog allows, which the page's own textarea also stops at.</summary>
+    public const string MessageTooLong = "messageTooLong";
+
+    /// <summary>The search result the phone tapped has left the library since it was drawn.</summary>
+    public const string TrackGone = "trackGone";
+
+    public const string CannotMoveUp = "cannotMoveUp";
+
+    public const string CannotMoveDown = "cannotMoveDown";
+
+    public const string CannotRemove = "cannotRemove";
 }

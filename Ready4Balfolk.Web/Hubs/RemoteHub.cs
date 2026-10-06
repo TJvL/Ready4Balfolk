@@ -135,7 +135,7 @@ public sealed class RemoteHub(
             settingsStore.Current.AllowDuplicateTracksInQueue);
 
         return track is null
-            ? new CommandResultDto(false, "No track could be picked from the dance list")
+            ? CommandResultDto.Refused(RemoteRefusal.NoTrackToPick)
             : Enqueue(new TrackQueueItem(track, true));
     });
 
@@ -155,18 +155,18 @@ public sealed class RemoteHub(
     public Task<CommandResultDto> QueueEndOfNight() => dispatcher.InvokeAsync(() =>
         endOfNightAudio.Create() is { } item
             ? Enqueue(item)
-            : new CommandResultDto(false, "No end-of-the-night audio has been chosen at the computer"));
+            : CommandResultDto.Refused(RemoteRefusal.NoEndOfNightAudio));
 
     public Task<CommandResultDto> QueueMessage(string text) => dispatcher.InvokeAsync(() =>
     {
         if (string.IsNullOrWhiteSpace(text))
         {
-            return new CommandResultDto(false, "A message needs some text");
+            return CommandResultDto.Refused(RemoteRefusal.MessageEmpty);
         }
 
         var trimmed = text.Trim();
         return trimmed.Length > MaxMessageLength
-            ? new CommandResultDto(false, $"A message can be at most {MaxMessageLength} characters")
+            ? CommandResultDto.Refused(RemoteRefusal.MessageTooLong)
             : Enqueue(new MessageQueueItem(trimmed));
     });
 
@@ -174,7 +174,7 @@ public sealed class RemoteHub(
     {
         var track = FindTrack(id);
         return track is null
-            ? new CommandResultDto(false, "That track is no longer in the library")
+            ? CommandResultDto.Refused(RemoteRefusal.TrackGone)
             : Enqueue(new TrackQueueItem(track, false));
     });
 
@@ -188,9 +188,9 @@ public sealed class RemoteHub(
     /// queue that has moved on, which the page can say and redraw for: it used to come back as a
     /// failed invoke, and the page called a healthy connection lost.
     /// </remarks>
-    public Task<CommandResultDto> MoveUp(string id) => Rearrange(id, -1, "That item cannot move up");
+    public Task<CommandResultDto> MoveUp(string id) => Rearrange(id, -1, RemoteRefusal.CannotMoveUp);
 
-    public Task<CommandResultDto> MoveDown(string id) => Rearrange(id, 1, "That item cannot move down");
+    public Task<CommandResultDto> MoveDown(string id) => Rearrange(id, 1, RemoteRefusal.CannotMoveDown);
 
     private Task<CommandResultDto> Rearrange(string id, int offset, string refusal) =>
         dispatcher.InvokeAsync(() => QueueItemId.TryParse(id, out var itemId)
@@ -210,14 +210,14 @@ public sealed class RemoteHub(
 
     public Task<CommandResultDto> Remove(string id) => dispatcher.InvokeAsync(() =>
         QueueItemId.TryParse(id, out var itemId)
-            ? Answer(queueService.Remove(itemId), "That item cannot be removed")
+            ? Answer(queueService.Remove(itemId), RemoteRefusal.CannotRemove)
             : CommandResultDto.Stale);
 
     private static CommandResultDto Answer(QueueChangeResult result, string refusal) => result switch
     {
         QueueChangeResult.Done => CommandResultDto.Ok,
         QueueChangeResult.Gone => CommandResultDto.Stale,
-        _ => new CommandResultDto(false, refusal)
+        _ => CommandResultDto.Refused(refusal)
     };
 
     /// <summary>
