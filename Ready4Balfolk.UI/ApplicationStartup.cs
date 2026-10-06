@@ -98,7 +98,7 @@ internal sealed class ApplicationStartup(
                 Observable.Merge(
                     RunLoad(token => danceListStore.LoadAsync(token), "Failed to load the dance list"),
                     // Opened before anything asks it a question: the track store reads it on the
-                    // first music directory it is handed, which can be immediately.
+                    // first music directory it is handed, which is as soon as these are through.
                     RunLoad(token => libraryIndex.OpenAsync(token), "Failed to open the library index"),
                     RunLoad(token => historyStore.LoadAsync(token), "Failed to load queue history")
                 // ToList waits for every load to finish before emitting once. The wizard reads the
@@ -108,6 +108,7 @@ internal sealed class ApplicationStartup(
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ =>
             {
+                ApplyTheLibrarySettings();
                 ShowSetupIfNeeded();
                 AskAboutUnfinishedNightAsync().SafeFireAndForget(exception =>
                     logger.Report("Failed to ask about an unfinished night", exception));
@@ -130,6 +131,25 @@ internal sealed class ApplicationStartup(
                 logger.Report("Failed to handle window closing", exception));
         };
     }
+
+    /// <summary>Hands the track store its settings, now and every time they change.</summary>
+    /// <remarks>
+    /// Only once the loads are through. A file read before the dance list has arrived is resolved
+    /// against an empty vocabulary, so a dance found by its name loose in a file name or a tag got no
+    /// claim, and the row was written to the index with no dance. Nothing read that file again until
+    /// it changed: a rebuild after the list lands gates what the index holds, it does not reopen it.
+    ///
+    /// One subscription, one value. These used to be three separate subscriptions into three
+    /// setters, and the order they were declared in mattered.
+    /// </remarks>
+    private void ApplyTheLibrarySettings() =>
+        _disposables.Add(settingsStore.Observe()
+            .Select(s => new TrackLibraryConfiguration(
+                s.MusicDirectoryPath, s.Discovery, s.AllowDancesOutsideTheList))
+            .DistinctUntilChanged()
+            .Subscribe(configuration => trackStore.ApplyAsync(configuration)
+                .SafeFireAndForget(exception =>
+                    logger.Report("Failed to apply the library settings", exception))));
 
     private void OnMainWindowOpened(MainWindow mainWindow, IApplicationAppearance appearance)
     {
@@ -154,16 +174,6 @@ internal sealed class ApplicationStartup(
             .DistinctUntilChanged()
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(appearance.ApplyTheme));
-
-        // One subscription, one value. These used to be three separate subscriptions into three
-        // setters, and the order they were declared in mattered.
-        _disposables.Add(settingsStore.Observe()
-            .Select(s => new TrackLibraryConfiguration(
-                s.MusicDirectoryPath, s.Discovery, s.AllowDancesOutsideTheList))
-            .DistinctUntilChanged()
-            .Subscribe(configuration => trackStore.ApplyAsync(configuration)
-                .SafeFireAndForget(exception =>
-                    logger.Report("Failed to apply the library settings", exception))));
 
         RestoreWindowState(mainWindow);
 

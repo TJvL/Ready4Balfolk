@@ -3,9 +3,11 @@ using System.IO.Abstractions;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Text.Json;
 using AsyncAwaitBestPractices;
 using DynamicData;
 using Ready4Balfolk.Domain.Helpers;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
@@ -61,6 +63,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     // Compiled once and swapped whole, so a scan running over it never sees half a rule change.
     private DeclaredDiscovery _declared = DeclaredDiscovery.Undeclared;
     private TrackLibraryConfiguration _configuration = TrackLibraryConfiguration.Undeclared;
+    private string _rules = RulesOf(DiscoverySettings.Undeclared);
     private bool _allowDancesOutsideTheList;
     private bool _disposed;
     private readonly IFileSystem _fileSystem;
@@ -163,7 +166,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         var directoryChanged = !string.Equals(
             _configuration.MusicDirectoryPath, configuration.MusicDirectoryPath, StringComparison.Ordinal);
-        var rulesChanged = _configuration.Discovery != configuration.Discovery;
+        var rules = RulesOf(configuration.Discovery);
+        var rulesChanged = !string.Equals(_rules, rules, StringComparison.Ordinal);
         var danceRuleChanged =
             _configuration.AllowDancesOutsideTheList != configuration.AllowDancesOutsideTheList;
 
@@ -173,6 +177,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
 
         _configuration = configuration;
+        _rules = rules;
         _declared = DeclaredDiscovery.Compile(configuration.Discovery);
         _allowDancesOutsideTheList = configuration.AllowDancesOutsideTheList;
 
@@ -188,35 +193,39 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
         var directory = _fileSystem.DirectoryInfo.New(path);
 
-        if (rulesChanged && !directoryChanged)
+        if (directoryChanged || rulesChanged)
         {
-            // Every approval a rule gave goes with the rules. The user vouched for the rule and not
-            // for the two thousand files it touched, so fixing one greenlit by mistake has to undo
-            // its work. What they answered one at a time is untouched.
+            // Compared against the rules the index was last read under, not against what this store
+            // held a moment ago. At startup that was nothing, so every start with a rule declared
+            // read the whole library again, skipping the size and time check the index exists for.
+            bool reread;
             try
             {
                 await _libraryIndex.OpenAsync(token);
-                await _libraryIndex.RevokeRuleApprovalsAsync(token);
+                reread = !string.Equals(
+                    await _libraryIndex.RulesReadUnderAsync(token), rules, StringComparison.Ordinal);
+
+                if (reread)
+                {
+                    // Every approval a rule gave goes with the rules. The user vouched for the rule
+                    // and not for the two thousand files it touched, so fixing one greenlit by
+                    // mistake has to undo its work. What they answered one at a time is untouched.
+                    await _libraryIndex.RevokeRuleApprovalsAsync(token);
+                }
             }
             catch (OperationCanceledException canceled) when (canceled.CancellationToken == token)
             {
-                // The DJ changed the rules again before this change was through: the index waits on
-                // its gate with the token it was handed, so being superseded arrives here as a
-                // cancellation carrying exactly that token. It is the ordinary end of a rule change
-                // the DJ replaced themselves, and letting it out of ApplyAsync tells them a change
-                // they made twice failed once. Only this run's token counts: a cancellation from
+                // The DJ changed the settings again before this change was through: the index waits
+                // on its gate with the token it was handed, so being superseded arrives here as a
+                // cancellation carrying exactly that token. It is the ordinary end of a change the
+                // DJ replaced themselves, and letting it out of ApplyAsync tells them a change they
+                // made twice failed once. Only this run's token counts: a cancellation from
                 // anywhere else is a fault, and it is left to escape and be reported.
-                _ = _loggerService.DebugAsync("Revoking the rule approvals was superseded");
+                _ = _loggerService.DebugAsync("Comparing the rules the library was read under was superseded");
                 return;
             }
 
-            await LoadDirectoryAsync(directory, reread: true, token);
-            return;
-        }
-
-        if (directoryChanged)
-        {
-            await LoadDirectoryAsync(directory, reread: rulesChanged, token);
+            await LoadDirectoryAsync(directory, reread, rules, token);
             return;
         }
 
@@ -224,6 +233,13 @@ public sealed class TrackStore : ITrackStore, IDisposable
         // willing to let through.
         await RefreshLibraryAsync(token);
     }
+
+    /// <summary>The rules in force, as the text the index records them by.</summary>
+    /// <remarks>
+    /// What is switched off is taken out first: a pattern filled in under a switch that is off reads
+    /// nothing, so it is no reason to read the library again.
+    /// </remarks>
+    private static string RulesOf(DiscoverySettings discovery) => JsonSerializer.Serialize(discovery.InForce());
 
     public IObservable<IChangeSet<Track>> Connect() => _tracks.Connect();
 
@@ -331,7 +347,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
         return new LibraryWalk(files, withMusic, unreadable);
     }
 
-    private async Task LoadDirectoryAsync(IDirectoryInfo directory, bool reread, CancellationToken cancellationToken)
+    private async Task LoadDirectoryAsync(
+        IDirectoryInfo directory, bool reread, string rules, CancellationToken cancellationToken)
     {
         _ = _loggerService.DebugAsync($"LoadDirectoryAsync called for '{LogPaths.Name(directory.FullName)}'");
 
@@ -344,7 +361,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 return;
             }
 
-            await LoadDirectoryCoreAsync(directory, reread, cancellationToken);
+            await LoadDirectoryCoreAsync(directory, reread, rules, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -358,7 +375,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
-    private async Task LoadDirectoryCoreAsync(IDirectoryInfo directory, bool reread, CancellationToken cancellationToken)
+    private async Task LoadDirectoryCoreAsync(
+        IDirectoryInfo directory, bool reread, string rules, CancellationToken cancellationToken)
     {
         _watcher.Stop();
         _tracks.Clear();
@@ -489,6 +507,15 @@ public sealed class TrackStore : ITrackStore, IDisposable
             await _libraryIndex.ApproveAsync([.. written.SelectMany(ScannedFileMapping.ByRuleApprovals)], cancellationToken);
             await _libraryIndex.DeleteMissingAsync(
                 [.. audioFiles.Select(file => file.FullName)], keptUnavailable, cancellationToken);
+
+            // Only when every file the index holds was there to be read. A folder kept while its
+            // drive is away, or one that would not open, still holds rows from the rules before, and
+            // the next load has to read those again rather than trust them.
+            if (!cancellationToken.IsCancellationRequested && directory.Exists
+                && keptUnavailable.Count == 0 && walk.UnreadableDirectories.Count == 0)
+            {
+                await _libraryIndex.RecordRulesReadUnderAsync(rules, cancellationToken);
+            }
 
             // Watching starts before the library is published, so a file dropped in during the last
             // moments of a scan is noticed rather than waiting for the next start.

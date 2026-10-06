@@ -180,6 +180,29 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task RulesReadUnder_AreKeptAndReplaced()
+    {
+        Assert.Null(await _sut.RulesReadUnderAsync(Token));
+
+        await _sut.RecordRulesReadUnderAsync("first", Token);
+        await _sut.RecordRulesReadUnderAsync("second", Token);
+
+        Assert.Equal("second", await _sut.RulesReadUnderAsync(Token));
+    }
+
+    [Fact]
+    public async Task RevokingTheRuleApprovals_ForgetsTheRulesTheLibraryWasReadUnder()
+    {
+        // A rule change revokes first and re-reads second. A re-read cut short in between leaves
+        // rows from the old rules, and the next start has to read them again rather than trust them.
+        await _sut.RecordRulesReadUnderAsync("rules", Token);
+
+        await _sut.RevokeRuleApprovalsAsync(Token);
+
+        Assert.Null(await _sut.RulesReadUnderAsync(Token));
+    }
+
+    [Fact]
     public async Task UseBeforeOpen_OpensOnDemand()
     {
         // Not an error: the settings replay and the toolbar badge reach the store before startup's
