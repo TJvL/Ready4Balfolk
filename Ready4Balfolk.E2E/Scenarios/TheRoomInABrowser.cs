@@ -596,9 +596,9 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
     /// Steps: unlock the remote on the phone, have the DJ generate a new PIN in the settings, and
     /// touch the phone no further. Then read the new PIN off the desktop and enter it.
     /// Sees: the phone put back to the PIN form on its own and told why, and the new PIN letting
-    /// it straight back in. The DJ changes the PIN to take the remote back, so it cannot wait for
-    /// the helper to press something; and a helper at the bar can tell being shut out from an
-    /// application that has crashed.
+    /// it straight back in, its header not claiming a lost connection. The DJ changes the PIN to
+    /// take the remote back, so it cannot wait for the helper to press something; and a helper at
+    /// the bar can tell being shut out from an application that has crashed.
     /// </remarks>
     [Fact]
     public async Task ChangingThePinTurnsTheHelperOutOfTheRemote()
@@ -662,6 +662,10 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             await application.WaitUntil(
                 () => application.RowsOf("queue.items").Count == 1,
                 "the helper to be back in with the new PIN");
+
+            // The connection that was turned out closed after the page had moved on. A remote that
+            // works says nothing about its link, rather than what the old one said on its way out.
+            Assert.Equal(string.Empty, await phone.Reads("link"));
         });
     }
 
