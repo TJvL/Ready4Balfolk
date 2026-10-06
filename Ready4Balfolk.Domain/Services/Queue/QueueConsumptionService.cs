@@ -39,8 +39,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly BehaviorSubject<bool> _isPlaying = new(false);
     private readonly Subject<Unit> _itemCompleted = new();
 
-    private bool _itemFinishedNaturally;
-
     /// <summary>Set the moment the application starts closing, and never put down again.</summary>
     private volatile bool _closing;
 
@@ -112,7 +110,16 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 .Subscribe(_ => _isPlaying.OnNext(false)));
     }
 
-    public async Task<bool> AdvanceAsync(IQueueItem? requestedFor = null)
+    public Task<bool> AdvanceAsync(IQueueItem? requestedFor = null) =>
+        AdvanceAsync(requestedFor, ranOut: false);
+
+    /// <param name="requestedFor">What the caller decided about, or null for whatever is on.</param>
+    /// <param name="ranOut">
+    /// Whether that item ended by itself rather than somebody moving past it. Carried with the
+    /// request rather than left in a field for it to find, because a field set for one item was
+    /// read by the advance after it, and filed the next dance as finished.
+    /// </param>
+    private async Task<bool> AdvanceAsync(IQueueItem? requestedFor, bool ranOut)
     {
         await _gate.WaitAsync();
         try
@@ -127,10 +134,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 return false;
             }
 
-            // Read before the cleanup, which puts it down again: a gap follows a dance that ran
-            // out, not one somebody moved past.
-            var ranOut = _itemFinishedNaturally;
-
+            // A gap follows a dance that ran out, not one somebody moved past.
             await RecordCurrentItemAsync(ranOut ? CompletionStatus.Finished : CompletionStatus.Skipped);
             CleanupCurrentItem();
 
@@ -217,11 +221,11 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         // to give and opened that file a second time.
         await _audio.ClearPlayingAsync();
 
-        _itemFinishedNaturally = false;
+        var gapItem = new GapQueueItem(gap);
         _currentItemStartedAt = _time.GetLocalNow().DateTime;
         _itemDisposables = [];
-        _currentItem.OnNext(new GapQueueItem(gap));
-        StartCountdown(gap);
+        _currentItem.OnNext(gapItem);
+        StartCountdown(gapItem, gap);
 
         // Read again, because the queue can have been reordered while the dance was running and
         // what follows the gap is then a different file. Asking for the one already waiting keeps
@@ -351,7 +355,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     /// <summary>Starts one item. False when it is audio that would not open.</summary>
     private async Task<bool> TryStartItemAsync(IQueueItem item)
     {
-        _itemFinishedNaturally = false;
         _currentItemStartedAt = _time.GetLocalNow().DateTime;
         _itemDisposables = [];
         _elapsed.OnNext(TimeSpan.Zero);
@@ -361,21 +364,21 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         {
             case AutoTrackQueueItem auto:
                 _currentItem.OnNext(item);
-                return await TryStartAudioAsync(auto.TrackQueueItem.Track.FileInfo.FullName, item.Description);
+                return await TryStartAudioAsync(item, auto.TrackQueueItem.Track.FileInfo.FullName);
             case TrackQueueItem track:
                 _currentItem.OnNext(item);
-                return await TryStartAudioAsync(track.Track.FileInfo.FullName, item.Description);
+                return await TryStartAudioAsync(item, track.Track.FileInfo.FullName);
             case DelayQueueItem delay:
                 await _audio.ClearAsync();
                 _currentItem.OnNext(item);
-                StartCountdown(delay.DelayDuration);
+                StartCountdown(item, delay.DelayDuration);
                 return true;
             case MessageQueueItem message:
                 await _audio.ClearAsync();
                 _currentItem.OnNext(item);
                 if (message.Duration is { } duration)
                 {
-                    StartCountdown(duration);
+                    StartCountdown(item, duration);
                 }
                 else
                 {
@@ -389,7 +392,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 return true;
             case EndOfNightQueueItem endOfNight:
                 _currentItem.OnNext(item);
-                return await TryStartAudioAsync(endOfNight.FilePath, item.Description);
+                return await TryStartAudioAsync(item, endOfNight.FilePath);
             default:
                 return true;
         }
@@ -401,7 +404,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     /// handler, and what a hall's DJ saw was the words "Unhandled RxApp exception" while the music
     /// stopped.
     /// </remarks>
-    private async Task<bool> TryStartAudioAsync(string filePath, string description)
+    private async Task<bool> TryStartAudioAsync(IQueueItem item, string filePath)
     {
         var uri = new Uri(filePath);
 
@@ -411,7 +414,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _itemDisposables.Add(
             _audio.WhenDurationChanged.Take(1).Subscribe(_totalDuration.OnNext));
         _itemDisposables.Add(
-            _audio.WhenPlaybackEnded.Take(1).Subscribe(_ => OnTrackEnded()));
+            _audio.WhenPlaybackEnded.Take(1).Subscribe(_ => OnTrackEnded(item)));
 
         try
         {
@@ -422,33 +425,36 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         catch (Exception exception) when (exception is InvalidOperationException or IOException)
         {
             _loggerService.Report(
-                string.Format(CultureInfo.CurrentCulture, DomainStrings.Queue_CannotPlay, description),
+                string.Format(CultureInfo.CurrentCulture, DomainStrings.Queue_CannotPlay, item.Description),
                 exception);
 
             return false;
         }
     }
 
-    private void OnTrackEnded()
+    private void OnTrackEnded(IQueueItem item)
     {
         _isPlaying.OnNext(false);
-        AdvanceBecauseTheItemRanOut();
+        AdvanceBecauseItRanOut(item);
     }
 
     /// <summary>Advances from a callback that is not on the thread the queue is driven from.</summary>
     /// <remarks>
+    /// <para>
     /// Both callers are somewhere else: a track ending arrives on the audio library's callback
     /// thread, a countdown running out on a timer thread. Dequeuing from either while the DJ is
     /// dropping a row or a phone is removing one is how the queue shifts under a request that is
-    /// already on its way, and why "it ran out" is set here rather than at the callback: read on
-    /// the same thread that acts on it, it cannot land in the middle of somebody else's advance.
+    /// already on its way.
+    /// </para>
+    /// <para>
+    /// The item that ran out is named, the way the DJ's Next names the one it was pressed on. A
+    /// track ending in the moment Next is pressed waits on the gate behind that Next, and without a
+    /// name it then advanced past the dance Next had just started: the room heard a dance cut off in
+    /// its first bar.
+    /// </para>
     /// </remarks>
-    private void AdvanceBecauseTheItemRanOut() => _advanceScheduler.Schedule(() =>
-    {
-        _itemFinishedNaturally = true;
-        // Fire-and-forget advance: the gate ensures serialization
-        _unawaited.Start(DomainStrings.Queue_AdvanceFailed, () => AdvanceAsync());
-    });
+    private void AdvanceBecauseItRanOut(IQueueItem item) => _advanceScheduler.Schedule(() =>
+        _unawaited.Start(DomainStrings.Queue_AdvanceFailed, () => AdvanceAsync(item, ranOut: true)));
 
     /// <summary>Counts a delay, a message or a gap down, and advances once when it runs out.</summary>
     /// <remarks>
@@ -462,7 +468,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     /// clock deciding when it expires is the same one deciding how far along it says it is, and a
     /// test can move both together.
     /// </remarks>
-    private void StartCountdown(TimeSpan duration)
+    private void StartCountdown(IQueueItem item, TimeSpan duration)
     {
         _totalDuration.OnNext(duration);
         _elapsed.OnNext(TimeSpan.Zero);
@@ -488,7 +494,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
                 countdown.Dispose();
                 _elapsed.OnNext(duration);
-                AdvanceBecauseTheItemRanOut();
+                AdvanceBecauseItRanOut(item);
             },
             null,
             CountdownTick,
@@ -592,7 +598,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     {
         _itemDisposables?.Dispose();
         _itemDisposables = null;
-        _itemFinishedNaturally = false;
         _currentItemStartedAt = null;
     }
 

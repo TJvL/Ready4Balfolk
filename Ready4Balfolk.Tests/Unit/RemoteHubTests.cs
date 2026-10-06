@@ -141,11 +141,44 @@ public sealed class RemoteHubTests : IDisposable
     }
 
     [Fact]
-    public async Task Skip_AdvancesTheQueue()
+    public async Task Skip_OfTheItemThePhoneIsShowing_AdvancesThatItem()
     {
-        await _sut.Skip();
+        var showing = new DelayQueueItem(TimeSpan.FromSeconds(30));
+        _consumption.CurrentItem.Returns(showing);
+        _consumption.AdvanceAsync(showing).Returns(true);
 
-        await _consumption.Received(1).AdvanceAsync();
+        var result = await _sut.Skip(showing.Id.ToString());
+
+        Assert.True(result.Accepted);
+        await _consumption.Received(1).AdvanceAsync(showing);
+    }
+
+    /// <summary>A press that lands just after the dance changed is about the one that ended.</summary>
+    [Fact]
+    public async Task Skip_OfAnItemThatHasEnded_LeavesTheNewOneAlone()
+    {
+        var ended = new DelayQueueItem(TimeSpan.FromSeconds(30));
+        _consumption.CurrentItem.Returns(new DelayQueueItem(TimeSpan.FromSeconds(30)));
+
+        var result = await _sut.Skip(ended.Id.ToString());
+
+        Assert.False(result.Accepted);
+        Assert.True(result.QueueChanged);
+        await _consumption.DidNotReceiveWithAnyArgs().AdvanceAsync(default);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("not an id")]
+    public async Task Skip_NamingNothing_SkipsNothing(string? id)
+    {
+        _consumption.CurrentItem.Returns(new DelayQueueItem(TimeSpan.FromSeconds(30)));
+
+        var result = await _sut.Skip(id);
+
+        Assert.False(result.Accepted);
+        await _consumption.DidNotReceiveWithAnyArgs().AdvanceAsync(default);
     }
 
     // --- Getting in ---

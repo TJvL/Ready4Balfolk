@@ -710,6 +710,37 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         Assert.Equal(0, _queue.Count);
     }
 
+    [Fact]
+    public async Task ATrackEndingAsNextIsPressed_LeavesTheDanceNextStarted()
+    {
+        // The end of the dance and the DJ's Next land together. Next takes the gate and moves on;
+        // the end of the dance is waiting behind it, and must not then move on from the new one.
+        var held = new HeldScheduler();
+        using var sut = new QueueConsumptionService(
+            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), TimeProvider.System,
+            held);
+
+        var first = new TrackQueueItem(TestData.CreateTrack(title: "First"), false);
+        var second = new TrackQueueItem(TestData.CreateTrack(title: "Second"), false);
+        _queue.Enqueue(first);
+        _queue.Enqueue(second);
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(title: "Third"), false));
+        await sut.AdvanceAsync();
+
+        var writing = new TaskCompletionSource();
+        _history.AddAsync(Arg.Any<QueueHistoryEntry>()).Returns(_ => writing.Task);
+        var next = sut.AdvanceAsync(first);
+        _playbackEnded.OnNext(RxUnit.Default);
+        writing.SetResult();
+        Assert.True(await next);
+
+        held.RunAll();
+
+        Assert.Same(second, sut.CurrentItem);
+        Assert.Equal(1, _queue.Count);
+        await _history.Received(1).AddAsync(Arg.Any<QueueHistoryEntry>());
+    }
+
     /// <summary>A second service on a clock a test can move, sharing this fixture's doubles.</summary>
     private QueueConsumptionService CreateServiceOn(TimeProvider time) =>
         new(_audio, _queue, _history, _settingsStore, new NoOpLoggerService(), time,

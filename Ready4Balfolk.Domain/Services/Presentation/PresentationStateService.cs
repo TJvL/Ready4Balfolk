@@ -138,7 +138,10 @@ public sealed class PresentationStateService : IPresentationStateService, IDispo
     }
 
     /// <summary>The one place a queue item becomes something a screen can draw.</summary>
-    public static PresentationItem Map(IQueueItem? item) => item switch
+    public static PresentationItem Map(IQueueItem? item) =>
+        Draw(item) is { HasContent: true } drawn ? drawn with { Id = item!.Id } : PresentationItem.None;
+
+    private static PresentationItem Draw(IQueueItem? item) => item switch
     {
         null => PresentationItem.None,
         AutoTrackQueueItem auto => MapTrack(auto.TrackQueueItem),
