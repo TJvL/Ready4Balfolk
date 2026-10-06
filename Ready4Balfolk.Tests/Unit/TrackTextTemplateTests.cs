@@ -37,6 +37,30 @@ public sealed class TrackTextTemplateTests
             "Salamandre",
             TrackTextTemplate.Render("%a - %t", "Mazurka", "", "Salamandre"));
 
+    [Theory]
+    [InlineData("%t (%d)", "", "Naragonia", "Salamandre", "Salamandre")]
+    [InlineData("%t (%d)", "Mazurka", "Naragonia", "", "(Mazurka)")]
+    [InlineData("(%d) %t", "", "Naragonia", "Salamandre", "Salamandre")]
+    [InlineData("(%d) %t", "Mazurka", "Naragonia", "", "(Mazurka)")]
+    [InlineData("%a - %t [%d]", "", "Naragonia", "Salamandre", "Naragonia - Salamandre")]
+    [InlineData("%a - %t [%d]", "Mazurka", "Naragonia", "", "Naragonia [Mazurka]")]
+    [InlineData("%t (%d) [%a]", "", "Naragonia", "Salamandre", "Salamandre [Naragonia]")]
+    [InlineData("%t (%d) [%a]", "Mazurka", "", "Salamandre", "Salamandre (Mazurka)")]
+    [InlineData("%t (by %a)", "Mazurka", "", "Salamandre", "Salamandre")]
+    [InlineData("%t [(%d)]", "", "Naragonia", "Salamandre", "Salamandre")]
+    [InlineData("%t [(%d)]", "Mazurka", "Naragonia", "Salamandre", "Salamandre [(Mazurka)]")]
+    public void ABracketedFieldWithNothingInIt_TakesBothHalvesOfItsBracketWithIt(
+        string template,
+        string dance,
+        string artist,
+        string title,
+        string expected) =>
+        Assert.Equal(expected, TrackTextTemplate.Render(template, dance, artist, title));
+
+    [Fact]
+    public void ABracketThatNeverCloses_IsLeftWhereItWasWritten() =>
+        Assert.Equal("Salamandre (Mazurka", TrackTextTemplate.Render("%t (%d", "Mazurka", "", "Salamandre"));
+
     [Fact]
     public void ATrackThatSaysNothingTheTemplateAsksFor_WritesNothingAtAll() =>
         Assert.Equal("", TrackTextTemplate.Render("%a - %t", "Mazurka", "", ""));

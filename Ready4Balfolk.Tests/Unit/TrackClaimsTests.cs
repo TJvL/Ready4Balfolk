@@ -275,6 +275,18 @@ public sealed class TrackClaimsTests
     }
 
     [Fact]
+    public void ATagFieldWithNoMember_IsReadAndNamedAsTheComment()
+    {
+        // Whatever reaches the claims without a member must not throw: every file asks for the
+        // name, so one bad entry in a trust list would stop the whole library being read.
+        var claims = Collect(
+            Evidence("01 - Something") with { TagComment = "Rond de Landéda" },
+            Declared(trust: new TagTrust { Dance = [(TagField)7] }));
+
+        Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "Rond de Landéda" && claim.Source.Detail == "comment");
+    }
+
+    [Fact]
     public void ADeclaredTagOrder_IsADeclaration()
     {
         var claims = Collect(
