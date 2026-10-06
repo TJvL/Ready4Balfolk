@@ -631,15 +631,15 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         string text;
         if (halts)
         {
-            text = string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistHaltsAt,
-                finishTime.ToString("HH:mm", CultureInfo.CurrentCulture));
-
             // Say when the cutoff is not being applied, rather than leaving the user to wonder why a
-            // request went through: past a halt there is no end time to judge it against.
-            if (settings.QueueCutoffEnabled)
-            {
-                text += $" - {UiStrings.Queue_CutoffPaused}";
-            }
+            // request went through: past a halt there is no end time to judge it against. One
+            // sentence with the time in it rather than two joined here, so a translation can put
+            // the two halves in whatever order its own language reads them.
+            var sentence = settings.QueueCutoffEnabled
+                ? UiStrings.Queue_PlaylistHaltsAtCutoffPaused
+                : UiStrings.Queue_PlaylistHaltsAt;
+            text = string.Format(CultureInfo.CurrentCulture, sentence,
+                finishTime.ToString("HH:mm", CultureInfo.CurrentCulture));
         }
         // The evening being over is knowable in exactly the way an open-ended one is not: nothing
         // more goes in, so what is queued is the whole of what is left.

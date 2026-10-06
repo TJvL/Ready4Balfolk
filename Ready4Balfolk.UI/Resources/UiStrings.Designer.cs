@@ -238,8 +238,8 @@ public static class UiStrings
     public static string Queue_NoRandomTrack =>
         ResourceManager.GetString("Queue_NoRandomTrack", Culture)!;
 
-    public static string Queue_CutoffPaused =>
-        ResourceManager.GetString("Queue_CutoffPaused", Culture)!;
+    public static string Queue_PlaylistHaltsAtCutoffPaused =>
+        ResourceManager.GetString("Queue_PlaylistHaltsAtCutoffPaused", Culture)!;
 
     public static string Queue_ItemAlreadyGone =>
         ResourceManager.GetString("Queue_ItemAlreadyGone", Culture)!;
@@ -692,6 +692,18 @@ public static class UiStrings
 
     public static string Dialog_CharacterCountFormat =>
         ResourceManager.GetString("Dialog_CharacterCountFormat", Culture)!;
+
+    public static string Dialog_JsonFiles =>
+        ResourceManager.GetString("Dialog_JsonFiles", Culture)!;
+
+    public static string Dialog_TextFiles =>
+        ResourceManager.GetString("Dialog_TextFiles", Culture)!;
+
+    public static string Dialog_HtmlFiles =>
+        ResourceManager.GetString("Dialog_HtmlFiles", Culture)!;
+
+    public static string Dialog_CsvFiles =>
+        ResourceManager.GetString("Dialog_CsvFiles", Culture)!;
 
     // App
     public static string App_ExitTitle =>

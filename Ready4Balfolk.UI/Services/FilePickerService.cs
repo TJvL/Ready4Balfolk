@@ -11,30 +11,6 @@ namespace Ready4Balfolk.UI.Services;
 /// <summary>The desktop's own pickers, asked through the window they belong to.</summary>
 public sealed class FilePickerService : IFilePickerService
 {
-    private static readonly FilePickerFileType Json = new("JSON files")
-    {
-        Patterns = ["*.json"],
-        MimeTypes = ["application/json"]
-    };
-
-    private static readonly FilePickerFileType Text = new("Text files")
-    {
-        Patterns = ["*.txt"],
-        MimeTypes = ["text/plain"]
-    };
-
-    private static readonly FilePickerFileType Html = new("Web page (*.html)")
-    {
-        Patterns = ["*.html"],
-        MimeTypes = ["text/html"]
-    };
-
-    private static readonly FilePickerFileType Csv = new("Comma separated values (*.csv)")
-    {
-        Patterns = ["*.csv"],
-        MimeTypes = ["text/csv"]
-    };
-
     private Window? _owner;
 
     /// <summary>The window a picker belongs to, handed over once the main window exists.</summary>
@@ -94,15 +70,25 @@ public sealed class FilePickerService : IFilePickerService
     /// <remarks>
     /// Audio is whatever BASS loaded support for rather than a list written here, so a build whose
     /// FLAC plugin did not load does not offer files it cannot then play.
+    ///
+    /// Every filter is made when a picker opens rather than once for the life of the application:
+    /// its name is read out in the language the application is in, and that can change while the
+    /// application runs.
     /// </remarks>
     private static IReadOnlyList<FilePickerFileType>? FiltersFor(FileKind kind) => kind switch
     {
-        FileKind.Json => [Json],
-        FileKind.Text => [Text],
-        FileKind.Html => [Html],
-        FileKind.Csv => [Csv],
+        FileKind.Json => [Named(UiStrings.Dialog_JsonFiles, "*.json", "application/json")],
+        FileKind.Text => [Named(UiStrings.Dialog_TextFiles, "*.txt", "text/plain")],
+        FileKind.Html => [Named(UiStrings.Dialog_HtmlFiles, "*.html", "text/html")],
+        FileKind.Csv => [Named(UiStrings.Dialog_CsvFiles, "*.csv", "text/csv")],
         FileKind.Audio => [AudioFiles()],
         _ => null
+    };
+
+    private static FilePickerFileType Named(string name, string pattern, string mimeType) => new(name)
+    {
+        Patterns = [pattern],
+        MimeTypes = [mimeType]
     };
 
     private static FilePickerFileType AudioFiles() => new(UiStrings.Settings_EndOfNightAudioFiles)

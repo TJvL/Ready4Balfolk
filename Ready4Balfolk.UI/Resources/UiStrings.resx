@@ -330,8 +330,8 @@
   <data name="Queue_NoRandomTrack" xml:space="preserve">
     <value>No tracks to pick from</value>
   </data>
-  <data name="Queue_CutoffPaused" xml:space="preserve">
-    <value>limit paused for the stop</value>
+  <data name="Queue_PlaylistHaltsAtCutoffPaused" xml:space="preserve">
+    <value>Playlist halts at: {0} - limit paused for the stop</value>
   </data>
   <data name="Queue_ItemAlreadyGone" xml:space="preserve">
     <value>That row had already left the queue</value>
@@ -795,6 +795,18 @@
   </data>
   <data name="Dialog_CharacterCountFormat" xml:space="preserve">
     <value>{0}/60</value>
+  </data>
+  <data name="Dialog_JsonFiles" xml:space="preserve">
+    <value>JSON files</value>
+  </data>
+  <data name="Dialog_TextFiles" xml:space="preserve">
+    <value>Text files</value>
+  </data>
+  <data name="Dialog_HtmlFiles" xml:space="preserve">
+    <value>Web page (*.html)</value>
+  </data>
+  <data name="Dialog_CsvFiles" xml:space="preserve">
+    <value>Comma separated values (*.csv)</value>
   </data>
 
   <!-- App -->

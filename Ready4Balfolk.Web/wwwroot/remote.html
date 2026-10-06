@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#191919">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Ready4Balfolk remote</title>
+  <!-- The title and the labels below are worded by remote.js, in the app's language, once it
+       knows which that is. -->
+  <title>Ready4Balfolk</title>
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
@@ -17,7 +19,7 @@
       <h1 id="gateTitle"></h1>
       <p id="gateHint"></p>
       <input id="pin" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6"
-             autocomplete="one-time-code" aria-label="PIN">
+             autocomplete="one-time-code">
       <button type="submit" id="gateButton"></button>
       <div class="error" id="gateError" role="alert"></div>
     </form>
@@ -95,9 +97,9 @@
         <div class="stepper">
           <span id="delayLengthLabel"></span>
           <div class="grp">
-            <button type="button" data-act="delay-down" aria-label="-15">&minus;</button>
+            <button type="button" id="delayDown" data-act="delay-down">&minus;</button>
             <span class="val" id="delayValue">30s</span>
-            <button type="button" data-act="delay-up" aria-label="+15">+</button>
+            <button type="button" id="delayUp" data-act="delay-up">+</button>
           </div>
         </div>
 
@@ -126,7 +128,7 @@
       <section class="pane" data-pane="find">
         <div class="search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input id="search" type="search" enterkeyhint="search" aria-label="Search">
+          <input id="search" type="search" enterkeyhint="search">
         </div>
         <div class="hits" id="hits"></div>
       </section>

@@ -14,6 +14,7 @@ using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.Web;
+using Ready4Balfolk.Web.Contracts;
 using Ready4Balfolk.Web.Hubs;
 using Ready4Balfolk.Web.Security;
 
@@ -281,7 +282,7 @@ public sealed class RemoteHubTests : IDisposable
         var result = await _sut.QueueMessage("   ");
 
         Assert.False(result.Accepted);
-        Assert.NotNull(result.Reason);
+        Assert.Equal(RemoteRefusal.MessageEmpty, result.Refusal);
         _queueService.DidNotReceive().Enqueue(Arg.Any<IQueueItem>());
     }
 
@@ -312,7 +313,7 @@ public sealed class RemoteHubTests : IDisposable
         var result = await _sut.QueueMessage(new string('a', 61));
 
         Assert.False(result.Accepted);
-        Assert.NotNull(result.Reason);
+        Assert.Equal(RemoteRefusal.MessageTooLong, result.Refusal);
         _queueService.DidNotReceive().Enqueue(Arg.Any<IQueueItem>());
     }
 
@@ -323,7 +324,7 @@ public sealed class RemoteHubTests : IDisposable
         var result = await _sut.QueueTrack("/music/gone.mp3");
 
         Assert.False(result.Accepted);
-        Assert.NotNull(result.Reason);
+        Assert.Equal(RemoteRefusal.TrackGone, result.Refusal);
     }
 
     [Fact]
@@ -397,7 +398,7 @@ public sealed class RemoteHubTests : IDisposable
         var result = await _sut.QueueEndOfNight();
 
         Assert.False(result.Accepted);
-        Assert.NotNull(result.Reason);
+        Assert.Equal(RemoteRefusal.NoEndOfNightAudio, result.Refusal);
         _queueService.DidNotReceive().Enqueue(Arg.Any<IQueueItem>());
     }
 
@@ -409,7 +410,7 @@ public sealed class RemoteHubTests : IDisposable
         var result = await _sut.QueueRandom();
 
         Assert.False(result.Accepted);
-        Assert.NotNull(result.Reason);
+        Assert.Equal(RemoteRefusal.NoTrackToPick, result.Refusal);
     }
 
     [Fact]
@@ -424,6 +425,22 @@ public sealed class RemoteHubTests : IDisposable
 
         Assert.False(result.Accepted);
         Assert.Equal("The queue would run past the cutoff", result.Reason);
+        Assert.Null(result.Refusal);
+    }
+
+    /// <summary>
+    /// The hub's own refusals are a code the phone page words, never words written here: those were
+    /// English, and a Dutch phone read them between the queue guard's Dutch ones.
+    /// </summary>
+    [Fact]
+    public async Task TheHubsOwnRefusal_IsACodeRatherThanWords()
+    {
+        var result = await _sut.QueueMessage("   ");
+
+        Assert.False(result.Accepted);
+        Assert.False(result.QueueChanged);
+        Assert.Null(result.Reason);
+        Assert.NotNull(result.Refusal);
     }
 
     // --- Rearranging ---
@@ -462,7 +479,7 @@ public sealed class RemoteHubTests : IDisposable
 
         Assert.False(result.Accepted);
         Assert.False(result.QueueChanged);
-        Assert.NotNull(result.Reason);
+        Assert.Equal(RemoteRefusal.CannotMoveUp, result.Refusal);
     }
 
     [Fact]
@@ -487,7 +504,7 @@ public sealed class RemoteHubTests : IDisposable
 
         Assert.False(result.Accepted);
         Assert.False(result.QueueChanged);
-        Assert.NotNull(result.Reason);
+        Assert.Equal(RemoteRefusal.CannotMoveDown, result.Refusal);
     }
 
     [Fact]

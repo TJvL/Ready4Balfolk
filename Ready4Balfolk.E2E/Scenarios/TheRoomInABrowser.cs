@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Microsoft.Playwright;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.E2E.Scenarios;
@@ -866,6 +867,50 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
                 UiStrings.Queue_EndOfNightMarker,
                 application.RowsOf("queue.items")[3],
                 StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>A helper on a Dutch evening is told no in Dutch, by the phone as well as the rules.</summary>
+    /// <remarks>
+    /// World: a library of one dance, the application in Dutch, the server and the remote on, and no
+    /// end-of-the-night audio chosen at the computer.
+    /// Steps: unlock the remote, move to the tab that adds, and tap the button that ends the night.
+    /// Sees: the page's title in Dutch, and the refusal in Dutch. Nothing at the computer answers
+    /// that tap, the phone's own refusal does, and it used to be English text written in the hub.
+    /// </remarks>
+    [Fact]
+    public async Task HelperOnADutchEveningIsToldNoInDutch()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "141421")
+            .WithSettings(settings => settings with
+            {
+                ApplicationLanguage = ApplicationLanguage.Dutch,
+                AutoQueueRandomTrack = false
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "141421");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            await phone.Page.Locator("[data-tab='add']").ClickAsync();
+            await phone.Page.Locator("[data-act='endofnight']").ClickAsync();
+
+            await phone.WaitUntilItReads("toast", "Er is op de computer nog geen slotmuziek gekozen");
+            Assert.Empty(application.RowsOf("queue.items"));
+
+            Assert.Equal("Ready4Balfolk-afstandsbediening", await phone.Page.TitleAsync());
         });
     }
 
