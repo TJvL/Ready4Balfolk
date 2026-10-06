@@ -81,6 +81,11 @@ public static class ApplicationComposition
                     ApplicationLanguage.Dutch => new CultureInfo("nl"),
                     _ => new CultureInfo("en")
                 };
+                // The UI culture only, on purpose. CurrentCulture stays the machine's, because it is
+                // also every number, separator and sort order in the process, and the DJ's regional
+                // settings are theirs to keep whatever language the words are in. What does follow
+                // the language is a day or month written as a name: those sites format with
+                // ApplicationCulture, so they cannot read "Sat 3 Oct" in a Dutch sentence.
                 Thread.CurrentThread.CurrentUICulture = culture;
                 CultureInfo.DefaultThreadCurrentUICulture = culture;
 

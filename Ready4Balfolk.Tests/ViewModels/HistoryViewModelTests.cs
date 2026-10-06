@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
@@ -5,6 +6,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.History;
 
@@ -258,6 +260,21 @@ public sealed class HistoryViewModelTests : IDisposable
         _sut.DeleteNightCommand.Execute().Subscribe();
 
         _historyStore.DidNotReceive().DeleteNightAsync(Arg.Any<long>());
+    }
+
+    [Theory]
+    [InlineData("en-US", "nl")]
+    [InlineData("nl-NL", "en")]
+    public void NightOption_NamesTheDayInTheApplicationsLanguage(string machine, string application)
+    {
+        using var cultures = new CultureScope(machine, application);
+        var startedAt = new DateTime(2026, 10, 3, 20, 30, 0, DateTimeKind.Local);
+
+        var option = NightOption.For(new NightSummary(7, startedAt, startedAt.AddHours(4), 30));
+
+        // "Sat 3 Oct" in the middle of a Dutch sentence was the Dutch application on an English laptop.
+        Assert.Contains(startedAt.ToString("ddd d MMM", CultureInfo.GetCultureInfo(application)), option.Label, StringComparison.Ordinal);
+        Assert.DoesNotContain(startedAt.ToString("ddd d MMM", CultureInfo.GetCultureInfo(machine)), option.Label, StringComparison.Ordinal);
     }
 
     private static readonly DateTime Yesterday = DateTime.Now.AddDays(-1);
