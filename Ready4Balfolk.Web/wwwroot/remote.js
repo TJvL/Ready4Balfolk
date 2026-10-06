@@ -366,6 +366,7 @@
     id("gate").classList.add("is-hidden");
     id("app").classList.remove("is-hidden");
     text("gateError", "");
+    text("link", "");
     text("delayValue", delaySeconds + "s");
     runSearch();
   }
@@ -393,34 +394,52 @@
   function connectAgainLater(token, lost) {
     window.setTimeout(function () {
       if (connection !== lost) return;
-      connect(token).then(
-        function () { text("link", ""); },
-        function () { connectAgainLater(token, connection); });
+      var attempt = connect(token);
+      var mine = connection;
+      attempt.then(
+        function () { if (connection === mine) text("link", ""); },
+        function () { connectAgainLater(token, mine); });
     }, 3000);
   }
 
+  /* One page, one connection. Whatever came before is stopped here, so a Connect pressed twice or a
+     PIN typed while the page-load connect is still on its way does not leave two sockets drawing
+     into one page. Stopping a connection runs its own handlers, and one that was turned out closes
+     after the page has moved on, so every handler first asks whether its connection is still the
+     page's. One that is not says nothing: otherwise a remote working on the new connection goes on
+     reading "Connection lost" in its header. */
   function connect(token) {
+    var previous = connection;
     var mine = new signalR.HubConnectionBuilder()
       .withUrl("/hubs/remote?access_token=" + encodeURIComponent(token))
       .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
       .build();
     connection = mine;
 
-    connection.on("snapshot", function (snapshot) {
+    if (previous) previous.stop().catch(function () { });
+
+    function whileCurrent(handler) {
+      return function () {
+        if (connection !== mine) return;
+        handler.apply(null, arguments);
+      };
+    }
+
+    mine.on("snapshot", whileCurrent(function (snapshot) {
       showRemote();
       renderSnapshot(snapshot);
-    });
-    connection.on("queue", renderQueue);
-    connection.on("turnedOut", askForThePinAgain);
+    }));
+    mine.on("queue", whileCurrent(renderQueue));
+    mine.on("turnedOut", whileCurrent(askForThePinAgain));
 
-    connection.onreconnecting(function () { text("link", t("reconnecting")); });
-    connection.onreconnected(function () { text("link", ""); });
-    connection.onclose(function () {
+    mine.onreconnecting(whileCurrent(function () { text("link", t("reconnecting")); }));
+    mine.onreconnected(whileCurrent(function () { text("link", ""); }));
+    mine.onclose(whileCurrent(function () {
       text("link", t("connectionLost"));
-      if (connection === mine) connectAgainLater(token, mine);
-    });
+      connectAgainLater(token, mine);
+    }));
 
-    return connection.start();
+    return mine.start();
   }
 
   function wireGate() {
@@ -474,7 +493,12 @@
     var saved = null;
     try { saved = window.localStorage.getItem("r4b-token"); } catch (e) { saved = null; }
     if (saved) {
-      connect(saved).catch(function () {
+      /* Only a connect that is still the page's own speaks for the saved token. One stopped because
+         the PIN was entered meanwhile fails too, and by then the token in storage is the new one. */
+      var attempt = connect(saved);
+      var mine = connection;
+      attempt.catch(function () {
+        if (connection !== mine) return;
         try { window.localStorage.removeItem("r4b-token"); } catch (e) { /* ignore */ }
       });
     }
