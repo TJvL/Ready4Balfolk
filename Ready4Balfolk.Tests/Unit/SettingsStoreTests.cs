@@ -213,6 +213,25 @@ public sealed class SettingsStoreTests
         Assert.True(fileSystem.File.Exists(SettingsPathIn(fileSystem)));
     }
 
+    /// <summary>A number where an enum member belongs is read as an unknown member, not cast to one.</summary>
+    /// <remarks>
+    /// <c>Enum.TryParse</c> takes "7" and hands back a <see cref="TagField"/> no member carries, and
+    /// a tag trust list holding one stopped every file in the library being read.
+    /// </remarks>
+    [Fact]
+    public void Current_NumberForAnEnumMember_IsReadAsTheFirstMember()
+    {
+        var fileSystem = new MockFileSystem();
+        fileSystem.Directory.CreateDirectory(Root);
+        fileSystem.File.WriteAllText(
+            SettingsPathIn(fileSystem),
+            """{"DiscoveryOrNull":{"UsesTagTrust":true,"TagTrust":{"Dance":["7","Album"]}}}""");
+
+        var (store, _) = Create(fileSystem);
+
+        Assert.Equal([TagField.Title, TagField.Album], store.Current.Discovery.TagTrust.Dance!);
+    }
+
     /// <summary>A field written by some other build is skipped rather than taken as corruption.</summary>
     [Fact]
     public void Current_UnknownField_KeepsTheRestOfTheFile()
