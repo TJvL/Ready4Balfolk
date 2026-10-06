@@ -7,10 +7,7 @@
     current: document.querySelector('[data-when="current"]'),
     idle: document.getElementById("idle"),
     primary: document.getElementById("primary"),
-    sub: document.getElementById("sub"),
-    artist: document.getElementById("artist"),
-    dash: document.getElementById("dash"),
-    title: document.getElementById("title"),
+    track: document.getElementById("track"),
     mid: document.getElementById("mid"),
     bar: document.getElementById("bar"),
     remaining: document.getElementById("remaining"),
@@ -18,22 +15,26 @@
     nextIdle: document.getElementById("nextIdle"),
     nextLabel: document.getElementById("nextLabel"),
     nextPrimary: document.getElementById("nextPrimary"),
-    nextSub: document.getElementById("nextSub"),
-    nextArtist: document.getElementById("nextArtist"),
-    nextDash: document.getElementById("nextDash"),
-    nextTitle: document.getElementById("nextTitle"),
+    nextTrack: document.getElementById("nextTrack"),
     behind: document.querySelector('[data-when="behind"]'),
     behindLabel: document.getElementById("behindLabel"),
     behindPrimary: document.getElementById("behindPrimary"),
-    behindSub: document.getElementById("behindSub"),
-    behindArtist: document.getElementById("behindArtist"),
-    behindDash: document.getElementById("behindDash"),
-    behindTitle: document.getElementById("behindTitle"),
+    behindTrack: document.getElementById("behindTrack"),
     lost: document.getElementById("lost")
   };
 
   function show(node, visible) {
     node.classList.toggle("is-hidden", !visible);
+  }
+
+  /* The line under a dance, hidden when there is nothing to put on it so it takes no room. */
+  function line(node, text) {
+    node.textContent = text;
+    show(node, text.length > 0);
+  }
+
+  function trackLineOf(item) {
+    return item.kind === "Track" ? window.R4B.trackLine(item.artist, item.title) : "";
   }
 
   function applyStaticText() {
@@ -56,10 +57,7 @@
 
     if (hasCurrent) {
       el.primary.textContent = window.R4B.primaryLabel(current);
-      show(el.sub, current.kind === "Track" && current.artist.length > 0);
-      el.artist.textContent = current.artist;
-      el.title.textContent = current.title;
-      show(el.dash, current.title.length > 0);
+      line(el.track, trackLineOf(current));
 
       var duration = snapshot.durationSeconds;
       var elapsed = snapshot.elapsedSeconds;
@@ -77,10 +75,7 @@
       // for how long, since there is no countdown bar under it yet to say so instead.
       var isMessage = next.kind === "Message";
       el.nextPrimary.textContent = window.R4B.nextLabel(next);
-      el.nextArtist.textContent = isMessage ? next.primary : next.artist;
-      el.nextTitle.textContent = isMessage ? "" : next.title;
-      show(el.nextSub, isMessage || (next.kind === "Track" && next.artist.length > 0));
-      show(el.nextDash, !isMessage && next.title.length > 0);
+      line(el.nextTrack, isMessage ? next.primary || "" : trackLineOf(next));
     }
 
     // The dance the pause is for. A delay or a stop is often queued so the room can make lines or
@@ -92,10 +87,7 @@
 
     if (hasBehind) {
       el.behindPrimary.textContent = window.R4B.primaryLabel(behind);
-      el.behindArtist.textContent = behind.artist;
-      el.behindTitle.textContent = behind.title;
-      show(el.behindSub, behind.artist.length > 0);
-      show(el.behindDash, behind.title.length > 0);
+      line(el.behindTrack, trackLineOf(behind));
     }
   }
 

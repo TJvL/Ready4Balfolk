@@ -40,8 +40,8 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
             application.Click("playback.skip");
 
-            await projector.WaitUntilItReads("title", "Salamandre");
-            await projector.WaitUntilItReads("nextTitle", "La Belle");
+            await projector.WaitUntilItReads("track", "Salamandre");
+            await projector.WaitUntilItReads("nextTrack", "La Belle");
         });
     }
 
@@ -418,11 +418,11 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
             application.Click("playback.skip");
 
-            await projector.WaitUntilItReads("title", "Salamandre");
+            await projector.WaitUntilItReads("track", "Salamandre");
 
             application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
 
-            await projector.WaitUntilItReads("nextTitle", "La Belle");
+            await projector.WaitUntilItReads("nextTrack", "La Belle");
         });
     }
 
@@ -455,7 +455,7 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
             application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
             application.Click("playback.skip");
 
-            await projector.WaitUntilItReads("title", "Salamandre");
+            await projector.WaitUntilItReads("track", "Salamandre");
 
             application.Click("toolbar.settings");
 
