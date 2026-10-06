@@ -326,6 +326,23 @@ public sealed class QueueHistoryStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task AddAsync_WhenTheLogFailsToo_StillPutsTheEntryOnScreen()
+    {
+        // A full disk refuses the log as well as the database, since both live in the same folder.
+        // The error log used to be awaited, so its failure left AddAsync and stopped the queue.
+        var logger = Substitute.For<ILoggerService>();
+        logger.ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>())
+            .Returns(Task.FromException(new IOException("No space left on device")));
+        _fileSystem.Directory.CreateDirectory(Path.Combine(_tempDir.FullName, "history.sqlite"));
+        using var store = new QueueHistoryStore(_directory, _fileSystem, logger, TimeProvider.System);
+
+        await store.AddAsync(Track());
+
+        Assert.Single(store.Current.Entries);
+        await logger.Received(1).ErrorAsync("Failed to write a history entry", Arg.Any<SqliteException>());
+    }
+
+    [Fact]
     public async Task Observe_EmitsOnAdd()
     {
         var emissions = new List<QueueHistory>();

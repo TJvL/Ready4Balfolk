@@ -88,6 +88,21 @@ public sealed class FileLoggerServiceTests : IDisposable
         Assert.Contains(path, onDisk, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task ErrorAsync_WhenTheLogCannotBeWritten_StillTellsTheScreenAndDoesNotThrow()
+    {
+        // A folder where the file should be refuses the write the way a full or locked disk does.
+        _directory.Create();
+        Directory.CreateDirectory(Path.Combine(_directory.FullName, "app.log"));
+        using var logger = new FileLoggerService(_directory);
+        var shown = new List<LogEntry>();
+        using var subscription = logger.WhenErrorLogged.Subscribe(shown.Add);
+
+        await logger.ErrorAsync("Failed to write a history entry", new IOException("No space left on device"));
+
+        Assert.Equal("Failed to write a history entry", Assert.Single(shown).Message);
+    }
+
     /// <summary>A logger built on a fake file system must never fall back to the real disk.</summary>
     /// <remarks>
     /// The constructor takes the directory apart to build <c>_logFile</c>, but a write that goes

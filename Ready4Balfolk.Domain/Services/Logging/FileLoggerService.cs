@@ -99,6 +99,12 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
     private static async Task<string> ReadOrEmptyAsync(IFileInfo file) =>
         file.Exists ? await file.FileSystem.File.ReadAllTextAsync(file.FullName) : "";
 
+    /// <remarks>
+    /// A write that fails is dropped rather than thrown. The log has nowhere to report its own
+    /// failure, and its callers are mostly on the way out of something else that failed: a disk
+    /// that refuses the line is the same disk that refused whatever they were logging, and a throw
+    /// from here would take down the code that was only trying to say so.
+    /// </remarks>
     private async Task WriteLineAsync(string line)
     {
         await _semaphore.WaitAsync();
@@ -115,6 +121,9 @@ public sealed class FileLoggerService : ILoggerService, IDisposable
             }
 
             await _logFile.FileSystem.File.AppendAllTextAsync(_logFile.FullName, line);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
         }
         finally
         {
