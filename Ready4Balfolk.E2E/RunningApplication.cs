@@ -270,6 +270,21 @@ public sealed class RunningApplication : IAsyncDisposable
         return ControlAutomationPeer.CreatePeerForElement(control).GetName() ?? string.Empty;
     }
 
+    /// <summary>Whether a screen reader is told when the thing with this automation id changes.</summary>
+    /// <remarks>
+    /// Off for anything that is not a live region, which is a change nobody looking elsewhere hears.
+    /// Asked of the peer for the same reason as <see cref="NameOf(Control)"/>.
+    /// </remarks>
+    public AutomationLiveSetting LiveSettingOf(string automationId) => LiveSettingOf(Find(automationId));
+
+    /// <summary>Whether a screen reader is told when this control changes.</summary>
+    public static AutomationLiveSetting LiveSettingOf(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+
+        return ControlAutomationPeer.CreatePeerForElement(control).GetLiveSetting();
+    }
+
     /// <summary>Gives a control the keyboard, and fails if it will not take it.</summary>
     /// <remarks>
     /// Where Tab would leave it. A control that refuses focus simply returns false here rather

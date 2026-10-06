@@ -10,6 +10,7 @@ using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Discovery;
 using Ready4Balfolk.UI.Views.Review;
@@ -568,6 +569,7 @@ public sealed class ReviewViewModelTests : IDisposable
         await _sut.ApproveFolderCommand.Execute(complete);
 
         Assert.Equal(before + 1, missing.RejectedCount);
+        Assert.Equal(UiStrings.Review_RefusedIncomplete, missing.WhyNot());
     }
 
     [Fact]
@@ -652,6 +654,7 @@ public sealed class ReviewViewModelTests : IDisposable
 
         Assert.Equal(written, _approved.Count);
         Assert.Equal(1, row.RejectedCount);
+        Assert.Equal(UiStrings.Review_RefusedAlreadyAnswered, row.WhyNot());
         await _trackStore.DidNotReceive().RefreshLibraryAsync(Arg.Any<CancellationToken>());
     }
 

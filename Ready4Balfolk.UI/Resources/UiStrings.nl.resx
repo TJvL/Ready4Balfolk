@@ -738,6 +738,9 @@
   <data name="App_ExitTitle" xml:space="preserve">
     <value>Afsluiten</value>
   </data>
+  <data name="App_Loading" xml:space="preserve">
+    <value>Bezig met laden</value>
+  </data>
   <data name="App_ExitMessage" xml:space="preserve">
     <value>Weet u zeker dat u wilt afsluiten?</value>
   </data>
@@ -1277,6 +1280,15 @@
   <data name="Review_ParkedOnUnknownDance" xml:space="preserve">
     <value>wacht op de lijst</value>
   </data>
+  <data name="Review_RefusedAlreadyAnswered" xml:space="preserve">
+    <value>Al beantwoord. Ctrl+Z neemt het terug.</value>
+  </data>
+  <data name="Review_RefusedIncomplete" xml:space="preserve">
+    <value>Niet beantwoord: er zijn een dans, een artiest en een titel nodig.</value>
+  </data>
+  <data name="Review_RefusedLoose" xml:space="preserve">
+    <value>Niet in een map, dus er is geen map om te beantwoorden. Enter beantwoordt dit nummer los.</value>
+  </data>
   <data name="Review_UnknownDanceHint" xml:space="preserve">
     <value>De dansenlijst is gedeeld, dus een ontbrekende dans is een voorstel bij BigBalfolkList en niet iets om hier toe te voegen. Je antwoord blijft bewaard en het nummer gaat de bibliotheek in zodra de lijst de naam kent.</value>
   </data>
@@ -1321,6 +1333,9 @@
   </data>
   <data name="Toolbar_ReviewCount" xml:space="preserve">
     <value>{0} nummers wachten</value>
+  </data>
+  <data name="Toolbar_ReviewNameWaiting" xml:space="preserve">
+    <value>Nakijken, {0}</value>
   </data>
   <data name="Toolbar_UnavailableCount" xml:space="preserve">
     <value>{0} nummers onbereikbaar</value>

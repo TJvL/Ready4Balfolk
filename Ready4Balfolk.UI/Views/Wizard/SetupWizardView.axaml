@@ -14,8 +14,20 @@
          they need. -->
     <DockPanel Margin="24">
         <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,20">
-            <TextBlock Text="{CompiledBinding ProgressText}" FontSize="12" Opacity="0.6" />
-            <TextBlock Text="{CompiledBinding CurrentStep.Title}" FontSize="26" FontWeight="Bold" />
+            <!-- Live regions: Continue moves the wizard on and leaves the keyboard on Continue, so
+                 nothing the keyboard is on says that the step changed or which one this is. The
+                 explanation is not one: it is a paragraph, and it is there to be read when asked
+                 for rather than recited at every step. -->
+            <TextBlock Text="{CompiledBinding ProgressText}"
+                       AutomationProperties.AutomationId="wizard.progress"
+                       AutomationProperties.LiveSetting="Polite"
+                       FontSize="12"
+                       Opacity="0.6" />
+            <TextBlock Text="{CompiledBinding CurrentStep.Title}"
+                       AutomationProperties.AutomationId="wizard.title"
+                       AutomationProperties.LiveSetting="Polite"
+                       FontSize="26"
+                       FontWeight="Bold" />
             <TextBlock Text="{CompiledBinding CurrentStep.Explanation}"
                        TextWrapping="Wrap"
                        Opacity="0.8"
@@ -29,8 +41,11 @@
                     HorizontalAlignment="Right"
                     Spacing="8"
                     Margin="0,20,0,0">
+            <!-- A live region too: this is why Continue does nothing, and pressing Continue is
+                 exactly when somebody who cannot see it needs telling. -->
             <TextBlock Text="{CompiledBinding BlockedReason}"
                        AutomationProperties.AutomationId="wizard.blocked"
+                       AutomationProperties.LiveSetting="Polite"
                        IsVisible="{CompiledBinding IsBlocked}"
                        VerticalAlignment="Center"
                        Opacity="0.7"

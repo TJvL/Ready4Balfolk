@@ -154,6 +154,131 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
         });
     }
 
+    /// <summary>The helper skips from the keyboard, and a tap still does not.</summary>
+    /// <remarks>
+    /// World: a library of two dances, the first of them long enough not to end by itself while
+    /// the scenario runs, the server and the remote on, and auto queue off.
+    /// Steps: unlock the remote, start the evening at the desktop, tap the skip button, then put
+    /// the keyboard on it and press Enter.
+    /// Sees: the tap doing nothing and Enter moving the desktop on. The hold only ever listened to
+    /// a pointer, so Enter, Space and a screen reader's double tap, which lets go at once, could
+    /// not skip at all. None of them is a pocket press, which is all the hold is there to stop.
+    /// </remarks>
+    [Fact]
+    public async Task HelperSkipsFromTheKeyboardButNotWithATap()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre", sourceMedia: "seek-test.mp3")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "246813")
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "246813");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.track").Contains("Salamandre", StringComparison.Ordinal),
+                "the first dance to start");
+
+            await phone.WaitUntilItReads("nowPrimary", "Mazurka");
+
+            // A tap, which is what a pocket does. Given time to arrive, since what is asked is that
+            // it never does.
+            await phone.Tap("skip");
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            Assert.Contains("Salamandre", application.TextOf("playback.track"), StringComparison.Ordinal);
+
+            await phone.Page.Locator("#skip").PressAsync("Enter");
+
+            await application.WaitUntil(
+                () => application.TextOf("playback.track").Contains("La Belle", StringComparison.Ordinal),
+                "the desktop to move on to what the keyboard skipped to");
+        });
+    }
+
+    /// <summary>The queue on the phone is worked from the keyboard without losing its place.</summary>
+    /// <remarks>
+    /// World: a library of two dances, both queued at the desktop, the server and the remote on.
+    /// Steps: unlock the remote, open the queue tab, open the second row with Enter and move it up
+    /// with Enter.
+    /// Sees: the tab naming the pane it opens and the pane saying it is one, the row saying it is
+    /// open, and the keyboard still on that row after the computer has pushed the new order back.
+    /// Every push draws the list again, so the button the keyboard was on used to be thrown away
+    /// under it, and a screen reader went back to the top of the page.
+    /// </remarks>
+    [Fact]
+    public async Task HelperWorksTheQueueFromTheKeyboardWithoutLosingTheirPlace()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "975310")
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "975310");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            var tab = phone.Page.Locator("[data-tab='queue']");
+            var pane = await tab.GetAttributeAsync("aria-controls");
+            Assert.False(string.IsNullOrEmpty(pane), "The queue tab does not say which pane it opens.");
+            Assert.Equal("tabpanel", await phone.Page.Locator($"#{pane}").GetAttributeAsync("role"));
+
+            await tab.PressAsync("Enter");
+
+            var row = phone.Page.Locator("#queueList .qrow")
+                .Filter(new LocatorFilterOptions { HasTextString = "La Belle" });
+            await row.Locator(".qmain").PressAsync("Enter");
+
+            Assert.Equal("true", await row.Locator(".qmain").GetAttributeAsync("aria-expanded"));
+
+            await row.Locator("[data-move='up']").PressAsync("Enter");
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items")[0].Contains("La Belle", StringComparison.Ordinal),
+                "the dance the phone moved up to be first");
+
+            await phone.Page.Locator("#queueList .qrow").First
+                .Filter(new LocatorFilterOptions { HasTextString = "La Belle" })
+                .WaitForAsync(new LocatorWaitForOptions { Timeout = 10_000 });
+
+            // On the row it moved, wherever that row went. Its up button cannot be pressed now it
+            // is at the top, so the keyboard is on the row's own toggle instead.
+            var focusedRow = await phone.Page.EvaluateAsync<string>(
+                "() => { var row = document.activeElement && document.activeElement.closest('.qrow'); return row ? row.textContent : ''; }");
+            Assert.Contains("La Belle", focusedRow, StringComparison.Ordinal);
+        });
+    }
+
     /// <summary>A phone guessing the PIN is turned away, and then stopped from guessing.</summary>
     /// <remarks>
     /// World: a library of one dance, the server on, and the remote on with a PIN.

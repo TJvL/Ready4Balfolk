@@ -1,4 +1,5 @@
 using System.Globalization;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Ready4Balfolk.UI.Resources;
@@ -581,6 +582,114 @@ public sealed class DrivingItWithoutAMouse(HeadlessSession session)
             await application.WaitUntil(
                 () => world.SettingsOnDisk().GapBetweenTracksEnabled,
                 "the tick to be written down");
+        });
+    }
+
+    /// <summary>The review button says how many tracks are waiting, and review says what it did.</summary>
+    /// <remarks>
+    /// World: two tracks carrying a dance the published list does not know, so both are waiting
+    /// for a person.
+    /// Steps: read the review button's name, open review, answer the first row with Enter, step
+    /// back up to it and press Enter again.
+    /// Sees: the count in the button's name, the summary and the answered row's status as live
+    /// regions, and the refused second Enter saying why, out loud. The count is a badge beside the
+    /// label and the refusal is a flash, so without these the one says nothing and the other is a
+    /// keystroke that reads as never having arrived.
+    /// </remarks>
+    [Fact]
+    public async Task TheReviewButtonCountsWhatIsWaitingAndReviewSaysWhatItDid()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Scottiche", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Scottiche", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .Save();
+
+        var waiting = string.Format(
+            CultureInfo.CurrentCulture,
+            UiStrings.Toolbar_ReviewNameWaiting,
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Toolbar_ReviewCount, 2));
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.NameOf("toolbar.review") == waiting,
+                "the review button to say how many tracks are waiting");
+
+            application.Click("toolbar.review");
+
+            await application.WaitUntil(
+                () => application.RowsOf("review.rows").Count == 2,
+                "both tracks to be waiting for a person");
+
+            Assert.Equal(AutomationLiveSetting.Polite, application.LiveSettingOf("review.summary"));
+
+            // The top row, which is the one the queue opens on and so the one Enter answers.
+            var first = application.Rows("review.rows")[0];
+            application.GiveTheKeyboardTo(RunningApplication.Within(first, "review.dance"));
+            application.Press(PhysicalKey.Enter);
+
+            await application.WaitUntil(
+                () => RunningApplication.Says(RunningApplication.Within(first, "review.status"))
+                    == UiStrings.Review_ParkedOnUnknownDance,
+                "the answered row to say where it now stands");
+
+            Assert.Equal(
+                AutomationLiveSetting.Polite,
+                RunningApplication.LiveSettingOf(RunningApplication.Within(first, "review.status")));
+
+            // Back to the row that has just been answered, and Enter on it again: an answered row
+            // is shut, so this one is refused.
+            application.Press(PhysicalKey.ArrowUp);
+            application.Press(PhysicalKey.Enter);
+
+            var refusal = RunningApplication.Within(first, "review.refusal");
+            Assert.Equal(AutomationLiveSetting.Assertive, RunningApplication.LiveSettingOf(refusal));
+
+            await application.WaitUntil(
+                () => RunningApplication.NameOf(refusal) == UiStrings.Review_RefusedAlreadyAnswered,
+                "the refusal to say why");
+        });
+    }
+
+    /// <summary>The first-run wizard says which step it is on, and why it will not go on.</summary>
+    /// <remarks>
+    /// World: a library of one dance and nothing set up yet.
+    /// Steps: walk the wizard with Continue to the step that asks how the library is arranged.
+    /// Sees: the step's place, its title and the reason it is blocked all as live regions. The
+    /// keyboard stays on Continue the whole way, so nothing it is on says that anything changed.
+    /// </remarks>
+    [Fact]
+    public async Task TheWizardSaysWhichStepItIsOnAndWhyItWillNotGoOn()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereNothingHasBeenSetUpYet()
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(() => application.IsShowing("wizard"), "the wizard to open");
+
+            Assert.Equal(AutomationLiveSetting.Polite, application.LiveSettingOf("wizard.progress"));
+            Assert.Equal(AutomationLiveSetting.Polite, application.LiveSettingOf("wizard.title"));
+
+            application.Click("wizard.continue");
+            application.Click("wizard.continue");
+
+            await application.WaitUntil(
+                () => application.IsShowing("wizard.browse"),
+                "the step that asks where the music is");
+
+            RunningApplication.TheDjWillPick(world.MusicDirectory.FullName);
+            application.Click("wizard.browse");
+            application.Click("wizard.continue");
+
+            await application.WaitUntil(
+                () => application.IsShowing("wizard.blocked"),
+                "the step that asks how the library is arranged to say why it will not go on");
+
+            Assert.Equal(AutomationLiveSetting.Polite, application.LiveSettingOf("wizard.blocked"));
         });
     }
 }

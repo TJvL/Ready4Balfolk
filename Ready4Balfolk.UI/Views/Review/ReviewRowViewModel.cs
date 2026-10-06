@@ -32,6 +32,7 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
     {
         _allDances = allDances;
         DanceMatches = [];
+        RefusalText = string.Empty;
         Track = track;
         IsFirstOfGroup = isFirstOfGroup;
         FileName = track.FileName;
@@ -182,6 +183,16 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
     /// </remarks>
     [Reactive] public partial bool IsRejected { get; private set; }
 
+    /// <summary>
+    /// Why the row just said no, for as long as it is saying it, and empty otherwise.
+    /// </summary>
+    /// <remarks>
+    /// The flash is for the eye and this is the same refusal for the ear: the row's live region
+    /// carries it as its name. It goes back to empty with the flash, so the next refusal is a change
+    /// a screen reader announces even when it is the same sentence as the last one.
+    /// </remarks>
+    [Reactive] public partial string RefusalText { get; private set; }
+
     /// <summary>How many times this row has been asked and said no.</summary>
     public int RejectedCount { get; private set; }
 
@@ -201,20 +212,43 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
         // pump to run it on: what is worth asserting is that the row was told to say no.
         RejectedCount++;
 
+        // Worded now rather than when the flash starts: the reason is about the press that was
+        // refused, and by the next pass of the dispatcher the row may already be something else.
+        var reason = WhyNot();
+
         _flashReset?.Dispose();
         _flashReset = null;
         IsRejected = false;
+        RefusalText = string.Empty;
 
         Dispatcher.UIThread.Post(
             () =>
             {
                 IsRejected = true;
+                RefusalText = reason;
                 _flashReset = Observable.Timer(TimeSpan.FromSeconds(1))
                     .ObserveOn(RxSchedulers.MainThreadScheduler)
-                    .Subscribe(_ => IsRejected = false);
+                    .Subscribe(_ =>
+                    {
+                        IsRejected = false;
+                        RefusalText = string.Empty;
+                    });
             },
             DispatcherPriority.Background);
     }
+
+    /// <summary>
+    /// What a refusal says, read off the row that refused.
+    /// </summary>
+    /// <remarks>
+    /// The three things that make a row say no: it has been answered already, it is missing one of
+    /// its three values, or it was asked to answer a folder while lying loose in the music directory,
+    /// where there is no folder to answer.
+    /// </remarks>
+    public string WhyNot() =>
+        IsApproved ? UiStrings.Review_RefusedAlreadyAnswered
+        : !CanApprove ? UiStrings.Review_RefusedIncomplete
+        : UiStrings.Review_RefusedLoose;
 
     /// <summary>
     /// The names the list holds that match what has been typed, and the one the keys are on.

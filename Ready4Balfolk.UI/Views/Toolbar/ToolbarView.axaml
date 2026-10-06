@@ -37,9 +37,11 @@
                                     IconSize="16" />
         </Button>
         <!-- Named here rather than by the label inside it: this button carries a count
-             beside its label, so the label is not the whole of its content. -->
+             beside its label, so the label is not the whole of its content. The count is in the
+             name as well, worded, because a badge with a number in it is otherwise something only
+             the eye is told. -->
         <Button AutomationProperties.AutomationId="toolbar.review"
-                AutomationProperties.Name="{x:Static res:UiStrings.Toolbar_ReviewLabel}"
+                AutomationProperties.Name="{Binding ReviewName}"
                 Click="OnReviewClick"
                 ToolTip.Tip="{x:Static res:UiStrings.Toolbar_Review}"
                 Padding="8">

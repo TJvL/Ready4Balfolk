@@ -6,6 +6,7 @@ using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Views.Toolbar;
 using Ready4Balfolk.Web;
 
@@ -72,6 +73,21 @@ public sealed class ToolbarViewModelTests : IDisposable
 
         Assert.False(_sut.HasInReview);
         Assert.Equal(string.Empty, _sut.InReviewText);
+    }
+
+    [Fact]
+    public void SomethingWaiting_IsInTheButtonsName()
+    {
+        // The badge is a number only the eye is told, so the name says it in words.
+        Assert.Equal(UiStrings.Toolbar_ReviewLabel, _sut.ReviewName);
+
+        _inReview.OnNext(7);
+
+        Assert.Contains(_sut.InReviewText, _sut.ReviewName, StringComparison.Ordinal);
+
+        _inReview.OnNext(0);
+
+        Assert.Equal(UiStrings.Toolbar_ReviewLabel, _sut.ReviewName);
     }
 
     [Fact]
