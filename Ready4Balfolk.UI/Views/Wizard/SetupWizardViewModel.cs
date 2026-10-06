@@ -82,7 +82,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
             .Skip(1)
             .Where(step => step is not ReviewStepViewModel)
             .Subscribe(_ => reviewStep.Review.StopPreviewAsync().SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to stop the preview on leaving the review step", exception)))
+                _loggerService.Report("Failed to stop the preview on leaving the review step", exception)))
             .DisposeWith(_disposables);
 
         _progressTextHelper = this.WhenAnyValue(x => x.CurrentIndex)
@@ -120,7 +120,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
         _blockedReasonHelper.DisposeWith(_disposables);
 
         Steps[0].EnterAsync().SafeFireAndForget(
-            exception => _loggerService.ErrorAsync("Failed to enter the first setup step", exception));
+            exception => _loggerService.Report("Failed to enter the first setup step", exception));
     }
 
     /// <summary>
@@ -171,7 +171,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
         }
         catch (Exception exception)
         {
-            await _loggerService.ErrorAsync("Setup wizard step failed", exception);
+            _loggerService.Report("Setup wizard step failed", exception);
         }
         finally
         {
@@ -187,5 +187,5 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
 
     private void EnterCurrentStep() =>
         CurrentStep.EnterAsync().SafeFireAndForget(
-            exception => _loggerService.ErrorAsync("Failed to enter a setup step", exception));
+            exception => _loggerService.Report("Failed to enter a setup step", exception));
 }

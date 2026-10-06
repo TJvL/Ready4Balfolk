@@ -58,7 +58,7 @@ public sealed class MissingFolderPromptService(ConfirmationService owner, ILogge
             // application out from under it would leave that continuation on a dispatcher that is
             // going away. It returns first, writes nothing, and the shutdown follows.
             Dispatcher.UIThread.Post(() => exit().SafeFireAndForget(exception =>
-                loggerService.ErrorAsync("Failed to close after the library question", exception)));
+                loggerService.Report("Failed to close after the library question", exception)));
         }
 
         return answer;

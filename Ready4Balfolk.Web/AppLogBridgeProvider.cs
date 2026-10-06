@@ -44,9 +44,13 @@ public sealed class AppLogBridgeProvider(ILoggerService logger) : ILoggerProvide
                 return;
             }
 
-            _ = exception is null
-                ? logger.ErrorAsync(message)
-                : logger.ErrorAsync(message, exception);
+            if (exception is null)
+            {
+                _ = logger.ErrorAsync(message);
+                return;
+            }
+
+            logger.Report(message, exception);
         }
     }
 }

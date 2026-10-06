@@ -50,7 +50,7 @@ public sealed class EndOfNightAudio(
         }
         catch (Exception exception)
         {
-            _ = loggerService.ErrorAsync(
+            loggerService.Report(
                 $"Could not read the length of '{LogPaths.Name(path)}'", exception);
             return null;
         }

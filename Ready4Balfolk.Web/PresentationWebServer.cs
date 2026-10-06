@@ -242,14 +242,13 @@ public sealed class PresentationWebServer(
             // Almost always the port already being in use. The app carries on without the server,
             // and the settings panel shows the failure rather than a switch that claims success.
             LastError = ex.Message;
-            await logger.ErrorAsync($"Presentation server could not start on port {options.Port}", ex)
-                .ConfigureAwait(false);
+            logger.Report($"Presentation server could not start on port {options.Port}", ex);
             await DisposeUnstartedAsync(app).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
-            await logger.ErrorAsync("Presentation server failed to start", ex).ConfigureAwait(false);
+            logger.Report("Presentation server failed to start", ex);
             await DisposeUnstartedAsync(app).ConfigureAwait(false);
         }
     }
@@ -296,7 +295,7 @@ public sealed class PresentationWebServer(
         }
         catch (Exception ex)
         {
-            await logger.ErrorAsync("Presentation server failed to stop cleanly", ex).ConfigureAwait(false);
+            logger.Report("Presentation server failed to stop cleanly", ex);
         }
     }
 
