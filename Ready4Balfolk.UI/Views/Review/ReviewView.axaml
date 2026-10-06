@@ -76,10 +76,16 @@
     <Panel>
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
+            <!-- Not a live region: the count moves every second for as long as a first scan
+                 runs, and a screen reader would read it out once a second for all of that. -->
             <TextBlock Text="{Binding ScanProgressText}"
                        FontWeight="SemiBold"
                        IsVisible="{Binding IsScanning}" />
-            <TextBlock Text="{Binding Summary}"
+            <!-- A live region: the scan ends, or a rule empties half the queue, with the keyboard
+                 somewhere else entirely, and this line is the only thing that says it happened. -->
+            <TextBlock AutomationProperties.AutomationId="review.summary"
+                       AutomationProperties.LiveSetting="Polite"
+                       Text="{Binding Summary}"
                        FontWeight="SemiBold"
                        IsVisible="{Binding !IsScanning}" />
             <TextBlock Text="{x:Static res:UiStrings.Review_Keys}"
@@ -205,7 +211,12 @@
 
                             <!-- A fixed column, so no status can ever squeeze the fields: the
                                  sentence that explains a parked row lives under it instead. -->
+                            <!-- Live regions, both of them: Enter answers the row and moves the
+                                 keyboard straight on to the next one, so what the answered row now
+                                 says is said by nothing the keyboard is on. -->
                             <TextBlock Grid.Row="0" Grid.Column="3"
+                                       AutomationProperties.AutomationId="review.status"
+                                       AutomationProperties.LiveSetting="Polite"
                                        Text="{Binding StatusText}"
                                        FontSize="11"
                                        VerticalAlignment="Center"
@@ -215,6 +226,8 @@
                                        Foreground="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}}"
                                        IsVisible="{Binding IsApproved}" />
                             <TextBlock Grid.Row="0" Grid.Column="3"
+                                       AutomationProperties.AutomationId="review.status"
+                                       AutomationProperties.LiveSetting="Polite"
                                        Text="{Binding StatusText}"
                                        FontSize="11"
                                        VerticalAlignment="Center"
@@ -364,8 +377,14 @@
                             </Border>
 
                             <!-- A refusal has to be seen rather than explained: a keystroke that
-                                 does nothing reads as one that never arrived. -->
-                            <Border Classes.rejected="{Binding IsRejected}"
+                                 does nothing reads as one that never arrived. Heard as well, for
+                                 somebody who cannot see a flash: the reason is this overlay's name
+                                 for as long as it flashes, and it interrupts, because it is gone
+                                 again in a second. -->
+                            <Border AutomationProperties.AutomationId="review.refusal"
+                                    AutomationProperties.Name="{Binding RefusalText}"
+                                    AutomationProperties.LiveSetting="Assertive"
+                                    Classes.rejected="{Binding IsRejected}"
                                     Background="{DynamicResource ReviewRejectedBrush}"
                                     CornerRadius="4"
                                     Margin="0,0,0,6"

@@ -31,6 +31,14 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
     [Reactive] public partial string InReviewText { get; private set; }
     [Reactive] public partial bool HasInReview { get; private set; }
 
+    /// <summary>What a screen reader calls the review button: its label, and what is waiting.</summary>
+    /// <remarks>
+    /// The count is drawn as a badge beside the label, which is a number only the eye is told. The
+    /// name carries it in words, and is the label alone when nothing is waiting, as the badge is
+    /// then gone too.
+    /// </remarks>
+    [Reactive] public partial string ReviewName { get; private set; }
+
     /// <summary>
     /// How many tracks the library is keeping but cannot reach, said out loud rather than implied.
     /// </summary>
@@ -65,6 +73,7 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
         _webServer = webServer;
         _settingsStore = settingsStore;
         InReviewText = string.Empty;
+        ReviewName = UiStrings.Toolbar_ReviewLabel;
         UnavailableText = string.Empty;
 
         UpdateWhatIsServed();
@@ -90,6 +99,9 @@ public sealed partial class ToolbarViewModel : ReactiveObject, IDisposable
                 InReviewText = waiting > 0
                     ? string.Format(CultureInfo.CurrentCulture, UiStrings.Toolbar_ReviewCount, waiting)
                     : string.Empty;
+                ReviewName = waiting > 0
+                    ? string.Format(CultureInfo.CurrentCulture, UiStrings.Toolbar_ReviewNameWaiting, InReviewText)
+                    : UiStrings.Toolbar_ReviewLabel;
             })
             .DisposeWith(_disposables);
 

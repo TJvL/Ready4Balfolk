@@ -709,6 +709,9 @@ public static class UiStrings
     public static string App_ExitTitle =>
         ResourceManager.GetString("App_ExitTitle", Culture)!;
 
+    public static string App_Loading =>
+        ResourceManager.GetString("App_Loading", Culture)!;
+
     public static string App_ExitMessage =>
         ResourceManager.GetString("App_ExitMessage", Culture)!;
 
@@ -1241,6 +1244,15 @@ public static class UiStrings
     public static string Review_ParkedOnUnknownDance =>
         ResourceManager.GetString("Review_ParkedOnUnknownDance", Culture)!;
 
+    public static string Review_RefusedAlreadyAnswered =>
+        ResourceManager.GetString("Review_RefusedAlreadyAnswered", Culture)!;
+
+    public static string Review_RefusedIncomplete =>
+        ResourceManager.GetString("Review_RefusedIncomplete", Culture)!;
+
+    public static string Review_RefusedLoose =>
+        ResourceManager.GetString("Review_RefusedLoose", Culture)!;
+
     public static string Review_UnknownDanceHint =>
         ResourceManager.GetString("Review_UnknownDanceHint", Culture)!;
 
@@ -1285,6 +1297,9 @@ public static class UiStrings
 
     public static string Toolbar_ReviewCount =>
         ResourceManager.GetString("Toolbar_ReviewCount", Culture)!;
+
+    public static string Toolbar_ReviewNameWaiting =>
+        ResourceManager.GetString("Toolbar_ReviewNameWaiting", Culture)!;
 
     public static string Toolbar_UnavailableCount =>
         ResourceManager.GetString("Toolbar_UnavailableCount", Culture)!;

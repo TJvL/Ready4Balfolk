@@ -813,6 +813,9 @@
   <data name="App_ExitTitle" xml:space="preserve">
     <value>Exit</value>
   </data>
+  <data name="App_Loading" xml:space="preserve">
+    <value>Loading</value>
+  </data>
   <data name="App_ExitMessage" xml:space="preserve">
     <value>Are you sure you want to quit?</value>
   </data>
@@ -1352,6 +1355,15 @@
   <data name="Review_ParkedOnUnknownDance" xml:space="preserve">
     <value>waiting for the list</value>
   </data>
+  <data name="Review_RefusedAlreadyAnswered" xml:space="preserve">
+    <value>Already answered. Ctrl+Z takes it back.</value>
+  </data>
+  <data name="Review_RefusedIncomplete" xml:space="preserve">
+    <value>Not answered: it needs a dance, an artist and a title.</value>
+  </data>
+  <data name="Review_RefusedLoose" xml:space="preserve">
+    <value>Not in a folder, so there is no folder to answer. Enter answers this track on its own.</value>
+  </data>
   <data name="Review_UnknownDanceHint" xml:space="preserve">
     <value>The dance list is shared, so a missing dance is a proposal at BigBalfolkList rather than something to add here. Your answer is kept, and the track goes into the library the moment the list carries the name.</value>
   </data>
@@ -1396,6 +1408,9 @@
   </data>
   <data name="Toolbar_ReviewCount" xml:space="preserve">
     <value>{0} tracks waiting</value>
+  </data>
+  <data name="Toolbar_ReviewNameWaiting" xml:space="preserve">
+    <value>Review, {0}</value>
   </data>
   <data name="Toolbar_UnavailableCount" xml:space="preserve">
     <value>{0} tracks unavailable</value>

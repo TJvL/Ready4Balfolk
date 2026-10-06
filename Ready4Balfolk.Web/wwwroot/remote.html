@@ -33,7 +33,7 @@
 
     <div class="remote-body">
       <!-- Now -->
-      <section class="pane is-active" data-pane="now">
+      <section class="pane is-active" data-pane="now" id="pane-now" role="tabpanel" aria-labelledby="tab-now">
         <!-- A live region: a dance ends and the next one starts with nobody touching the
              phone. The clock and the bar are cut back out of it, or a screen reader would read
              the seconds out one at a time for the whole of a track. -->
@@ -57,7 +57,9 @@
             <svg id="ppIcon" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
             <span id="ppLabel"></span>
           </button>
-          <!-- Held, not tapped: a mis-tap here is instantly audible to the whole room. -->
+          <!-- Held, not tapped: a mis-tap here is instantly audible to the whole room. Enter, Space
+               and a screen reader's own activation press it at once, since none of those happen
+               by accident in a pocket. -->
           <button class="tbtn tbtn-hold" type="button" id="skip">
             <i class="fill" id="skipFill"></i>
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5l10 7-10 7z"/><rect x="16" y="5" width="3" height="14" rx="1"/></svg>
@@ -72,15 +74,17 @@
       </section>
 
       <!-- Queue -->
-      <section class="pane" data-pane="queue">
+      <section class="pane" data-pane="queue" id="pane-queue" role="tabpanel" aria-labelledby="tab-queue">
         <div class="qhead">
           <span id="queueCount"></span>
         </div>
-        <div class="qlist" id="queueList"></div>
+        <!-- Focusable from script alone, as the place the keyboard goes when the row it was on has
+             left and nothing has taken its place. -->
+        <div class="qlist" id="queueList" tabindex="-1"></div>
       </section>
 
       <!-- Add -->
-      <section class="pane" data-pane="add">
+      <section class="pane" data-pane="add" id="pane-add" role="tabpanel" aria-labelledby="tab-add">
         <div class="addgrid">
           <button class="addbtn" type="button" data-act="random">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg>
@@ -125,7 +129,7 @@
       </section>
 
       <!-- Find -->
-      <section class="pane" data-pane="find">
+      <section class="pane" data-pane="find" id="pane-find" role="tabpanel" aria-labelledby="tab-find">
         <div class="search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
           <input id="search" type="search" enterkeyhint="search">
@@ -134,20 +138,22 @@
       </section>
     </div>
 
+    <!-- The tabs say which pane each one opens, and the panes say which tab they belong to, so a
+         screen reader can name the pane it has landed in rather than only the button it pressed. -->
     <nav class="tabbar" id="tabs" role="tablist">
-      <button role="tab" type="button" aria-selected="true" data-tab="now">
+      <button role="tab" type="button" aria-selected="true" data-tab="now" id="tab-now" aria-controls="pane-now">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
         <span id="tabNow"></span>
       </button>
-      <button role="tab" type="button" aria-selected="false" data-tab="queue">
+      <button role="tab" type="button" aria-selected="false" data-tab="queue" id="tab-queue" aria-controls="pane-queue">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
         <span id="tabQueue"></span>
       </button>
-      <button role="tab" type="button" aria-selected="false" data-tab="add">
+      <button role="tab" type="button" aria-selected="false" data-tab="add" id="tab-add" aria-controls="pane-add">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
         <span id="tabAdd"></span>
       </button>
-      <button role="tab" type="button" aria-selected="false" data-tab="find">
+      <button role="tab" type="button" aria-selected="false" data-tab="find" id="tab-find" aria-controls="pane-find">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <span id="tabFind"></span>
       </button>

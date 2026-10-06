@@ -119,25 +119,68 @@
       : "<b>" + escapeHtml(t("noNext")) + "</b>";
   }
 
+  /* Which control of the list has the keyboard, by the row's id and the button's part in it: the
+     list is drawn again on every push from the computer, and the buttons in it are new ones. */
+  function focusInList(list) {
+    var focused = document.activeElement;
+    if (!focused || !list.contains(focused)) return null;
+
+    var row = focused.closest(".qrow");
+    return {
+      id: row ? row.getAttribute("data-id") : null,
+      part: focused.getAttribute("data-move") || "main",
+      index: row ? Array.prototype.indexOf.call(list.children, row) : 0
+    };
+  }
+
+  /* Puts the keyboard back where it was before the list was drawn again. A row moved up is still
+     the row, so its button is found by id wherever it went. A row that left the queue takes the
+     keyboard to the row now in its place, and a button that can no longer be pressed, such as up
+     on the row that has just reached the top, to the row's own toggle: a focus dropped to the page
+     sends a screen reader back to the top of it, and somebody working down a queue to the start. */
+  function restoreFocus(list, was) {
+    if (!was) return;
+
+    var rows = list.querySelectorAll(".qrow");
+    var row = null;
+    Array.prototype.forEach.call(rows, function (candidate) {
+      if (candidate.getAttribute("data-id") === was.id) row = candidate;
+    });
+    if (!row && rows.length) row = rows[Math.min(was.index, rows.length - 1)];
+
+    var target = null;
+    if (row) {
+      target = was.part === "main" ? null : row.querySelector("[data-move='" + was.part + "']");
+      if (!target || target.disabled) target = row.querySelector(".qmain");
+    }
+
+    (target || list).focus();
+  }
+
   function renderQueue(entries) {
     queue = entries || [];
     var list = id("queueList");
+    var was = focusInList(list);
     list.innerHTML = "";
 
     text("queueCount", queue.length + " " + (queue.length === 1 ? t("item") : t("items")));
 
     if (queue.length === 0) {
       list.innerHTML = '<div class="empty">' + escapeHtml(t("queueEmpty")) + "</div>";
+      restoreFocus(list, was);
       return;
     }
 
     queue.forEach(function (entry, index) {
       var row = document.createElement("div");
       row.className = "qrow" + (openRow === entry.id ? " is-open" : "");
+      row.setAttribute("data-id", String(entry.id));
 
       var main = document.createElement("button");
       main.type = "button";
       main.className = "qmain";
+      /* The row opens to its buttons, which is something only the eye was told. */
+      main.setAttribute("aria-expanded", String(openRow === entry.id));
       main.innerHTML =
         '<span class="qmark k-' + entry.kind + '">' + (MARK[entry.kind] || "") + "</span>" +
         "<span><span class=\"qtitle\">" + escapeHtml(window.R4B.primaryLabel(entry)) + "</span>" +
@@ -179,6 +222,8 @@
       row.appendChild(actions);
       list.appendChild(row);
     });
+
+    restoreFocus(list, was);
   }
 
   function renderHits(hits) {
@@ -319,7 +364,9 @@
     });
   }
 
-  /* Held rather than tapped, with the fill showing how far along the hold is. */
+  /* Held rather than tapped, with the fill showing how far along the hold is. The hold is there to
+     stop a thumb or a pocket, and is listened for on pointer events alone, so a key or a screen
+     reader is let through on the click instead: see onClick. */
   function wireSkip() {
     var button = id("skip");
     var fill = id("skipFill");
@@ -327,6 +374,7 @@
     var frame = null;
     var startedAt = 0;
     var pressedOn = null;
+    var pointerWentDown = false;
     var HOLD_MS = 650;
 
     function step(now) {
@@ -338,6 +386,7 @@
 
     function begin(event) {
       event.preventDefault();
+      pointerWentDown = true;
       startedAt = window.performance.now();
       /* The dance on screen when the thumb went down. One that changes during the hold is not the
          one somebody decided to skip, and the app refuses it. */
@@ -359,6 +408,24 @@
       send("Skip", pressedOn, t("skipped"), t("nowMovedOn"));
     }
 
+    /* Enter and Space press a button by firing its click, and so does a screen reader's double
+       tap, which lets go at once and so never gets through a hold. None of them is a pocket press,
+       so they skip straight away. A finger's click arrives too, after the pointer events the hold
+       already answered, and is left to them: a tap that was too short must not skip on the way
+       out. Such a click comes after a pointer went down on this button and counts at least one
+       press; the ones let through count none, or had no pointer before them at all. Enter held
+       down repeats, and every repeat names the dance that was on screen, which the app refuses
+       once it has moved on. */
+    function onClick(event) {
+      var fromPointer = pointerWentDown;
+      pointerWentDown = false;
+      if (fromPointer && event.detail !== 0) return;
+
+      pressedOn = showing;
+      fire();
+    }
+
+    button.addEventListener("click", onClick);
     button.addEventListener("pointerdown", begin);
     button.addEventListener("pointerup", cancel);
     button.addEventListener("pointerleave", cancel);
