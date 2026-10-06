@@ -933,6 +933,9 @@
   <data name="DanceList_UpdateFailed" xml:space="preserve">
     <value>De dansenlijst kon niet bijgewerkt worden: {0}. Die je hebt blijft in gebruik.</value>
   </data>
+  <data name="DanceList_NoneArrived" xml:space="preserve">
+    <value>Er is geen dansenlijst binnengekomen: {0}.</value>
+  </data>
   <data name="DanceList_TrackCount" xml:space="preserve">
     <value>{0} nummers</value>
   </data>

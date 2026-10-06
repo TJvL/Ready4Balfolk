@@ -110,7 +110,11 @@ public sealed class DanceListStore(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            loggerService.Report($"Could not read {LogPaths.Name(sourceFileInfo.FullName)}", exception);
+            // Logged rather than reported: the failure goes back to whoever asked, and every caller
+            // puts it on screen in the DJ's language. Reported here as well, it was a second notice
+            // in English beside the first.
+            _ = loggerService.WarningAsync(
+                $"Could not read {LogPaths.Name(sourceFileInfo.FullName)}: {exception.Message}");
             return DanceListUpdate.Failed(exception.Message);
         }
     }
@@ -136,7 +140,9 @@ public sealed class DanceListStore(
             }
             catch (Exception exception) when (exception is InvalidDataException or FileNotFoundException)
             {
-                loggerService.Report("Refused a dance list", exception);
+                // Logged rather than reported, for the reason a file that will not open is: the
+                // refusal goes back to the caller, which says it on screen.
+                _ = loggerService.WarningAsync($"Refused a dance list: {exception.Message}");
                 return DanceListUpdate.Failed(exception.Message);
             }
 

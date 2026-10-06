@@ -54,6 +54,7 @@ public sealed class DanceListViewModelTests : IDisposable
     private readonly IQueueService _queueService = Substitute.For<IQueueService>();
     private readonly INotificationService _notifications = Substitute.For<INotificationService>();
     private readonly IDanceListFeed _feed = Substitute.For<IDanceListFeed>();
+    private readonly ILoggerService _logger = Substitute.For<ILoggerService>();
     private readonly ThrottleClock _throttles = new();
     private readonly DanceListViewModel _sut;
 
@@ -61,6 +62,7 @@ public sealed class DanceListViewModelTests : IDisposable
     {
         _store.Observe().Returns(_lists);
         _store.ObserveStatus().Returns(_status);
+        _store.Status.Returns(_ => _status.Value);
         _store.Current.Returns(_ => _lists.Value);
         _store.Index.Returns(_ => DanceListIndex.Build(_lists.Value));
         _store.IsLoading.Returns(Observable.Return(false));
@@ -71,7 +73,7 @@ public sealed class DanceListViewModelTests : IDisposable
         _queueService.Enqueue(Arg.Any<IQueueItem>()).Returns(QueueAddResult.Allow());
 
         _sut = new DanceListViewModel(_store, _pool, _trackStore, _randomTracks, _queueService,
-            _notifications, _feed, new MockFileSystem(), new NoOpLoggerService(), _throttles.Scheduler);
+            _notifications, _feed, new MockFileSystem(), _logger, _throttles.Scheduler);
     }
 
     /// <summary>Spends the fractions of a second the rail waits out, rather than sleeping past them.</summary>
@@ -439,12 +441,25 @@ public sealed class DanceListViewModelTests : IDisposable
     {
         // A hall with no wifi is the normal case. The list already in hand carries on working, so
         // this is not the application breaking.
+        _status.OnNext(new DanceListStatus(3, 3, DanceListOrigin.Cached, DateTimeOffset.UnixEpoch));
         _store.RefreshAsync(Arg.Any<CancellationToken>()).Returns(DanceListUpdate.Failed("no route to host"));
 
         await _sut.UpdateCommand.Execute().FirstAsync();
 
         _notifications.Received(1).Show(
             string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, "no route to host"),
+            NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task Update_FailedWithNoListInHand_DoesNotClaimOneIsStillInUse()
+    {
+        _store.RefreshAsync(Arg.Any<CancellationToken>()).Returns(DanceListUpdate.Failed("no route to host"));
+
+        await _sut.UpdateCommand.Execute().FirstAsync();
+
+        _notifications.Received(1).Show(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_NoneArrived, "no route to host"),
             NotificationSeverity.Warning);
     }
 
@@ -464,17 +479,22 @@ public sealed class DanceListViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateFromFile_TheFileIsUnreadable_IsReportedRatherThanThrown()
+    public async Task UpdateFromFile_TheFileIsUnreadable_IsReportedOnceRatherThanThrown()
     {
         // The path came from a file picker, so anything can be behind it, including a directory.
+        // One file, one notice: the log puts a reported failure on screen by itself, so a second
+        // one shown beside it is the same failure said twice.
+        _status.OnNext(new DanceListStatus(3, 3, DanceListOrigin.Cached, DateTimeOffset.UnixEpoch));
+        var thrown = new IOException("that is a folder");
         _store.UpdateFromFileAsync(Arg.Any<IFileInfo>(), Arg.Any<CancellationToken>())
-            .Returns<Task<DanceListUpdate>>(_ => throw new IOException("that is a folder"));
+            .Returns<Task<DanceListUpdate>>(_ => throw thrown);
 
         await _sut.UpdateFromFileAsync("/somewhere/dances.json");
 
-        _notifications.Received(1).Show(
-            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, "that is a folder"),
-            NotificationSeverity.Error);
+        await _logger.Received(1).ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
+        await _logger.Received(1).ErrorAsync(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, "that is a folder"), thrown);
+        _notifications.DidNotReceive().Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>());
         Assert.False(_sut.IsUpdating);
     }
 

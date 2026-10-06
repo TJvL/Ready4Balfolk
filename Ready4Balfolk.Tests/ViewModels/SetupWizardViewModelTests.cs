@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -12,6 +14,7 @@ using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Discovery;
 using Ready4Balfolk.UI.Views.Review;
@@ -25,6 +28,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
     private readonly BehaviorSubject<DanceList> _danceListSubject = new(DanceList.Empty);
     private readonly BehaviorSubject<DanceListStatus> _statusSubject = new(DanceListStatus.Unknown);
     private readonly IDanceListFeed _feed = Substitute.For<IDanceListFeed>();
+    private readonly INotificationService _notifications = Substitute.For<INotificationService>();
     private readonly NavigationService _navigation = new();
     private readonly IPreviewPlaybackService _preview = Substitute.For<IPreviewPlaybackService>();
     private readonly MockFileSystem _fileSystem = new();
@@ -93,7 +97,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
 
         return new SetupWizardViewModel(
             new WelcomeStepViewModel(),
-            new DanceListStepViewModel(_danceListStore, _feed, logger, _now),
+            new DanceListStepViewModel(_danceListStore, _feed, _notifications, logger, _now),
             new MusicDirectoryStepViewModel(_settingsStore, _fileSystem),
             new DiscoveryStepViewModel(_discovery),
             new ReviewStepViewModel(_review),
@@ -195,6 +199,39 @@ public sealed class SetupWizardViewModelTests : IDisposable
         // a file instead. It is still blocked, because there is still no list.
         Assert.False(step.IsFetching);
         Assert.False(CanContinueNow());
+    }
+
+    [Fact]
+    public async Task TheDanceListStepSaysWhyAFetchFailed()
+    {
+        // The store notes being offline in the log and no further, because the list in hand
+        // carries on working. Here there is no list in hand, and the spinner going away without a
+        // word was all the DJ got.
+        _danceListStore.RefreshAsync(Arg.Any<CancellationToken>())
+            .Returns(DanceListUpdate.Failed("no network"));
+
+        var step = GoTo<DanceListStepViewModel>();
+
+        await step.FetchCommand.Execute().FirstAsync();
+
+        _notifications.Received(1).Show(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_NoneArrived, "no network"),
+            NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task TheDanceListStepSaysWhyAnImportWasRefused()
+    {
+        _danceListStore.UpdateFromFileAsync(Arg.Any<IFileInfo>(), Arg.Any<CancellationToken>())
+            .Returns(DanceListUpdate.Failed("two dances share a name"));
+
+        var step = GoTo<DanceListStepViewModel>();
+
+        await step.ImportAsync(_fileSystem.FileInfo.New("/stick/dances.json"));
+
+        _notifications.Received(1).Show(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_NoneArrived, "two dances share a name"),
+            NotificationSeverity.Warning);
     }
 
     [Fact]

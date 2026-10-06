@@ -10,6 +10,8 @@ using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
+using Ready4Balfolk.UI.Views.DanceList;
 
 namespace Ready4Balfolk.UI.Views.Wizard;
 
@@ -20,9 +22,17 @@ namespace Ready4Balfolk.UI.Views.Wizard;
 /// make: the application ships no list, so this step is where one arrives, by fetching it or by
 /// importing a file somebody carried in. It blocks until one has, because a library cannot be
 /// answered without a vocabulary and finding that out later is worse than being asked now.
+///
+/// What came of a fetch or an import is said the way the dance panel says it
+/// (<see cref="DanceListReports" />). A hall with no network is exactly where this step is used,
+/// so a fetch that fails here has to say so rather than just stop spinning.
 /// </remarks>
 public sealed partial class DanceListStepViewModel(
-    IDanceListStore store, IDanceListFeed feed, ILoggerService loggerService, TimeProvider? timeProvider = null)
+    IDanceListStore store,
+    IDanceListFeed feed,
+    INotificationService notifications,
+    ILoggerService loggerService,
+    TimeProvider? timeProvider = null)
     : WizardStepViewModel
 {
     /// <summary>
@@ -74,7 +84,7 @@ public sealed partial class DanceListStepViewModel(
         IsFetching = true;
         try
         {
-            await store.RefreshAsync();
+            notifications.Show(await store.RefreshAsync(), store.Status);
         }
         catch (Exception exception)
         {
@@ -95,7 +105,7 @@ public sealed partial class DanceListStepViewModel(
         IsFetching = true;
         try
         {
-            await store.UpdateFromFileAsync(file);
+            notifications.Show(await store.UpdateFromFileAsync(file), store.Status);
         }
         finally
         {
@@ -111,7 +121,7 @@ public sealed partial class DanceListStepViewModel(
 
     private void Describe(DanceListStatus status)
     {
-        HasAList = status.Origin is not DanceListOrigin.None && status.DanceCount > 0;
+        HasAList = DanceListReports.HasAList(status);
 
         SummaryText = string.Format(
             CultureInfo.CurrentCulture,
@@ -119,9 +129,6 @@ public sealed partial class DanceListStepViewModel(
             status.DanceCount,
             status.TagCount);
 
-        OriginText = status.ObtainedAt is { } obtainedAt
-            ? string.Format(
-                CultureInfo.CurrentCulture, UiStrings.DanceList_Obtained, obtainedAt.ToLocalTime().DateTime)
-            : UiStrings.DanceList_NoListYet;
+        OriginText = DanceListReports.Origin(status);
     }
 }

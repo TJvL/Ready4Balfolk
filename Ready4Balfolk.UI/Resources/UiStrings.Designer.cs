@@ -900,6 +900,9 @@ public static class UiStrings
     public static string DanceList_UpdateFailed =>
         ResourceManager.GetString("DanceList_UpdateFailed", Culture)!;
 
+    public static string DanceList_NoneArrived =>
+        ResourceManager.GetString("DanceList_NoneArrived", Culture)!;
+
     public static string DanceList_TrackCount =>
         ResourceManager.GetString("DanceList_TrackCount", Culture)!;
 
