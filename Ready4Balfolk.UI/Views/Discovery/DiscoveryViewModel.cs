@@ -312,6 +312,14 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
             CustomDanceTag = string.IsNullOrWhiteSpace(CustomDanceTag) ? null : CustomDanceTag.Trim()
         });
 
+    /// <summary>Fills the controls a person answers from disk again, at the next read.</summary>
+    /// <remarks>
+    /// For the setup wizard, which shows this same screen and shares it with the rules panel. What
+    /// was left on screen there and never saved is not what a second run of setup starts from: it
+    /// would look like the stored rules, and Continue would commit it as though it were.
+    /// </remarks>
+    public void StartFromWhatIsOnDisk() => _shownWhatIsOnDisk = false;
+
     public void Dispose() => _disposables.Dispose();
 
     private DiscoverySettings Current() => _settingsStore.Current.Discovery;

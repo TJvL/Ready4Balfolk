@@ -31,6 +31,8 @@ public sealed class SetupWizardViewModelTests : IDisposable
     private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
     private readonly FakeTimeProvider _now = new();
     private readonly SetupWizardViewModel _sut;
+    private readonly DiscoveryViewModel _discovery;
+    private readonly ReviewViewModel _review;
     private ApplicationSettings _settings = new();
 
     public SetupWizardViewModelTests()
@@ -55,10 +57,13 @@ public sealed class SetupWizardViewModelTests : IDisposable
                 return Task.CompletedTask;
             });
 
+        // One of each, as in the application: the screens are singletons, and only the wizard and
+        // its steps are built again for every run.
+        (_discovery, _review) = BuildScreens();
         _sut = BuildWizard();
     }
 
-    private SetupWizardViewModel BuildWizard()
+    private (DiscoveryViewModel Discovery, ReviewViewModel Review) BuildScreens()
     {
         var logger = new NoOpLoggerService();
         var notifications = Substitute.For<INotificationService>();
@@ -79,12 +84,19 @@ public sealed class SetupWizardViewModelTests : IDisposable
         var discovery = new DiscoveryViewModel(_settingsStore, libraryIndex, _danceListStore, trackStore, logger);
         var review = new ReviewViewModel(libraryIndex, _danceListStore, _settingsStore, trackStore, _preview, notifications, Substitute.For<IConfirmationService>(), discovery, new NavigationService(), logger);
 
+        return (discovery, review);
+    }
+
+    private SetupWizardViewModel BuildWizard()
+    {
+        var logger = new NoOpLoggerService();
+
         return new SetupWizardViewModel(
             new WelcomeStepViewModel(),
             new DanceListStepViewModel(_danceListStore, _feed, logger, _now),
             new MusicDirectoryStepViewModel(_settingsStore, _fileSystem),
-            new DiscoveryStepViewModel(discovery),
-            new ReviewStepViewModel(review),
+            new DiscoveryStepViewModel(_discovery),
+            new ReviewStepViewModel(_review),
             _settingsStore,
             _navigation,
             logger);
@@ -244,6 +256,36 @@ public sealed class SetupWizardViewModelTests : IDisposable
     }
 
     [Fact]
+    public void RunningSetupAgain_StartsFromTheSavedRulesRatherThanWhatWasLeftOnScreen()
+    {
+        // Saved from the rules panel, which is the same screen the library step shows.
+        _discovery.UsesFolderRoles = true;
+        _discovery.ApplyRolesAndTagsCommand.Execute().Subscribe();
+
+        // Then changed there and never saved.
+        _discovery.UsesFolderRoles = false;
+        _discovery.UsesTagTrust = true;
+        _discovery.CustomDanceTag = "GENRE";
+        _discovery.TagFields[0].UsesDefault = false;
+
+        using var again = BuildWizard();
+        var step = GoTo<DiscoveryStepViewModel>(again);
+
+        Assert.True(step.Discovery.UsesFolderRoles);
+        Assert.False(step.Discovery.UsesTagTrust);
+        Assert.Equal(string.Empty, step.Discovery.CustomDanceTag);
+        Assert.True(step.Discovery.TagFields[0].UsesDefault);
+
+        // Continue commits what the step shows, so what it shows has to be what was saved.
+        again.ContinueCommand.Execute().Subscribe();
+
+        Assert.True(_settings.Discovery.UsesFolderRoles);
+        Assert.False(_settings.Discovery.UsesTagTrust);
+        Assert.Null(_settings.Discovery.CustomDanceTag);
+        Assert.Null(_settings.Discovery.TagTrust.Dance);
+    }
+
+    [Fact]
     public void ProgressText_CountsTheSteps() => Assert.Equal("Step 1 of 5", _sut.ProgressText);
 
     [Fact]
@@ -331,6 +373,8 @@ public sealed class SetupWizardViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+        _review.Dispose();
+        _discovery.Dispose();
         _danceListSubject.Dispose();
         _statusSubject.Dispose();
     }
@@ -348,14 +392,16 @@ public sealed class SetupWizardViewModelTests : IDisposable
         _preview.Received().StopAsync();
     }
 
-    private T GoTo<T>() where T : WizardStepViewModel
+    private T GoTo<T>() where T : WizardStepViewModel => GoTo<T>(_sut);
+
+    private static T GoTo<T>(SetupWizardViewModel wizard) where T : WizardStepViewModel
     {
-        for (var i = 0; i < _sut.Steps.Count && _sut.CurrentStep is not T; i++)
+        for (var i = 0; i < wizard.Steps.Count && wizard.CurrentStep is not T; i++)
         {
-            _sut.ContinueCommand.Execute().Subscribe();
+            wizard.ContinueCommand.Execute().Subscribe();
         }
 
-        return Assert.IsType<T>(_sut.CurrentStep);
+        return Assert.IsType<T>(wizard.CurrentStep);
     }
 
     private void RunToTheEnd()
