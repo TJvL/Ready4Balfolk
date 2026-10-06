@@ -16,6 +16,11 @@ public enum TagField
     Comment
 }
 
+/// <remarks>
+/// A value with no member falls through to the comment tag in both, so what a claim says it read
+/// and what it actually read cannot disagree. The settings converter stops a hand-edited number
+/// from arriving here, but a name that throws turns one bad entry into every file failing to load.
+/// </remarks>
 public static class TagFieldExtension
 {
     extension(TagField tagField)
@@ -26,8 +31,7 @@ public static class TagFieldExtension
             TagField.Artist => "artist",
             TagField.AlbumArtist => "album artist",
             TagField.Album => "album",
-            TagField.Comment => "comment",
-            _ => throw new ArgumentOutOfRangeException(nameof(tagField))
+            _ => "comment"
         };
 
         public string? ValueOf(TrackEvidence evidence) => tagField switch
