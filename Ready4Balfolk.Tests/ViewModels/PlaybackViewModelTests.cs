@@ -5,6 +5,7 @@ using NSubstitute;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
@@ -58,7 +59,8 @@ public sealed class PlaybackViewModelTests : IDisposable
         var audio = Substitute.For<IAudioPlaybackService>();
         audio.WhenAvailabilityChanged.Returns(_audioAvailable);
 
-        _sut = new PlaybackViewModel(_consumption, queue, _confirmation, _notifications, settingsStore, audio);
+        _sut = new PlaybackViewModel(
+            _consumption, queue, _confirmation, _notifications, settingsStore, audio, new NoOpLoggerService());
     }
 
     // --- Current item display ---

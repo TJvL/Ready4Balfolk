@@ -12,6 +12,7 @@ using DynamicData;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -33,6 +34,7 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
     private readonly IConfirmationService _confirmationService;
     private readonly INotificationService _notificationService;
     private readonly CompositeDisposable _disposables = [];
+    private readonly ILoggerService _loggerService;
     private readonly ReadOnlyObservableCollection<IQueueItem> _queuedItems;
     private bool _suppressAutoEnqueue;
     private TimeSpan _currentItemElapsed;
@@ -246,8 +248,10 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
         IEndOfNightAudio endOfNightAudio,
         ITrackEditorService trackEditor,
         TimeProvider time,
+        ILoggerService loggerService,
         IScheduler? timerScheduler = null)
     {
+        _loggerService = loggerService;
         var timers = timerScheduler ?? DefaultScheduler.Instance;
         _time = time;
         _trackEditor = trackEditor;
@@ -342,6 +346,16 @@ public sealed partial class QueueViewModel : ReactiveObject, IDisposable
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => UpdateEndOfNightAvailability())
             .DisposeWith(_disposables);
+
+        _disposables.Add(EditSelectedTrackCommand.ReportFailures(_loggerService, "Failed to edit the track"));
+        _disposables.Add(QueueRandomTrackCommand.ReportFailures(_loggerService, "Failed to queue a random track"));
+        _disposables.Add(EnqueueStopCommand.ReportFailures(_loggerService, "Failed to queue a stop"));
+        _disposables.Add(EnqueueDelayCommand.ReportFailures(_loggerService, "Failed to queue a delay"));
+        _disposables.Add(EnqueueEndOfNightCommand.ReportFailures(_loggerService, "Failed to queue the end of the night"));
+        _disposables.Add(RemoveSelectedCommand.ReportFailures(_loggerService, "Failed to remove the item"));
+        _disposables.Add(MoveSelectedUpCommand.ReportFailures(_loggerService, "Failed to move the item"));
+        _disposables.Add(MoveSelectedDownCommand.ReportFailures(_loggerService, "Failed to move the item"));
+        _disposables.Add(ClearQueueCommand.ReportFailures(_loggerService, "Failed to clear the queue"));
     }
 
     private void UpdateEndOfNightAvailability() =>

@@ -140,6 +140,11 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(DescribeOrigin)
             .DisposeWith(_disposables);
+
+        _disposables.Add(ToggleTagCommand.ReportFailures(_loggerService, "Failed to change the dance pool"));
+        _disposables.Add(ClearPoolCommand.ReportFailures(_loggerService, "Failed to clear the dance pool"));
+        _disposables.Add(PickDanceCommand.ReportFailures(_loggerService, "Failed to queue a track of that dance"));
+        _disposables.Add(UpdateCommand.ReportFailures(_loggerService, "Failed to update the dance list"));
     }
 
     /// <summary>Puts a tag in the pool, or takes it out again.</summary>

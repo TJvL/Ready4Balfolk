@@ -32,6 +32,7 @@ public sealed class ReviewViewModelTests : IDisposable
     private readonly IConfirmationService _confirmations = Substitute.For<IConfirmationService>();
     private readonly IPreviewPlaybackService _preview = Substitute.For<IPreviewPlaybackService>();
     private readonly NavigationService _navigation = new();
+    private readonly ILoggerService _logger = Substitute.For<ILoggerService>();
     private readonly ReviewViewModel _sut;
 
     private ApplicationSettings _stored = new ApplicationSettings() with { MusicDirectoryPath = Root };
@@ -105,7 +106,7 @@ public sealed class ReviewViewModelTests : IDisposable
         _sut = new ReviewViewModel(
             _libraryIndex, danceListStore, settingsStore, _trackStore, _preview,
             Substitute.For<INotificationService>(), _confirmations, discovery, _navigation,
-            Substitute.For<ILoggerService>());
+            _logger);
     }
 
     [Fact]
@@ -712,6 +713,89 @@ public sealed class ReviewViewModelTests : IDisposable
     }
 
     private async Task Refresh() => await _sut.RefreshCommand.Execute();
+
+    // --- A command the index refuses says what did not happen ---
+
+    [Fact]
+    public async Task AnAnswerTheIndexRefuses_IsReportedAsNotApproved()
+    {
+        await Refresh();
+        var row = _sut.Rows[0];
+        row.Dance = "Mazurka";
+        row.Artist = "Naragonia";
+        row.Title = "Le badaud";
+        TheIndexRefusesEveryAnswer();
+
+        await AssertReportedAsync(() => _sut.ApproveCommand.Execute(row), "Failed to approve the track");
+    }
+
+    [Fact]
+    public async Task TakingBackAnAnswerTheIndexRefuses_IsReported()
+    {
+        await Refresh();
+        var row = _sut.Rows[0];
+        await ApproveFirstAsync();
+        TheIndexRefusesEveryAnswer();
+
+        await AssertReportedAsync(() => _sut.WithdrawCommand.Execute(row), "Failed to take back the answer");
+    }
+
+    [Fact]
+    public async Task AFolderAnswerTheIndexRefuses_IsReported()
+    {
+        await Refresh();
+        var row = _sut.Rows[0];
+        row.Dance = "Mazurka";
+        row.Artist = "Naragonia";
+        row.Title = "Le badaud";
+        TheIndexRefusesEveryAnswer();
+
+        await AssertReportedAsync(() => _sut.ApproveFolderCommand.Execute(row), "Failed to approve the folder");
+    }
+
+    [Fact]
+    public async Task OneDanceForAllThatTheIndexRefuses_IsReported()
+    {
+        await Refresh();
+        var row = _sut.Rows.First(candidate => candidate.IsShared);
+        row.Dance = "Mazurka";
+        TheIndexRefusesEveryAnswer();
+
+        await AssertReportedAsync(
+            () => _sut.UseDanceForAllCommand.Execute(row), "Failed to use the dance for every track");
+    }
+
+    [Fact]
+    public async Task NotADanceThatTheIndexRefuses_IsReported()
+    {
+        await Refresh();
+        var row = _sut.Rows.First(candidate => candidate.HasUnknownValue);
+        TheIndexRefusesEveryAnswer();
+
+        await AssertReportedAsync(
+            () => _sut.NotADanceCommand.Execute(row), "Failed to mark the value as not a dance");
+    }
+
+    /// <summary>A disk that has filled up during the evening, which is the realistic way here.</summary>
+    private void TheIndexRefusesEveryAnswer()
+    {
+        var full = new IOException("No space left on device");
+        _libraryIndex.ApproveIndividuallyAsync(
+                Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<IReadOnlyCollection<FieldAnswer>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(full));
+        _libraryIndex.WithdrawIndividualApprovalsAsync(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<int>(full));
+        _libraryIndex.IgnoreValueAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(full));
+    }
+
+    /// <summary>The failure said as what did not happen, rather than as "Unhandled RxApp exception".</summary>
+    private async Task AssertReportedAsync(Func<IObservable<System.Reactive.Unit>> execute, string whatFailed)
+    {
+        await Assert.ThrowsAsync<IOException>(async () => await execute());
+
+        await _logger.Received(1).ErrorAsync(whatFailed, Arg.Any<IOException>());
+    }
 
     private async Task ApproveFirstAsync()
     {

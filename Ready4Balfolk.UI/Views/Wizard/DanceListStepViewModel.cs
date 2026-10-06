@@ -7,6 +7,7 @@ using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Services.Dances;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.UI.Resources;
 
@@ -21,7 +22,7 @@ namespace Ready4Balfolk.UI.Views.Wizard;
 /// answered without a vocabulary and finding that out later is worse than being asked now.
 /// </remarks>
 public sealed partial class DanceListStepViewModel(
-    IDanceListStore store, IDanceListFeed feed, TimeProvider? timeProvider = null)
+    IDanceListStore store, IDanceListFeed feed, ILoggerService loggerService, TimeProvider? timeProvider = null)
     : WizardStepViewModel
 {
     /// <summary>
@@ -74,6 +75,12 @@ public sealed partial class DanceListStepViewModel(
         try
         {
             await store.RefreshAsync();
+        }
+        catch (Exception exception)
+        {
+            // Said here rather than left to the command, which has no handler of its own and would
+            // otherwise end at "Unhandled RxApp exception".
+            loggerService.Report("Failed to fetch the dance list", exception);
         }
         finally
         {

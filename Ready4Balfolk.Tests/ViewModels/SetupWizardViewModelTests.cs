@@ -81,7 +81,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
 
         return new SetupWizardViewModel(
             new WelcomeStepViewModel(),
-            new DanceListStepViewModel(_danceListStore, _feed, _now),
+            new DanceListStepViewModel(_danceListStore, _feed, logger, _now),
             new MusicDirectoryStepViewModel(_settingsStore, _fileSystem),
             new DiscoveryStepViewModel(discovery),
             new ReviewStepViewModel(review),

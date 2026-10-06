@@ -12,6 +12,7 @@ using DynamicData.Binding;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
@@ -27,6 +28,7 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
     private readonly INotificationService _notificationService;
     private readonly ITrackEditorService _trackEditor;
     private readonly CompositeDisposable _disposables = [];
+    private readonly ILoggerService _loggerService;
     private readonly ReadOnlyObservableCollection<TrackViewModel> _tracks;
 
     public ReadOnlyObservableCollection<TrackViewModel> Tracks => _tracks;
@@ -114,8 +116,9 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
     /// </remarks>
     public TrackCatalogViewModel(ITrackStore trackStore, IQueueService queueService,
         INotificationService notificationService, ITrackEditorService trackEditor,
-        ISettingsStore settingsStore, IScheduler? searchScheduler = null)
+        ISettingsStore settingsStore, ILoggerService loggerService, IScheduler? searchScheduler = null)
     {
+        _loggerService = loggerService;
         _queueService = queueService;
         _notificationService = notificationService;
         _trackEditor = trackEditor;
@@ -166,6 +169,11 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .ToProperty(this, x => x.EmptyStateText);
         _emptyStateTextHelper.DisposeWith(_disposables);
+
+        _disposables.Add(ClearSearchCommand.ReportFailures(_loggerService, "Failed to clear the search"));
+        _disposables.Add(EditTrackCommand.ReportFailures(_loggerService, "Failed to edit the track"));
+        _disposables.Add(WithdrawTrackCommand.ReportFailures(_loggerService, "Failed to send the track back to review"));
+        _disposables.Add(EnqueueTrackCommand.ReportFailures(_loggerService, "Failed to queue the track"));
     }
 
     /// <summary>

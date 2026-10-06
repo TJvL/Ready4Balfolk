@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using DynamicData;
 using Microsoft.Extensions.Time.Testing;
@@ -25,6 +26,8 @@ public sealed class QueueViewModelTests : IDisposable
     private readonly INotificationService _notification;
     private readonly IEndOfNightAudio _endOfNightAudio;
     private readonly QueueViewModel _sut;
+    private readonly ITrackEditorService _trackEditor = Substitute.For<ITrackEditorService>();
+    private readonly RecordingLoggerService _logger = new();
 
     private readonly SourceList<IQueueItem> _queueSource = new();
     private readonly BehaviorSubject<IQueueItem?> _currentItem = new(null);
@@ -146,8 +149,9 @@ public sealed class QueueViewModelTests : IDisposable
         _sut = new QueueViewModel(
             _queueService, consumption, settingsStore,
             _randomTrackService, _dancePool, _confirmation, _notification, _endOfNightAudio,
-            Substitute.For<ITrackEditorService>(),
+            _trackEditor,
             _time,
+            _logger,
             _timers.Scheduler);
     }
 
@@ -215,6 +219,19 @@ public sealed class QueueViewModelTests : IDisposable
     {
         _sut.EnqueueDelayCommand.Execute().Subscribe();
         _queueService.Received(1).Enqueue(Arg.Any<DelayQueueItem>());
+    }
+
+    // --- EditSelectedTrack ---
+
+    [Fact]
+    public async Task EditSelectedTrack_ThatFails_SaysTheTrackWasNotEdited()
+    {
+        _sut.SelectedItem = new TrackQueueItem(TestData.CreateTrack(), false);
+        _trackEditor.EditAsync(Arg.Any<Track>()).Returns(Task.FromException(new IOException("No space left on device")));
+
+        await Assert.ThrowsAsync<IOException>(async () => await _sut.EditSelectedTrackCommand.Execute());
+
+        Assert.Equal("Failed to edit the track", Assert.Single(_logger.Errors).Message);
     }
 
     // --- RemoveSelected ---
