@@ -8,6 +8,7 @@
   var connection = null;
   var delaySeconds = 30;
   var openRow = null;    /* the id of the open row, not its position: the list renumbers itself */
+  var showing = null;    /* the id of the item on screen, which is what a skip is about */
   var queue = [];
   var searchTimer = null;
 
@@ -74,6 +75,7 @@
 
   function renderSnapshot(snapshot) {
     var current = snapshot.current;
+    showing = current.id || null;
     var next = snapshot.next;
     var hasCurrent = current.kind !== "None";
 
@@ -302,6 +304,7 @@
     var label = id("skipLabel");
     var frame = null;
     var startedAt = 0;
+    var pressedOn = null;
     var HOLD_MS = 650;
 
     function step(now) {
@@ -314,6 +317,9 @@
     function begin(event) {
       event.preventDefault();
       startedAt = window.performance.now();
+      /* The dance on screen when the thumb went down. One that changes during the hold is not the
+         one somebody decided to skip, and the app refuses it. */
+      pressedOn = showing;
       label.textContent = t("keepHolding");
       frame = window.requestAnimationFrame(step);
     }
@@ -328,7 +334,7 @@
     function fire() {
       cancel();
       if (window.navigator.vibrate) window.navigator.vibrate(20);
-      send("Skip", undefined, t("skipped"));
+      send("Skip", pressedOn, t("skipped"), t("nowMovedOn"));
     }
 
     button.addEventListener("pointerdown", begin);

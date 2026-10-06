@@ -111,12 +111,20 @@ public sealed class RemoteHub(
     /// </remarks>
     private Task<bool> OnTheUiThread(Func<Task<bool>> work) => dispatcher.InvokeAsync(work).Unwrap();
 
-    /// <summary>Skips the current item. The page holds a button down to get here.</summary>
+    /// <summary>Skips the item the phone was showing. The page holds a button down to get here.</summary>
     /// <remarks>
-    /// The result is swallowed inside the lambda rather than returned from it: handed back, the
-    /// Func&lt;T&gt; overload wins over Func&lt;Task&gt; and the skip is no longer waited for.
+    /// Named by the id the phone last drew, because a press that lands just after the dance changed
+    /// is about the one that ended, and skipping whatever is on by then cut the new dance off in its
+    /// first bar. A skip for anything else is refused as stale, and the page redraws.
     /// </remarks>
-    public Task Skip() => dispatcher.InvokeAsync(async () => { await consumptionService.AdvanceAsync(); });
+    public async Task<CommandResultDto> Skip(string? id) =>
+        await OnTheUiThread(() =>
+            consumptionService.CurrentItem is { } current && QueueItemId.TryParse(id, out var itemId)
+            && current.Id == itemId
+                ? consumptionService.AdvanceAsync(current)
+                : Task.FromResult(false))
+            ? CommandResultDto.Ok
+            : CommandResultDto.Stale;
 
     public Task<CommandResultDto> QueueRandom() => dispatcher.InvokeAsync(() =>
     {
