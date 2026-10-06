@@ -2,6 +2,7 @@ using System.Globalization;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.History;
+using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Unit;
 
@@ -40,12 +41,29 @@ public sealed class NightReportTests
     public void Render_HeadsTheDocumentWithTheEveningAndItsColumns()
     {
         var document = NightReport.Render(Night(Track("Naragonia", "Salamandre", Evening)));
+        var language = DomainStrings.Culture ?? CultureInfo.CurrentUICulture;
 
         Assert.Contains(DomainStrings.NightReport_Heading, document, StringComparison.Ordinal);
-        Assert.Contains(Evening.ToString("D", CultureInfo.CurrentCulture), document, StringComparison.Ordinal);
+        Assert.Contains(Evening.ToString("D", language), document, StringComparison.Ordinal);
         Assert.Contains(DomainStrings.NightReport_TimeColumn, document, StringComparison.Ordinal);
         Assert.Contains(DomainStrings.NightReport_ArtistColumn, document, StringComparison.Ordinal);
         Assert.Contains(DomainStrings.NightReport_TitleColumn, document, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("en-US", "nl")]
+    [InlineData("nl-NL", "en")]
+    public void Render_IsInTheApplicationsLanguageWhateverTheMachineIsSetTo(string machine, string application)
+    {
+        using var cultures = new CultureScope(machine, application);
+
+        var document = NightReport.Render(Night(Track("Naragonia", "Salamandre", Evening)));
+
+        // The heading and columns are in the application's language, so the document says it is
+        // in that one, and its date is not in the machine's in between.
+        Assert.Contains($"<html lang=\"{application}\">", document, StringComparison.Ordinal);
+        Assert.Contains(Evening.ToString("D", CultureInfo.GetCultureInfo(application)), document, StringComparison.Ordinal);
+        Assert.DoesNotContain(Evening.ToString("D", CultureInfo.GetCultureInfo(machine)), document, StringComparison.Ordinal);
     }
 
     [Fact]

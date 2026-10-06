@@ -513,8 +513,23 @@ public sealed class DanceListViewModelTests : IDisposable
         _status.OnNext(new DanceListStatus(3, 3, DanceListOrigin.Downloaded, obtained));
 
         Assert.Equal(
-            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_Obtained, obtained.ToLocalTime().DateTime),
+            string.Format(ApplicationCulture.Current, UiStrings.DanceList_Obtained, obtained.ToLocalTime().DateTime),
             _sut.OriginText);
+    }
+
+    [Theory]
+    [InlineData("en-US", "nl")]
+    [InlineData("nl-NL", "en")]
+    public void Origin_NamesTheMonthInTheApplicationsLanguage(string machine, string application)
+    {
+        using var cultures = new CultureScope(machine, application);
+        var obtained = new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero);
+
+        var origin = DanceListReports.Origin(new DanceListStatus(3, 3, DanceListOrigin.Downloaded, obtained));
+
+        // "opgehaald 15 October 2026" was the Dutch application on an English laptop.
+        Assert.Contains(obtained.ToString("MMMM", CultureInfo.GetCultureInfo(application)), origin, StringComparison.Ordinal);
+        Assert.DoesNotContain(obtained.ToString("MMMM", CultureInfo.GetCultureInfo(machine)), origin, StringComparison.Ordinal);
     }
 
     public void Dispose()

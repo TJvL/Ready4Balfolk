@@ -28,12 +28,20 @@ namespace Ready4Balfolk.Domain.Services.History;
 public static class NightReport
 {
     /// <summary>The night as an HTML document.</summary>
+    /// <remarks>
+    /// The heading and the columns are read from <see cref="DomainStrings" />, which answers in the
+    /// language the application speaks, so that is the language the document declares and the one
+    /// its date is written in. The machine's own culture is somebody else's: a Dutch evening run on
+    /// an English laptop was a Dutch report that called itself English under an English date, and a
+    /// browser, a screen reader or a translator believes the <c>lang</c> it is told.
+    /// </remarks>
     public static string Render(QueueHistory night)
     {
+        var language = DomainStrings.Culture ?? CultureInfo.CurrentUICulture;
         var document = new StringBuilder();
 
         document.Append("<!doctype html>\n<html lang=\"")
-            .Append(CultureInfo.CurrentCulture.TwoLetterISOLanguageName)
+            .Append(language.TwoLetterISOLanguageName)
             .Append("\">\n<head>\n<meta charset=\"utf-8\">\n")
             .Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>");
         AppendEscaped(document, DomainStrings.NightReport_Heading);
@@ -44,7 +52,7 @@ public static class NightReport
         if (night.StartedAt is { } startedAt)
         {
             document.Append("<p class=\"evening\">");
-            AppendEscaped(document, startedAt.ToString("D", CultureInfo.CurrentCulture));
+            AppendEscaped(document, startedAt.ToString("D", language));
             document.Append("</p>\n");
         }
 
