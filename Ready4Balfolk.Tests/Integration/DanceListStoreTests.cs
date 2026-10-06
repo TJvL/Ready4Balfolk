@@ -18,6 +18,7 @@ public sealed class DanceListStoreTests : IDisposable
     private readonly IDirectoryInfo _tempDir;
     private readonly FileSystem _fileSystem;
     private readonly IDanceListFeed _feed = Substitute.For<IDanceListFeed>();
+    private readonly RecordingLoggerService _logger = new();
     private readonly DanceListStore _sut;
 
     public DanceListStoreTests()
@@ -28,7 +29,7 @@ public sealed class DanceListStoreTests : IDisposable
         var settingsDirectory = Substitute.For<IApplicationSettingsDirectory>();
         settingsDirectory.DirectoryInfoRoot.Returns(_ => _tempDir);
         _feed.HomePage.Returns(new Uri("https://example.invalid/list"));
-        _sut = new DanceListStore(settingsDirectory, _fileSystem, _feed, new NoOpLoggerService(), TimeProvider.System);
+        _sut = new DanceListStore(settingsDirectory, _fileSystem, _feed, _logger, TimeProvider.System);
     }
 
     [Fact]
@@ -155,6 +156,22 @@ public sealed class DanceListStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ARefusedListOrAnUnreadableFile_IsHandedBackRatherThanPutOnScreenAsWell()
+    {
+        // The caller shows the failure in the DJ's language. An error from here as well was a
+        // second notice for one refused file, in English.
+        _feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns("""{"formatVersion":4,"dances":[]}""");
+        var refused = await _sut.RefreshAsync(TestContext.Current.CancellationToken);
+        // A folder where the file should be, which refuses the read the way a locked file does.
+        var unreadable = await _sut.UpdateFromFileAsync(
+            _fileSystem.FileInfo.New(_tempDir.FullName), TestContext.Current.CancellationToken);
+
+        Assert.Equal(DanceListUpdateOutcome.Failed, refused.Outcome);
+        Assert.Equal(DanceListUpdateOutcome.Failed, unreadable.Outcome);
+        Assert.Empty(_logger.Errors);
+    }
+
+    [Fact]
     public async Task UpdateFromFileAsync_TakesTheList()
     {
         var file = new FileInfo(Path.Combine(_tempDir.FullName, "carried_in.json"));
@@ -251,6 +268,7 @@ public sealed class DanceListStoreTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+        _logger.Dispose();
         if (_tempDir.Exists)
         {
             _tempDir.Delete(recursive: true);
