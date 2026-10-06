@@ -1008,6 +1008,9 @@
   <data name="DanceList_UpdateFailed" xml:space="preserve">
     <value>The dance list could not be updated: {0}. The one you have is still in use.</value>
   </data>
+  <data name="DanceList_NoneArrived" xml:space="preserve">
+    <value>No dance list arrived: {0}.</value>
+  </data>
   <data name="DanceList_TrackCount" xml:space="preserve">
     <value>{0} tracks</value>
   </data>

@@ -220,7 +220,12 @@ public sealed class MainWindowViewModelTests : IDisposable
 
     private SetupWizardViewModel BuildWizard() => new(
         new WelcomeStepViewModel(),
-        new DanceListStepViewModel(_danceListStore, Substitute.For<IDanceListFeed>(), new NoOpLoggerService(), new FakeTimeProvider()),
+        new DanceListStepViewModel(
+            _danceListStore,
+            Substitute.For<IDanceListFeed>(),
+            Substitute.For<INotificationService>(),
+            new NoOpLoggerService(),
+            new FakeTimeProvider()),
         new MusicDirectoryStepViewModel(_settingsStore, _fileSystem),
         new DiscoveryStepViewModel(
             new DiscoveryViewModel(_settingsStore, _libraryIndex, _danceListStore, _trackStore, new NoOpLoggerService())),

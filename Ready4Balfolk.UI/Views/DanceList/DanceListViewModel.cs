@@ -186,7 +186,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         IsUpdating = true;
         try
         {
-            Report(await _store.RefreshAsync());
+            _notifications.Show(await _store.RefreshAsync(), _store.Status);
         }
         finally
         {
@@ -196,22 +196,27 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
 
     /// <summary>Takes a list from a file, for a machine that never reaches the internet.</summary>
     /// <remarks>
+    /// <para>
     /// Takes the path the file picker handed back rather than a file object, so the code-behind
     /// does not have to reach for a filesystem of its own to build one.
+    /// </para>
+    /// <para>
+    /// A file the store throws on rather than refuses is reported once, in the words a refusal
+    /// would have used. It used to be said twice, an English line through the log and the
+    /// translated one beside it, for the one file.
+    /// </para>
     /// </remarks>
     public async Task UpdateFromFileAsync(string sourcePath)
     {
         IsUpdating = true;
         try
         {
-            Report(await _store.UpdateFromFileAsync(_fileSystem.FileInfo.New(sourcePath)));
+            _notifications.Show(
+                await _store.UpdateFromFileAsync(_fileSystem.FileInfo.New(sourcePath)), _store.Status);
         }
         catch (Exception exception)
         {
-            _loggerService.Report("Failed to update the dance list from a file", exception);
-            _notifications.Show(
-                string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, exception.Message),
-                NotificationSeverity.Error);
+            _loggerService.Report(DanceListReports.Failed(exception.Message, _store.Status), exception);
         }
         finally
         {
@@ -220,30 +225,6 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
     }
 
     public void Dispose() => _disposables.Dispose();
-
-    private void Report(DanceListUpdate update)
-    {
-        switch (update.Outcome)
-        {
-            case DanceListUpdateOutcome.Updated:
-                _notifications.Show(
-                    string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_Updated, update.DancesAdded),
-                    NotificationSeverity.Information);
-                break;
-
-            case DanceListUpdateOutcome.AlreadyCurrent:
-                _notifications.Show(UiStrings.DanceList_AlreadyCurrent, NotificationSeverity.Information);
-                break;
-
-            case DanceListUpdateOutcome.Failed:
-            default:
-                // Not an error state: the list already in hand carries on working.
-                _notifications.Show(
-                    string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, update.Problem),
-                    NotificationSeverity.Warning);
-                break;
-        }
-    }
 
     private void Refresh(DanceListModel list, DancePoolSelection selection, string search)
     {
@@ -358,9 +339,5 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         || dance.Names.Any(name =>
             StringNormalizer.Normalize(name).Contains(foldedSearch, StringComparison.Ordinal));
 
-    private void DescribeOrigin(DanceListStatus status) =>
-        OriginText = status.ObtainedAt is { } obtainedAt
-            ? string.Format(
-                CultureInfo.CurrentCulture, UiStrings.DanceList_Obtained, obtainedAt.ToLocalTime().DateTime)
-            : UiStrings.DanceList_NoListYet;
+    private void DescribeOrigin(DanceListStatus status) => OriginText = DanceListReports.Origin(status);
 }
