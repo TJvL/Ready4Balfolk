@@ -397,8 +397,11 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     }
 
     [Fact]
-    public void WhenIsPlayingChanged_EmitsOnAudioEvents()
+    public async Task WhenIsPlayingChanged_EmitsOnAudioEvents()
     {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+
         var isPlaying = false;
         using var sub = _sut.WhenIsPlayingChanged.Subscribe(v => isPlaying = v);
 
@@ -409,9 +412,29 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         Assert.False(isPlaying);
     }
 
+    /// <summary>
+    /// A preview from the review screen or the catalogue plays on the same output, and only while
+    /// nothing is on. Followed as the evening playing, nothing set it back when the preview ran out,
+    /// and the panel, the screens and the phone said a dance was on in a silent hall.
+    /// </summary>
     [Fact]
-    public void TheOutputGoingAway_StopsTheEveningSayingItIsPlaying()
+    public void TheOutputStartingWithNothingOn_IsNotTheEveningPlaying()
     {
+        var isPlaying = false;
+        using var subscription = _sut.WhenIsPlayingChanged.Subscribe(v => isPlaying = v);
+
+        _playbackStarted.OnNext(RxUnit.Default);
+        _playbackRestarted.OnNext(RxUnit.Default);
+
+        Assert.False(isPlaying);
+    }
+
+    [Fact]
+    public async Task TheOutputGoingAway_StopsTheEveningSayingItIsPlaying()
+    {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+
         var isPlaying = false;
         using var subscription = _sut.WhenIsPlayingChanged.Subscribe(v => isPlaying = v);
 

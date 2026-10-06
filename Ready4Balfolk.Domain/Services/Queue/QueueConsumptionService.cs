@@ -92,12 +92,23 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             exception => exception is ObjectDisposedException && _closing);
 
         // Global audio play state subscriptions
+        //
+        // The output going on is only the evening playing while the evening has a dance on. A
+        // preview from the review screen or the catalogue plays on this same output, and followed
+        // here it set the queue playing with nothing current; nothing it does at its end sets it
+        // back, so the panel offered Pause and the screens and the phone said something was on
+        // while the hall was silent. The output going quiet is followed always: whatever made it
+        // go quiet, nothing is playing.
         _globalDisposables.Add(
-            _audio.WhenPlaybackStarted.Subscribe(_ => _isPlaying.OnNext(true)));
+            _audio.WhenPlaybackStarted
+                .Where(_ => AudioItems.IsAudio(_currentItem.Value))
+                .Subscribe(_ => _isPlaying.OnNext(true)));
         _globalDisposables.Add(
             _audio.WhenPlaybackPaused.Subscribe(_ => _isPlaying.OnNext(false)));
         _globalDisposables.Add(
-            _audio.WhenPlaybackRestarted.Subscribe(_ => _isPlaying.OnNext(true)));
+            _audio.WhenPlaybackRestarted
+                .Where(_ => AudioItems.IsAudio(_currentItem.Value))
+                .Subscribe(_ => _isPlaying.OnNext(true)));
         _globalDisposables.Add(
             _audio.WhenPlaybackCleared.Subscribe(_ => _isPlaying.OnNext(false)));
 
