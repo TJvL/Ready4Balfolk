@@ -225,6 +225,38 @@ public sealed class ManagedBassAudioPlaybackServiceTests : IDisposable
         Assert.Contains(Opened("first.mp3"), _logger.Debug);
     }
 
+    /// <summary>
+    /// A track reaching its end is reported from BASS's own thread, and that call can already be on
+    /// its way when disposal returns. Against a disposed subject it raised ObjectDisposedException
+    /// where nothing can catch it, which ends the process.
+    /// </summary>
+    [Fact]
+    public async Task Disposing_LeavesTheSubjectsUsable_SoALateCallbackCannotTakeTheProcessDown()
+    {
+        await _sut.SelectAsync(_first);
+        await _sut.PlayAsync();
+
+        _sut.Dispose();
+
+        Assert.Null(Record.Exception(() => _sut.WhenPlaybackEnded.Subscribe(_ => { }).Dispose()));
+        Assert.Null(Record.Exception(() => _sut.WhenSelectedChanged.Subscribe(_ => { }).Dispose()));
+        Assert.Null(Record.Exception(() => _sut.WhenAvailabilityChanged.Subscribe(_ => { }).Dispose()));
+    }
+
+    /// <summary>
+    /// Every operation runs on the thread pool, so one can reach the semaphore after disposal has
+    /// already happened. Disposing the semaphore made that one throw instead of finishing.
+    /// </summary>
+    [Fact]
+    public async Task AnOperationArrivingAfterDisposal_StillFinishes()
+    {
+        await _sut.SelectAsync(_first);
+
+        _sut.Dispose();
+
+        Assert.Null(await Record.ExceptionAsync(_sut.ClearAsync));
+    }
+
     private static string Preloaded(string name) => $"Playing the stream preloaded for '{name}'";
 
     private static string Opened(string name) => $"Opened a stream for '{name}'";

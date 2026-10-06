@@ -171,10 +171,15 @@ public sealed class PresentationStateService : IPresentationStateService, IDispo
         trackItem.Track.Artist,
         trackItem.Track.Title);
 
-    public void Dispose()
-    {
-        _disposables.Dispose();
-        _state.Dispose();
-        _progress.Dispose();
-    }
+    /// <summary>Stops following the queue. The subjects are left alone on purpose.</summary>
+    /// <remarks>
+    /// Stopping a subscription does not wait for a callback that has already started, so a tick of
+    /// the countdown or a change from the audio thread can still be on its way to
+    /// <see cref="PublishState" /> or <see cref="PublishProgress" /> when this returns. Against a
+    /// disposed subject that raised ObjectDisposedException on a thread nobody can catch it on,
+    /// which ends the process, for the same reason the queue service leaves its own subjects alone.
+    /// A subject holds nothing that needs releasing, and a late value written into one that nobody
+    /// is listening to is harmless.
+    /// </remarks>
+    public void Dispose() => _disposables.Dispose();
 }

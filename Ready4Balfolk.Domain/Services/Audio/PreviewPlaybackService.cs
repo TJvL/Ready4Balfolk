@@ -88,10 +88,17 @@ public sealed class PreviewPlaybackService : IPreviewPlaybackService, IDisposabl
     public Task SeekAsync(TimeSpan position) =>
         _previewing.Value is null ? Task.CompletedTask : _playback.SeekAsync(position);
 
+    /// <summary>Stops listening to the output and the queue. The subject is left alone on purpose.</summary>
+    /// <remarks>
+    /// The end of a preview is reported from BASS's own thread, and stopping a subscription does not
+    /// wait for a callback that has already started. One landing after this returned read and wrote
+    /// a disposed subject, and the ObjectDisposedException it raised there has nowhere to go but the
+    /// process. A subject holds nothing that needs releasing, so it is left as the queue service
+    /// leaves its own.
+    /// </remarks>
     public void Dispose()
     {
         _endedSubscription.Dispose();
         _takenOverSubscription.Dispose();
-        _previewing.Dispose();
     }
 }
