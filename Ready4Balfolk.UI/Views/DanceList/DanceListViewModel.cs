@@ -203,7 +203,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         }
         catch (Exception exception)
         {
-            await _loggerService.ErrorAsync("Failed to update the dance list from a file", exception);
+            _loggerService.Report("Failed to update the dance list from a file", exception);
             _notifications.Show(
                 string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, exception.Message),
                 NotificationSeverity.Error);

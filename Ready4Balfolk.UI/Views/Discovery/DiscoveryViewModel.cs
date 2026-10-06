@@ -243,7 +243,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         }
         catch (Exception exception)
         {
-            await _loggerService.ErrorAsync("Failed to read the library for the discovery screen", exception);
+            _loggerService.Report("Failed to read the library for the discovery screen", exception);
         }
         finally
         {

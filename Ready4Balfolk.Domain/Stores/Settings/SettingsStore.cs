@@ -81,7 +81,7 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // The file is there and may be perfectly good, so it is left exactly as it is.
-            _ = loggerService.ErrorAsync("Could not open the settings file, starting from defaults", ex);
+            loggerService.Report("Could not open the settings file, starting from defaults", ex);
             return new ApplicationSettings();
         }
     }
@@ -99,7 +99,7 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _ = loggerService.ErrorAsync("The unreadable settings file could not be moved aside", ex);
+            loggerService.Report("The unreadable settings file could not be moved aside", ex);
         }
     }
 
@@ -149,7 +149,7 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _ = _loggerService.ErrorAsync("Failed to save settings", ex);
+            _loggerService.Report("Failed to save settings", ex);
         }
     }
 }

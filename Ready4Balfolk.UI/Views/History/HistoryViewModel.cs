@@ -171,7 +171,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             .Skip(1)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => ShowAsync(SelectedNight).SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to redraw a night", exception)))
+                _loggerService.Report("Failed to redraw a night", exception)))
             .DisposeWith(_disposables);
 
         // The nights on file are read once the store has them. A machine that was shut down after
@@ -181,7 +181,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             .Where(loading => !loading)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => RefreshNightsAsync().SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to read the nights on file", exception)))
+                _loggerService.Report("Failed to read the nights on file", exception)))
             .DisposeWith(_disposables);
 
         // The night being looked at is read once and then stands still: only tonight changes while
@@ -193,7 +193,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             {
                 _chosenByHand = true;
                 ShowAsync(night).SafeFireAndForget(exception =>
-                    _loggerService.ErrorAsync("Failed to show a night", exception));
+                    _loggerService.Report("Failed to show a night", exception));
             })
             .DisposeWith(_disposables);
 
@@ -252,7 +252,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             var filed = _tonightId;
             _tonightId = 0;
             FollowFiledNightAsync(filed).SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to follow a night that was filed", exception));
+                _loggerService.Report("Failed to follow a night that was filed", exception));
             return;
         }
 
@@ -268,7 +268,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
         if (opened)
         {
             RefreshNightsAsync().SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to read the nights on file", exception));
+                _loggerService.Report("Failed to read the nights on file", exception));
         }
     }
 

@@ -421,7 +421,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException)
         {
-            _ = _loggerService.ErrorAsync(
+            _loggerService.Report(
                 string.Format(CultureInfo.CurrentCulture, DomainStrings.Queue_CannotPlay, description),
                 exception);
 

@@ -284,7 +284,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .DistinctUntilChanged()
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(language => OnLanguageChangedAsync(language).SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to change language", exception)))
+                _loggerService.Report("Failed to change language", exception)))
             .DisposeWith(_disposables);
 
         settingsStore.Observe()
@@ -343,7 +343,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         var pin = RemoteAccessService.GeneratePin();
         WebRemoteControlPin = pin;
         CommitDirectAsync(s => s with { WebRemoteControlPin = pin }).SafeFireAndForget(exception =>
-            _loggerService.ErrorAsync("Failed to save the remote control pin", exception));
+            _loggerService.Report("Failed to save the remote control pin", exception));
     }
 
     private void UpdateWebServerStatus()
@@ -426,7 +426,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .Throttle(TimeSpan.FromMilliseconds(300), _saveScheduler)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(value => CommitDirectAsync(transform(value)).SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to save settings", exception)))
+                _loggerService.Report("Failed to save settings", exception)))
             .DisposeWith(_disposables);
     }
 
@@ -449,7 +449,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            _ = _loggerService.ErrorAsync("Failed to save settings", ex);
+            _loggerService.Report("Failed to save settings", ex);
         }
     }
 
@@ -495,7 +495,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            _ = _loggerService.ErrorAsync("Failed to change language", ex);
+            _loggerService.Report("Failed to change language", ex);
         }
     }
 

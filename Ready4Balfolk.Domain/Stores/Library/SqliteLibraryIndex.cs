@@ -87,7 +87,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             // Everything here except the approvals is recomputed by the next scan, and a database
             // SQLite cannot open has lost them either way. Rebuilding beats an application that
             // starts with an empty library and an error toast forever.
-            await loggerService.ErrorAsync(
+            loggerService.Report(
                 $"The library index ({DatabaseFileName}) is unreadable and will be rebuilt", exception);
 
             DeleteDatabaseFiles(path);
@@ -283,7 +283,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             // because of them, in a hall, so the loss is written down and the rebuild goes on. It
             // takes the paths with it, so what is left is an empty index rather than answers with
             // nothing to hang on.
-            await loggerService.ErrorAsync(
+            loggerService.Report(
                 $"The library index ({DatabaseFileName}) is being rebuilt and what was answered could not be read out",
                 exception);
 
