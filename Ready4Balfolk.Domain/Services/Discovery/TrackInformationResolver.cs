@@ -162,9 +162,7 @@ public static class TrackInformationResolver
 
         // Dances are a closed set and get a whitelist; artists and titles are open sets and get a
         // blocklist instead. "Unknown Artist" is what a ripper writes when it knows nothing.
-        var chosen = claims
-            .OrderByDescending(r => r.Trust)
-            .FirstOrDefault(claim => !ArtistNames.IsPlaceholder(claim.Value));
+        var chosen = claims.FirstOrDefault(claim => !ArtistNames.IsPlaceholder(claim.Value));
         if (chosen is null)
         {
             return new FieldDecision { Field = field, Reason = DecisionReason.Unusable };

@@ -37,10 +37,12 @@ public static class TrackClaims
 
         IClaimDiscovery[] discoveries =
         [
+            // The order is the trust order inside a tier: the first usable claim of a field answers
+            // it, so a pattern beats a folder role, and both beat the tag fields.
+            new PatternClaimDiscovery(declared),
+            new FolderClaimDiscovery(declared),
             new DanceClaimDiscovery(index, declared),
             new TagClaimDiscovery(declared),
-            new FolderClaimDiscovery(declared),
-            new PatternClaimDiscovery(declared),
             new FilenameTitleDiscovery()
         ];
 

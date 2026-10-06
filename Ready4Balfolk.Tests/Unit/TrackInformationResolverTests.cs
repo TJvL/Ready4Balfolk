@@ -1,4 +1,5 @@
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Tests.Helpers;
@@ -294,6 +295,31 @@ public sealed class TrackInformationResolverTests
 
         Assert.Equal("Naragonia", resolution.Artist);
         Assert.Equal(ClaimTrust.Declared, Assert.Single(resolution.ArtistDecision.Chosen).Trust);
+    }
+
+    [Theory]
+    // Inside the declared tier the first rule to speak answers, so the order the rules are asked
+    // in is the trust order: a pattern, then a folder role, then the tag fields.
+    [InlineData(true, false, true, "Band A")]
+    [InlineData(true, true, false, "Band A")]
+    [InlineData(false, true, true, "Band C")]
+    [InlineData(true, true, true, "Band A")]
+    public void DeclaredRules_AnswerTheArtistInOrder(bool pattern, bool folderRole, bool tagTrust, string expected)
+    {
+        var evidence = Evidence("Mazurka - Band A - Title", segments: ["Band C"]) with { TagArtist = "Band B" };
+        var declared = DeclaredDiscovery.Compile(new DiscoverySettings
+        {
+            UsesFileNamePatterns = pattern,
+            UsesFolderRoles = folderRole,
+            UsesTagTrust = tagTrust,
+            FileNamePatterns = ["%d - %a - %t"],
+            FolderRoles = [FolderRole.Artist],
+            TagTrust = new TagTrust { Artist = [TagField.Artist] }
+        });
+
+        var resolution = TrackInformationResolver.Resolve(evidence, _index, declared);
+
+        Assert.Equal(expected, resolution.Artist);
     }
 
     [Fact]
