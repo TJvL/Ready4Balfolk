@@ -107,13 +107,63 @@ public sealed class TheScreenTheDancersRead(HeadlessSession session)
             Assert.Equal("Scottish", application.TextOf("display.behind-dance"));
             Assert.Equal("Trio Loubelya - La Belle", application.TextOf("display.behind-track"));
 
-            // The same picture in the hall's browser, which is the other screen a room reads. It
-            // writes the artist and the title into boxes of their own rather than as one line, so
-            // what is read back below is the title on its own.
+            // The same picture in the hall's browser, which is the other screen a room reads, down
+            // to the line under the dance: one line, joined the way the desktop window joins it.
             await projector.WaitUntilItReads("nextPrimary", expectedDelayLabel);
             await projector.WaitUntilItReads("behindPrimary", "Scottish");
 
-            Assert.Equal("La Belle", await projector.Reads("behindTitle"));
+            Assert.Equal("Trio Loubelya - La Belle", await projector.Reads("behindTrack"));
+        });
+    }
+
+    /// <summary>The hall's browser writes a track the way the desktop's screen does.</summary>
+    /// <remarks>
+    /// World: a library of one dance, a screen switched on for the room, the server on for the
+    /// hall's browser, and auto queue off.
+    /// Steps: open the display page and start the dance.
+    /// Sees: the line under the dance reading the same on both screens, and a field with nothing in
+    /// it taking its separator with it rather than the rest of the line. A room that reads one
+    /// thing off the projector and another off the laptop's second screen is a room asking the DJ
+    /// which is right. Review and the edit dialog both refuse a track without an artist, so the
+    /// empty field is asked of the join both browser pages draw with, on the page itself.
+    /// </remarks>
+    [Fact]
+    public async Task TheBrowserWritesATrackTheWayTheDesktopDoes()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn()
+            .WithSettings(settings => settings with
+            {
+                AutoQueueRandomTrack = false,
+                PresentationDisplayCount = 1
+            })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var projector = await TheBrowser.OpenAt(world.ServerAddress);
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.Click("playback.skip");
+
+            await application.WaitUntil(
+                () => application.TextOf("display.track").Contains("Salamandre", StringComparison.Ordinal),
+                "the screen to show what is playing");
+
+            await projector.WaitUntilItReads("track", "Salamandre");
+
+            Assert.Equal(application.TextOf("display.track"), await projector.Reads("track"));
+
+            Assert.Equal("Salamandre",
+                await projector.Page.EvaluateAsync<string>("() => R4B.trackLine('', 'Salamandre')"));
+            Assert.Equal("Naragonia",
+                await projector.Page.EvaluateAsync<string>("() => R4B.trackLine('Naragonia', ' ')"));
         });
     }
 
