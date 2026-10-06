@@ -14,12 +14,18 @@ public sealed record NightOption(long Id, string Label, bool IsTonight)
     /// <summary>The night that is running, which is where the application starts.</summary>
     public static NightOption Tonight(long id) => new(id, UiStrings.History_Tonight, true);
 
+    /// <summary>A filed evening, by the day and the time it started.</summary>
+    /// <remarks>
+    /// The day and month are names, and named in the language the application speaks rather than
+    /// the machine's: the choice of language sets only the UI culture, so a Dutch application on an
+    /// English laptop read "Sat 3 Oct" here in the middle of a Dutch sentence.
+    /// </remarks>
     public static NightOption For(NightSummary night) => new(
         night.Id,
         string.Format(
             CultureInfo.CurrentCulture,
             UiStrings.History_NightOn,
-            night.StartedAt.ToString("ddd d MMM", CultureInfo.CurrentCulture),
+            night.StartedAt.ToString("ddd d MMM", ApplicationCulture.Current),
             night.StartedAt.ToString("HH:mm", CultureInfo.CurrentCulture)),
         false);
 

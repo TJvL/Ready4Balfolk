@@ -349,7 +349,8 @@ internal sealed class ApplicationStartup(
         var message = string.Format(
             CultureInfo.CurrentCulture,
             UiStrings.App_UnfinishedNightMessage,
-            lastActivity.ToString("d MMMM", CultureInfo.CurrentCulture),
+            // The month is a name, so it is named in the language the question is asked in.
+            lastActivity.ToString("d MMMM", ApplicationCulture.Current),
             night.Entries.Count);
 
         var startFresh = await confirmations.ConfirmAsync(

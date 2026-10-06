@@ -54,10 +54,15 @@ internal static class DanceListReports
         problem);
 
     /// <summary>Where the list in hand came from and when, so a stale one is visible rather than assumed.</summary>
+    /// <remarks>
+    /// The date's format is in the string itself and its month is a name, so it is formatted with
+    /// the language the string is in rather than the machine's: "opgehaald 3 October 2026" was a
+    /// Dutch application on an English laptop.
+    /// </remarks>
     public static string Origin(DanceListStatus status) =>
         status.ObtainedAt is { } obtainedAt
             ? string.Format(
-                CultureInfo.CurrentCulture, UiStrings.DanceList_Obtained, obtainedAt.ToLocalTime().DateTime)
+                ApplicationCulture.Current, UiStrings.DanceList_Obtained, obtainedAt.ToLocalTime().DateTime)
             : UiStrings.DanceList_NoListYet;
 
     /// <summary>Whether the machine has a dance list at all yet.</summary>
