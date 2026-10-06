@@ -55,7 +55,7 @@
 
   function subtitleOf(item) {
     if (item.kind === "Track") {
-      return item.artist + (item.title ? " - " + item.title : "");
+      return window.R4B.trackLine(item.artist, item.title);
     }
     if (item.kind === "Delay") return t("silentPause");
     if (item.kind === "Stop") return t("waitsForYou");
@@ -184,7 +184,7 @@
       button.className = "hit";
       button.innerHTML =
         '<span><span class="badge">' + escapeHtml(hit.dance) + "</span><br>" +
-        '<span class="h-sub">' + escapeHtml(hit.artist + (hit.title ? " - " + hit.title : "")) + "</span></span>" +
+        '<span class="h-sub">' + escapeHtml(window.R4B.trackLine(hit.artist, hit.title)) + "</span></span>" +
         '<span class="plus">+</span>';
 
       button.addEventListener("click", function () {

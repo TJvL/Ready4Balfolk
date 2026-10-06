@@ -184,6 +184,17 @@
     return item.primary || R4B.kindLabel(item.kind);
   };
 
+  /* A track's artist and title as one line, written the way the desktop window writes them. A
+     library always has a track missing one of them, and a field with nothing in it takes its
+     separator with it: a track with no artist is its title, not " - " and the title, and not
+     nothing at all. Both pages join here, so the projector and the phone cannot drift apart. */
+  R4B.trackLine = function (artist, title) {
+    return [artist, title]
+      .map(function (field) { return (field || "").trim(); })
+      .filter(function (field) { return field.length > 0; })
+      .join(" - ");
+  };
+
   /* How long, in words: seconds for a short wait, minutes once it stops being one. */
   R4B.durationPhrase = function (totalSeconds) {
     var rounded = Math.round(totalSeconds);
