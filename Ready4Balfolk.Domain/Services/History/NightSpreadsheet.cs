@@ -56,10 +56,18 @@ public static class NightSpreadsheet
 
     /// <summary>Writes one field so that what comes back out is what went in.</summary>
     /// <remarks>
-    /// Quoted whenever it holds a comma, a quote or a line break, with the quotes inside it
-    /// doubled: a band called <c>Naragonia, Duo</c> is otherwise two columns and every row after it
-    /// is read one column across. A control character has no spelling here either, so tabs and line
-    /// breaks become a space and the rest are left out, the same as the report does.
+    /// <para>
+    /// A control character has no spelling here, so tabs and line breaks become a space and the
+    /// rest are left out, the same as the report does. What is left is quoted whenever it holds a
+    /// comma or a quote, with the quotes inside it doubled: a band called <c>Naragonia, Duo</c> is
+    /// otherwise two columns and every row after it is read one column across.
+    /// </para>
+    /// <para>
+    /// A field that starts with <c>=</c>, <c>+</c>, <c>-</c> or <c>@</c> is a formula to Excel and
+    /// LibreOffice, so an artist written <c>-M-</c> comes back as an error, a title <c>+1</c> as a
+    /// number and a tag reading <c>=HYPERLINK(...)</c> as a live link in the organiser's sheet. It
+    /// goes out behind a <c>'</c>, which is how a spreadsheet spells "this is text", and quoted.
+    /// </para>
     /// </remarks>
     private static void AppendField(StringBuilder rows, string value)
     {
@@ -77,7 +85,13 @@ public static class NightSpreadsheet
         }
 
         var field = cleaned.ToString();
-        if (!field.Contains(',', StringComparison.Ordinal) && !field.Contains('"', StringComparison.Ordinal))
+        var formula = field is ['=' or '+' or '-' or '@', ..];
+        if (formula)
+        {
+            field = "'" + field;
+        }
+
+        if (!formula && !field.Contains(',', StringComparison.Ordinal) && !field.Contains('"', StringComparison.Ordinal))
         {
             rows.Append(field);
             return;

@@ -51,6 +51,19 @@ public sealed class NightSpreadsheetTests
         Assert.Equal("20:30,\"Naragonia, Duo\",Salamandre", rows[1]);
     }
 
+    [Theory]
+    [InlineData("-M-", "\"'-M-\"")]
+    [InlineData("+1", "\"'+1\"")]
+    [InlineData("=HYPERLINK(\"x\")", "\"'=HYPERLINK(\"\"x\"\")\"")]
+    [InlineData("@Duo", "\"'@Duo\"")]
+    public void Render_KeepsAFieldThatLooksLikeAFormulaAsText(string title, string written)
+    {
+        var rows = Lines(NightSpreadsheet.Render(Night(Track("Naragonia", title, Evening))));
+
+        // As it is, Excel and LibreOffice read these as a formula: an error, a number, a live link.
+        Assert.Equal($"20:30,Naragonia,{written}", rows[1]);
+    }
+
     [Fact]
     public void Render_DoublesAQuoteInsideAFieldRatherThanEndingIt()
     {
