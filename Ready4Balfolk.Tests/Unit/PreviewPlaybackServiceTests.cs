@@ -65,6 +65,19 @@ public sealed class PreviewPlaybackServiceTests : IDisposable
         await _playback.Received(1).ClearAsync();
     }
 
+    [Fact]
+    public async Task Disposing_LeavesTheSubjectUsable_SoALateEndOfTrackCannotTakeTheProcessDown()
+    {
+        await _sut.PlayAsync(TrackPath);
+
+        _sut.Dispose();
+
+        // The end of a preview is reported from BASS's own thread, and can already be on its way
+        // when disposal returns. A disposed subject threw there, where nothing can catch it.
+        Assert.Null(Record.Exception(() => _sut.WhenPreviewChanged.Subscribe(_ => { }).Dispose()));
+        Assert.Null(Record.Exception(() => _sut.Previewing));
+    }
+
     public void Dispose()
     {
         _sut.Dispose();

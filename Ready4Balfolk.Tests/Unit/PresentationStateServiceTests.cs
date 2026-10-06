@@ -1,6 +1,10 @@
+using System.Reactive.Linq;
+using DynamicData;
+using NSubstitute;
 using Ready4Balfolk.Domain.Models.Presentation;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Presentation;
+using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Unit;
@@ -138,5 +142,30 @@ public sealed class PresentationStateServiceTests
         var progress = new PresentationProgress(TimeSpan.FromSeconds(90), TimeSpan.FromSeconds(180));
 
         Assert.Equal(0.5d, progress.Fraction, 3);
+    }
+
+    // --- Dispose ---
+
+    [Fact]
+    public void Disposing_LeavesTheSubjectsUsable_SoALateTickCannotTakeTheProcessDown()
+    {
+        var consumption = Substitute.For<IQueueConsumptionService>();
+        consumption.WhenCurrentItemChanged.Returns(Observable.Never<IQueueItem?>());
+        consumption.WhenIsPlayingChanged.Returns(Observable.Never<bool>());
+        consumption.WhenElapsedChanged.Returns(Observable.Never<TimeSpan>());
+        consumption.WhenTotalDurationChanged.Returns(Observable.Never<TimeSpan>());
+        var queue = Substitute.For<IQueueService>();
+        queue.Connect().Returns(Observable.Never<IChangeSet<IQueueItem>>());
+
+        var sut = new PresentationStateService(consumption, queue);
+
+        sut.Dispose();
+
+        // A countdown tick or a change from the audio thread can already be on its way when
+        // disposal returns, because stopping a subscription does not wait for a callback that has
+        // started. A disposed subject threw there, where nothing can catch it.
+        Assert.Null(Record.Exception(() => sut.WhenStateChanged.Subscribe(_ => { }).Dispose()));
+        Assert.Null(Record.Exception(() => sut.WhenProgressChanged.Subscribe(_ => { }).Dispose()));
+        Assert.Null(Record.Exception(() => sut.Current));
     }
 }

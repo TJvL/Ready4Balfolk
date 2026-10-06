@@ -1,5 +1,4 @@
 using System.Reactive;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using ManagedBass;
@@ -23,10 +22,12 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private readonly ILoggerService _loggerService;
     private readonly bool _useNoSoundDevice;
 
-    private readonly CompositeDisposable _disposables = [];
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     private readonly Dictionary<int, EqualizerChain> _equalizerChains = [];
+
+    /// <summary>How long closing waits for an operation already running to finish with the streams.</summary>
+    private static readonly TimeSpan TeardownWait = TimeSpan.FromSeconds(5);
 
     private int _channel;
     private int _endSyncHandle;
@@ -60,15 +61,6 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
             .Where(_ => IsPlaying)
             .Select(_ => GetPosition())
             .DistinctUntilChanged(t => (int)t.TotalMilliseconds);
-
-        _disposables.Add(_selectedChanged);
-        _disposables.Add(_playbackStarted);
-        _disposables.Add(_playbackPaused);
-        _disposables.Add(_playbackRestarted);
-        _disposables.Add(_playbackCleared);
-        _disposables.Add(_playbackEnded);
-        _disposables.Add(_durationChanged);
-        _disposables.Add(_availability);
 
         InitializeBass();
     }
@@ -394,6 +386,28 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         Dispose(false);
     }
 
+    /// <summary>
+    /// Lets go of the streams and of BASS. The subjects, the availability and the semaphore are left
+    /// alone on purpose.
+    /// </summary>
+    /// <remarks>
+    /// Disposing the subjects used to come first, before the streams were freed, which left a window
+    /// in which a track reaching its end still had its end sync in place. BASS calls that from its
+    /// own thread, and a call landing on a disposed subject raised ObjectDisposedException where no
+    /// handler in the application can catch it, which ends the process. Freeing the stream removes
+    /// the sync, but removing a sync does not wait for a callback that has already started either,
+    /// so the subjects are not disposed at all, as the queue service does with its own. A subject
+    /// holds nothing that needs releasing, and a late callback writing into one that nobody is
+    /// listening to is harmless.
+    ///
+    /// The semaphore stays for the same reason. Every operation above runs on the thread pool and
+    /// can still be holding it, or still be on its way to it, when this is called; disposing it under
+    /// that work made its release throw instead of the work finishing. The streams are freed while
+    /// holding it instead, so that a select or a preload half way through is not pulled out from
+    /// under, and the lookup of effect chains is never changed by two threads at once. The wait is
+    /// bounded: nothing that holds the semaphore waits on anything that disposes this, but a close
+    /// that hangs on a stream slow to open is worse than one that frees it a moment early.
+    /// </remarks>
     public void Dispose()
     {
         Dispose(true);
@@ -409,18 +423,25 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
         _disposed = true;
 
-        if (disposing)
+        // Not from the finalizer: nothing can hold the semaphore by then, and blocking the
+        // finalizer thread on it would stall every other finalizer in the process.
+        var holding = disposing && _semaphore.Wait(TeardownWait);
+        try
         {
-            _disposables.Dispose();
-            _semaphore.Dispose();
+            FreeChannel();
+            FreePreloadedChannel();
+
+            if (_bassInitialized)
+            {
+                Bass.Free();
+            }
         }
-
-        FreeChannel();
-        FreePreloadedChannel();
-
-        if (_bassInitialized)
+        finally
         {
-            Bass.Free();
+            if (holding)
+            {
+                _semaphore.Release();
+            }
         }
     }
 
