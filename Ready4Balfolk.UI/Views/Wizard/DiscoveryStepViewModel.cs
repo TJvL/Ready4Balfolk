@@ -17,10 +17,25 @@ namespace Ready4Balfolk.UI.Views.Wizard;
 /// four ways of reading a library has to be ticked, because a library nothing is read by is a review
 /// screen with every file in it.
 /// </remarks>
-public sealed class DiscoveryStepViewModel(DiscoveryViewModel discovery) : WizardStepViewModel
+public sealed class DiscoveryStepViewModel : WizardStepViewModel
 {
+    /// <summary>
+    /// Built when the wizard opens, so this is where a run of setup lets go of the last visit.
+    /// </summary>
+    /// <remarks>
+    /// The screen is a singleton the review screen's rules panel shares, and it keeps whatever a
+    /// person last did to it, saved or not. Being transient does not help a step that wraps it: the
+    /// screen has to be told to read the settings again. Here rather than on entering the step, so
+    /// going back a step and forward again within one run keeps what was ticked on the way.
+    /// </remarks>
+    public DiscoveryStepViewModel(DiscoveryViewModel discovery)
+    {
+        Discovery = discovery;
+        Discovery.StartFromWhatIsOnDisk();
+    }
+
     /// <summary>The same screen the settings keep afterwards.</summary>
-    public DiscoveryViewModel Discovery { get; } = discovery;
+    public DiscoveryViewModel Discovery { get; }
 
     public override string Title => UiStrings.Wizard_Discovery_Title;
 
