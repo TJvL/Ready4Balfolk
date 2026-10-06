@@ -426,12 +426,13 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
         });
     }
 
-    /// <summary>The screen in the hall says so when it loses the application.</summary>
+    /// <summary>The screen in the hall says so when it loses the application, and comes back with it.</summary>
     /// <remarks>
     /// World: a library of one dance and the server on, with a browser open at the display.
-    /// Steps: switch the server off in the settings, the way a DJ does when they are packing up.
+    /// Steps: switch the server off in the settings, wait out SignalR's own retries, and switch it
+    /// on again, the way a laptop that slept through the break comes back.
     /// Sees: the page saying it has lost the application rather than standing there showing a dance
-    /// that stopped some time ago.
+    /// that stopped some time ago, and then the evening again without anybody reloading it.
     /// </remarks>
     [Fact]
     public async Task TheDisplaySaysSoWhenItLosesTheApp()
@@ -462,15 +463,82 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
                 () => application.IsShowing("settings.server"),
                 "the settings to come up");
 
-            application.Click("settings.server");
-
-            await application.WaitUntil(
-                () => application.TextOf("settings.server-status")
-                    .Equals(UiStrings.Settings_WebServerStopped, StringComparison.Ordinal),
-                "the server to stop");
+            await SwitchTheServer(application, on: false);
 
             await projector.Page.Locator("#lost").WaitForAsync();
+
+            await WaitOutSignalRsOwnRetries();
+            await SwitchTheServer(application, on: true);
+
+            await projector.Page.Locator("#lost").WaitForAsync(
+                new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 15_000 });
         });
+    }
+
+    /// <summary>The phone in the helper's pocket comes back once the application does.</summary>
+    /// <remarks>
+    /// World: a library of one dance, and the server and the remote on with a PIN.
+    /// Steps: unlock the remote, switch the server off for longer than SignalR keeps trying, and
+    /// switch it on again.
+    /// Sees: the remote connected again on the token it already had, rather than saying it is
+    /// reconnecting until somebody reloads the page.
+    /// </remarks>
+    [Fact]
+    public async Task TheRemoteComesBackAfterTheAppWasGoneAWhile()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "573920")
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "573920");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            application.Click("toolbar.settings");
+            await application.WaitUntil(
+                () => application.IsShowing("settings.server"),
+                "the settings to come up");
+            await SwitchTheServer(application, on: false);
+
+            await phone.WaitUntilItReads("link", "Reconnecting");
+
+            // "Connection lost" is what the page says once SignalR has given up, so reading it is
+            // what proves the retries were spent rather than still running.
+            await WaitOutSignalRsOwnRetries();
+            await phone.WaitUntilItReads("link", "Connection lost");
+            await SwitchTheServer(application, on: true);
+
+            await phone.Page.WaitForFunctionAsync(
+                "document.getElementById('link').textContent === ''",
+                null,
+                new PageWaitForFunctionOptions { Timeout = 15_000 });
+            Assert.False(await phone.IsShowing("gate"), "The remote wanted the PIN again.");
+        });
+    }
+
+    /// <summary>Longer than SignalR's own reconnect list, which gives up about eighteen seconds in.</summary>
+    private static Task WaitOutSignalRsOwnRetries() =>
+        Task.Delay(TimeSpan.FromSeconds(22), TestContext.Current.CancellationToken);
+
+    /// <summary>Ticks the server switch in the open settings and waits for it to say it has.</summary>
+    private static async Task SwitchTheServer(RunningApplication application, bool on)
+    {
+        application.Click("settings.server");
+
+        var expected = on ? UiStrings.Settings_WebServerRunning : UiStrings.Settings_WebServerStopped;
+        await application.WaitUntil(
+            () => application.TextOf("settings.server-status").Equals(expected, StringComparison.Ordinal),
+            on ? "the server to start" : "the server to stop");
     }
 
     /// <summary>The DJ picks a port somebody else is already using.</summary>
