@@ -101,7 +101,7 @@ public sealed class QueueHistoryStore(
             // Deliberately not deleted and rebuilt the way the library index is. The index is
             // derived and a scan puts it back; a history is the only copy there is of an evening,
             // and an unreadable one is a thing to look at rather than a thing to tidy away.
-            await loggerService.ErrorAsync("Failed to read the history database", exception);
+            loggerService.Report("Failed to read the history database", exception);
         }
         finally
         {
@@ -218,7 +218,7 @@ public sealed class QueueHistoryStore(
         }
         catch (Exception exception) when (exception is SqliteException or JsonException)
         {
-            await loggerService.ErrorAsync("Failed to list the nights", exception);
+            loggerService.Report("Failed to list the nights", exception);
             return [];
         }
         finally
@@ -243,7 +243,7 @@ public sealed class QueueHistoryStore(
         }
         catch (Exception exception) when (exception is SqliteException or JsonException)
         {
-            await loggerService.ErrorAsync("Failed to read a night", exception);
+            loggerService.Report("Failed to read a night", exception);
             return null;
         }
         finally
@@ -475,7 +475,7 @@ public sealed class QueueHistoryStore(
         }
         catch (SqliteException exception)
         {
-            await loggerService.ErrorAsync("Failed to write a history entry", exception);
+            loggerService.Report("Failed to write a history entry", exception);
             return nightId;
         }
     }
@@ -494,7 +494,7 @@ public sealed class QueueHistoryStore(
         }
         catch (SqliteException exception)
         {
-            await loggerService.ErrorAsync(failureMessage, exception);
+            loggerService.Report(failureMessage, exception);
         }
     }
 

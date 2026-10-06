@@ -108,7 +108,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             .Skip(1)
             .Where(screen => screen is not Screen.Review)
             .Subscribe(_ => StopPreviewAsync().SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to stop the preview on leaving the screen", exception)))
+                _loggerService.Report("Failed to stop the preview on leaving the screen", exception)))
             .DisposeWith(_disposables);
 
         preview.WhenProgressChanged
@@ -288,7 +288,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         }
         catch (Exception exception)
         {
-            await _loggerService.ErrorAsync("Failed to build the review queue", exception);
+            _loggerService.Report("Failed to build the review queue", exception);
         }
         finally
         {
@@ -662,7 +662,7 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
     {
         _rowSubscriptions.Dispose();
         _preview.StopAsync().SafeFireAndForget(
-            exception => _loggerService.ErrorAsync("Failed to stop the preview", exception));
+            exception => _loggerService.Report("Failed to stop the preview", exception));
         _disposables.Dispose();
     }
 

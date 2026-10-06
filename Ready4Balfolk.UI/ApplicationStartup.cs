@@ -110,7 +110,7 @@ internal sealed class ApplicationStartup(
             {
                 ShowSetupIfNeeded();
                 AskAboutUnfinishedNightAsync().SafeFireAndForget(exception =>
-                    logger.ErrorAsync("Failed to ask about an unfinished night", exception));
+                    logger.Report("Failed to ask about an unfinished night", exception));
             }));
 
         mainWindow.Closing += (_, e) =>
@@ -127,7 +127,7 @@ internal sealed class ApplicationStartup(
             e.Cancel = true;
 
             HandleClosingAsync(mainWindow).SafeFireAndForget(exception =>
-                logger.ErrorAsync("Failed to handle window closing", exception));
+                logger.Report("Failed to handle window closing", exception));
         };
     }
 
@@ -163,7 +163,7 @@ internal sealed class ApplicationStartup(
             .DistinctUntilChanged()
             .Subscribe(configuration => trackStore.ApplyAsync(configuration)
                 .SafeFireAndForget(exception =>
-                    logger.ErrorAsync("Failed to apply the library settings", exception))));
+                    logger.Report("Failed to apply the library settings", exception))));
 
         RestoreWindowState(mainWindow);
 
@@ -184,7 +184,7 @@ internal sealed class ApplicationStartup(
             settingsStore
                 .UpdateAsync(settings => settings with { WebServerEnabled = false })
                 .SafeFireAndForget(exception =>
-                    logger.ErrorAsync("Failed to switch the presentation server off after it would not start", exception));
+                    logger.Report("Failed to switch the presentation server off after it would not start", exception));
         }
 
         _disposables.Add(webServer.WhenChanged.Subscribe(_ => SwitchOffIfItCouldNotStart()));
@@ -198,7 +198,7 @@ internal sealed class ApplicationStartup(
             .Select(ToWebServerOptions)
             .DistinctUntilChanged()
             .Subscribe(options => webServer.ApplyAsync(options).SafeFireAndForget(exception =>
-                logger.ErrorAsync("Failed to apply presentation server settings", exception))));
+                logger.Report("Failed to apply presentation server settings", exception))));
 
         SyncPresentationWindows(settingsStore.Current.PresentationDisplayCount);
         _disposables.Add(settingsStore.Observe()
@@ -278,7 +278,7 @@ internal sealed class ApplicationStartup(
         // so there is nothing here worth making the user watch: awaiting Kestrel's drain is what
         // made the close button appear to do nothing while a browser held a WebSocket open.
         webServer.DisposeAsync().AsTask().SafeFireAndForget(exception =>
-            logger.ErrorAsync("Presentation server did not shut down cleanly", exception));
+            logger.Report("Presentation server did not shut down cleanly", exception));
 
         _disposables.Dispose();
 
@@ -368,7 +368,7 @@ internal sealed class ApplicationStartup(
 
     private void ApplyWebServer(ApplicationSettings settings) =>
         webServer.ApplyAsync(ToWebServerOptions(settings)).SafeFireAndForget(exception =>
-            logger.ErrorAsync("Failed to start the presentation server", exception));
+            logger.Report("Failed to start the presentation server", exception));
 
     private IObservable<Unit> RunLoad(Func<CancellationToken, Task> loader, string errorMessage) =>
         Observable.Defer(() => Observable.FromAsync(loader)
@@ -378,7 +378,7 @@ internal sealed class ApplicationStartup(
             .SubscribeOn(RxSchedulers.TaskpoolScheduler)
             .Catch<Unit, Exception>(exception =>
             {
-                _ = logger.ErrorAsync(errorMessage, exception);
+                logger.Report(errorMessage, exception);
                 // Just continue.
                 return Observable.Empty<Unit>();
             }));

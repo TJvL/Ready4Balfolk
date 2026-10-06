@@ -94,7 +94,7 @@ public static class ApplicationComposition
 
                 TaskScheduler.UnobservedTaskException += (_, e) =>
                 {
-                    loggerService.ErrorAsync("Unobserved task exception", e.Exception);
+                    loggerService.Report("Unobserved task exception", e.Exception);
                     e.SetObserved();
                 };
 
@@ -140,7 +140,7 @@ public static class ApplicationComposition
     {
         try
         {
-            _ = App.Services?.GetService<ILoggerService>()?.ErrorAsync(whatFailed, exception);
+            App.Services?.GetService<ILoggerService>()?.Report(whatFailed, exception);
         }
         catch (ObjectDisposedException)
         {

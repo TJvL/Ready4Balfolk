@@ -123,7 +123,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             .Skip(1)
             .ObserveOn(TaskPoolScheduler.Default)
             .Subscribe(_ => RefreshLibraryAsync().SafeFireAndForget(exception =>
-                _loggerService.ErrorAsync("Failed to rebuild the library after a dance list update", exception)));
+                _loggerService.Report("Failed to rebuild the library after a dance list update", exception)));
     }
 
     ~TrackStore()
@@ -937,7 +937,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 _fileMoved.OnNext(move);
             }
         }).SafeFireAndForget(exception =>
-            _loggerService.ErrorAsync("Failed to take in what the watcher noticed", exception));
+            _loggerService.Report("Failed to take in what the watcher noticed", exception));
 
     /// <summary>Every known path under a folder, which is what one event about that folder covers.</summary>
     private List<string> PathsUnder(IEnumerable<string> paths, string folder) =>

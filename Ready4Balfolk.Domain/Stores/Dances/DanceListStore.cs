@@ -110,7 +110,7 @@ public sealed class DanceListStore(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _ = loggerService.ErrorAsync($"Could not read {LogPaths.Name(sourceFileInfo.FullName)}", exception);
+            loggerService.Report($"Could not read {LogPaths.Name(sourceFileInfo.FullName)}", exception);
             return DanceListUpdate.Failed(exception.Message);
         }
     }
@@ -136,7 +136,7 @@ public sealed class DanceListStore(
             }
             catch (Exception exception) when (exception is InvalidDataException or FileNotFoundException)
             {
-                _ = loggerService.ErrorAsync("Refused a dance list", exception);
+                loggerService.Report("Refused a dance list", exception);
                 return DanceListUpdate.Failed(exception.Message);
             }
 
@@ -187,7 +187,7 @@ public sealed class DanceListStore(
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             // The list is in hand either way; only the next start pays for this.
-            _ = loggerService.ErrorAsync("Failed to cache the dance list", exception);
+            loggerService.Report("Failed to cache the dance list", exception);
         }
     }
 
@@ -206,7 +206,7 @@ public sealed class DanceListStore(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _ = loggerService.ErrorAsync("The cached dance list could not be read or removed", exception);
+            loggerService.Report("The cached dance list could not be read or removed", exception);
         }
     }
 }

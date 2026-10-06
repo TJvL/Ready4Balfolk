@@ -145,14 +145,14 @@ public sealed partial class EqualizerViewModel : ReactiveObject, IDisposable
 
         // Audio first and unthrottled: the sound has to follow the slider.
         _audioPlaybackService.SetEqualizerAsync(settings)
-            .SafeFireAndForget(exception => _loggerService.ErrorAsync("Failed to apply equalizer", exception));
+            .SafeFireAndForget(exception => _loggerService.Report("Failed to apply equalizer", exception));
 
         _pendingSave.OnNext(settings);
     }
 
     private void Save(EqualizerSettings settings) =>
         _settingsStore.UpdateAsync(stored => stored with { EqualizerOrNull = settings })
-            .SafeFireAndForget(exception => _loggerService.ErrorAsync("Failed to save equalizer", exception));
+            .SafeFireAndForget(exception => _loggerService.Report("Failed to save equalizer", exception));
 
     public void Dispose()
     {
