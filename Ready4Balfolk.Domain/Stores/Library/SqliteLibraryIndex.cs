@@ -38,7 +38,7 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
     /// different answer.
     /// </para>
     /// </remarks>
-    private const int SchemaVersion = 1;
+    private const int SchemaVersion = 2;
 
     /// <summary>The three fields whose source is stored, in the order their parameters are bound.</summary>
     private static readonly string[] SourceColumns = ["dance", "artist", "title"];
@@ -758,7 +758,12 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         await _gate.WaitAsync(token);
         try
         {
-            await ExecuteAsync(await EnsureOpenLockedAsync(token), $"DELETE FROM approvals WHERE kind = {(int)ApprovalKind.ByRule};", token);
+            // The rules the library was read under go with what they approved: until it has been
+            // read again, it has not been read under any.
+            await ExecuteAsync(
+                await EnsureOpenLockedAsync(token),
+                $"DELETE FROM approvals WHERE kind = {(int)ApprovalKind.ByRule}; DELETE FROM read_under;",
+                token);
         }
         finally
         {
@@ -1062,6 +1067,40 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         }
     }
 
+    public async Task<string?> RulesReadUnderAsync(CancellationToken token = default)
+    {
+        await _gate.WaitAsync(token);
+        try
+        {
+            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
+            command.CommandText = "SELECT rules FROM read_under WHERE id = 1;";
+            return await command.ExecuteScalarAsync(token) as string;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task RecordRulesReadUnderAsync(string rules, CancellationToken token = default)
+    {
+        await _gate.WaitAsync(token);
+        try
+        {
+            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
+            command.CommandText = """
+                INSERT INTO read_under (id, rules) VALUES (1, $rules)
+                ON CONFLICT (id) DO UPDATE SET rules = excluded.rules;
+                """;
+            command.Parameters.AddWithValue("$rules", rules);
+            await command.ExecuteNonQueryAsync(token);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public void Dispose()
     {
         _connection?.Dispose();
@@ -1160,6 +1199,14 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
         CREATE TABLE IF NOT EXISTS ignored_values (
             folded_value TEXT PRIMARY KEY,
             value        TEXT NOT NULL
+        );
+
+        -- The discovery rules the whole library was last read under, one row. A start whose rules
+        -- match takes the size-and-time shortcut; one whose rules differ reads every file again.
+        -- Not carried across a rebuild, because a rebuild throws the tracks away and reads them all.
+        CREATE TABLE IF NOT EXISTS read_under (
+            id    INTEGER PRIMARY KEY CHECK (id = 1),
+            rules TEXT    NOT NULL
         );
         """;
 }

@@ -1,6 +1,7 @@
 using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using NSubstitute;
 using Ready4Balfolk.Domain;
@@ -39,6 +40,13 @@ public sealed class TrackStoreTests : IDisposable
     private readonly List<IReadOnlyList<MissingLibraryFolder>> _asked = [];
     private MissingFolderAnswer _answer = MissingFolderAnswer.KeepThem;
     private Dictionary<string, LibraryEntry> _indexSnapshot = [];
+
+    /// <summary>What the fake index says the library was last read under.</summary>
+    /// <remarks>
+    /// Starts as no rules at all, so an index a test fills in by hand reads as one a previous start
+    /// built with nothing declared, which is what such a test means by it.
+    /// </remarks>
+    private string? _rulesReadUnder = JsonSerializer.Serialize(DiscoverySettings.Undeclared.InForce());
     // A BehaviorSubject as the real store is: it replays its current list to a new subscriber, and
     // the store's Skip(1) is there to drop exactly that replay. A bare Subject makes the first real
     // update look like the replay and it is silently swallowed.
@@ -163,6 +171,19 @@ public sealed class TrackStoreTests : IDisposable
                 return Task.CompletedTask;
             });
         _libraryIndex.ApprovalsAsync(Arg.Any<CancellationToken>()).Returns(_ => Approved());
+        _libraryIndex.RulesReadUnderAsync(Arg.Any<CancellationToken>()).Returns(_ => _rulesReadUnder);
+        _libraryIndex.RecordRulesReadUnderAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                _rulesReadUnder = call.Arg<string>();
+                return Task.CompletedTask;
+            });
+        _libraryIndex.RevokeRuleApprovalsAsync(Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                _rulesReadUnder = null;
+                return Task.CompletedTask;
+            });
 
         // Answers whatever the test told it to. The default is the one a scan takes when nobody is
         // there to answer: keep what cannot be reached rather than delete it.
@@ -748,6 +769,70 @@ public sealed class TrackStoreTests : IDisposable
         _discoveryService.DidNotReceiveWithAnyArgs().Gather(default!, default!);
         Assert.Equal("Mazurka", _sut.Current[0].Dance);
         Assert.Equal(TimeSpan.FromSeconds(42), _sut.Current[0].Length);
+    }
+
+    [Fact]
+    public async Task ARestartUnderTheSameRules_OpensNoUnchangedFile()
+    {
+        // Startup hands over the directory and the rules together. Compared against the store's
+        // own starting value, which is no rules, that read as a rule change on every start.
+        CreateFile(_dirA, "Naragonia - Mazurka.mp3");
+        await ApplyAsync(directory: _dirA, discovery: new DiscoverySettings
+        {
+            UsesFileNamePatterns = true,
+            FileNamePatterns = ["%a - %t"]
+        });
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+        _discoveryService.ClearReceivedCalls();
+        _libraryIndex.ClearReceivedCalls();
+
+        using var restarted = NewStore();
+        await restarted.ApplyAsync(_configuration);
+        await WaitUntilAsync(() => restarted.Current.Count == 1);
+
+        _discoveryService.DidNotReceiveWithAnyArgs().Gather(default!, default!);
+        await _libraryIndex.DidNotReceive().RevokeRuleApprovalsAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ARuleThatIsSwitchedOff_IsNoReasonToReadAgain()
+    {
+        // Filled in and then unticked: it reads nothing, so it changes nothing about the files.
+        CreateFile(_dirA, "known.mp3");
+        var file = _fileSystem.FileInfo.New(_fileSystem.Path.Combine(_dirA.FullName, "known.mp3"));
+        _indexSnapshot = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
+        {
+            [file.FullName] = IndexedAs(file, "Mazurka")
+        };
+
+        await ApplyAsync(directory: _dirA, discovery: new DiscoverySettings
+        {
+            UsesFileNamePatterns = false,
+            FileNamePatterns = ["%a - %t"]
+        });
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+
+        _discoveryService.DidNotReceiveWithAnyArgs().Gather(default!, default!);
+    }
+
+    [Fact]
+    public async Task AStartUnderRulesTheLibraryWasNotReadUnder_ReadsItAgain()
+    {
+        CreateFile(_dirA, "known.mp3");
+        var file = _fileSystem.FileInfo.New(_fileSystem.Path.Combine(_dirA.FullName, "known.mp3"));
+        _indexSnapshot = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
+        {
+            [file.FullName] = IndexedAs(file, "Mazurka")
+        };
+
+        await ApplyAsync(directory: _dirA, discovery: new DiscoverySettings
+        {
+            UsesFileNamePatterns = true,
+            FileNamePatterns = ["%a - %t"]
+        });
+        await WaitUntilAsync(() => _discoveryService.ReceivedCalls().Any());
+
+        await _libraryIndex.Received(1).RevokeRuleApprovalsAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]

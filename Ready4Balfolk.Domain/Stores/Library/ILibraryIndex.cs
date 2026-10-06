@@ -72,7 +72,8 @@ public interface ILibraryIndex : IDisposable
     /// </summary>
     /// <remarks>
     /// The user vouched for the rule rather than for each file it touched, so changing the rules has
-    /// to undo their work. What somebody looked at and answered themselves is untouched.
+    /// to undo their work. What somebody looked at and answered themselves is untouched. The rules
+    /// the library was read under go too, so the next load reads every file again.
     /// </remarks>
     Task RevokeRuleApprovalsAsync(CancellationToken token = default);
 
@@ -139,5 +140,15 @@ public interface ILibraryIndex : IDisposable
     /// review is the gate's decision, not a query: the published library reports that count itself.
     /// </summary>
     Task<int> CountIndexedAsync(CancellationToken token = default);
+
+    /// <summary>The discovery rules the whole library was last read under, or null when it never was.</summary>
+    /// <remarks>
+    /// Kept beside what those rules produced rather than compared against whatever the application
+    /// started with, which is nothing: every start with a rule declared read the whole library again.
+    /// </remarks>
+    Task<string?> RulesReadUnderAsync(CancellationToken token = default);
+
+    /// <summary>Records that every file has just been read under these rules.</summary>
+    Task RecordRulesReadUnderAsync(string rules, CancellationToken token = default);
 
 }

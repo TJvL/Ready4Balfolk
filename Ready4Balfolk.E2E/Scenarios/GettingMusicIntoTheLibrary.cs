@@ -51,9 +51,43 @@ public sealed class GettingMusicIntoTheLibrary(HeadlessSession session)
         });
     }
 
+    /// <summary>A dance named in a tag nobody declared is found on the very first start.</summary>
+    /// <remarks>
+    /// World: one track whose comment names the dance, with no tag field trusted.
+    /// Steps: open the review and answer the track without typing a dance.
+    /// Sees: the track in the catalogue. The name is found because the dance list is there before
+    /// the library is read; read the other way round, the file was resolved against no list at all,
+    /// and it waited in review with nothing proposed until it changed on disk.
+    /// </remarks>
+    [Fact]
+    public async Task ADanceNamedInACommentIsFoundOnTheFirstStart()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            application.Click("toolbar.review");
+
+            await application.WaitUntil(
+                () => application.RowsOf("review.rows").Count == 1,
+                "the track to be waiting for a person");
+
+            var row = application.Row("review.rows", "Salamandre");
+            application.Click(RunningApplication.Within(row, "review.approve"));
+
+            application.Click("screen.back");
+
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the track to reach the catalogue on the dance its comment names");
+        });
+    }
+
     /// <summary>A track nobody has given a dance does not get in by being answered anyway.</summary>
     /// <remarks>
-    /// World: the same music directory and the same untouched tags.
+    /// World: one track with no dance in any of its tags or its name.
     /// Steps: answer the track with no dance on it, look at the catalogue, then give it a dance and
     /// answer it again.
     /// Sees: nothing in the catalogue the first time and the track the second, which is the gate
@@ -62,8 +96,11 @@ public sealed class GettingMusicIntoTheLibrary(HeadlessSession session)
     [Fact]
     public async Task DjCannotApproveATrackWithNoDance()
     {
+        // No dance in the comment either: a name from the list is found in any tag's text without
+        // a declaration. This world used to carry one, and passed only because the library was
+        // read before the dance list had loaded.
         using var world = ScenarioWorld.Create()
-            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "", artist: "Naragonia", title: "Salamandre")
             .Save();
 
         await session.RunAsync(world, async application =>
