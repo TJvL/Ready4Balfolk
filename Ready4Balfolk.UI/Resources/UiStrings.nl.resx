@@ -86,7 +86,7 @@
     <value>Einde</value>
   </data>
   <data name="QueueToolbar_DelayLabel" xml:space="preserve">
-    <value>Wachttijd</value>
+    <value>Onderbreking</value>
   </data>
   <data name="QueueToolbar_MessageLabel" xml:space="preserve">
     <value>Bericht</value>
@@ -226,7 +226,7 @@
     <value>Speling (minuten)</value>
   </data>
   <data name="Settings_QueueCutoffDescription" xml:space="preserve">
-    <value>Weiger nieuwe items zodra de wachtrij tot na deze tijd zou doorlopen, met de speling erbovenop. Zolang er een stopverzoek in de wachtrij staat is de eindtijd onbekend en geldt de limiet niet; gebruik een wachttijd als je weet hoe lang het duurt.</value>
+    <value>Weiger nieuwe items zodra de wachtrij tot na deze tijd zou doorlopen, met de speling erbovenop. Zolang er een stopverzoek in de wachtrij staat is de eindtijd onbekend en geldt de limiet niet; gebruik een onderbreking als je weet hoe lang het duurt.</value>
   </data>
   <data name="Settings_EndOfNightAudio" xml:space="preserve">
     <value>Slotmuziek van de avond</value>
@@ -265,10 +265,10 @@
     <value>Maximaal aantal wachtrij-items</value>
   </data>
   <data name="Settings_DelayDuration" xml:space="preserve">
-    <value>Wachttijdduur (seconden)</value>
+    <value>Onderbrekingsduur (seconden)</value>
   </data>
   <data name="Settings_DelayDescription" xml:space="preserve">
-    <value>Gebruikt voor 'Wachttijd aanvragen' - pauzeert het afspelen voor deze duur</value>
+    <value>Gebruikt voor 'Onderbreking aanvragen' - onderbreekt het afspelen voor deze duur</value>
   </data>
   <data name="Settings_PresentationDisplays" xml:space="preserve">
     <value>Presentatieschermen</value>
@@ -280,16 +280,16 @@
     <value>Automatisch willekeurig nummer toevoegen tijdens afspelen</value>
   </data>
   <data name="Settings_GapBetweenTracks" xml:space="preserve">
-    <value>Standaard wachttijd tussen nummers</value>
+    <value>Standaard onderbreking tussen nummers</value>
   </data>
   <data name="Settings_GapBetweenTracksLength" xml:space="preserve">
-    <value>Lengte van de wachttijd tussen nummers (seconden)</value>
+    <value>Lengte van de onderbreking tussen nummers (seconden)</value>
   </data>
   <data name="Settings_GapBetweenTracksSeconds" xml:space="preserve">
     <value>seconden</value>
   </data>
   <data name="Settings_GapBetweenTracksDescription" xml:space="preserve">
-    <value>Even tijd om de vloer leeg te laten lopen en opnieuw op te stellen, tussen de ene dans en de volgende, zonder dat er iets in de wachtrij verschijnt. Rond een wachttijd, een stop, een bericht of het einde van de avond komt er niets bij: die geven de zaal al tijd. De eindtijd telt ze mee.</value>
+    <value>Even tijd om de vloer leeg te laten lopen en opnieuw op te stellen, tussen de ene dans en de volgende, zonder dat er iets in de wachtrij verschijnt. Rond een onderbreking, een stop, een bericht of het einde van de avond komt er niets bij: die geven de zaal al tijd. De eindtijd telt ze mee.</value>
   </data>
   <data name="Settings_AutoQueueDescription" xml:space="preserve">
     <value>Voegt automatisch een willekeurig nummer toe tijdens het afspelen. Blijft onderaan staan, onder alles wat je zelf toevoegt.</value>
@@ -357,7 +357,7 @@
     <value>De slotmuziek staat niet waar de instellingen zeggen dat hij staat.</value>
   </data>
   <data name="Queue_DelayMarker" xml:space="preserve">
-    <value>WACHTTIJD - Afspelen wordt tijdelijk gepauzeerd</value>
+    <value>ONDERBREKING - Het afspelen wordt even onderbroken</value>
   </data>
   <data name="Queue_MessageMarker" xml:space="preserve">
     <value>BERICHT -</value>
@@ -410,7 +410,7 @@
     <value>De avond afsluiten: zet de slotmuziek in de wachtrij, waarna er niets meer bij kan</value>
   </data>
   <data name="QueueToolbar_RequestDelay" xml:space="preserve">
-    <value>Wachttijd aanvragen</value>
+    <value>Onderbreking aanvragen</value>
   </data>
   <data name="QueueToolbar_RequestMessage" xml:space="preserve">
     <value>Bericht aanvragen</value>
@@ -451,7 +451,7 @@
     <value>Bericht</value>
   </data>
   <data name="History_TypeDelay" xml:space="preserve">
-    <value>Wachttijd</value>
+    <value>Onderbreking</value>
   </data>
   <data name="History_TypeStop" xml:space="preserve">
     <value>Stop</value>
@@ -548,10 +548,10 @@
     <value>Nummer herstarten</value>
   </data>
   <data name="Playback_Delay" xml:space="preserve">
-    <value>Wachttijd</value>
+    <value>Onderbreking</value>
   </data>
   <data name="Playback_Gap" xml:space="preserve">
-    <value>Standaard wachttijd tussen dansen</value>
+    <value>Standaard onderbreking tussen dansen</value>
   </data>
   <data name="Presentation_Gap" xml:space="preserve">
     <value>Even tijd tussen twee dansen</value>
@@ -654,7 +654,7 @@
     <value>Geen volgend nummer</value>
   </data>
   <data name="Presentation_Delay" xml:space="preserve">
-    <value>Wachttijd</value>
+    <value>Onderbreking</value>
   </data>
   <data name="Presentation_Stop" xml:space="preserve">
     <value>Stop</value>
@@ -678,7 +678,7 @@
     <value>{0} minuten</value>
   </data>
   <data name="Presentation_DelayWithDuration" xml:space="preserve">
-    <value>Wachttijd ({0})</value>
+    <value>Onderbreking ({0})</value>
   </data>
   <data name="Presentation_MessageWithDuration" xml:space="preserve">
     <value>Bericht ({0})</value>
@@ -695,10 +695,10 @@
     <value>Voer een bericht in om weer te geven...</value>
   </data>
   <data name="Dialog_UseTimedDelay" xml:space="preserve">
-    <value>Gebruik een getimede wachttijd (anders stopt het tot handmatig hervatten)</value>
+    <value>Gebruik een getimede onderbreking (anders stopt het tot handmatig hervatten)</value>
   </data>
   <data name="Dialog_DelayDuration" xml:space="preserve">
-    <value>Wachttijdduur (seconden)</value>
+    <value>Onderbrekingsduur (seconden)</value>
   </data>
   <data name="Dialog_Cancel" xml:space="preserve">
     <value>Annuleren</value>
@@ -1694,7 +1694,7 @@ De bibliotheek kent er {2} nummers.</value>
     <value>Er kon geen stop in de wachtrij gezet worden</value>
   </data>
   <data name="Queue_DelayFailed" xml:space="preserve">
-    <value>Er kon geen wachttijd in de wachtrij gezet worden</value>
+    <value>Er kon geen onderbreking in de wachtrij gezet worden</value>
   </data>
   <data name="Queue_EndOfNightFailed" xml:space="preserve">
     <value>Het einde van de avond kon niet in de wachtrij gezet worden</value>

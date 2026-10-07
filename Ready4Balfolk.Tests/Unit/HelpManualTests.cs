@@ -67,7 +67,7 @@ public sealed class HelpManualTests
     /// <summary>
     /// Names the Dutch application does not show, each of which sends a reader hunting for a button
     /// that is not there. The glossary in development.md is where the Dutch
-    /// words come from: a request is "aanvragen", the item that holds the room is a "Wachttijd"
+    /// words come from: a request is "aanvragen", the item that holds the room is an "Onderbreking"
     /// rather than a "Pauze" (which is the transport button), the screen and what waits there is
     /// "Nakijken", and the list of dances is the "dansenlijst".
     /// </summary>
@@ -79,7 +79,9 @@ public sealed class HelpManualTests
     [InlineData("Setup opnieuw uitvoeren")]
     [InlineData("Stop toevoegen")]
     [InlineData("Pauze toevoegen")]
-    [InlineData("Wachttijd toevoegen")]
+    [InlineData("Onderbreking toevoegen")]
+    [InlineData("Wachttijd")]
+    [InlineData("wachttijd")]
     [InlineData("Bericht toevoegen")]
     [InlineData("**Pauze**")]
     [InlineData("Pauze aanvragen")]

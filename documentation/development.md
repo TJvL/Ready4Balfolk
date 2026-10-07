@@ -539,15 +539,15 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 
 ### Dutch glossary
 
-One Dutch word per thing, in the app, the remote's `strings.js` and the Dutch manual alike. A new string uses these, and so do its compounds and inflections ("Wachttijdduur", "een getimede wachttijd").
+One Dutch word per thing, in the app, the remote's `strings.js` and the Dutch manual alike. A new string uses these, and so do its compounds and inflections ("Onderbrekingsduur", "een getimede onderbreking").
 
 | Thing | Dutch | Not |
 |---|---|---|
 | Holding playback (the transport button) | Pauze / pauzeren | |
-| The queue item that holds the room for a while (English "Delay"), and the standard time between dances (English "delay between tracks") | Wachttijd | Pauze |
+| The queue item that holds the room for a while (English "Delay"), and the standard time between dances (English "delay between tracks") | Onderbreking | Pauze |
 | Starting the playing track from the top (English "Restart") | Opnieuw | |
 | Swapping an auto-picked track for another (English "Reroll") | Ander nummer | Opnieuw |
-| Putting a stop, a wachttijd or a message in the queue | aanvragen (Stop aanvragen, Wachttijd aanvragen, Bericht aanvragen) | toevoegen |
+| Putting a stop, an onderbreking or a message in the queue | aanvragen (Stop aanvragen, Onderbreking aanvragen, Bericht aanvragen) | toevoegen |
 | The review screen and what waits there | Nakijken ("wacht op je bij Nakijken") | review, reviewrij |
 | The list of dances | dansenlijst | danslijst |
 

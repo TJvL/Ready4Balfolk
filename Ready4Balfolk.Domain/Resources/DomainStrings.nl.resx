@@ -78,7 +78,7 @@
     <value>Stop</value>
   </data>
   <data name="DelayQueueItem_Description" xml:space="preserve">
-    <value>Wachttijd</value>
+    <value>Onderbreking</value>
   </data>
   <data name="GapQueueItem_Description" xml:space="preserve">
     <value>Tussen twee dansen</value>
