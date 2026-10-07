@@ -27,8 +27,9 @@ namespace Ready4Balfolk.UI;
 /// CI packages every artifact but cannot judge one by looking at it. The failure this exists to
 /// catch is a native library that is missing from the package or fails to load out of it, which
 /// looks identical to a healthy build until someone runs it. Killing the app after a timeout would
-/// not catch that: <see cref="IAudioPlaybackService"/> is a lazy singleton that nothing on the
-/// startup path resolves, so a build with no BASS at all reaches a running window quite happily.
+/// not catch that: BASS is loaded as the main window's view models are built, and a library that
+/// will not load is reported rather than thrown, so a build with no BASS at all reaches a running
+/// window quite happily.
 /// </remarks>
 internal static class SmokeTest
 {
@@ -48,7 +49,8 @@ internal static class SmokeTest
     /// the static file middleware. The page itself has a route of its own, so fetching it proves
     /// nothing about these.
     /// </summary>
-    private static readonly string[] ServedAssets = ["display.js", "app.css", "strings.js", "remote.js"];
+    private static readonly string[] ServedAssets =
+        ["display.js", "app.css", "strings.js", "remote.js", "lib/signalr.min.js"];
 
     /// <summary>Cold start on a runner with software rendering is slow, but not this slow.</summary>
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(120);
@@ -167,7 +169,8 @@ internal static class SmokeTest
 
         try
         {
-            // This resolve is the whole point: it is the first and only thing that loads libbass.
+            // The main window built this already, which is when libbass was loaded. Whether it came
+            // up is the whole point.
             var audio = App.Services.GetRequiredService<IAudioPlaybackService>();
 
             // No point decoding anything if BASS never came up; it would only repeat the news.
