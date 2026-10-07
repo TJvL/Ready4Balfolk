@@ -12,8 +12,10 @@ namespace Ready4Balfolk.Domain.Services.Discovery;
 /// dropped here.
 /// </para>
 /// <para>
-/// Claims of one field come out in the order they are trusted, most trusted first: what the user
-/// declared, then what the file says about itself. Nothing is read out of a folder name or a file
+/// Claims of one field come out in the order they are trusted within a tier: a pattern, then a
+/// folder role, then the tags, then the file name. The tier itself is the claim's
+/// <see cref="ClaimTrust"/>, not its position, so an observed dance found in a tag can come out
+/// before a declared tag order and still lose to it. Nothing is read out of a folder name or a file
 /// name field unless the user declared that it means something, because what a level or a field
 /// means is not a thing a library can be asked.
 /// </para>

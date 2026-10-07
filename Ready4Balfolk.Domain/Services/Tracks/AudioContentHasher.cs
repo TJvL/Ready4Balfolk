@@ -7,10 +7,10 @@ namespace Ready4Balfolk.Domain.Services.Tracks;
 /// <summary>Identifies the audio in a file, ignoring its tags.</summary>
 /// <remarks>
 /// <para>
-/// This is what makes the index survive the application's own edits. Writing a corrected dance name
-/// into a file rewrites its tags, which would change a whole-file hash and make the track look like
-/// a new one; hashing only the audio means the row stays put and keeps everything the user decided
-/// about it.
+/// This is what makes the index survive a retag. Nothing in the application writes tags, but a
+/// tagger the user runs on their library rewrites them, which would change a whole-file hash and make
+/// the track look like a new one; hashing only the audio means the row stays put and keeps everything
+/// the user decided about it.
 /// </para>
 /// <para>
 /// It samples rather than reading everything. A library is tens of gigabytes and the first index has
