@@ -2,6 +2,7 @@ using NSubstitute;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Views.Equalizer;
@@ -39,7 +40,7 @@ public sealed class EqualizerViewModelTests : IDisposable
                 return Task.CompletedTask;
             });
 
-        _sut = new EqualizerViewModel(_audio, _settingsStore, Substitute.For<ILoggerService>(), _throttles.Scheduler);
+        _sut = new EqualizerViewModel(_audio, _settingsStore, Substitute.For<ILoggerService>(), Substitute.For<INotificationService>(), _throttles.Scheduler);
     }
 
     /// <summary>Spends the 300ms the panel waits before writing, rather than sleeping past it.</summary>
@@ -54,7 +55,7 @@ public sealed class EqualizerViewModelTests : IDisposable
         };
 
         using var sut = new EqualizerViewModel(
-            _audio, _settingsStore, Substitute.For<ILoggerService>(), _throttles.Scheduler);
+            _audio, _settingsStore, Substitute.For<ILoggerService>(), Substitute.For<INotificationService>(), _throttles.Scheduler);
 
         Assert.True(sut.Enabled);
         Assert.Equal(-4, sut.PreampDecibels);

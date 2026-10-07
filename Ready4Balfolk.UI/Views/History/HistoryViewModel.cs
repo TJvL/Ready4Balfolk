@@ -11,7 +11,9 @@ using DynamicData;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.History;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
@@ -32,6 +34,7 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
     private readonly ISettingsStore _settingsStore;
     private readonly IConfirmationService _confirmationService;
     private readonly ILoggerService _loggerService;
+    private readonly INotificationService _notifications;
     private readonly CompositeDisposable _disposables = [];
     private readonly SourceList<HistoryItemViewModel> _sourceList = new();
     private readonly ReadOnlyObservableCollection<HistoryItemViewModel> _items;
@@ -134,12 +137,14 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
         IQueueHistoryStore historyStore,
         ISettingsStore settingsStore,
         IConfirmationService confirmationService,
-        ILoggerService loggerService)
+        ILoggerService loggerService,
+        INotificationService notifications)
     {
         _historyStore = historyStore;
         _settingsStore = settingsStore;
         _confirmationService = confirmationService;
         _loggerService = loggerService;
+        _notifications = notifications;
         ItemCountText = UiStrings.History_NoHistory;
         ShowingText = UiStrings.History_Tonight;
 
@@ -171,7 +176,8 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             .Skip(1)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => ShowAsync(SelectedNight).SafeFireAndForget(exception =>
-                _loggerService.Report("Failed to redraw a night", exception)))
+                _loggerService.Report(
+                    "Failed to redraw a night", _notifications, UiStrings.History_ShowNightFailed, exception)))
             .DisposeWith(_disposables);
 
         // The nights on file are read once the store has them. A machine that was shut down after
@@ -181,7 +187,8 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             .Where(loading => !loading)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => RefreshNightsAsync().SafeFireAndForget(exception =>
-                _loggerService.Report("Failed to read the nights on file", exception)))
+                _loggerService.Report(
+                    "Failed to read the nights on file", _notifications, UiStrings.History_ReadNightsFailed, exception)))
             .DisposeWith(_disposables);
 
         // The night being looked at is read once and then stands still: only tonight changes while
@@ -193,14 +200,17 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             {
                 _chosenByHand = true;
                 ShowAsync(night).SafeFireAndForget(exception =>
-                    _loggerService.Report("Failed to show a night", exception));
+                    _loggerService.Report(
+                        "Failed to show a night", _notifications, UiStrings.History_ShowNightFailed, exception));
             })
             .DisposeWith(_disposables);
 
         _sourceList.DisposeWith(_disposables);
 
-        _disposables.Add(StartNewNightCommand.ReportFailures(_loggerService, "Failed to start a new night"));
-        _disposables.Add(DeleteNightCommand.ReportFailures(_loggerService, "Failed to delete the night"));
+        _disposables.Add(StartNewNightCommand.ReportFailures(
+            _loggerService, "Failed to start a new night", _notifications, UiStrings.History_StartNewNightFailed));
+        _disposables.Add(DeleteNightCommand.ReportFailures(
+            _loggerService, "Failed to delete the night", _notifications, DomainStrings.History_DeleteNightFailed));
     }
 
     /// <summary>Reads the nights on file, for the first look at this screen.</summary>
@@ -255,7 +265,8 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
             var filed = _tonightId;
             _tonightId = 0;
             FollowFiledNightAsync(filed).SafeFireAndForget(exception =>
-                _loggerService.Report("Failed to follow a night that was filed", exception));
+                _loggerService.Report(
+                    "Failed to follow a night that was filed", _notifications, UiStrings.History_ShowNightFailed, exception));
             return;
         }
 
@@ -271,7 +282,8 @@ public sealed partial class HistoryViewModel : ReactiveObject, IDisposable
         if (opened)
         {
             RefreshNightsAsync().SafeFireAndForget(exception =>
-                _loggerService.Report("Failed to read the nights on file", exception));
+                _loggerService.Report(
+                    "Failed to read the nights on file", _notifications, UiStrings.History_ReadNightsFailed, exception));
         }
     }
 

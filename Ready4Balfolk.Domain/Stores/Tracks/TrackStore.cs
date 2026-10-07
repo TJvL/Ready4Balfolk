@@ -9,9 +9,11 @@ using DynamicData;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
@@ -38,6 +40,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     public static readonly TimeSpan DefaultWatcherBatchAtMost = TimeSpan.FromSeconds(2);
 
     private readonly ILoggerService _loggerService;
+    private readonly INotificationService _notifications;
     private readonly ITrackDiscoveryService _discoveryService;
     private readonly IDanceListStore _danceListStore;
     private readonly ILibraryIndex _libraryIndex;
@@ -69,6 +72,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     private readonly IFileSystem _fileSystem;
 
     /// <param name="loggerService">Where the scanning and the watching say what they did.</param>
+    /// <param name="notifications">Where the DJ is told about a failure the library cannot hide.</param>
     /// <param name="discoveryService">What reads a file and says what it holds.</param>
     /// <param name="danceListStore">The dance list a resolved track is measured against.</param>
     /// <param name="libraryIndex">Where what has been read and approved is kept.</param>
@@ -82,6 +86,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// </param>
     public TrackStore(
         ILoggerService loggerService,
+        INotificationService notifications,
         ITrackDiscoveryService discoveryService,
         IDanceListStore danceListStore,
         ILibraryIndex libraryIndex,
@@ -91,6 +96,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
         TimeSpan? watcherBatchAtMost = null)
     {
         _loggerService = loggerService;
+        _notifications = notifications;
         _discoveryService = discoveryService;
         _danceListStore = danceListStore;
         _libraryIndex = libraryIndex;
@@ -126,7 +132,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
             .Skip(1)
             .ObserveOn(TaskPoolScheduler.Default)
             .Subscribe(_ => RefreshLibraryAsync().SafeFireAndForget(exception =>
-                _loggerService.Report("Failed to rebuild the library after a dance list update", exception)));
+                _loggerService.Report(
+                    "Failed to rebuild the library after a dance list update",
+                    _notifications,
+                    DomainStrings.Library_RebuildFailed,
+                    exception)));
     }
 
     ~TrackStore()
@@ -447,6 +457,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
             // and passing that over would hide a real fault.
             var batchWrites = new UnawaitedWork(
                 _loggerService,
+                _notifications,
                 exception => exception is OperationCanceledException canceled
                     && canceled.CancellationToken == cancellationToken);
             var loaded = audioFiles.ToObservable()
@@ -478,10 +489,12 @@ public sealed class TrackStore : ITrackStore, IDisposable
 
                     batchWrites.Start(
                         "Failed to write a batch to the library index",
+                        DomainStrings.Library_ScanWriteFailed,
                         () => _libraryIndex.WriteAsync(entries, cancellationToken));
 
                     batchWrites.Start(
                         "Failed to record what the rules approved",
+                        DomainStrings.Library_ScanWriteFailed,
                         () => _libraryIndex.ApproveAsync(approvals, cancellationToken));
                 }
 
@@ -964,7 +977,11 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 _fileMoved.OnNext(move);
             }
         }).SafeFireAndForget(exception =>
-            _loggerService.Report("Failed to take in what the watcher noticed", exception));
+            _loggerService.Report(
+                "Failed to take in what the watcher noticed",
+                _notifications,
+                DomainStrings.Library_ChangesFailed,
+                exception));
 
     /// <summary>Every known path under a folder, which is what one event about that folder covers.</summary>
     private List<string> PathsUnder(IEnumerable<string> paths, string folder) =>

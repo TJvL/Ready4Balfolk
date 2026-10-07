@@ -5,6 +5,7 @@ using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.History;
 
@@ -26,7 +27,7 @@ public sealed class QueueHistoryStoreTests : IDisposable
 
         _directory = Substitute.For<IApplicationSettingsDirectory>();
         _directory.DirectoryInfoRoot.Returns(_ => _tempDir);
-        _sut = new QueueHistoryStore(_directory, _fileSystem, new NoOpLoggerService(), TimeProvider.System);
+        _sut = new QueueHistoryStore(_directory, _fileSystem, new NoOpLoggerService(), Substitute.For<INotificationService>(), TimeProvider.System);
     }
 
     [Fact]
@@ -334,12 +335,15 @@ public sealed class QueueHistoryStoreTests : IDisposable
         logger.ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>())
             .Returns(Task.FromException(new IOException("No space left on device")));
         _fileSystem.Directory.CreateDirectory(Path.Combine(_tempDir.FullName, "history.sqlite"));
-        using var store = new QueueHistoryStore(_directory, _fileSystem, logger, TimeProvider.System);
+        var notifications = Substitute.For<INotificationService>();
+        using var store = new QueueHistoryStore(_directory, _fileSystem, logger, notifications, TimeProvider.System);
 
         await store.AddAsync(Track());
 
         Assert.Single(store.Current.Entries);
         await logger.Received(1).ErrorAsync("Failed to write a history entry", Arg.Any<SqliteException>());
+        // Told on screen whether or not the log could be written: the two do not depend on each other.
+        notifications.Received(1).Show(DomainStrings.History_WriteFailed, NotificationSeverity.Error);
     }
 
     [Fact]
@@ -362,7 +366,8 @@ public sealed class QueueHistoryStoreTests : IDisposable
     /// <summary>A second store over the same directory, which is what a restart amounts to.</summary>
     private async Task<QueueHistoryStore> ReopenAsync()
     {
-        var reopened = new QueueHistoryStore(_directory, _fileSystem, new NoOpLoggerService(), TimeProvider.System);
+        var reopened = new QueueHistoryStore(
+            _directory, _fileSystem, new NoOpLoggerService(), Substitute.For<INotificationService>(), TimeProvider.System);
         _reopened.Add(reopened);
         await reopened.LoadAsync(TestContext.Current.CancellationToken);
         return reopened;

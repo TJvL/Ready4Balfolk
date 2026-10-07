@@ -9,6 +9,7 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -252,10 +253,14 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
             .Subscribe(_ => ShowNextIcon = _queueService.Count > 0)
             .DisposeWith(_disposables);
 
-        _disposables.Add(PlayPauseCommand.ReportFailures(_loggerService, "Failed to play or pause"));
-        _disposables.Add(RestartCommand.ReportFailures(_loggerService, "Failed to start the track again"));
-        _disposables.Add(NextOrClearCommand.ReportFailures(_loggerService, "Failed to move on to the next item"));
-        _disposables.Add(SeekCommand.ReportFailures(_loggerService, "Failed to move through the track"));
+        _disposables.Add(PlayPauseCommand.ReportFailures(
+            _loggerService, "Failed to play or pause", _notificationService, UiStrings.Playback_PlayPauseFailed));
+        _disposables.Add(RestartCommand.ReportFailures(
+            _loggerService, "Failed to start the track again", _notificationService, UiStrings.Playback_RestartFailed));
+        _disposables.Add(NextOrClearCommand.ReportFailures(
+            _loggerService, "Failed to move on to the next item", _notificationService, UiStrings.Playback_NextFailed));
+        _disposables.Add(SeekCommand.ReportFailures(
+            _loggerService, "Failed to move through the track", _notificationService, UiStrings.Playback_SeekFailed));
     }
 
     private void OnCurrentItemChanged(IQueueItem? item)

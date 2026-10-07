@@ -4,7 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
-using Ready4Balfolk.UI.Services;
+using Ready4Balfolk.Domain.Services.Notifications;
 
 namespace Ready4Balfolk.UI.Views.Notifications;
 

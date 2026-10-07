@@ -8,6 +8,10 @@ namespace Ready4Balfolk.Web;
 /// <remarks>
 /// The default console provider writes to a stdout that a windowed app does not have, so a Kestrel
 /// failure would otherwise vanish. Warnings and worse only: the request log is noise here.
+///
+/// The log only, never the screen. These lines are ASP.NET's own, in English and in its terms, and
+/// what the DJ needs to hear about the server is said by the application where it can say it in
+/// the DJ's language: the switch going back down when the server would not start.
 /// </remarks>
 public sealed class AppLogBridgeProvider(ILoggerService logger) : ILoggerProvider
 {

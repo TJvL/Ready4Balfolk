@@ -17,6 +17,7 @@ using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
@@ -26,6 +27,7 @@ using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.DanceList;
 using Ready4Balfolk.UI.Views.Discovery;
@@ -89,6 +91,8 @@ public static class ApplicationComposition
                 Thread.CurrentThread.CurrentUICulture = culture;
                 CultureInfo.DefaultThreadCurrentUICulture = culture;
 
+                // Written to the log and not shown: this is the process ending, and there is no window
+                // left a moment from now to read a notice in.
                 AppDomain.CurrentDomain.UnhandledException += (_, e) =>
                 {
                     if (e.ExceptionObject is Exception ex)
@@ -99,7 +103,7 @@ public static class ApplicationComposition
 
                 TaskScheduler.UnobservedTaskException += (_, e) =>
                 {
-                    loggerService.Report("Unobserved task exception", e.Exception);
+                    ReportUnhandled("Unobserved task exception", e.Exception);
                     e.SetObserved();
                 };
 
@@ -125,9 +129,9 @@ public static class ApplicationComposition
     /// handler a call site passes, never instead of it. Every fire-and-forget in this
     /// application either passes a handler that says what it could not do, or goes through
     /// <see cref="Domain.Helpers.UnawaitedWork.Start"/>, which reports it itself and lets nothing
-    /// escape. A default handler on top of that would give the DJ a second toast reading "Unhandled
-    /// fire-and-forget exception" beside the one that says which thing failed, because
-    /// <see cref="ApplicationStartup"/> groups notifications by message and these are two messages.
+    /// escape. A default handler on top of that would write a second line to the log for one
+    /// failure, and give the DJ a second notice beside the one that says which thing failed: the
+    /// notifications put one text up once, and these would be two texts.
     ///
     /// So there is deliberately no default, and this makes sure of it rather than leaving it to the
     /// absence of a line: anything else in the process is free to install one.
@@ -135,17 +139,34 @@ public static class ApplicationComposition
     internal static void UseOneReportPerFailure() =>
         SafeFireAndForgetExtensions.RemoveDefaultExceptionHandling();
 
-    /// <summary>Writes down what nothing else caught, and never throws doing it.</summary>
+    /// <summary>Writes down what nothing else caught, tells the DJ, and never throws doing it.</summary>
     /// <remarks>
-    /// The container it asks for the logger can be gone: on the way down, anything still in flight
-    /// arrives after everything it needs has been disposed. An exception handler that throws while
-    /// reporting an exception replaces a line in the log with a crash.
+    /// <para>
+    /// The log line says which net caught it, in English. The DJ is told one generic text whichever
+    /// net it was, because what reaches here is by definition something nobody wrote a sentence
+    /// for, and which handler caught it means nothing in front of a room. The notifications show
+    /// one text once while it is up, so a burst of these is one notice, not five.
+    /// </para>
+    /// <para>
+    /// The container it asks can be gone: on the way down, anything still in flight arrives after
+    /// everything it needs has been disposed. An exception handler that throws while reporting an
+    /// exception replaces a line in the log with a crash.
+    /// </para>
     /// </remarks>
-    private static void ReportUnhandled(string whatFailed, Exception exception)
+    private static void ReportUnhandled(string logLine, Exception exception)
     {
         try
         {
-            App.Services?.GetService<ILoggerService>()?.Report(whatFailed, exception);
+            if (App.Services is not { } services)
+            {
+                return;
+            }
+
+            services.GetService<ILoggerService>().Report(
+                logLine,
+                services.GetService<INotificationService>(),
+                UiStrings.App_SomethingWentWrong,
+                exception);
         }
         catch (ObjectDisposedException)
         {
@@ -170,6 +191,7 @@ public static class ApplicationComposition
             });
         services.AddSingleton<IAudioPlaybackService>(sp => new ManagedBassAudioPlaybackService(
             sp.GetRequiredService<ILoggerService>(),
+            sp.GetRequiredService<INotificationService>(),
             sp.GetRequiredService<ISettingsStore>(),
             useNoSoundDevice: options.UseNoSoundDevice));
         services.AddSingleton<IQueueService>(sp =>
@@ -193,6 +215,7 @@ public static class ApplicationComposition
             sp.GetRequiredService<IQueueHistoryStore>(),
             sp.GetRequiredService<ISettingsStore>(),
             sp.GetRequiredService<ILoggerService>(),
+            sp.GetRequiredService<INotificationService>(),
             sp.GetRequiredService<TimeProvider>(),
             RxSchedulers.MainThreadScheduler));
         services.AddSingleton<IEndOfNightAudio, EndOfNightAudio>();
@@ -228,7 +251,8 @@ public static class ApplicationComposition
         // Forward to the concrete registration rather than registering the implementation again:
         // AddSingleton<TService, TImplementation> would build a second instance, and both of these
         // carry state set from outside (the dialog owner, the notification list the overlay binds
-        // to) that would then be written on one instance and read from the other.
+        // to) that would then be written on one instance and read from the other. The domain asks
+        // for the notifications by the interface it declares, and gets this same instance.
         services.AddSingleton<NotificationService>();
         services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
         services.AddSingleton<FilePickerService>();

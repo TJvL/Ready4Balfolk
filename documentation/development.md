@@ -319,7 +319,7 @@ public enum Screen { Main, Settings, Help, Review, Setup }
 |---------|---------|
 | `ConfirmationService` | Shows a modal `ConfirmationDialogView`. Requires `SetOwner(Window)` to be called once at startup (done in `ApplicationStartup.Run`). Returns `Task<bool>`. |
 | `MissingFolderPromptService` | Implements the Domain's `IMissingFolderPrompt`: shows `MissingFoldersDialogView` for a scan that found no music where the index says there is some. Marshals onto the UI thread, since a scan does not run on it, and takes its owner window from `ConfirmationService` so a question raised from inside the wizard is parented to the wizard. Keeping the tracks is what an unanswered question means. |
-| `NotificationService` | Toast notifications using a DynamicData `SourceList<NotificationItem>` bound to `NotificationOverlayView`. Auto-dismisses after 4 seconds. Supports `Information`, `Warning`, `Error` severity. |
+| `NotificationService` | Implements the Domain's `INotificationService`: the bars along the bottom of the window, a DynamicData `SourceList<NotificationItem>` bound to `NotificationOverlayView`. Asked from any thread and moves onto the UI thread itself. Auto-dismisses after 4 seconds, counted from when the window opens for anything said before it did. An error already on screen is not shown again beside itself. Supports `Information`, `Warning`, `Error` severity. |
 | `FileLogSinkService` | Implements Avalonia's `ILogSink` to bridge framework logs into the Domain `ILoggerService`. Wired in `ApplicationComposition.cs` via `AfterSetup`. |
 
 ### Converters
@@ -408,16 +408,35 @@ it is switched on.
 
 **Usage:** inject `ILoggerService` and call `await logger.InfoAsync("message")`. Logging is fire-and-forget (the `Task` offloads to a background thread).
 
+**The log and the screen are separate, and nothing couples them.**
+
+- What is logged is English, written as a literal at the call site. Never a `UiStrings` or `DomainStrings` value: a log that changes language with the application is no use to whoever reads it, and the exported log goes into public issues.
+- What is shown on screen comes from the resx files, like every other text the DJ reads, and goes through `INotificationService` (declared in the Domain, under `Services/Notifications`, so a domain service can tell the DJ; implemented by the UI's `NotificationService`).
+- Logging never puts anything on screen, whatever its level. There is no stream of logged errors for anything to subscribe to.
+
+A failure the DJ has to hear about is therefore said twice, in two texts:
+
+| Where | Call |
+|-------|------|
+| Anywhere with a logger and the notifications | `logger.Report("English log line", notifications, UiStrings.Xxx_Failed, exception)` |
+| Work nothing can await | `new UnawaitedWork(logger, notifications).Start("English log line", DomainStrings.Xxx_Failed, work)` |
+| A view's event handler | `Handlers.Run("English log line", UiStrings.Xxx_Failed, work)` |
+| A view model's command | `command.ReportFailures(logger, "English log line", notifications, UiStrings.Xxx_Failed)` |
+
+`logger.Report("English log line", exception)` without the screen text writes the log and nothing else, for a failure whose own remarks say why the DJ need not hear about it. The screen text says what did not happen, in the DJ's terms, not what threw; an exception's message is written by whoever threw it, in their language, and only ever goes to the log. `python3 scripts/check-translations.py` refuses a resx string passed as the log line of any of these calls, or of `DebugAsync`, `InfoAsync`, `WarningAsync`, `ErrorAsync`, `CriticalAsync` or `LogAsync`.
+
 ### Exception Handling
 
-Four global handlers, all installed in `ApplicationComposition.cs`, catch unhandled exceptions and route them to the logger:
+Four global handlers, all installed in `ApplicationComposition.cs`, catch unhandled exceptions and route them to the logger with an English line saying which net caught it:
 
-1. `AppDomain.CurrentDomain.UnhandledException`: CLR-level (critical).
+1. `AppDomain.CurrentDomain.UnhandledException`: CLR-level (critical). Logged only: the process is ending, and there is no window left to show anything in.
 2. `TaskScheduler.UnobservedTaskException`: unobserved async failures (error, marked observed).
 3. `Dispatcher.UIThread.UnhandledException`: the last net under the UI thread (error, marked handled so the window stays up instead of Avalonia tearing the loop down).
 4. A `WithExceptionHandler` observer, which replaces the `RxApp.DefaultExceptionHandler` assignment removed in ReactiveUI 23 (error).
 
-UI-level errors (e.g. a failed refresh, missing tracks) are shown to the user via `NotificationService.Show(message, Severity.Error)`.
+The last three also tell the DJ, with the one generic `UiStrings.App_SomethingWentWrong`: what reaches them is something nobody wrote a sentence for. `Program.Main` logs a fatal startup exception and shows nothing, since there is no window.
+
+Every other failure the DJ sees is reported where it happens, with its own text, as described under Logging.
 
 ### Continuous Integration
 

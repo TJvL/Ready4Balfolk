@@ -241,6 +241,8 @@ public sealed class PresentationWebServer(
         {
             // Almost always the port already being in use. The app carries on without the server,
             // and the settings panel shows the failure rather than a switch that claims success.
+            // Written to the log only: the application tells the DJ when it puts the switch down,
+            // in the DJ's language, on seeing this server's state go to failed.
             LastError = ex.Message;
             logger.Report($"Presentation server could not start on port {options.Port}", ex);
             await DisposeUnstartedAsync(app).ConfigureAwait(false);
@@ -295,6 +297,8 @@ public sealed class PresentationWebServer(
         }
         catch (Exception ex)
         {
+            // Written to the log and not shown, like a drain that ran out of time above: the
+            // listener is gone either way, and there is nothing in it for the DJ to act on.
             logger.Report("Presentation server failed to stop cleanly", ex);
         }
     }

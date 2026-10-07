@@ -8,9 +8,11 @@ using Ready4Balfolk.Domain;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.Dances;
@@ -32,6 +34,7 @@ public sealed class TrackStoreTests : IDisposable
     private readonly IDirectoryInfo _dirA;
     private readonly IDirectoryInfo _dirB;
     private readonly ILoggerService _loggerService;
+    private readonly INotificationService _notifications = Substitute.For<INotificationService>();
     private readonly ITrackDiscoveryService _discoveryService;
     private readonly ILibraryIndex _libraryIndex;
     private readonly IDanceListStore _danceListStore;
@@ -207,8 +210,8 @@ public sealed class TrackStoreTests : IDisposable
     /// </remarks>
     private TrackStore NewStore(
         TimeSpan? batchQuiet = null, TimeSpan? batchAtMost = null, ILibraryIndex? libraryIndex = null) => new(
-        _loggerService, _discoveryService, _danceListStore, libraryIndex ?? _libraryIndex, _fileSystem,
-        _missingFolderPrompt, batchQuiet, batchAtMost);
+        _loggerService, _notifications, _discoveryService, _danceListStore, libraryIndex ?? _libraryIndex,
+        _fileSystem, _missingFolderPrompt, batchQuiet, batchAtMost);
 
     private IFileSystemWatcher CreateWatcher(string path)
     {
@@ -1059,8 +1062,8 @@ public sealed class TrackStoreTests : IDisposable
     /// by the handler the scan gave it. Picking another folder cancels the token those writes were
     /// handed, the index throws out of the gate it waits on with it, and the DJ used to be told
     /// "Failed to write a batch to the library index" for the ordinary end of a scan they replaced
-    /// themselves. Reporting it is not just noise in a log: an error is put on screen as a
-    /// notification, so the DJ is told mid-evening that something failed when nothing did.
+    /// themselves. Reporting it is not just noise in a log: a report tells the DJ on screen as
+    /// well, so the DJ is told mid-evening that something failed when nothing did.
     /// </remarks>
     [Fact]
     public async Task ASupersededScan_SaysNothingAboutTheBatchWritesItsCancellationEnds()
@@ -1125,6 +1128,7 @@ public sealed class TrackStoreTests : IDisposable
         Assert.False(reported.Task.IsCompleted, "the superseded write's cancellation was reported as a failure");
 
         await _loggerService.DidNotReceive().ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
+        _notifications.DidNotReceive().Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>());
         await WaitUntilAsync(() => _sut.Current.Any(t => t.FileInfo.Name == "b.mp3"));
     }
 
@@ -1159,6 +1163,7 @@ public sealed class TrackStoreTests : IDisposable
 
         var message = await reported.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Assert.Equal("Failed to record what the rules approved", message);
+        _notifications.Received(1).Show(DomainStrings.Library_ScanWriteFailed, NotificationSeverity.Error);
     }
 
     /// <summary>A rule change ended by the next rule change is not a failure either.</summary>
@@ -1272,7 +1277,7 @@ public sealed class TrackStoreTests : IDisposable
             indexDirectory.DirectoryInfoRoot.Returns(settingsDirectory);
             var path = _fileSystem.Path.Combine(_dirA.FullName, "a.mp3");
 
-            using (var before = new SqliteLibraryIndex(indexDirectory, new NoOpLoggerService()))
+            using (var before = new SqliteLibraryIndex(indexDirectory, new NoOpLoggerService(), Substitute.For<INotificationService>()))
             {
                 await before.WriteAsync([IndexedAt(path)], TestContext.Current.CancellationToken);
                 await before.ApproveIndividuallyAsync(
@@ -1287,7 +1292,7 @@ public sealed class TrackStoreTests : IDisposable
             }
 
             // The drive is not plugged in: the folder is there and there is no music in it.
-            using var index = new SqliteLibraryIndex(indexDirectory, new NoOpLoggerService());
+            using var index = new SqliteLibraryIndex(indexDirectory, new NoOpLoggerService(), Substitute.For<INotificationService>());
             using var restarted = NewStore(libraryIndex: index);
             await restarted.ApplyAsync(_configuration with { MusicDirectoryPath = _dirA.FullName });
 

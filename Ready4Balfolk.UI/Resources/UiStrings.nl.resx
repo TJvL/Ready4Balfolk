@@ -1541,4 +1541,168 @@ De bibliotheek kent er {2} nummers.</value>
   <data name="Review_SeekPreviewFailed" xml:space="preserve">
     <value>Er kon niet door het nummer gespoeld worden</value>
   </data>
+
+  <!-- What a command or the application could not do. The log says it in English, separately. -->
+  <data name="App_SomethingWentWrong" xml:space="preserve">
+    <value>Er ging iets mis. Wat het was staat in het logbestand, dat je bij de instellingen kunt exporteren.</value>
+  </data>
+  <data name="App_CloseFailed" xml:space="preserve">
+    <value>De applicatie kon niet afgesloten worden</value>
+  </data>
+  <data name="App_UnfinishedNightAskFailed" xml:space="preserve">
+    <value>Er kon niet gevraagd worden naar de avond die nooit is afgesloten</value>
+  </data>
+  <data name="App_DanceListLoadFailed" xml:space="preserve">
+    <value>De dansenlijst kon niet geladen worden</value>
+  </data>
+  <data name="App_LibraryOpenFailed" xml:space="preserve">
+    <value>De bibliotheek kon niet geopend worden</value>
+  </data>
+  <data name="App_HistoryLoadFailed" xml:space="preserve">
+    <value>De geschiedenis kon niet geladen worden</value>
+  </data>
+  <data name="App_LibrarySettingsFailed" xml:space="preserve">
+    <value>De instellingen van de muziekmap konden niet toegepast worden</value>
+  </data>
+  <data name="WebServer_CouldNotStart" xml:space="preserve">
+    <value>De presentatie in een browser kon niet starten en is uitgeschakeld. Bij de instellingen staat waarom.</value>
+  </data>
+  <data name="WebServer_ApplyFailed" xml:space="preserve">
+    <value>De instellingen van de presentatie in een browser konden niet toegepast worden</value>
+  </data>
+  <data name="WebServer_SwitchOffFailed" xml:space="preserve">
+    <value>De presentatie in een browser kon niet uitgeschakeld worden nadat hij niet wilde starten</value>
+  </data>
+  <data name="Settings_LanguageChangeFailed" xml:space="preserve">
+    <value>De taal kon niet gewijzigd worden</value>
+  </data>
+  <data name="Settings_NewPinFailed" xml:space="preserve">
+    <value>Er kon geen nieuwe pincode gemaakt worden</value>
+  </data>
+  <data name="Settings_PinSaveFailed" xml:space="preserve">
+    <value>De nieuwe pincode kon niet opgeslagen worden</value>
+  </data>
+  <data name="History_ShowNightFailed" xml:space="preserve">
+    <value>De avond kon niet getoond worden</value>
+  </data>
+  <data name="History_StartNewNightFailed" xml:space="preserve">
+    <value>Er kon geen nieuwe avond begonnen worden</value>
+  </data>
+  <data name="Review_DanceRuleFailed" xml:space="preserve">
+    <value>Er kon niet gewijzigd worden of dansen buiten de lijst worden toegelaten</value>
+  </data>
+  <data name="Review_RefreshFailed" xml:space="preserve">
+    <value>De nummers die op review wachten konden niet verzameld worden</value>
+  </data>
+  <data name="Review_ApproveFailed" xml:space="preserve">
+    <value>Het antwoord kon niet opgeslagen worden</value>
+  </data>
+  <data name="Review_WithdrawFailed" xml:space="preserve">
+    <value>Het antwoord kon niet teruggenomen worden</value>
+  </data>
+  <data name="Review_ApproveFolderFailed" xml:space="preserve">
+    <value>De hele map kon niet beantwoord worden</value>
+  </data>
+  <data name="Review_UseDanceForAllFailed" xml:space="preserve">
+    <value>De dans kon niet voor elk nummer gebruikt worden</value>
+  </data>
+  <data name="Review_NotADanceFailed" xml:space="preserve">
+    <value>De waarde kon niet als geen dans gemarkeerd worden</value>
+  </data>
+  <data name="Wizard_StepFailed" xml:space="preserve">
+    <value>Deze stap van het instellen kon niet geopend worden</value>
+  </data>
+  <data name="Wizard_BackFailed" xml:space="preserve">
+    <value>Er kon niet teruggegaan worden naar de vorige stap</value>
+  </data>
+  <data name="Wizard_ContinueFailed" xml:space="preserve">
+    <value>Deze stap van het instellen kon niet afgerond worden</value>
+  </data>
+  <data name="Wizard_DanceList_FetchFailed" xml:space="preserve">
+    <value>De dansenlijst kon niet opgehaald worden</value>
+  </data>
+  <data name="Equalizer_ApplyFailed" xml:space="preserve">
+    <value>De equalizer kon niet op het geluid toegepast worden</value>
+  </data>
+  <data name="Equalizer_SaveFailed" xml:space="preserve">
+    <value>De equalizer kon niet opgeslagen worden</value>
+  </data>
+  <data name="Equalizer_ResetFailed" xml:space="preserve">
+    <value>De equalizer kon niet teruggezet worden</value>
+  </data>
+  <data name="Discovery_ReadFailed" xml:space="preserve">
+    <value>De bibliotheek kon niet gelezen worden voor dit scherm</value>
+  </data>
+  <data name="Discovery_DeclareFailed" xml:space="preserve">
+    <value>Het patroon kon niet toegevoegd worden</value>
+  </data>
+  <data name="Discovery_RemovePatternFailed" xml:space="preserve">
+    <value>Het patroon kon niet verwijderd worden</value>
+  </data>
+  <data name="Discovery_MovePatternFailed" xml:space="preserve">
+    <value>Het patroon kon niet verplaatst worden</value>
+  </data>
+  <data name="Discovery_SaveChoicesFailed" xml:space="preserve">
+    <value>De rollen van de mappen en de tagvelden konden niet opgeslagen worden</value>
+  </data>
+  <data name="Discovery_AcceptProposalFailed" xml:space="preserve">
+    <value>Het voorstel kon niet overgenomen worden</value>
+  </data>
+  <data name="Discovery_DismissProposalFailed" xml:space="preserve">
+    <value>Het voorstel kon niet afgewezen worden</value>
+  </data>
+  <data name="DanceList_ChangePoolFailed" xml:space="preserve">
+    <value>De dansen waaruit getrokken wordt konden niet gewijzigd worden</value>
+  </data>
+  <data name="DanceList_ClearPoolFailed" xml:space="preserve">
+    <value>Er kon niet weer uit alle dansen getrokken worden</value>
+  </data>
+  <data name="DanceList_PickDanceFailed" xml:space="preserve">
+    <value>Er kon geen nummer van die dans in de wachtrij gezet worden</value>
+  </data>
+  <data name="DanceList_UpdateCommandFailed" xml:space="preserve">
+    <value>De dansenlijst kon niet bijgewerkt worden</value>
+  </data>
+  <data name="Playback_PlayPauseFailed" xml:space="preserve">
+    <value>Er kon niet afgespeeld of gepauzeerd worden</value>
+  </data>
+  <data name="Playback_RestartFailed" xml:space="preserve">
+    <value>Het nummer kon niet opnieuw gestart worden</value>
+  </data>
+  <data name="Playback_NextFailed" xml:space="preserve">
+    <value>Er kon niet doorgegaan worden naar het volgende item</value>
+  </data>
+  <data name="Playback_SeekFailed" xml:space="preserve">
+    <value>Er kon niet door het nummer gespoeld worden</value>
+  </data>
+  <data name="Track_EditFailed" xml:space="preserve">
+    <value>Het nummer kon niet bewerkt worden</value>
+  </data>
+  <data name="TrackCatalog_ClearSearchFailed" xml:space="preserve">
+    <value>De zoekopdracht kon niet gewist worden</value>
+  </data>
+  <data name="TrackCatalog_WithdrawFailed" xml:space="preserve">
+    <value>Het nummer kon niet teruggezet worden in review</value>
+  </data>
+  <data name="TrackCatalog_EnqueueFailed" xml:space="preserve">
+    <value>Het nummer kon niet in de wachtrij gezet worden</value>
+  </data>
+  <data name="Queue_RandomTrackFailed" xml:space="preserve">
+    <value>Er kon geen willekeurig nummer in de wachtrij gezet worden</value>
+  </data>
+  <data name="Queue_StopFailed" xml:space="preserve">
+    <value>Er kon geen stop in de wachtrij gezet worden</value>
+  </data>
+  <data name="Queue_DelayFailed" xml:space="preserve">
+    <value>Er kon geen pauze in de wachtrij gezet worden</value>
+  </data>
+  <data name="Queue_EndOfNightFailed" xml:space="preserve">
+    <value>Het einde van de avond kon niet in de wachtrij gezet worden</value>
+  </data>
+  <data name="Queue_RemoveFailed" xml:space="preserve">
+    <value>Het item kon niet verwijderd worden</value>
+  </data>
+  <data name="Queue_ClearFailed" xml:space="preserve">
+    <value>De wachtrij kon niet gewist worden</value>
+  </data>
 </root>

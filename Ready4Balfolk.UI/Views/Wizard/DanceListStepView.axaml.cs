@@ -20,24 +20,26 @@ public partial class DanceListStepView : ReactiveUserControl<DanceListStepViewMo
     /// reach BigBalfolkList. The same reader takes it as a download would.
     /// </summary>
     private void OnImportClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run(UiStrings.Wizard_DanceList_ImportFailed, async () =>
-        {
-            var path = await App.Services.GetRequiredService<IFilePickerService>()
-                .PickFileToOpenAsync(UiStrings.Wizard_DanceList_Import, FileKind.Json);
-
-            if (path is not null)
+        Handlers.Run(
+            "Failed to import the dance list", UiStrings.Wizard_DanceList_ImportFailed, async () =>
             {
-                await ViewModel!.ImportAsync(new FileSystem().FileInfo.New(path));
-            }
-        });
+                var path = await App.Services.GetRequiredService<IFilePickerService>()
+                    .PickFileToOpenAsync(UiStrings.Wizard_DanceList_Import, FileKind.Json);
+
+                if (path is not null)
+                {
+                    await ViewModel!.ImportAsync(new FileSystem().FileInfo.New(path));
+                }
+            });
 
     private void OnSourceLinkClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run(UiStrings.DanceList_OpenSiteFailed, async () =>
-        {
-            var topLevel = TopLevel.GetTopLevel(this);
-            if (topLevel is not null)
+        Handlers.Run(
+            "Failed to open the dance list website", UiStrings.DanceList_OpenSiteFailed, async () =>
             {
-                await topLevel.Launcher.LaunchUriAsync(ViewModel!.SourceUri);
-            }
-        });
+                var topLevel = TopLevel.GetTopLevel(this);
+                if (topLevel is not null)
+                {
+                    await topLevel.Launcher.LaunchUriAsync(ViewModel!.SourceUri);
+                }
+            });
 }

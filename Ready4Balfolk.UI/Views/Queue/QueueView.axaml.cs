@@ -110,11 +110,12 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         var data = new DataTransfer();
         data.Add(DataTransferItem.Create(QueueDragFormat, draggedId.ToString()));
 
-        Handlers.Run(UiStrings.Queue_MoveItemFailed, async () =>
-        {
-            await DragDrop.DoDragDropAsync(pressArgs, data, DragDropEffects.Move);
-            HideDropIndicator();
-        });
+        Handlers.Run(
+            "Failed to move the queue item", UiStrings.Queue_MoveItemFailed, async () =>
+            {
+                await DragDrop.DoDragDropAsync(pressArgs, data, DragDropEffects.Move);
+                HideDropIndicator();
+            });
     }
 
     private void OnQueuePointerReleased(object? sender, PointerReleasedEventArgs e)

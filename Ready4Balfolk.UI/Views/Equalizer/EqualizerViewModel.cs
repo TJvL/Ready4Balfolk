@@ -12,7 +12,9 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Settings;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Equalizer;
@@ -32,6 +34,7 @@ public sealed partial class EqualizerViewModel : ReactiveObject, IDisposable
     private readonly IAudioPlaybackService _audioPlaybackService;
     private readonly ISettingsStore _settingsStore;
     private readonly ILoggerService _loggerService;
+    private readonly INotificationService _notifications;
     private readonly IScheduler _saveScheduler;
     private readonly Subject<EqualizerSettings> _pendingSave = new();
     private readonly CompositeDisposable _disposables = [];
@@ -58,11 +61,13 @@ public sealed partial class EqualizerViewModel : ReactiveObject, IDisposable
         IAudioPlaybackService audioPlaybackService,
         ISettingsStore settingsStore,
         ILoggerService loggerService,
+        INotificationService notifications,
         IScheduler? saveScheduler = null)
     {
         _audioPlaybackService = audioPlaybackService;
         _settingsStore = settingsStore;
         _loggerService = loggerService;
+        _notifications = notifications;
         _saveScheduler = saveScheduler ?? DefaultScheduler.Instance;
 
         IsAvailable = audioPlaybackService.IsEqualizerAvailable;
@@ -104,7 +109,8 @@ public sealed partial class EqualizerViewModel : ReactiveObject, IDisposable
             .Subscribe(Save)
             .DisposeWith(_disposables);
 
-        _disposables.Add(ResetToFlatCommand.ReportFailures(_loggerService, "Failed to reset the equalizer"));
+        _disposables.Add(ResetToFlatCommand.ReportFailures(
+            _loggerService, "Failed to reset the equalizer", _notifications, UiStrings.Equalizer_ResetFailed));
     }
 
     [ReactiveCommand]
@@ -148,14 +154,16 @@ public sealed partial class EqualizerViewModel : ReactiveObject, IDisposable
 
         // Audio first and unthrottled: the sound has to follow the slider.
         _audioPlaybackService.SetEqualizerAsync(settings)
-            .SafeFireAndForget(exception => _loggerService.Report("Failed to apply equalizer", exception));
+            .SafeFireAndForget(exception => _loggerService.Report(
+                "Failed to apply equalizer", _notifications, UiStrings.Equalizer_ApplyFailed, exception));
 
         _pendingSave.OnNext(settings);
     }
 
     private void Save(EqualizerSettings settings) =>
         _settingsStore.UpdateAsync(stored => stored with { EqualizerOrNull = settings })
-            .SafeFireAndForget(exception => _loggerService.Report("Failed to save equalizer", exception));
+            .SafeFireAndForget(exception => _loggerService.Report(
+                "Failed to save equalizer", _notifications, UiStrings.Equalizer_SaveFailed, exception));
 
     public void Dispose()
     {

@@ -28,13 +28,19 @@ public partial class ToolbarView : ReactiveUserControl<ToolbarViewModel>
     private void OnDisplayAddressClick(object? sender, RoutedEventArgs e)
     {
         Tooltips.Dismiss(sender);
-        Handlers.Run(UiStrings.Toolbar_DisplayAddressFailed, () => ShowAddressAsync(ViewModel?.DisplayAddress()));
+        Handlers.Run(
+            "Failed to show the display address",
+            UiStrings.Toolbar_DisplayAddressFailed,
+            () => ShowAddressAsync(ViewModel?.DisplayAddress()));
     }
 
     private void OnRemoteAddressClick(object? sender, RoutedEventArgs e)
     {
         Tooltips.Dismiss(sender);
-        Handlers.Run(UiStrings.Toolbar_RemoteAddressFailed, () => ShowAddressAsync(ViewModel?.RemoteAddress()));
+        Handlers.Run(
+            "Failed to show the remote address",
+            UiStrings.Toolbar_RemoteAddressFailed,
+            () => ShowAddressAsync(ViewModel?.RemoteAddress()));
     }
 
     /// <summary>Puts the address on screen as something a phone can be pointed at.</summary>

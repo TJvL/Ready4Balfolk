@@ -1,8 +1,10 @@
 using Microsoft.Data.Sqlite;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 
 namespace Ready4Balfolk.Domain.Stores.Library;
 
@@ -17,7 +19,10 @@ namespace Ready4Balfolk.Domain.Stores.Library;
 /// later should be a file move, not an untangling.
 /// </para>
 /// </remarks>
-public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirectory, ILoggerService loggerService)
+public sealed class SqliteLibraryIndex(
+    IApplicationSettingsDirectory dataDirectory,
+    ILoggerService loggerService,
+    INotificationService notifications)
     : ILibraryIndex
 {
     private const string DatabaseFileName = "library.sqlite";
@@ -88,7 +93,10 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             // SQLite cannot open has lost them either way. Rebuilding beats an application that
             // starts with an empty library and an error toast forever.
             loggerService.Report(
-                $"The library index ({DatabaseFileName}) is unreadable and will be rebuilt", exception);
+                $"The library index ({DatabaseFileName}) is unreadable and will be rebuilt",
+                notifications,
+                DomainStrings.Library_IndexRebuilt,
+                exception);
 
             DeleteDatabaseFiles(path);
             _connection = await OpenAtAsync(path, token);
@@ -285,6 +293,8 @@ public sealed class SqliteLibraryIndex(IApplicationSettingsDirectory dataDirecto
             // nothing to hang on.
             loggerService.Report(
                 $"The library index ({DatabaseFileName}) is being rebuilt and what was answered could not be read out",
+                notifications,
+                DomainStrings.Library_AnswersLost,
                 exception);
 
             return new CarriedRows([], [], []);

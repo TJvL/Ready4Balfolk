@@ -1,10 +1,13 @@
+using System.Globalization;
 using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 
 namespace Ready4Balfolk.Domain.Stores.Settings;
 
@@ -29,6 +32,7 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
     private readonly IDirectoryInfo _settingsDirectoryInfo;
     private readonly IFileSystem _fileSystem;
     private readonly ILoggerService _loggerService;
+    private readonly INotificationService? _notifications;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly BehaviorSubject<ApplicationSettings> _settings;
 
@@ -37,13 +41,15 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
     public SettingsStore(
         IApplicationSettingsDirectory settingsDirectoryInfo,
         IFileSystem fileSystem,
-        ILoggerService? loggerService = null)
+        ILoggerService? loggerService = null,
+        INotificationService? notifications = null)
     {
         _settingsDirectoryInfo = settingsDirectoryInfo.DirectoryInfoRoot;
         _fileSystem = fileSystem;
         _loggerService = loggerService ?? new NoOpLoggerService();
+        _notifications = notifications;
         _settings = new BehaviorSubject<ApplicationSettings>(
-            LoadInitial(_settingsDirectoryInfo, fileSystem, _loggerService));
+            LoadInitial(_settingsDirectoryInfo, fileSystem, _loggerService, notifications));
     }
 
     public ApplicationSettings Current => _settings.Value;
@@ -56,10 +62,16 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
     /// answer with is caught: a file another process is holding open raises an IOException, not a
     /// JsonException. A file that parsed as nothing readable is kept beside the real one instead of
     /// being written over on the next save, because it is a file the user is invited to edit by hand
-    /// and it is the only copy of what they had.
+    /// and it is the only copy of what they had, so the DJ is told where it went.
+    ///
+    /// Told while the application is still being composed, before there is a window to read it
+    /// in. The notifications hold it until there is.
     /// </remarks>
     private static ApplicationSettings LoadInitial(
-        IFileSystemInfo directory, IFileSystem fileSystem, ILoggerService loggerService)
+        IFileSystemInfo directory,
+        IFileSystem fileSystem,
+        ILoggerService loggerService,
+        INotificationService? notifications)
     {
         var path = Path.Combine(directory.FullName, SettingsFileName);
         if (!fileSystem.File.Exists(path))
@@ -75,31 +87,47 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
         catch (JsonException ex)
         {
             _ = loggerService.ErrorAsync($"Unreadable settings file, starting from defaults: {ex.Message}");
-            Quarantine(path, fileSystem, loggerService);
+            var kept = Quarantine(path, fileSystem, loggerService);
+            notifications?.Show(
+                kept is null
+                    ? DomainStrings.Settings_Unreadable
+                    : string.Format(CultureInfo.CurrentCulture, DomainStrings.Settings_UnreadableKept, kept),
+                NotificationSeverity.Error);
             return new ApplicationSettings();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // The file is there and may be perfectly good, so it is left exactly as it is.
-            loggerService.Report("Could not open the settings file, starting from defaults", ex);
+            loggerService.Report(
+                "Could not open the settings file, starting from defaults",
+                notifications,
+                DomainStrings.Settings_CouldNotOpen,
+                ex);
             return new ApplicationSettings();
         }
     }
 
     /// <summary>Moves an unreadable settings file aside under a fixed name, or leaves it where it is.</summary>
-    private static void Quarantine(string path, IFileSystem fileSystem, ILoggerService loggerService)
+    /// <returns>The name it was kept under, or null when it could not be moved.</returns>
+    /// <remarks>
+    /// Written to the log either way and told to the DJ by the caller, once, whichever way it went:
+    /// the file not moving is part of the same failure rather than a second one worth a notice.
+    /// </remarks>
+    private static string? Quarantine(string path, IFileSystem fileSystem, ILoggerService loggerService)
     {
         try
         {
             // One name, overwritten: a run of bad starts leaves one file to look at rather than a
             // pile of them, and asking for a free name is another thing that can throw.
             fileSystem.File.Move(path, path + CorruptSuffix, overwrite: true);
-            _ = loggerService.ErrorAsync(
-                $"The settings file was kept as {LogPaths.Name(path) + CorruptSuffix}");
+            var kept = LogPaths.Name(path) + CorruptSuffix;
+            _ = loggerService.ErrorAsync($"The settings file was kept as {kept}");
+            return kept;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             loggerService.Report("The unreadable settings file could not be moved aside", ex);
+            return null;
         }
     }
 
@@ -149,7 +177,7 @@ public sealed class SettingsStore : ISettingsStore, IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _loggerService.Report("Failed to save settings", ex);
+            _loggerService.Report("Failed to save settings", _notifications, DomainStrings.Settings_SaveFailed, ex);
         }
     }
 }

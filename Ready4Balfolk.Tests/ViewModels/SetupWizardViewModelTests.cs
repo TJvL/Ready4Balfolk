@@ -10,6 +10,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -85,7 +86,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
         var trackStore = Substitute.For<ITrackStore>();
         trackStore.IsLoading.Returns(Observable.Return(false));
 
-        var discovery = new DiscoveryViewModel(_settingsStore, libraryIndex, _danceListStore, trackStore, logger);
+        var discovery = new DiscoveryViewModel(_settingsStore, libraryIndex, _danceListStore, trackStore, logger, notifications);
         var review = new ReviewViewModel(libraryIndex, _danceListStore, _settingsStore, trackStore, _preview, notifications, Substitute.For<IConfirmationService>(), discovery, new NavigationService(), logger);
 
         return (discovery, review);
@@ -103,7 +104,8 @@ public sealed class SetupWizardViewModelTests : IDisposable
             new ReviewStepViewModel(_review),
             _settingsStore,
             _navigation,
-            logger);
+            logger,
+            _notifications);
     }
 
     [Fact]

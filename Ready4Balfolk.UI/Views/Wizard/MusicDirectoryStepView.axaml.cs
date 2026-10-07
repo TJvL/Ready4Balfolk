@@ -14,14 +14,15 @@ public partial class MusicDirectoryStepView : ReactiveUserControl<MusicDirectory
     }
 
     private void OnBrowseClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run(UiStrings.Settings_MusicDirectoryChooseFailed, async () =>
-        {
-            var path = await App.Services.GetRequiredService<IFilePickerService>()
-                .PickFolderAsync(UiStrings.Settings_SelectMusicDirectory);
-
-            if (path is not null)
+        Handlers.Run(
+            "Failed to choose the music directory", UiStrings.Settings_MusicDirectoryChooseFailed, async () =>
             {
-                ViewModel!.MusicDirectoryPath = path;
-            }
-        });
+                var path = await App.Services.GetRequiredService<IFilePickerService>()
+                    .PickFolderAsync(UiStrings.Settings_SelectMusicDirectory);
+
+                if (path is not null)
+                {
+                    ViewModel!.MusicDirectoryPath = path;
+                }
+            });
 }

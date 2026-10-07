@@ -179,17 +179,26 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         {
             // A file BASS will not open is the ordinary case here rather than the exceptional one:
             // this queue is where those land, so the DJ is told rather than shown a closed window.
-            Handlers.Run(UiStrings.Review_PreviewFailed, () => ViewModel.TogglePreviewAsync(selected));
+            Handlers.Run(
+                "Failed to preview the track",
+                UiStrings.Review_PreviewFailed,
+                () => ViewModel.TogglePreviewAsync(selected));
         }
         else if (e.Key is Key.Escape)
         {
-            Handlers.Run(UiStrings.Review_StopPreviewFailed, ViewModel.StopPreviewAsync);
+            Handlers.Run(
+                "Failed to stop the preview",
+                UiStrings.Review_StopPreviewFailed,
+                ViewModel.StopPreviewAsync);
         }
         else if (e.Key is Key.Left or Key.Right && ViewModel.IsPreviewing)
         {
             // Only while something is playing, so they stay ordinary editing keys the rest of the
             // time: a typo in the middle of a title still has to be reachable.
-            Handlers.Run(UiStrings.Review_SeekPreviewFailed, () => ViewModel.SeekByAsync(TimeSpan.FromSeconds(e.Key is Key.Left ? -5 : 5)));
+            Handlers.Run(
+                "Failed to move through the preview",
+                UiStrings.Review_SeekPreviewFailed,
+                () => ViewModel.SeekByAsync(TimeSpan.FromSeconds(e.Key is Key.Left ? -5 : 5)));
         }
         else if (e.Key is Key.Up or Key.Down)
         {
@@ -336,7 +345,10 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
     {
         if (sender is Control { Tag: ReviewRowViewModel row } && ViewModel is { } viewModel)
         {
-            Handlers.Run(UiStrings.Review_PreviewFailed, () => viewModel.TogglePreviewAsync(row));
+            Handlers.Run(
+                "Failed to preview the track",
+                UiStrings.Review_PreviewFailed,
+                () => viewModel.TogglePreviewAsync(row));
         }
     }
 
@@ -380,6 +392,7 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
 
         var ratio = Math.Clamp(e.GetPosition(bar).X / bar.Bounds.Width, 0, 1);
         Handlers.Run(
+            "Failed to move through the preview",
             UiStrings.Review_SeekPreviewFailed,
             () => viewModel.SeekPreviewAsync(TimeSpan.FromSeconds(ratio * viewModel.PreviewDurationSeconds)));
     }

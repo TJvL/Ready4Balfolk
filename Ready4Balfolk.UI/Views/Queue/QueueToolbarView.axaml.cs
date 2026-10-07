@@ -21,29 +21,30 @@ public partial class QueueToolbarView : ReactiveUserControl<QueueViewModel>
     {
         Tooltips.Dismiss(sender);
 
-        Handlers.Run(UiStrings.QueueToolbar_AddMessageFailed, async () =>
-        {
-            var topLevel = TopLevel.GetTopLevel(this);
-            if (topLevel is not Window owner)
+        Handlers.Run(
+            "Failed to add the message", UiStrings.QueueToolbar_AddMessageFailed, async () =>
             {
-                return;
-            }
+                var topLevel = TopLevel.GetTopLevel(this);
+                if (topLevel is not Window owner)
+                {
+                    return;
+                }
 
-            var dialogVm = new RequestMessageDialogViewModel();
-            var dialog = new RequestMessageDialogView
-            {
-                DataContext = dialogVm
-            };
-            await dialog.ShowDialog(owner);
+                var dialogVm = new RequestMessageDialogViewModel();
+                var dialog = new RequestMessageDialogView
+                {
+                    DataContext = dialogVm
+                };
+                await dialog.ShowDialog(owner);
 
-            if (dialogVm.DialogResult == true)
-            {
-                var duration = dialogVm.UseDelay
-                    ? TimeSpan.FromSeconds((double)dialogVm.DelaySeconds)
-                    : (TimeSpan?)null;
-                ViewModel?.EnqueueMessage(dialogVm.Message, duration);
-            }
-        });
+                if (dialogVm.DialogResult == true)
+                {
+                    var duration = dialogVm.UseDelay
+                        ? TimeSpan.FromSeconds((double)dialogVm.DelaySeconds)
+                        : (TimeSpan?)null;
+                    ViewModel?.EnqueueMessage(dialogVm.Message, duration);
+                }
+            });
     }
 
     private void OnToggleClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().IsHistoryMode = true;

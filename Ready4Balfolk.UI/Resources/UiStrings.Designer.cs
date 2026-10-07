@@ -1462,4 +1462,114 @@ public static class UiStrings
         ResourceManager.GetString("Review_StopPreviewFailed", Culture)!;
     public static string Review_SeekPreviewFailed =>
         ResourceManager.GetString("Review_SeekPreviewFailed", Culture)!;
+
+    // What a command or the application could not do. The log says it in English, separately.
+    public static string App_SomethingWentWrong =>
+        ResourceManager.GetString("App_SomethingWentWrong", Culture)!;
+    public static string App_CloseFailed =>
+        ResourceManager.GetString("App_CloseFailed", Culture)!;
+    public static string App_UnfinishedNightAskFailed =>
+        ResourceManager.GetString("App_UnfinishedNightAskFailed", Culture)!;
+    public static string App_DanceListLoadFailed =>
+        ResourceManager.GetString("App_DanceListLoadFailed", Culture)!;
+    public static string App_LibraryOpenFailed =>
+        ResourceManager.GetString("App_LibraryOpenFailed", Culture)!;
+    public static string App_HistoryLoadFailed =>
+        ResourceManager.GetString("App_HistoryLoadFailed", Culture)!;
+    public static string App_LibrarySettingsFailed =>
+        ResourceManager.GetString("App_LibrarySettingsFailed", Culture)!;
+    public static string WebServer_CouldNotStart =>
+        ResourceManager.GetString("WebServer_CouldNotStart", Culture)!;
+    public static string WebServer_ApplyFailed =>
+        ResourceManager.GetString("WebServer_ApplyFailed", Culture)!;
+    public static string WebServer_SwitchOffFailed =>
+        ResourceManager.GetString("WebServer_SwitchOffFailed", Culture)!;
+    public static string Settings_LanguageChangeFailed =>
+        ResourceManager.GetString("Settings_LanguageChangeFailed", Culture)!;
+    public static string Settings_NewPinFailed =>
+        ResourceManager.GetString("Settings_NewPinFailed", Culture)!;
+    public static string Settings_PinSaveFailed =>
+        ResourceManager.GetString("Settings_PinSaveFailed", Culture)!;
+    public static string History_ShowNightFailed =>
+        ResourceManager.GetString("History_ShowNightFailed", Culture)!;
+    public static string History_StartNewNightFailed =>
+        ResourceManager.GetString("History_StartNewNightFailed", Culture)!;
+    public static string Review_DanceRuleFailed =>
+        ResourceManager.GetString("Review_DanceRuleFailed", Culture)!;
+    public static string Review_RefreshFailed =>
+        ResourceManager.GetString("Review_RefreshFailed", Culture)!;
+    public static string Review_ApproveFailed =>
+        ResourceManager.GetString("Review_ApproveFailed", Culture)!;
+    public static string Review_WithdrawFailed =>
+        ResourceManager.GetString("Review_WithdrawFailed", Culture)!;
+    public static string Review_ApproveFolderFailed =>
+        ResourceManager.GetString("Review_ApproveFolderFailed", Culture)!;
+    public static string Review_UseDanceForAllFailed =>
+        ResourceManager.GetString("Review_UseDanceForAllFailed", Culture)!;
+    public static string Review_NotADanceFailed =>
+        ResourceManager.GetString("Review_NotADanceFailed", Culture)!;
+    public static string Wizard_StepFailed =>
+        ResourceManager.GetString("Wizard_StepFailed", Culture)!;
+    public static string Wizard_BackFailed =>
+        ResourceManager.GetString("Wizard_BackFailed", Culture)!;
+    public static string Wizard_ContinueFailed =>
+        ResourceManager.GetString("Wizard_ContinueFailed", Culture)!;
+    public static string Wizard_DanceList_FetchFailed =>
+        ResourceManager.GetString("Wizard_DanceList_FetchFailed", Culture)!;
+    public static string Equalizer_ApplyFailed =>
+        ResourceManager.GetString("Equalizer_ApplyFailed", Culture)!;
+    public static string Equalizer_SaveFailed =>
+        ResourceManager.GetString("Equalizer_SaveFailed", Culture)!;
+    public static string Equalizer_ResetFailed =>
+        ResourceManager.GetString("Equalizer_ResetFailed", Culture)!;
+    public static string Discovery_ReadFailed =>
+        ResourceManager.GetString("Discovery_ReadFailed", Culture)!;
+    public static string Discovery_DeclareFailed =>
+        ResourceManager.GetString("Discovery_DeclareFailed", Culture)!;
+    public static string Discovery_RemovePatternFailed =>
+        ResourceManager.GetString("Discovery_RemovePatternFailed", Culture)!;
+    public static string Discovery_MovePatternFailed =>
+        ResourceManager.GetString("Discovery_MovePatternFailed", Culture)!;
+    public static string Discovery_SaveChoicesFailed =>
+        ResourceManager.GetString("Discovery_SaveChoicesFailed", Culture)!;
+    public static string Discovery_AcceptProposalFailed =>
+        ResourceManager.GetString("Discovery_AcceptProposalFailed", Culture)!;
+    public static string Discovery_DismissProposalFailed =>
+        ResourceManager.GetString("Discovery_DismissProposalFailed", Culture)!;
+    public static string DanceList_ChangePoolFailed =>
+        ResourceManager.GetString("DanceList_ChangePoolFailed", Culture)!;
+    public static string DanceList_ClearPoolFailed =>
+        ResourceManager.GetString("DanceList_ClearPoolFailed", Culture)!;
+    public static string DanceList_PickDanceFailed =>
+        ResourceManager.GetString("DanceList_PickDanceFailed", Culture)!;
+    public static string DanceList_UpdateCommandFailed =>
+        ResourceManager.GetString("DanceList_UpdateCommandFailed", Culture)!;
+    public static string Playback_PlayPauseFailed =>
+        ResourceManager.GetString("Playback_PlayPauseFailed", Culture)!;
+    public static string Playback_RestartFailed =>
+        ResourceManager.GetString("Playback_RestartFailed", Culture)!;
+    public static string Playback_NextFailed =>
+        ResourceManager.GetString("Playback_NextFailed", Culture)!;
+    public static string Playback_SeekFailed =>
+        ResourceManager.GetString("Playback_SeekFailed", Culture)!;
+    public static string Track_EditFailed =>
+        ResourceManager.GetString("Track_EditFailed", Culture)!;
+    public static string TrackCatalog_ClearSearchFailed =>
+        ResourceManager.GetString("TrackCatalog_ClearSearchFailed", Culture)!;
+    public static string TrackCatalog_WithdrawFailed =>
+        ResourceManager.GetString("TrackCatalog_WithdrawFailed", Culture)!;
+    public static string TrackCatalog_EnqueueFailed =>
+        ResourceManager.GetString("TrackCatalog_EnqueueFailed", Culture)!;
+    public static string Queue_RandomTrackFailed =>
+        ResourceManager.GetString("Queue_RandomTrackFailed", Culture)!;
+    public static string Queue_StopFailed =>
+        ResourceManager.GetString("Queue_StopFailed", Culture)!;
+    public static string Queue_DelayFailed =>
+        ResourceManager.GetString("Queue_DelayFailed", Culture)!;
+    public static string Queue_EndOfNightFailed =>
+        ResourceManager.GetString("Queue_EndOfNightFailed", Culture)!;
+    public static string Queue_RemoveFailed =>
+        ResourceManager.GetString("Queue_RemoveFailed", Culture)!;
+    public static string Queue_ClearFailed =>
+        ResourceManager.GetString("Queue_ClearFailed", Culture)!;
 }

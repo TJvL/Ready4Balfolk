@@ -136,4 +136,63 @@
   <data name="NightReport_TitleColumn" xml:space="preserve">
     <value>Title</value>
   </data>
+
+  <!-- What the DJ is told when something the domain does fails. The log says it in English, separately. -->
+  <data name="Settings_Unreadable" xml:space="preserve">
+    <value>The settings file could not be read, so every setting is back to its default.</value>
+  </data>
+  <data name="Settings_UnreadableKept" xml:space="preserve">
+    <value>The settings file could not be read, so every setting is back to its default. The old file was kept as {0}.</value>
+  </data>
+  <data name="Settings_CouldNotOpen" xml:space="preserve">
+    <value>The settings file could not be opened, so the defaults are in use for now.</value>
+  </data>
+  <data name="Settings_SaveFailed" xml:space="preserve">
+    <value>Failed to save the settings</value>
+  </data>
+  <data name="DanceList_Unreachable" xml:space="preserve">
+    <value>the dance list website could not be reached</value>
+  </data>
+  <data name="DanceList_FileUnreadable" xml:space="preserve">
+    <value>that file could not be read</value>
+  </data>
+  <data name="DanceList_CacheFailed" xml:space="preserve">
+    <value>Failed to save the new dance list on this computer. It is in use now, but the next start will not have it.</value>
+  </data>
+  <data name="History_ReadFailed" xml:space="preserve">
+    <value>Failed to read the history</value>
+  </data>
+  <data name="History_ListNightsFailed" xml:space="preserve">
+    <value>Failed to read the nights on file</value>
+  </data>
+  <data name="History_ReadNightFailed" xml:space="preserve">
+    <value>Failed to read that night</value>
+  </data>
+  <data name="History_WriteFailed" xml:space="preserve">
+    <value>Failed to write what just played to the history</value>
+  </data>
+  <data name="History_EndNightFailed" xml:space="preserve">
+    <value>Failed to end the night</value>
+  </data>
+  <data name="History_DeleteNightFailed" xml:space="preserve">
+    <value>Failed to delete the night</value>
+  </data>
+  <data name="Library_RebuildFailed" xml:space="preserve">
+    <value>Failed to bring the library up to date with the new dance list</value>
+  </data>
+  <data name="Library_ScanWriteFailed" xml:space="preserve">
+    <value>Failed to save part of the music folder to the library</value>
+  </data>
+  <data name="Library_ChangesFailed" xml:space="preserve">
+    <value>Failed to take the changes in the music folder into the library</value>
+  </data>
+  <data name="Library_IndexRebuilt" xml:space="preserve">
+    <value>The library could not be read and is being built again from the music folder. Tracks you had already answered may be waiting in review again.</value>
+  </data>
+  <data name="Library_AnswersLost" xml:space="preserve">
+    <value>The library is being built again, and your earlier answers could not be carried over. Those tracks may be waiting in review again.</value>
+  </data>
+  <data name="Audio_NeverCameUp" xml:space="preserve">
+    <value>No audio device could be opened, so nothing will play. Check the audio device, then start the application again.</value>
+  </data>
 </root>

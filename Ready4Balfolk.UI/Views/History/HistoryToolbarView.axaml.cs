@@ -14,40 +14,43 @@ public partial class HistoryToolbarView : ReactiveUserControl<HistoryViewModel>
     }
 
     private void OnExportClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run(UiStrings.HistoryToolbar_ExportFailed, async () =>
-        {
-            var path = await App.Services.GetRequiredService<IFilePickerService>()
-                .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportTitle, "queue_history", FileKind.Json);
-
-            if (path is not null)
+        Handlers.Run(
+            "Failed to export queue history", UiStrings.HistoryToolbar_ExportFailed, async () =>
             {
-                await ViewModel!.ExportAsync(path);
-            }
-        });
+                var path = await App.Services.GetRequiredService<IFilePickerService>()
+                    .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportTitle, "queue_history", FileKind.Json);
+
+                if (path is not null)
+                {
+                    await ViewModel!.ExportAsync(path);
+                }
+            });
 
     private void OnExportReportClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run(UiStrings.HistoryToolbar_ExportReportFailed, async () =>
-        {
-            var path = await App.Services.GetRequiredService<IFilePickerService>()
-                .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportReportTitle, "queue_history", FileKind.Html);
-
-            if (path is not null)
+        Handlers.Run(
+            "Failed to export the report of the tracks played", UiStrings.HistoryToolbar_ExportReportFailed, async () =>
             {
-                await ViewModel!.ExportReportAsync(path);
-            }
-        });
+                var path = await App.Services.GetRequiredService<IFilePickerService>()
+                    .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportReportTitle, "queue_history", FileKind.Html);
+
+                if (path is not null)
+                {
+                    await ViewModel!.ExportReportAsync(path);
+                }
+            });
 
     private void OnExportSpreadsheetClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run(UiStrings.HistoryToolbar_ExportSpreadsheetFailed, async () =>
-        {
-            var path = await App.Services.GetRequiredService<IFilePickerService>()
-                .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportSpreadsheetTitle, "queue_history", FileKind.Csv);
-
-            if (path is not null)
+        Handlers.Run(
+            "Failed to export the tracks played as a spreadsheet", UiStrings.HistoryToolbar_ExportSpreadsheetFailed, async () =>
             {
-                await ViewModel!.ExportSpreadsheetAsync(path);
-            }
-        });
+                var path = await App.Services.GetRequiredService<IFilePickerService>()
+                    .PickWhereToSaveAsync(UiStrings.HistoryToolbar_ExportSpreadsheetTitle, "queue_history", FileKind.Csv);
+
+                if (path is not null)
+                {
+                    await ViewModel!.ExportSpreadsheetAsync(path);
+                }
+            });
 
     private void OnToggleClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<NavigationService>().IsHistoryMode = false;
 }

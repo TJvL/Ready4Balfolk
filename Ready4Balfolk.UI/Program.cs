@@ -47,6 +47,8 @@ public static class Program
         }
         catch (Exception ex)
         {
+            // Written to the log and not shown: the application is going down with it, and there is
+            // no window to show anything in.
             _ = App.Services?.GetService<ILoggerService>()?.CriticalAsync("Fatal startup exception", ex);
             throw;
         }

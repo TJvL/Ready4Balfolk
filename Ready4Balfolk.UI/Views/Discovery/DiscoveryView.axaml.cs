@@ -54,13 +54,14 @@ public partial class DiscoveryView : ReactiveUserControl<DiscoveryViewModel>
     }
 
     private void OnDanceListClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run(UiStrings.DanceList_OpenSiteFailed, async () =>
-        {
-            if (TopLevel.GetTopLevel(this) is { } topLevel)
+        Handlers.Run(
+            "Failed to open the dance list website", UiStrings.DanceList_OpenSiteFailed, async () =>
             {
-                await topLevel.Launcher.LaunchUriAsync(new Uri(DanceListUrl));
-            }
-        });
+                if (TopLevel.GetTopLevel(this) is { } topLevel)
+                {
+                    await topLevel.Launcher.LaunchUriAsync(new Uri(DanceListUrl));
+                }
+            });
 
     public bool ShowSaveButton
     {

@@ -1,5 +1,6 @@
 using AsyncAwaitBestPractices;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 
 namespace Ready4Balfolk.Domain.Helpers;
 
@@ -16,26 +17,32 @@ namespace Ready4Balfolk.Domain.Helpers;
 /// process-wide default handler in addition to a per-call one rather than instead of it, so the
 /// two together would be two log lines and two notifications for one failure.
 ///
-/// Reported with <see cref="ILoggerService.ErrorAsync(string, Exception)"/>, which the application
-/// already puts on screen as a notification. The message is therefore what the DJ reads: it says
-/// what did not happen, not what threw.
+/// Reported twice, in two texts: an English line in the log, and a text from the resx files on
+/// screen (see <see cref="LoggerServiceExtensions" />). The log is never what the DJ reads.
 /// </remarks>
 /// <param name="logger">
 /// Where a failure is reported, or nothing at all. On the way down the container the logger lives
 /// in is already gone, and having nowhere to report to is not a reason to let the work throw where
 /// nothing can catch it.
 /// </param>
+/// <param name="notifications">
+/// Where the DJ is told, or nothing at all, for the same reason the logger can be nothing.
+/// </param>
 /// <param name="notAFailure">
 /// Which exceptions are an ordinary part of what the owner is doing rather than something to tell
 /// the DJ about, and nothing at all for an owner that has none. Asked the moment an exception
 /// arrives, since whether one is ordinary depends on what the owner is doing by then.
 /// </param>
-public sealed class UnawaitedWork(ILoggerService? logger, Func<Exception, bool>? notAFailure = null)
+public sealed class UnawaitedWork(
+    ILoggerService? logger,
+    INotificationService? notifications,
+    Func<Exception, bool>? notAFailure = null)
 {
     /// <summary>Runs work nothing can await, and reports what falls out of it.</summary>
-    /// <param name="whatFailed">What the person is told did not happen.</param>
+    /// <param name="logLine">What failed, in English, for the log.</param>
+    /// <param name="screenText">What the DJ is told did not happen, from the resx files.</param>
     /// <param name="work">The work to start.</param>
-    public void Start(string whatFailed, Func<Task> work)
+    public void Start(string logLine, string screenText, Func<Task> work)
     {
         ArgumentNullException.ThrowIfNull(work);
 
@@ -54,7 +61,7 @@ public sealed class UnawaitedWork(ILoggerService? logger, Func<Exception, bool>?
             {
                 if (notAFailure?.Invoke(exception) != true)
                 {
-                    logger.Report(whatFailed, exception);
+                    logger.Report(logLine, notifications, screenText, exception);
                 }
             }
         }

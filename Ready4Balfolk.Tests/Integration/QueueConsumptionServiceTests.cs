@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -10,6 +11,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Library;
@@ -26,6 +28,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     private readonly QueueService _queue;
     private readonly IQueueHistoryStore _history;
     private readonly ISettingsStore _settingsStore;
+    private readonly INotificationService _notifications = Substitute.For<INotificationService>();
     private readonly QueueConsumptionService _sut;
 
     private readonly Subject<RxUnit> _playbackStarted = new();
@@ -72,7 +75,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
             TimeProvider.System);
 
         _sut = new QueueConsumptionService(
-            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), TimeProvider.System,
+            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), _notifications, TimeProvider.System,
             ImmediateScheduler.Instance);
     }
 
@@ -575,6 +578,40 @@ public sealed class QueueConsumptionServiceTests : IDisposable
             e!.CompletionStatus == CompletionStatus.FileMissing));
     }
 
+    /// <summary>A track that will not open is told in the DJ's language, and logged in English.</summary>
+    /// <remarks>
+    /// Two texts for one failure. The screen's comes from the resx files, so a Dutch evening reads
+    /// it in Dutch; the log's is an English literal, so a log exported from that evening reads like
+    /// any other. This one used to be the same Dutch sentence in both places.
+    /// </remarks>
+    [Fact]
+    public async Task AdvanceAsync_ATrackThatWillNotOpen_IsToldInTheDjsLanguageAndLoggedInEnglish()
+    {
+        using var logger = new RecordingLoggerService();
+        using var sut = CreateServiceLoggingTo(logger);
+        var language = CultureInfo.CurrentUICulture;
+        CultureInfo.CurrentUICulture = new CultureInfo("nl");
+        try
+        {
+            _audio.SelectAsync(Arg.Any<Uri>())
+                .Returns(_ => throw new InvalidOperationException("Failed to create stream"));
+            var track = new TrackQueueItem(TestData.CreateTrack(title: "Salamandre"), false);
+            _queue.Enqueue(track);
+
+            await sut.AdvanceAsync();
+
+            var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
+            var shown = string.Format(CultureInfo.CurrentCulture, DomainStrings.Queue_CannotPlay, track.Description);
+            Assert.Equal("Could not play 'Mazurka_Artist_Salamandre.mp3', moving on", reported.Message);
+            _notifications.Received(1).Show(shown, NotificationSeverity.Error);
+            Assert.NotEqual(reported.Message, shown);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = language;
+        }
+    }
+
     /// <summary>Nothing can follow the end of the night, so the night is filed and the next opens.</summary>
     [Fact]
     public async Task AdvanceAsync_EndOfNight_FilesTheNight()
@@ -617,8 +654,9 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         // Preloading is nobody's await, so this used to be a bare discard: the exception sat on an
         // unobserved task until a garbage collection, and the DJ heard about it when the room did.
         var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(DomainStrings.Queue_PreloadFailed, reported.Message);
+        Assert.Equal("Failed to prepare the next item", reported.Message);
         Assert.IsType<InvalidOperationException>(reported.Exception);
+        _notifications.Received(1).Show(DomainStrings.Queue_PreloadFailed, NotificationSeverity.Error);
     }
 
     [Fact]
@@ -638,8 +676,9 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         _playbackEnded.OnNext(RxUnit.Default);
 
         var reported = await logger.NextErrorAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(DomainStrings.Queue_AdvanceFailed, reported.Message);
+        Assert.Equal("Failed to move on to the next item in the queue", reported.Message);
         Assert.IsType<InvalidOperationException>(reported.Exception);
+        _notifications.Received(1).Show(DomainStrings.Queue_AdvanceFailed, NotificationSeverity.Error);
     }
 
     [Fact]
@@ -717,7 +756,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         // A dequeue from either of those is what moves the queue under a removal already in flight.
         var held = new HeldScheduler();
         using var sut = new QueueConsumptionService(
-            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), TimeProvider.System,
+            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), _notifications, TimeProvider.System,
             held);
 
         _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
@@ -740,7 +779,7 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         // the end of the dance is waiting behind it, and must not then move on from the new one.
         var held = new HeldScheduler();
         using var sut = new QueueConsumptionService(
-            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), TimeProvider.System,
+            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), _notifications, TimeProvider.System,
             held);
 
         var first = new TrackQueueItem(TestData.CreateTrack(title: "First"), false);
@@ -766,12 +805,12 @@ public sealed class QueueConsumptionServiceTests : IDisposable
 
     /// <summary>A second service on a clock a test can move, sharing this fixture's doubles.</summary>
     private QueueConsumptionService CreateServiceOn(TimeProvider time) =>
-        new(_audio, _queue, _history, _settingsStore, new NoOpLoggerService(), time,
+        new(_audio, _queue, _history, _settingsStore, new NoOpLoggerService(), _notifications, time,
             ImmediateScheduler.Instance);
 
     /// <summary>A second service that keeps what it reports, sharing this fixture's doubles.</summary>
     private QueueConsumptionService CreateServiceLoggingTo(ILoggerService logger) =>
-        new(_audio, _queue, _history, _settingsStore, logger, TimeProvider.System,
+        new(_audio, _queue, _history, _settingsStore, logger, _notifications, TimeProvider.System,
             ImmediateScheduler.Instance);
 
     [Fact]

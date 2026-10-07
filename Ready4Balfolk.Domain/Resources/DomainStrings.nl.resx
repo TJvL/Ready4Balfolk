@@ -136,4 +136,63 @@
   <data name="NightReport_TitleColumn" xml:space="preserve">
     <value>Titel</value>
   </data>
+
+  <!-- What the DJ is told when something the domain does fails. The log says it in English, separately. -->
+  <data name="Settings_Unreadable" xml:space="preserve">
+    <value>Het instellingenbestand kon niet gelezen worden, dus alle instellingen staan weer op hun standaardwaarde.</value>
+  </data>
+  <data name="Settings_UnreadableKept" xml:space="preserve">
+    <value>Het instellingenbestand kon niet gelezen worden, dus alle instellingen staan weer op hun standaardwaarde. Het oude bestand is bewaard als {0}.</value>
+  </data>
+  <data name="Settings_CouldNotOpen" xml:space="preserve">
+    <value>Het instellingenbestand kon niet geopend worden, dus voorlopig gelden de standaardinstellingen.</value>
+  </data>
+  <data name="Settings_SaveFailed" xml:space="preserve">
+    <value>De instellingen konden niet opgeslagen worden</value>
+  </data>
+  <data name="DanceList_Unreachable" xml:space="preserve">
+    <value>de website van de dansenlijst was niet bereikbaar</value>
+  </data>
+  <data name="DanceList_FileUnreadable" xml:space="preserve">
+    <value>dat bestand kon niet gelezen worden</value>
+  </data>
+  <data name="DanceList_CacheFailed" xml:space="preserve">
+    <value>De nieuwe dansenlijst kon niet op deze computer opgeslagen worden. Hij is nu in gebruik, maar bij de volgende start is hij er niet.</value>
+  </data>
+  <data name="History_ReadFailed" xml:space="preserve">
+    <value>De geschiedenis kon niet gelezen worden</value>
+  </data>
+  <data name="History_ListNightsFailed" xml:space="preserve">
+    <value>De bewaarde avonden konden niet gelezen worden</value>
+  </data>
+  <data name="History_ReadNightFailed" xml:space="preserve">
+    <value>Die avond kon niet gelezen worden</value>
+  </data>
+  <data name="History_WriteFailed" xml:space="preserve">
+    <value>Wat er net gespeeld is kon niet in de geschiedenis geschreven worden</value>
+  </data>
+  <data name="History_EndNightFailed" xml:space="preserve">
+    <value>De avond kon niet afgesloten worden</value>
+  </data>
+  <data name="History_DeleteNightFailed" xml:space="preserve">
+    <value>De avond kon niet verwijderd worden</value>
+  </data>
+  <data name="Library_RebuildFailed" xml:space="preserve">
+    <value>De bibliotheek kon niet bijgewerkt worden met de nieuwe dansenlijst</value>
+  </data>
+  <data name="Library_ScanWriteFailed" xml:space="preserve">
+    <value>Een deel van de muziekmap kon niet in de bibliotheek opgeslagen worden</value>
+  </data>
+  <data name="Library_ChangesFailed" xml:space="preserve">
+    <value>De wijzigingen in de muziekmap konden niet in de bibliotheek verwerkt worden</value>
+  </data>
+  <data name="Library_IndexRebuilt" xml:space="preserve">
+    <value>De bibliotheek kon niet gelezen worden en wordt opnieuw opgebouwd uit de muziekmap. Nummers die je al beantwoord had, kunnen weer op je wachten in review.</value>
+  </data>
+  <data name="Library_AnswersLost" xml:space="preserve">
+    <value>De bibliotheek wordt opnieuw opgebouwd, en je eerdere antwoorden konden niet meegenomen worden. Die nummers kunnen weer op je wachten in review.</value>
+  </data>
+  <data name="Audio_NeverCameUp" xml:space="preserve">
+    <value>Er kon geen audioapparaat geopend worden, dus er wordt niets afgespeeld. Controleer het audioapparaat en start de applicatie daarna opnieuw.</value>
+  </data>
 </root>

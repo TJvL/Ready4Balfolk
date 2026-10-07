@@ -112,4 +112,63 @@ public static class DomainStrings
 
     public static string NightReport_TitleColumn =>
         ResourceManager.GetString("NightReport_TitleColumn", Culture)!;
+
+
+    // What the DJ is told when something the domain does fails. The log says it in English, separately.
+    public static string Settings_Unreadable =>
+        ResourceManager.GetString("Settings_Unreadable", Culture)!;
+
+    public static string Settings_UnreadableKept =>
+        ResourceManager.GetString("Settings_UnreadableKept", Culture)!;
+
+    public static string Settings_CouldNotOpen =>
+        ResourceManager.GetString("Settings_CouldNotOpen", Culture)!;
+
+    public static string Settings_SaveFailed =>
+        ResourceManager.GetString("Settings_SaveFailed", Culture)!;
+
+    public static string DanceList_Unreachable =>
+        ResourceManager.GetString("DanceList_Unreachable", Culture)!;
+
+    public static string DanceList_FileUnreadable =>
+        ResourceManager.GetString("DanceList_FileUnreadable", Culture)!;
+
+    public static string DanceList_CacheFailed =>
+        ResourceManager.GetString("DanceList_CacheFailed", Culture)!;
+
+    public static string History_ReadFailed =>
+        ResourceManager.GetString("History_ReadFailed", Culture)!;
+
+    public static string History_ListNightsFailed =>
+        ResourceManager.GetString("History_ListNightsFailed", Culture)!;
+
+    public static string History_ReadNightFailed =>
+        ResourceManager.GetString("History_ReadNightFailed", Culture)!;
+
+    public static string History_WriteFailed =>
+        ResourceManager.GetString("History_WriteFailed", Culture)!;
+
+    public static string History_EndNightFailed =>
+        ResourceManager.GetString("History_EndNightFailed", Culture)!;
+
+    public static string History_DeleteNightFailed =>
+        ResourceManager.GetString("History_DeleteNightFailed", Culture)!;
+
+    public static string Library_RebuildFailed =>
+        ResourceManager.GetString("Library_RebuildFailed", Culture)!;
+
+    public static string Library_ScanWriteFailed =>
+        ResourceManager.GetString("Library_ScanWriteFailed", Culture)!;
+
+    public static string Library_ChangesFailed =>
+        ResourceManager.GetString("Library_ChangesFailed", Culture)!;
+
+    public static string Library_IndexRebuilt =>
+        ResourceManager.GetString("Library_IndexRebuilt", Culture)!;
+
+    public static string Library_AnswersLost =>
+        ResourceManager.GetString("Library_AnswersLost", Culture)!;
+
+    public static string Audio_NeverCameUp =>
+        ResourceManager.GetString("Audio_NeverCameUp", Culture)!;
 }

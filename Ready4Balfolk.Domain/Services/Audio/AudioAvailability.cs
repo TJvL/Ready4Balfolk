@@ -2,6 +2,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 
 namespace Ready4Balfolk.Domain.Services.Audio;
 
@@ -15,7 +16,8 @@ namespace Ready4Balfolk.Domain.Services.Audio;
 /// Said once per change. A night whose output has gone keeps being asked to play, and a
 /// notification per attempt would bury the one that meant something.
 /// </remarks>
-public sealed class AudioAvailability(ILoggerService loggerService) : IDisposable
+public sealed class AudioAvailability(ILoggerService loggerService, INotificationService notifications)
+    : IDisposable
 {
     private readonly BehaviorSubject<bool> _isAvailable = new(true);
 
@@ -43,14 +45,20 @@ public sealed class AudioAvailability(ILoggerService loggerService) : IDisposabl
         }
 
         _isAvailable.OnNext(false);
-        loggerService.Report(DomainStrings.Audio_OutputGone, new InvalidOperationException(detail));
+        loggerService.Report(
+            "Audio output is gone", notifications, DomainStrings.Audio_OutputGone, new InvalidOperationException(detail));
     }
 
     /// <summary>The output never came up at all, so there was never anything to lose.</summary>
+    /// <remarks>
+    /// Told as well as logged: nothing the DJ queues will make a sound, and the first anybody would
+    /// otherwise learn of it is a silent hall.
+    /// </remarks>
     public void NeverCameUp(Exception cause)
     {
         _isAvailable.OnNext(false);
         _ = loggerService.CriticalAsync("Failed to initialize BASS audio", cause);
+        notifications.Show(DomainStrings.Audio_NeverCameUp, NotificationSeverity.Error);
     }
 
     public void Dispose() => _isAvailable.Dispose();

@@ -1,10 +1,13 @@
-using System.IO.Abstractions;
+using System.Globalization;
 using NSubstitute;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
+using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Unit;
 
-/// <summary>Writing a failure down where the DJ is shown it, and never throwing doing it.</summary>
+/// <summary>Writing a failure down, telling the DJ about it in two separate texts, and never throwing doing it.</summary>
 public sealed class LoggerServiceExtensionsTests
 {
     [Fact]
@@ -18,6 +21,10 @@ public sealed class LoggerServiceExtensionsTests
         unwritable.ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>())
             .Returns(_ => throw new IOException("the log is on a stick that was pulled"));
 
+        var screenGone = Substitute.For<INotificationService>();
+        screenGone.When(screen => screen.Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>()))
+            .Do(_ => throw new ObjectDisposedException(nameof(INotificationService)));
+
         // On the way down everything a report needs may already be disposed, or gone entirely, and
         // the log is a file on a disk that can fill up. A reporter that throws while reporting
         // replaces a line in the log with the crash it was there to avoid, so none of these may.
@@ -27,32 +34,52 @@ public sealed class LoggerServiceExtensionsTests
             unwritable.Report("Failed to stop the preview", new InvalidOperationException())));
         Assert.Null(Record.Exception(() =>
             ((ILoggerService?)null).Report("Failed to stop the preview", new InvalidOperationException())));
+        Assert.Null(Record.Exception(() => unwritable.Report(
+            "Failed to stop the preview", screenGone, "Het beluisteren kon niet gestopt worden",
+            new InvalidOperationException())));
+        Assert.Null(Record.Exception(() => ((ILoggerService?)null).Report(
+            "Failed to stop the preview", null, "Het beluisteren kon niet gestopt worden",
+            new InvalidOperationException())));
     }
 
+    /// <summary>The log gets the English line, the DJ gets the resx text, and neither gets the other's.</summary>
+    /// <remarks>
+    /// Said in Dutch, where the two are visibly not the same sentence. That is the whole point of
+    /// the decision: the log is English and read by whoever fixes things, the screen follows the
+    /// language and is read by the DJ, and nothing couples the two.
+    /// </remarks>
     [Fact]
-    public async Task Report_ReachesTheStreamTheNotificationsAreDrawnFrom()
+    public void Report_LogsTheEnglishLine_AndShowsTheResxText()
     {
-        var directory = new FileSystem().DirectoryInfo.New(
-            Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
-        using var logger = new FileLoggerService(directory);
-
-        var seen = new TaskCompletionSource<LogEntry>();
-        using var subscription = logger.WhenErrorLogged.Subscribe(entry => seen.TrySetResult(entry));
-
+        using var logger = new RecordingLoggerService();
+        var notifications = Substitute.For<INotificationService>();
+        var language = CultureInfo.CurrentUICulture;
+        CultureInfo.CurrentUICulture = new CultureInfo("nl");
         try
         {
-            // What makes this the fix rather than a line nobody reads: the same stream the startup
-            // wiring turns into a notice on screen.
-            logger.Report("Failed to preview the track", new InvalidOperationException("boom"));
+            var failure = new UnauthorizedAccessException("Access to the path 'settings.json.tmp' is denied.");
 
-            var entry = await seen.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            logger.Report("Failed to save settings", notifications, DomainStrings.Settings_SaveFailed, failure);
 
-            Assert.Equal("Failed to preview the track", entry.Message);
-            Assert.IsType<InvalidOperationException>(entry.Exception);
+            var logged = Assert.Single(logger.Errors);
+            Assert.Equal("Failed to save settings", logged.Message);
+            Assert.Same(failure, logged.Exception);
+            notifications.Received(1).Show("De instellingen konden niet opgeslagen worden", NotificationSeverity.Error);
+            notifications.Received(1).Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>());
         }
         finally
         {
-            directory.Delete(recursive: true);
+            CultureInfo.CurrentUICulture = language;
         }
+    }
+
+    [Fact]
+    public void Report_WithNoScreenText_OnlyWritesTheLog()
+    {
+        using var logger = new RecordingLoggerService();
+
+        logger.Report("Could not read the length of 'the end of the night.mp3'", new InvalidDataException());
+
+        Assert.Equal("Could not read the length of 'the end of the night.mp3'", Assert.Single(logger.Errors).Message);
     }
 }

@@ -2,8 +2,10 @@ using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 
 namespace Ready4Balfolk.Domain.Stores.Dances;
 
@@ -19,6 +21,7 @@ public sealed class DanceListStore(
     IFileSystem fileSystem,
     IDanceListFeed feed,
     ILoggerService loggerService,
+    INotificationService notifications,
     TimeProvider time)
     : IDanceListStore
 {
@@ -66,7 +69,7 @@ public sealed class DanceListStore(
                     Publish(cached, DanceListOrigin.Cached, cachedFileInfo.LastWriteTimeUtc);
                     return;
                 }
-                catch (Exception exception) when (exception is InvalidDataException or IOException)
+                catch (Exception exception) when (exception is DanceListRefusedException or IOException)
                 {
                     Discard(cachedFileInfo, exception);
                 }
@@ -92,9 +95,11 @@ public sealed class DanceListStore(
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
         {
             // Offline is an ordinary state for this application, so it is logged and reported, not
-            // thrown: the list already loaded carries on working.
+            // thrown: the list already loaded carries on working. What the network stack had to
+            // say about it goes to the log; the DJ is told in their own language that the site
+            // could not be reached, which is all that message ever meant in a hall.
             _ = loggerService.InfoAsync($"Could not reach the dance list: {exception.Message}");
-            return DanceListUpdate.Failed(exception.Message);
+            return DanceListUpdate.Failed(DomainStrings.DanceList_Unreachable);
         }
 
         return await AdoptAsync(published, DanceListOrigin.Downloaded);
@@ -112,10 +117,11 @@ public sealed class DanceListStore(
         {
             // Logged rather than reported: the failure goes back to whoever asked, and every caller
             // puts it on screen in the DJ's language. Reported here as well, it was a second notice
-            // in English beside the first.
+            // in English beside the first. The exception's own text stays in the log: it is the
+            // operating system's, in its language, and the screen says what did not happen.
             _ = loggerService.WarningAsync(
                 $"Could not read {LogPaths.Name(sourceFileInfo.FullName)}: {exception.Message}");
-            return DanceListUpdate.Failed(exception.Message);
+            return DanceListUpdate.Failed(DomainStrings.DanceList_FileUnreadable);
         }
     }
 
@@ -138,12 +144,17 @@ public sealed class DanceListStore(
             {
                 list = DanceListReader.Read(json);
             }
-            catch (Exception exception) when (exception is InvalidDataException or FileNotFoundException)
+            catch (DanceListRefusedException exception)
             {
                 // Logged rather than reported, for the reason a file that will not open is: the
                 // refusal goes back to the caller, which says it on screen.
                 _ = loggerService.WarningAsync($"Refused a dance list: {exception.Message}");
-                return DanceListUpdate.Failed(exception.Message);
+                return DanceListUpdate.Failed(exception.ScreenText);
+            }
+            catch (FileNotFoundException exception)
+            {
+                _ = loggerService.WarningAsync($"Refused a dance list: {exception.Message}");
+                return DanceListUpdate.Failed(DomainStrings.DanceList_FileUnreadable);
             }
 
             var known = Current.Dances.Select(dance => dance.Slug).ToHashSet(StringComparer.Ordinal);
@@ -192,8 +203,10 @@ public sealed class DanceListStore(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            // The list is in hand either way; only the next start pays for this.
-            loggerService.Report("Failed to cache the dance list", exception);
+            // The list is in hand either way; only the next start pays for this, and the DJ is
+            // told so now rather than finding out in a hall with no network.
+            loggerService.Report(
+                "Failed to cache the dance list", notifications, DomainStrings.DanceList_CacheFailed, exception);
         }
     }
 
@@ -202,6 +215,10 @@ public sealed class DanceListStore(
     /// copy of a published file, and the next fetch replaces it. Keeping it would leave a hidden
     /// file nobody ever opens.
     /// </summary>
+    /// <remarks>
+    /// A copy that will not go is written to the log and not shown: the list it held is already
+    /// gone, which the dance panel says, and the next fetch writes over the file either way.
+    /// </remarks>
     private void Discard(IFileInfo cachedFileInfo, Exception reason)
     {
         try

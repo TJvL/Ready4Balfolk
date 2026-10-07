@@ -3,8 +3,10 @@ using System.IO.Abstractions.TestingHelpers;
 using System.Text.Json;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Tests.Helpers;
@@ -19,6 +21,7 @@ public sealed class DanceListStoreTests : IDisposable
     private readonly FileSystem _fileSystem;
     private readonly IDanceListFeed _feed = Substitute.For<IDanceListFeed>();
     private readonly RecordingLoggerService _logger = new();
+    private readonly INotificationService _notifications = Substitute.For<INotificationService>();
     private readonly DanceListStore _sut;
 
     public DanceListStoreTests()
@@ -29,7 +32,7 @@ public sealed class DanceListStoreTests : IDisposable
         var settingsDirectory = Substitute.For<IApplicationSettingsDirectory>();
         settingsDirectory.DirectoryInfoRoot.Returns(_ => _tempDir);
         _feed.HomePage.Returns(new Uri("https://example.invalid/list"));
-        _sut = new DanceListStore(settingsDirectory, _fileSystem, _feed, _logger, TimeProvider.System);
+        _sut = new DanceListStore(settingsDirectory, _fileSystem, _feed, _logger, _notifications, TimeProvider.System);
     }
 
     [Fact]
@@ -143,6 +146,23 @@ public sealed class DanceListStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task AFailedUpdate_SaysWhyInTheDjsLanguage_AndLeavesWhatDotNetSaidToTheLog()
+    {
+        // What the network stack and the file system have to say is in English, in their terms,
+        // and used to be put inside the translated notice word for word. The DJ is told what did
+        // not happen from the resx files; the exception's text is the log's.
+        _feed.DownloadAsync(Arg.Any<CancellationToken>())
+            .Returns<Task<string>>(_ => throw new HttpRequestException("No such host is known. (example.invalid:443)"));
+        var offline = await _sut.RefreshAsync(TestContext.Current.CancellationToken);
+        // A folder where the file should be, which refuses the read the way a locked file does.
+        var unreadable = await _sut.UpdateFromFileAsync(
+            _fileSystem.FileInfo.New(_tempDir.FullName), TestContext.Current.CancellationToken);
+
+        Assert.Equal(DomainStrings.DanceList_Unreachable, offline.Problem);
+        Assert.Equal(DomainStrings.DanceList_FileUnreadable, unreadable.Problem);
+    }
+
+    [Fact]
     public async Task RefreshAsync_RefusedList_KeepsTheListItHas()
     {
         await _sut.LoadAsync(CancellationToken.None);
@@ -169,6 +189,7 @@ public sealed class DanceListStoreTests : IDisposable
         Assert.Equal(DanceListUpdateOutcome.Failed, refused.Outcome);
         Assert.Equal(DanceListUpdateOutcome.Failed, unreadable.Outcome);
         Assert.Empty(_logger.Errors);
+        _notifications.DidNotReceive().Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>());
     }
 
     [Fact]
@@ -256,7 +277,8 @@ public sealed class DanceListStoreTests : IDisposable
         feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns(Serialise(TestData.CreateSimpleDanceList()));
 
         using var store = new DanceListStore(
-            settingsDirectory, fileSystem, feed, new NoOpLoggerService(), TimeProvider.System);
+            settingsDirectory, fileSystem, feed, new NoOpLoggerService(), Substitute.For<INotificationService>(),
+            TimeProvider.System);
         await store.RefreshAsync(TestContext.Current.CancellationToken);
 
         var expected = Path.Combine(mock.DirectoryInfo.New(_tempDir.FullName).FullName, CacheFileName);

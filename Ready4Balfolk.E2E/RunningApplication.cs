@@ -15,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
+using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI;
@@ -164,6 +165,31 @@ public sealed class RunningApplication : IAsyncDisposable
             $"Waited {PatienceLimit.TotalSeconds:0} seconds for {describedAs}, and it never held.{Environment.NewLine}"
             + $"What was on screen:{Environment.NewLine}{WhatIsOnScreen()}{Environment.NewLine}"
             + $"What it logged:{Environment.NewLine}{WhatWasLogged()}");
+    }
+
+    /// <summary>Watches for something that must not happen, for as long as it could take to.</summary>
+    /// <remarks>
+    /// The other side of <see cref="WaitUntil" />: a scenario about something staying off the screen
+    /// has to give it every chance to arrive, including any throttle in the way, before it can say
+    /// that it did not.
+    /// </remarks>
+    public async Task NeverHappensWithin(TimeSpan howLong, Func<bool> what, string describedAs)
+    {
+        ArgumentNullException.ThrowIfNull(what);
+
+        var deadline = DateTime.UtcNow + howLong;
+        while (DateTime.UtcNow < deadline)
+        {
+            Settle();
+            if (what())
+            {
+                Assert.Fail(
+                    $"{describedAs} happened.{Environment.NewLine}"
+                    + $"What was on screen:{Environment.NewLine}{WhatIsOnScreen()}");
+            }
+
+            await Task.Delay(20);
+        }
     }
 
     /// <summary>The control with this automation id, on the window or on a dialog over it.</summary>
@@ -711,6 +737,15 @@ public sealed class RunningApplication : IAsyncDisposable
                 .Select(seen => $"  {(string.IsNullOrEmpty(seen.Id) ? "-" : seen.Id)}: {seen.Text}")
                 .Distinct()
                 .Take(40));
+
+    /// <summary>A failure is written to the application's log by something the scenario does not drive.</summary>
+    /// <remarks>
+    /// Through the application's own logger, as an error with an exception, which is how every
+    /// failure it writes down is written: a file whose length will not read, a server that did not
+    /// drain on the way out.
+    /// </remarks>
+    public static void AnErrorIsLogged(string line) =>
+        _ = App.Services.GetRequiredService<ILoggerService>().ErrorAsync(line, new InvalidOperationException(line));
 
     /// <summary>The end of the application's own log, which says what it thinks went wrong.</summary>
     public static string WhatWasLogged()

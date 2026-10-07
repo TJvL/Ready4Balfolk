@@ -10,6 +10,7 @@ using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 
@@ -22,6 +23,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly IQueueHistoryStore _history;
     private readonly ISettingsStore _settingsStore;
     private readonly ILoggerService _loggerService;
+    private readonly INotificationService _notifications;
     private readonly TimeProvider _time;
     private readonly IScheduler _advanceScheduler;
     private readonly UnawaitedWork _unawaited;
@@ -69,6 +71,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         IQueueHistoryStore history,
         ISettingsStore settingsStore,
         ILoggerService loggerService,
+        INotificationService notifications,
         TimeProvider time,
         IScheduler advanceScheduler)
     {
@@ -77,6 +80,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         _history = history;
         _settingsStore = settingsStore;
         _loggerService = loggerService;
+        _notifications = notifications;
         _time = time;
         _advanceScheduler = advanceScheduler;
 
@@ -89,6 +93,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         // any other moment is a real failure and is reported.
         _unawaited = new UnawaitedWork(
             loggerService,
+            notifications,
             exception => exception is ObjectDisposedException && _closing);
 
         // Global audio play state subscriptions
@@ -436,6 +441,8 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         catch (Exception exception) when (exception is InvalidOperationException or IOException)
         {
             _loggerService.Report(
+                $"Could not play '{LogPaths.Name(filePath)}', moving on",
+                _notifications,
                 string.Format(CultureInfo.CurrentCulture, DomainStrings.Queue_CannotPlay, item.Description),
                 exception);
 
@@ -465,7 +472,10 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     /// </para>
     /// </remarks>
     private void AdvanceBecauseItRanOut(IQueueItem item) => _advanceScheduler.Schedule(() =>
-        _unawaited.Start(DomainStrings.Queue_AdvanceFailed, () => AdvanceAsync(item, ranOut: true)));
+        _unawaited.Start(
+            "Failed to move on to the next item in the queue",
+            DomainStrings.Queue_AdvanceFailed,
+            () => AdvanceAsync(item, ranOut: true)));
 
     /// <summary>Counts a delay, a message or a gap down, and advances once when it runs out.</summary>
     /// <remarks>
@@ -526,6 +536,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
         // Reported rather than dropped: this is where a next track that will not open first says
         // so, minutes before the room is waiting on it.
         _unawaited.Start(
+            "Failed to prepare the next item",
             DomainStrings.Queue_PreloadFailed,
             () => uri != null ? _audio.PreloadNextAsync(uri) : _audio.ClearPreloadAsync());
     }

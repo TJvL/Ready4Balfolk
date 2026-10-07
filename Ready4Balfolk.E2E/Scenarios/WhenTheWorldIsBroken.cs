@@ -3,6 +3,42 @@ namespace Ready4Balfolk.E2E.Scenarios;
 /// <summary>The same evening, with the world underneath it not as it was left.</summary>
 public sealed class WhenTheWorldIsBroken(HeadlessSession session)
 {
+    /// <summary>Something goes wrong that is for whoever reads the log, not for the room.</summary>
+    /// <remarks>
+    /// World: an ordinary library.
+    /// Steps: an error is written to the log, the way a failure that nobody in the hall can act on
+    /// is written, and nothing else.
+    /// Sees: nothing. The log and the screen are separate: the log is English, and only what the
+    /// application tells the DJ, in the DJ's language, is ever put on screen. Every logged error
+    /// used to be a bar as well, in English, two seconds later.
+    /// </remarks>
+    [Fact]
+    public async Task AnErrorThatIsOnlyLogged_PutsNothingOnScreen()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            RunningApplication.AnErrorIsLogged("Could not read the length of 'the end of the night.mp3'");
+
+            // Longer than the two seconds the log's errors used to be held back before they were
+            // put on screen, so a bar on its way is given every chance to arrive.
+            await application.NeverHappensWithin(
+                TimeSpan.FromSeconds(3),
+                () => application.IsShowing("notification.message"),
+                "a notice about a line that was only written to the log");
+
+            Assert.Contains("Could not read the length", RunningApplication.WhatWasLogged(), StringComparison.Ordinal);
+        });
+    }
+
     /// <summary>The DJ asks for something at random from a library that has nothing in it.</summary>
     /// <remarks>
     /// World: a music directory with no music in it, which is what a mistyped path or an unmounted

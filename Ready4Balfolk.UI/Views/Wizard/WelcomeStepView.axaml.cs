@@ -15,12 +15,13 @@ public partial class WelcomeStepView : ReactiveUserControl<WelcomeStepViewModel>
     }
 
     private void OnSourceLinkClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run(UiStrings.DanceList_OpenSiteFailed, async () =>
-        {
-            var topLevel = TopLevel.GetTopLevel(this);
-            if (topLevel is not null)
+        Handlers.Run(
+            "Failed to open the dance list website", UiStrings.DanceList_OpenSiteFailed, async () =>
             {
-                await topLevel.Launcher.LaunchUriAsync(new Uri(WelcomeStepViewModel.DanceListSourceUrl));
-            }
-        });
+                var topLevel = TopLevel.GetTopLevel(this);
+                if (topLevel is not null)
+                {
+                    await topLevel.Launcher.LaunchUriAsync(new Uri(WelcomeStepViewModel.DanceListSourceUrl));
+                }
+            });
 }
