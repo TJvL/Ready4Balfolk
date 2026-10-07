@@ -25,6 +25,8 @@ public sealed class HelpManualTests
         { "Toolbar_ReviewLabel", 12 },            // ### Review (toolbar)
         { "Toolbar_DisplayServed", 13 },          // ### Display and Remote
         { "Toolbar_RemoteServed", 13 },           // ### Display and Remote
+        { "Playback_PauseLabel", 16 },            // ### Transport Controls
+        { "Playback_RestartLabel", 16 },          // ### Transport Controls
         { "QueueToolbar_SwitchToHistory", 25 },   // ### Queue Toolbar
         { "QueueToolbar_QueueRandomTrack", 25 },  // ### Queue Toolbar
         { "QueueToolbar_RequestStop", 25 },       // ### Queue Toolbar
@@ -63,17 +65,31 @@ public sealed class HelpManualTests
     }
 
     /// <summary>
-    /// Names the Dutch application has never shown. Each was in the manual, and each sends a reader
-    /// hunting for a button that is not there.
+    /// Names the Dutch application does not show, each of which sends a reader hunting for a button
+    /// that is not there. The glossary in development.md is where the Dutch
+    /// words come from: a request is "aanvragen", the item that holds the room is an "Onderbreking"
+    /// rather than a "Pauze" (which is the transport button), the screen and what waits there is
+    /// "Nakijken", and the list of dances is the "dansenlijst".
     /// </summary>
     [Theory]
     [InlineData("Review")]
+    [InlineData("review")]
     [InlineData("Exit")]
     [InlineData("Verklaar het")]
     [InlineData("Setup opnieuw uitvoeren")]
     [InlineData("Stop toevoegen")]
     [InlineData("Pauze toevoegen")]
+    [InlineData("Onderbreking toevoegen")]
+    [InlineData("Wachttijd")]
+    [InlineData("wachttijd")]
     [InlineData("Bericht toevoegen")]
+    [InlineData("**Pauze**")]
+    [InlineData("Pauze aanvragen")]
+    [InlineData("Pauzeduur")]
+    [InlineData("pauzemarkering")]
+    [InlineData("Standaard pauze")]
+    [InlineData("een pauze")]
+    [InlineData("danslijst")]
     public void TheDutchManualDoesNotUseANameTheDutchScreensDoNot(string name)
         => Assert.DoesNotContain(name, Manual("nl"), StringComparison.Ordinal);
 

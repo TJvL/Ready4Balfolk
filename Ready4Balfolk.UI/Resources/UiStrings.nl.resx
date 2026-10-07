@@ -86,7 +86,7 @@
     <value>Einde</value>
   </data>
   <data name="QueueToolbar_DelayLabel" xml:space="preserve">
-    <value>Pauze</value>
+    <value>Onderbreking</value>
   </data>
   <data name="QueueToolbar_MessageLabel" xml:space="preserve">
     <value>Bericht</value>
@@ -128,7 +128,7 @@
     <value>Terug</value>
   </data>
   <data name="Queue_RefreshAutoTrackLabel" xml:space="preserve">
-    <value>Opnieuw</value>
+    <value>Ander nummer</value>
   </data>
   <data name="Queue_KeepTrackLabel" xml:space="preserve">
     <value>Behouden</value>
@@ -226,7 +226,7 @@
     <value>Speling (minuten)</value>
   </data>
   <data name="Settings_QueueCutoffDescription" xml:space="preserve">
-    <value>Weiger nieuwe items zodra de wachtrij tot na deze tijd zou doorlopen, met de speling erbovenop. Zolang er een stopverzoek in de wachtrij staat is de eindtijd onbekend en geldt de limiet niet; gebruik een pauze als je weet hoe lang het duurt.</value>
+    <value>Weiger nieuwe items zodra de wachtrij tot na deze tijd zou doorlopen, met de speling erbovenop. Zolang er een stopverzoek in de wachtrij staat is de eindtijd onbekend en geldt de limiet niet; gebruik een onderbreking als je weet hoe lang het duurt.</value>
   </data>
   <data name="Settings_EndOfNightAudio" xml:space="preserve">
     <value>Slotmuziek van de avond</value>
@@ -265,10 +265,10 @@
     <value>Maximaal aantal wachtrij-items</value>
   </data>
   <data name="Settings_DelayDuration" xml:space="preserve">
-    <value>Pauzeduur (seconden)</value>
+    <value>Onderbrekingsduur (seconden)</value>
   </data>
   <data name="Settings_DelayDescription" xml:space="preserve">
-    <value>Gebruikt voor 'Pauze aanvragen' - pauzeert het afspelen voor deze duur</value>
+    <value>Gebruikt voor 'Onderbreking aanvragen' - onderbreekt het afspelen voor deze duur</value>
   </data>
   <data name="Settings_PresentationDisplays" xml:space="preserve">
     <value>Presentatieschermen</value>
@@ -280,16 +280,16 @@
     <value>Automatisch willekeurig nummer toevoegen tijdens afspelen</value>
   </data>
   <data name="Settings_GapBetweenTracks" xml:space="preserve">
-    <value>Standaard pauze tussen nummers</value>
+    <value>Standaard onderbreking tussen nummers</value>
   </data>
   <data name="Settings_GapBetweenTracksLength" xml:space="preserve">
-    <value>Lengte van de pauze tussen nummers (seconden)</value>
+    <value>Lengte van de onderbreking tussen nummers (seconden)</value>
   </data>
   <data name="Settings_GapBetweenTracksSeconds" xml:space="preserve">
     <value>seconden</value>
   </data>
   <data name="Settings_GapBetweenTracksDescription" xml:space="preserve">
-    <value>Even tijd om de vloer leeg te laten lopen en opnieuw op te stellen, tussen de ene dans en de volgende, zonder dat er iets in de wachtrij verschijnt. Rond een pauze, een stop, een bericht of het einde van de avond komt er niets bij: die geven de zaal al tijd. De eindtijd telt ze mee.</value>
+    <value>Even tijd om de vloer leeg te laten lopen en opnieuw op te stellen, tussen de ene dans en de volgende, zonder dat er iets in de wachtrij verschijnt. Rond een onderbreking, een stop, een bericht of het einde van de avond komt er niets bij: die geven de zaal al tijd. De eindtijd telt ze mee.</value>
   </data>
   <data name="Settings_AutoQueueDescription" xml:space="preserve">
     <value>Voegt automatisch een willekeurig nummer toe tijdens het afspelen. Blijft onderaan staan, onder alles wat je zelf toevoegt.</value>
@@ -357,7 +357,7 @@
     <value>De slotmuziek staat niet waar de instellingen zeggen dat hij staat.</value>
   </data>
   <data name="Queue_DelayMarker" xml:space="preserve">
-    <value>PAUZE - Afspelen wordt tijdelijk gepauzeerd</value>
+    <value>ONDERBREKING - Het afspelen wordt even onderbroken</value>
   </data>
   <data name="Queue_MessageMarker" xml:space="preserve">
     <value>BERICHT -</value>
@@ -410,7 +410,7 @@
     <value>De avond afsluiten: zet de slotmuziek in de wachtrij, waarna er niets meer bij kan</value>
   </data>
   <data name="QueueToolbar_RequestDelay" xml:space="preserve">
-    <value>Pauze aanvragen</value>
+    <value>Onderbreking aanvragen</value>
   </data>
   <data name="QueueToolbar_RequestMessage" xml:space="preserve">
     <value>Bericht aanvragen</value>
@@ -451,7 +451,7 @@
     <value>Bericht</value>
   </data>
   <data name="History_TypeDelay" xml:space="preserve">
-    <value>Pauze</value>
+    <value>Onderbreking</value>
   </data>
   <data name="History_TypeStop" xml:space="preserve">
     <value>Stop</value>
@@ -548,10 +548,10 @@
     <value>Nummer herstarten</value>
   </data>
   <data name="Playback_Delay" xml:space="preserve">
-    <value>Pauze</value>
+    <value>Onderbreking</value>
   </data>
   <data name="Playback_Gap" xml:space="preserve">
-    <value>Standaard pauze tussen dansen</value>
+    <value>Standaard onderbreking tussen dansen</value>
   </data>
   <data name="Presentation_Gap" xml:space="preserve">
     <value>Even tijd tussen twee dansen</value>
@@ -654,7 +654,7 @@
     <value>Geen volgend nummer</value>
   </data>
   <data name="Presentation_Delay" xml:space="preserve">
-    <value>Pauze</value>
+    <value>Onderbreking</value>
   </data>
   <data name="Presentation_Stop" xml:space="preserve">
     <value>Stop</value>
@@ -678,7 +678,7 @@
     <value>{0} minuten</value>
   </data>
   <data name="Presentation_DelayWithDuration" xml:space="preserve">
-    <value>Pauze ({0})</value>
+    <value>Onderbreking ({0})</value>
   </data>
   <data name="Presentation_MessageWithDuration" xml:space="preserve">
     <value>Bericht ({0})</value>
@@ -695,10 +695,10 @@
     <value>Voer een bericht in om weer te geven...</value>
   </data>
   <data name="Dialog_UseTimedDelay" xml:space="preserve">
-    <value>Gebruik een getimede pauze (anders stopt het tot handmatig hervatten)</value>
+    <value>Gebruik een getimede onderbreking (anders stopt het tot handmatig hervatten)</value>
   </data>
   <data name="Dialog_DelayDuration" xml:space="preserve">
-    <value>Pauzeduur (seconden)</value>
+    <value>Onderbrekingsduur (seconden)</value>
   </data>
   <data name="Dialog_Cancel" xml:space="preserve">
     <value>Annuleren</value>
@@ -925,7 +925,7 @@
     <value>opgehaald {0:d MMMM yyyy}</value>
   </data>
   <data name="DanceList_NoListYet" xml:space="preserve">
-    <value>nog geen danslijst</value>
+    <value>nog geen dansenlijst</value>
   </data>
   <data name="DanceList_Update" xml:space="preserve">
     <value>Bijwerken</value>
@@ -1138,10 +1138,10 @@
     <value>Mijn antwoord terugnemen</value>
   </data>
   <data name="TrackCatalog_WithdrawTrackHint" xml:space="preserve">
-    <value>Haalt dit nummer uit de bibliotheek en zet het terug in de reviewrij, en neemt je antwoord op elk veld ervan terug. Het bestand zelf blijft ongemoeid.</value>
+    <value>Haalt dit nummer uit de bibliotheek en zet het terug bij Nakijken, en neemt je antwoord op elk veld ervan terug. Het bestand zelf blijft ongemoeid.</value>
   </data>
   <data name="TrackCatalog_WithdrawnTrack" xml:space="preserve">
-    <value>{0} staat niet meer in de bibliotheek en wacht weer op je in review. Wat al in de wachtrij staat, speelt gewoon door.</value>
+    <value>{0} staat niet meer in de bibliotheek en wacht weer op je bij Nakijken. Wat al in de wachtrij staat, speelt gewoon door.</value>
   </data>
   <data name="TrackCatalog_NothingToWithdraw" xml:space="preserve">
     <value>Je hebt {0} nooit zelf beantwoord. Het staat in de bibliotheek op je regels of op zijn eigen tags, en dat neem je terug door die regel te wijzigen.</value>
@@ -1153,7 +1153,7 @@
     <value>Er is nog geen muziekmap ingesteld. Wijs Ready4Balfolk er een aan via het instellingenscherm.</value>
   </data>
   <data name="TrackCatalog_EmptyReviewWaiting" xml:space="preserve">
-    <value>Nog niets hier, {0} nummers wachten op je in review.</value>
+    <value>Nog niets hier, {0} nummers wachten op je bij Nakijken.</value>
   </data>
   <data name="TrackCatalog_EmptyNoTracks" xml:space="preserve">
     <value>Nog geen nummers in de bibliotheek.</value>
@@ -1162,7 +1162,7 @@
     <value>Nummer bewerken</value>
   </data>
   <data name="EditTrack_UnknownDance" xml:space="preserve">
-    <value>De danslijst kent "{0}" niet. Een ontbrekende dans is een voorstel bij BigBalfolkList, geen lokale uitzondering.</value>
+    <value>De dansenlijst kent "{0}" niet. Een ontbrekende dans is een voorstel bij BigBalfolkList, geen lokale uitzondering.</value>
   </data>
   <data name="Discovery_FieldDance" xml:space="preserve">
     <value>Dans</value>
@@ -1227,7 +1227,7 @@
     <value>Antwoord terugnemen (Ctrl+Z)</value>
   </data>
   <data name="Review_WithdrawHint" xml:space="preserve">
-    <value>Zet dit nummer terug in review en uit de bibliotheek, en neemt je antwoord op elk veld ervan terug. Het bestand zelf blijft ongemoeid.</value>
+    <value>Zet dit nummer terug bij Nakijken en uit de bibliotheek, en neemt je antwoord op elk veld ervan terug. Het bestand zelf blijft ongemoeid.</value>
   </data>
   <data name="Review_Withdrawn" xml:space="preserve">
     <value>{0} wacht weer op je en staat niet meer in de bibliotheek. Wat al in de wachtrij staat, speelt gewoon door.</value>
@@ -1592,7 +1592,7 @@ De bibliotheek kent er {2} nummers.</value>
     <value>Er kon niet gewijzigd worden of dansen buiten de lijst worden toegelaten</value>
   </data>
   <data name="Review_RefreshFailed" xml:space="preserve">
-    <value>De nummers die op review wachten konden niet verzameld worden</value>
+    <value>De nummers die bij Nakijken wachten konden niet verzameld worden</value>
   </data>
   <data name="Review_ApproveFailed" xml:space="preserve">
     <value>Het antwoord kon niet opgeslagen worden</value>
@@ -1682,7 +1682,7 @@ De bibliotheek kent er {2} nummers.</value>
     <value>De zoekopdracht kon niet gewist worden</value>
   </data>
   <data name="TrackCatalog_WithdrawFailed" xml:space="preserve">
-    <value>Het nummer kon niet teruggezet worden in review</value>
+    <value>Het nummer kon niet teruggezet worden naar Nakijken</value>
   </data>
   <data name="TrackCatalog_EnqueueFailed" xml:space="preserve">
     <value>Het nummer kon niet in de wachtrij gezet worden</value>
@@ -1694,7 +1694,7 @@ De bibliotheek kent er {2} nummers.</value>
     <value>Er kon geen stop in de wachtrij gezet worden</value>
   </data>
   <data name="Queue_DelayFailed" xml:space="preserve">
-    <value>Er kon geen pauze in de wachtrij gezet worden</value>
+    <value>Er kon geen onderbreking in de wachtrij gezet worden</value>
   </data>
   <data name="Queue_EndOfNightFailed" xml:space="preserve">
     <value>Het einde van de avond kon niet in de wachtrij gezet worden</value>

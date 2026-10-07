@@ -78,7 +78,7 @@
     <value>Stop</value>
   </data>
   <data name="DelayQueueItem_Description" xml:space="preserve">
-    <value>Pauze</value>
+    <value>Onderbreking</value>
   </data>
   <data name="GapQueueItem_Description" xml:space="preserve">
     <value>Tussen twee dansen</value>
@@ -187,10 +187,10 @@
     <value>De wijzigingen in de muziekmap konden niet in de bibliotheek verwerkt worden</value>
   </data>
   <data name="Library_IndexRebuilt" xml:space="preserve">
-    <value>De bibliotheek kon niet gelezen worden en wordt opnieuw opgebouwd uit de muziekmap. Nummers die je al beantwoord had, kunnen weer op je wachten in review.</value>
+    <value>De bibliotheek kon niet gelezen worden en wordt opnieuw opgebouwd uit de muziekmap. Nummers die je al beantwoord had, kunnen weer op je wachten bij Nakijken.</value>
   </data>
   <data name="Library_AnswersLost" xml:space="preserve">
-    <value>De bibliotheek wordt opnieuw opgebouwd, en je eerdere antwoorden konden niet meegenomen worden. Die nummers kunnen weer op je wachten in review.</value>
+    <value>De bibliotheek wordt opnieuw opgebouwd, en je eerdere antwoorden konden niet meegenomen worden. Die nummers kunnen weer op je wachten bij Nakijken.</value>
   </data>
   <data name="Audio_NeverCameUp" xml:space="preserve">
     <value>Er kon geen audioapparaat geopend worden, dus er wordt niets afgespeeld. Controleer het audioapparaat en start de applicatie daarna opnieuw.</value>
