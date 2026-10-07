@@ -27,6 +27,13 @@ public sealed class HelpManualTests
         { "Toolbar_RemoteServed", 13 },           // ### Display and Remote
         { "Playback_PauseLabel", 16 },            // ### Transport Controls
         { "Playback_RestartLabel", 16 },          // ### Transport Controls
+        { "Playback_SkipLabel", 16 },             // ### Transport Controls
+        { "Playback_ClearLabel", 16 },            // ### Transport Controls
+        { "Equalizer_LowCut", 19 },               // ### Low cut
+        { "Equalizer_Preamp", 20 },               // ### Preamp
+        { "Equalizer_Reset", 21 },                // ### Reset to flat
+        { "Queue_RefreshAutoTrackLabel", 23 },    // ### Queue Items
+        { "Queue_KeepTrackLabel", 23 },           // ### Queue Items
         { "QueueToolbar_SwitchToHistory", 25 },   // ### Queue Toolbar
         { "QueueToolbar_QueueRandomTrack", 25 },  // ### Queue Toolbar
         { "QueueToolbar_RequestStop", 25 },       // ### Queue Toolbar
@@ -34,15 +41,22 @@ public sealed class HelpManualTests
         { "QueueToolbar_RequestMessage", 25 },    // ### Queue Toolbar
         { "QueueToolbar_RemoveSelected", 25 },    // ### Queue Toolbar
         { "QueueToolbar_ClearQueue", 25 },        // ### Queue Toolbar
+        { "QueueToolbar_EndOfNightLabel", 25 },   // ### Queue Toolbar
         { "Queue_MoveUp", 25 },                   // ### Queue Toolbar
         { "Queue_MoveDown", 25 },                 // ### Queue Toolbar
         { "HistoryToolbar_SwitchToQueue", 29 },   // ### History Toolbar
         { "HistoryToolbar_ExportHistory", 29 },   // ### History Toolbar
+        { "HistoryToolbar_ExportReportLabel", 29 },      // ### History Toolbar
+        { "HistoryToolbar_ExportSpreadsheetLabel", 29 }, // ### History Toolbar
+        { "HistoryToolbar_NewNightLabel", 29 },   // ### History Toolbar
+        { "HistoryToolbar_DeleteLabel", 29 },     // ### History Toolbar
         { "TrackCatalog_SwitchToDanceList", 38 }, // ### Switch to the dance list
         { "TrackCatalog_EditTrack", 36 },         // ### Fixing a typo where you see it
         { "TrackCatalog_WithdrawTrack", 37 },     // ### Taking an answer back (Track Catalog)
         { "Settings_RunSetupAgain", 53 },         // ### Music Directory (Settings)
         { "Discovery_ProposalAccept", 5 },        // ### Rules: telling it how your files are named
+        { "Review_Rules", 5 },                    // ### Rules: telling it how your files are named
+        { "Discovery_PatternsHeader", 5 },        // ### Rules: telling it how your files are named
         { "Settings_ThemeAuto", 66 },             // ### Theme
         { "Settings_ThemeLight", 66 },            // ### Theme
         { "Settings_ThemeDark", 66 },             // ### Theme
@@ -90,6 +104,12 @@ public sealed class HelpManualTests
     [InlineData("Standaard pauze")]
     [InlineData("een pauze")]
     [InlineData("danslijst")]
+    [InlineData("Vastzetten")]
+    [InlineData("Bestandsnaampatronen")]
+    [InlineData("eindsignaal")]
+    [InlineData("webweergave")]
+    [InlineData("webscherm")]
+    [InlineData("weergavepagina")]
     public void TheDutchManualDoesNotUseANameTheDutchScreensDoNot(string name)
         => Assert.DoesNotContain(name, Manual("nl"), StringComparison.Ordinal);
 
@@ -100,6 +120,9 @@ public sealed class HelpManualTests
     [InlineData("Toggle to History")]
     [InlineData("Toggle to Queue")]
     [InlineData("Toggle to Dance List")]
+    [InlineData("**Refresh**")]
+    [InlineData("**Pin**")]
+    [InlineData("**Next**")]
     public void TheEnglishManualDoesNotUseANameTheEnglishScreensDoNot(string name)
         => Assert.DoesNotContain(name, Manual("en"), StringComparison.Ordinal);
 
