@@ -139,7 +139,7 @@ met artiest en titel ook.
 ### Bedieningsknoppen
 
 - **Afspelen / Pauze**: schakelt het afspelen. Met een geladen nummer klik je om te starten of te pauzeren.
-- **Herstart**: begint het huidige nummer opnieuw. Speelt er iets, dan komt eerst een bevestiging (tenzij uitgeschakeld in de instellingen).
+- **Opnieuw**: begint het huidige nummer opnieuw. Speelt er iets, dan komt eerst een bevestiging (tenzij uitgeschakeld in de instellingen).
 - **Volgende / Wissen**: deze knop verandert met de toestand van de wachtrij:
   - **Volgende** (wachtrij met items): gaat naar het volgende item. Een bevestiging verschijnt als er iets speelt (tenzij uitgeschakeld).
   - **Wissen** (lege wachtrij): stopt het afspelen en maakt het huidige item leeg.
@@ -204,10 +204,10 @@ De wachtrij kan verschillende soorten items bevatten, elk met een eigen uiterlij
 
 - **Nummer**: een muziekbestand. Toont dans, artiest, titel en duur.
 - **Auto-nummer**: een willekeurig gekozen nummer, vervaagd weergegeven met een recycle-icoon. Het staat onderaan de wachtrij, onder de verzoeken, zolang de auto-wachtrij aanstaat en er iets speelt. Het heeft twee extra acties:
-  - **Vernieuwen**: kies een ander willekeurig nummer
+  - **Ander nummer**: kies een ander willekeurig nummer
   - **Vastzetten**: maak van het auto-nummer een gewoon nummer dat blijft staan
 - **Stop**: een markering waar het afspelen pauzeert tot jij verdergaat. Oranje gemarkeerd.
-- **Pauze**: een getimede onderbreking. Het afspelen gaat vanzelf verder na de ingestelde duur. Blauw gemarkeerd.
+- **Wachttijd**: een getimede onderbreking. Het afspelen gaat vanzelf verder na de ingestelde duur. Blauw gemarkeerd.
 - **Bericht**: een tekstmededeling op het scherm, eventueel met een duur. Teal gemarkeerd.
 - **Einde van de avond**: de muziek waarmee het bal afgelopen is, paars gemarkeerd. Het is geen nummer: het is het bestand uit de instellingen, het komt nooit in je bibliotheek, en er gaat niets meer achter in de wachtrij. Haal je het weg, dan is de avond weer open.
 
@@ -225,7 +225,7 @@ De werkbalk boven de wachtrij biedt:
 - **Naar geschiedenis**: toont links de geschiedenisweergave
 - **Willekeurig nummer toevoegen**: voegt een willekeurig gekozen nummer toe, getrokken uit de tags die nu in de pool staan. Zonder keuze trekt hij uit elke dans waar je een nummer van hebt.
 - **Stop aanvragen**: zet een stopmarkering in de wachtrij
-- **Pauze aanvragen**: zet een pauze met de duur uit de instellingen in de wachtrij
+- **Wachttijd aanvragen**: zet een wachttijd met de duur uit de instellingen in de wachtrij
 - **Bericht aanvragen**: opent een venster voor een bericht met eventueel een duur
 - **De avond afsluiten**: zet de slotmuziek in de wachtrij. Uit zolang er geen bestand in de instellingen staat, en zolang er al een in de wachtrij staat of speelt.
 - **Geselecteerd item verwijderen**: haalt het geselecteerde item weg
@@ -249,7 +249,7 @@ De geschiedenis toont wat er op een avond gebeurd is: vanavond terwijl hij loopt
 
 Schakel naar de geschiedenis met de knop in de wachtrijwerkbalk. Elke regel toont:
 
-- **Omschrijving**: de dansnaam (bij nummers), de berichttekst, de pauze, de stop of het einde van de avond
+- **Omschrijving**: de dansnaam (bij nummers), de berichttekst, de wachttijd, de stop of het einde van de avond
 - **Begin** en **Klaar**: de kloktijden waartussen het liep
 - **Duur**: hoe lang het echt liep, wat iets anders is dan hoe lang het nummer duurt: een dans die na veertig seconden werd afgebroken zegt veertig seconden
 - **Status**: afgespeeld, overgeslagen, of een bestand dat weg was toen de avond eraan toe was. Een bestand dat er niet was is geen keuze van iemand, en wordt dus ook niet zo genoteerd
@@ -506,22 +506,22 @@ ingedeeld.
 
 ### Maximaal aantal wachtrijitems
 
-Het maximumaantal nummers in de wachtrij, tussen 1 en 100. Pauzes, berichten en stopmarkeringen tellen
+Het maximumaantal nummers in de wachtrij, tussen 1 en 100. Wachttijden, berichten en stopmarkeringen tellen
 niet mee. Is de wachtrij vol, dan kunnen er geen nummers meer bij tot er nummers gespeeld of
 verwijderd zijn.
 
-### Pauzeduur
+### Wachttijdduur
 
-De standaardduur (in seconden) van pauzemarkeringen, tussen 1 en 300. Dit is wat "Pauze aanvragen"
+De standaardduur (in seconden) van wachttijdmarkeringen, tussen 1 en 300. Dit is wat "Wachttijd aanvragen"
 in de wachtrijwerkbalk gebruikt.
 
 ### Even tijd tussen twee dansen
 
-**Standaard pauze tussen nummers** neemt een paar seconden tussen de ene dans en de volgende, zodat
-de vloer kan leeglopen en zich opnieuw kan opstellen zonder dat jij elke keer een pauze in de
+**Standaard wachttijd tussen nummers** neemt een paar seconden tussen de ene dans en de volgende, zodat
+de vloer kan leeglopen en zich opnieuw kan opstellen zonder dat jij elke keer een wachttijd in de
 wachtrij zet. Uit tenzij je het aanzet, en tien seconden als je dat doet.
 
-Het is een echte pauze, de muziek wacht hem dus af, en de schermen zeggen dat ook: de regel die
+Het is een echte wachttijd, de muziek wacht hem dus af, en de schermen zeggen dat ook: de regel die
 speelt noemt hem en de balk telt hem af, met de komende dans nog steeds als volgende. Een vloer die
 tien seconden "geen nummer aan het afspelen" leest kan een moment niet van een vastgelopen programma
 onderscheiden. Druk je op volgende, dan gaat de zaal meteen naar de dans.
@@ -530,9 +530,9 @@ Het blijft geen item: er verschijnt niets in de wachtrij, niets in de wachtrij o
 niets in de avond achteraf. Daar gaat geen tijd mee verloren, want elke regel in de geschiedenis
 zegt wanneer hij begon en wanneer hij klaar was, dus het moment is de ruimte tussen twee regels.
 
-Rond een pauze, een stop, een bericht of het einde van de avond komt er niets bij, want die geven de
+Rond een wachttijd, een stop, een bericht of het einde van de avond komt er niets bij, want die geven de
 zaal al tijd, en voor de eerste dans van een avond ook niet. De eindtijd en de sluitingstijd tellen
-de pauzes allebei mee, zodat een avond van dertig dansen niet vijf minuten na de belofte van de
+de wachttijden allebei mee, zodat een avond van dertig dansen niet vijf minuten na de belofte van de
 werkbalk eindigt.
 
 ### Geen verzoeken meer na een eindtijd
@@ -541,7 +541,7 @@ Een eindtijd voor de avond. Zodra de wachtrij voorbij die tijd zou lopen (plus e
 minuten), worden nieuwe items geweigerd, zo eindigt de laatste dans wanneer de zaal sluit in
 plaats van twintig minuten erna. De auto-wachtrij houdt zich aan dezelfde grens en stopt met
 aanvullen, in plaats van de avond op eigen houtje door te laten lopen. Staat er een stop in de
-wachtrij, dan is de eindtijd onbekend en geldt de grens niet; gebruik een pauze als je weet hoe lang
+wachtrij, dan is de eindtijd onbekend en geldt de grens niet; gebruik een wachttijd als je weet hoe lang
 de onderbreking duurt.
 
 ### Slotmuziek van de avond
@@ -553,7 +553,7 @@ staan te vragen. Typ het pad of gebruik de bladerknop; laat het leeg en de knop 
 wachtrijwerkbalk blijft uit, net als wanneer het bestand later verhuist.
 
 Het in de wachtrij zetten sluit de avond af. Er gaat daarna niets meer bij, geen nummer, geen
-verzoek, geen pauze en geen bericht, en de auto-wachtrij stopt zodat het programma geen avond
+verzoek, geen wachttijd en geen bericht, en de auto-wachtrij stopt zodat het programma geen avond
 verlengt die jij net beëindigd hebt. Haal je het weg, dan gaat de avond weer open.
 
 Staat **speel de slotmuziek van de avond zodra deze tijd bereikt is** aan, dan wordt het voor je in
@@ -644,7 +644,7 @@ speelt en wat er komt.
 - **Voortgangsbalk**: een groene balk in het midden
 - **Onderste helft**: de volgende dans en zijn gegevens, of "Geen volgend nummer" bij een lege
   wachtrij
-- **Achter een pauze**: staat er een pauze, een stop of een bericht als volgende en zit daar
+- **Achter een onderbreking**: staat er een wachttijd, een stop of een bericht als volgende en zit daar
   meteen een dans achter, dan staat die dans er ook onder. Zulke items zet je juist in de wachtrij
   zodat de zaal rijen kan vormen of een partner kan zoeken, en dan wil de vloer weten waarvoor. Het
   webscherm laat hetzelfde zien.
@@ -667,8 +667,8 @@ webserver:
 
 - **De weergavepagina** toont wat er speelt en wat er komt, voor elk apparaat met een browser: een
   tablet naast het podium werkt zo als presentatiescherm zonder videokabel.
-- **De afstandsbediening** kan afspelen, pauzeren, overslaan, een willekeurig nummer, een stop, een
-  pauze of een bericht toevoegen, de avond afsluiten, en de bibliotheek doorzoeken, wat een DJ
+- **De afstandsbediening** kan afspelen, pauzeren, overslaan, een willekeurig nummer toevoegen, een stop,
+  een wachttijd of een bericht aanvragen, de avond afsluiten, en de bibliotheek doorzoeken, wat een DJ
   nodig heeft weg van de computer, en niets meer. Bewust kan hij de pool niet wijzigen: waar
   willekeurige keuzes uit trekken wordt aan de computer besloten, en de afstandsbediening trekt uit
   wat het scherm daar zegt. De avond afsluiten werkt net zo: welk bestand dat is, is aan de computer
