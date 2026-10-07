@@ -45,14 +45,19 @@ dotnet test --project Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj -c Release
 
 - **Warnings are errors in Release.** That includes `AVLN5001` from the Avalonia XAML compiler.
 - **Formatting is enforced.** `dotnet format` decides, not your editor.
-- **Both languages, always.** A new user-facing string goes in `UiStrings.resx` *and*
-  `UiStrings.nl.resx`. A missing Dutch key silently falls back to English at runtime.
+- **Both languages, always.** A new user-facing string goes in English and Dutch together:
+  `UiStrings.resx` and `UiStrings.nl.resx`, `DomainStrings.resx` and `DomainStrings.nl.resx`, and
+  both halves of `Ready4Balfolk.Web/wwwroot/strings.js`. A change to `documentation/help.md` is made
+  to `help.nl.md` in the same pull request; `HelpManualTests` holds the two manuals to the same
+  headings and to the labels on screen. A missing Dutch key silently falls back to English at
+  runtime.
 - **The scenarios drive the real application headless**, one process per scenario, including a
   real browser for the display page and the phone remote. The first run downloads Chromium through
   Playwright's own installer; later runs reuse it.
 - **The portable Linux and Windows builds are launched on every pull request** (`build-binaries.yml`):
   a build that cannot start never merges. The Flatpak and the Windows installer are built, installed
-  and started only as part of a release, not before every merge.
+  and started on a pull request that touches packaging (`verify-packages.yml`), and again for every
+  release.
 
 ## Conventions
 

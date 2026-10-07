@@ -25,7 +25,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: Shown in Help. If you built it yourself, the commit.
+      description: Shown at the bottom of Settings. If you built it yourself, the commit.
     validations:
       required: true
 

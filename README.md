@@ -23,11 +23,11 @@ The portable builds require no installation: just extract and run. The installer
 
 Every release artifact is launched by CI before it is published, so a build that cannot start never reaches this page.
 
-> **macOS is not supported.** Releases up to and including v1.1.0 shipped an unsigned `.dmg`; there are no newer ones. Nothing in the code is deliberately Windows- and Linux-only, so a `dotnet publish -r osx-arm64` may well still work. Under the GPL you are free to build it yourself, but it is neither tested nor released.
+> **macOS is not supported.** Releases up to and including v1.1.0 shipped an unsigned `.dmg`; there are no newer ones. The build only knows where to get the BASS audio libraries for Windows and Linux: on a Mac it gets none, and a `dotnet publish -r osx-arm64` from Linux packs the Linux ARM library instead, so either way the result has no audio. Under the GPL you are free to port it, but it is neither tested nor released.
 
 ## Documentation
 
-- [User Help](documentation/help.md): how to use the application
+- [User Help](documentation/help.md): how to use the application ([in Dutch](documentation/help.nl.md))
 - [Development Guide](documentation/development.md): how the codebase is laid out, and why
 - [Contributing](CONTRIBUTING.md): what CI checks, and the conventions to follow
 - [Security](SECURITY.md): how to report a vulnerability, and what the threat model is

@@ -1,6 +1,6 @@
 # Ready4Balfolk Help
 
-Ready4Balfolk is a music queue management application designed for balfolk dance events. It helps dancers/organizers manage tracks by dance type, build playlists, and display current and upcoming dances to the dance floor.
+Ready4Balfolk is a music queue management application designed for balfolk dance events. It helps dancers and organisers manage tracks by dance type, build playlists, and display current and upcoming dances to the dance floor.
 
 ---
 
@@ -9,7 +9,9 @@ Ready4Balfolk is a music queue management application designed for balfolk dance
 ### Music Directory
 
 Ready4Balfolk asks for one folder the first time it runs, in a short setup that also fetches the
-dance list and shows you what is waiting. Everything below that folder counts, however it is
+dance list, asks how your library is arranged, and shows you what is waiting. The arrangement step
+cannot be skipped: tick at least one of the ways described under
+[Rules](#rules-telling-it-how-your-files-are-named), so there is something to read your files with. Everything below that folder counts, however it is
 arranged. You can run the setup again later from **Settings**.
 
 ### How your files are read
@@ -17,7 +19,7 @@ arranged. You can run the setup again later from **Settings**.
 Tracks are discovered automatically from your music directory. There is **no required naming convention**, and nothing is assumed about how your library is arranged: loose files in one folder and a five-deep tree are both ordinary.
 
 - **The dance** is recognised when a name from your dance list appears in the file name or in the tags, wherever it sits: `10. Hep Harz (Cercle).mp3`, `11-La Violette - valse 5tps.mp3`, or a dance written into the tags. Two sources agreeing is what makes an answer trustworthy, and when a file names two dances with nothing to separate them, nothing is assumed.
-- **The artist** comes from the artist tags. A folder name is not read as an artist: the same level is an artist in one library and a country in the next.
+- **The artist** comes from the artist tags. A folder name is not read as an artist unless you declare it: the same level is an artist in one library and a country in the next.
 - **The title** comes from the title tag, falling back to the file name with any leading track number taken off.
 
 Anything not answered this way waits for you in **Review** rather than being filled in with a guess. A track is in your library or in review, never both: crossing over needs an artist, a title, a dance from the published list, and you having agreed to all three. An unreviewed library correctly shows no music.
@@ -138,8 +140,8 @@ too.
 
 - **Play / Pause**: Toggles playback. When a track is loaded, click to start or pause playback.
 - **Restart**: Restarts the current track from the beginning. If a track is currently playing, a confirmation dialog appears first (unless disabled in settings).
-- **Next / Clear**: This button changes behavior depending on the queue state:
-  - **Next** (when the queue has items): Skips to the next item in the queue. A confirmation dialog appears if a track is currently playing (unless disabled in settings).
+- **Skip / Clear**: This button changes behaviour depending on the queue state:
+  - **Skip** (when the queue has items): Skips to the next item in the queue. A confirmation dialog appears if a track is currently playing (unless disabled in settings).
   - **Clear** (when the queue is empty): Stops playback and clears the current item.
 
 ---
@@ -202,8 +204,8 @@ The queue can contain several types of items, each with a distinct appearance:
 
 - **Track**: A music file to play. Shows the dance name, artist, title, and duration.
 - **Auto-track**: A randomly selected track, shown with a faded appearance and a recycling icon. It waits at the bottom of the queue, below any requests, while the auto-queue feature is enabled and something is playing. It has two extra actions:
-  - **Refresh**: Pick a different random track
-  - **Pin**: Convert the auto-track into a regular track, keeping it in the queue permanently
+  - **Reroll**: Pick a different random track
+  - **Keep**: Convert the auto-track into a regular track, keeping it in the queue permanently
 - **Stop**: A marker where playback will pause until you manually continue. Shown with an orange highlight.
 - **Delay**: A timed pause. Playback resumes automatically after the configured duration. Shown with a blue highlight.
 - **Message**: A text announcement displayed on screen, optionally with a duration. Shown with a teal highlight.
@@ -225,7 +227,7 @@ The toolbar above the queue provides these actions:
 - **Request stop**: Insert a stop marker into the queue
 - **Request delay**: Insert a delay marker with the duration configured in settings
 - **Request message**: Opens a dialog where you can type a message and optionally set a duration
-- **End the night**: Queue the end-of-the-night audio. Switched off until a file is named in the settings, and while one is already queued or playing.
+- **End** (end the night): Queue the end-of-the-night audio. Switched off until a file is named in the settings, and while one is already queued or playing.
 - **Remove selected item**: Delete the currently selected queue item
 - **Clear queue**: Remove all items from the queue (with confirmation)
 - **Move up** and **Move down**: Move the selected item one place, the same thing Ctrl+Up and Ctrl+Down do
@@ -481,7 +483,7 @@ library without you being asked again.
 
 ## Settings
 
-The settings screen lets you configure application behavior. All changes are saved automatically.
+The settings screen lets you configure application behaviour. All changes are saved automatically.
 
 ### Music Directory
 
@@ -491,7 +493,7 @@ Everything below that folder counts, however it is arranged.
 
 ### Maximum Queue Items
 
-The maximum number of tracks allowed in the queue, between 1 and 100. Delays, messages and stop markers do not count towards it. When the queue is full, new tracks cannot be added until existing ones are played or removed.
+The maximum number of tracks allowed in the queue, between 1 and 100. Only tracks you requested count towards it: delays, messages, stop markers, the auto-track and the end of the night do not. When the queue is full, new tracks cannot be added until existing ones are played or removed.
 
 ### Delay Duration
 
@@ -576,7 +578,7 @@ The number of presentation windows to show, between 0 and 10. Set to 0 to disabl
 
 ### Auto-queue Random Track
 
-When enabled, a randomly picked track waits at the bottom of the queue whenever something is playing, so the music never simply stops. The auto-track appears with a faded style and can be refreshed (to pick a different track) or pinned (to keep it permanently). It stays below anything you add yourself, and a fresh one is picked each time the previous one starts playing. If you have set an end time for the night, the auto-queue stops adding once a track would run past it, so the evening winds down on schedule.
+When enabled, a randomly picked track waits at the bottom of the queue whenever something is playing, so the music never simply stops. The auto-track appears with a faded style, and **Reroll** picks a different track while **Keep** keeps it permanently. It stays below anything you add yourself, and a fresh one is picked each time the previous one starts playing. If you have set an end time for the night, the auto-queue stops adding once a track would run past it, so the evening winds down on schedule.
 
 ### Allow Duplicate Tracks
 
@@ -591,8 +593,8 @@ When enabled (the default), a confirmation dialog is shown before skipping to th
 Choose between three options:
 
 - **Auto**: Follows the system theme
-- **Light**: Light color scheme
-- **Dark**: Dark color scheme
+- **Light**: Light colour scheme
+- **Dark**: Dark colour scheme
 
 ### Export Log File
 
@@ -608,7 +610,7 @@ Presentation windows are displays intended for projectors or external monitors, 
 
 - **Top half**: The current dance name in large text, with artist and title below. When a message item is active, the message text is displayed instead.
 - **Progress bar**: A green bar in the middle showing playback progress
-- **Bottom half**: The next upcoming dance name and track details, or "No next track" if the queue is empty
+- **Bottom half**: The next upcoming dance name and track details, or "No next track" if the queue is empty. A delay or a message with a duration says how long it lasts, as "Delay (30 seconds)" or "Message (2 minutes)", since nothing counts it down until it is playing. A message is billed as "Message" with its text underneath, rather than shown in full before its turn.
 - **Behind a pause**: When the next item is a delay, a stop or a message and a dance sits directly behind it, the dance is named underneath as well. Those items are usually queued so the room can form groups or find a partner, and that is exactly when the floor wants to know what it is getting ready for. The web display shows the same thing.
 
 ### Configuration

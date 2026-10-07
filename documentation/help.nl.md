@@ -9,7 +9,10 @@ Ready4Balfolk is een wachtrijbeheerprogramma voor balfolkavonden met opgenomen m
 ### Muziekmap
 
 Ready4Balfolk vraagt bij de eerste start om één map, in een korte setup die ook de dansenlijst
-ophaalt en laat zien wat er op je wacht. Alles onder die map telt mee, hoe hij ook is ingedeeld. Je
+ophaalt, vraagt hoe je bibliotheek is ingedeeld, en laat zien wat er op je wacht. De stap over de
+indeling kun je niet overslaan: vink minstens één van de manieren aan die onder
+[Regels](#regels-vertellen-hoe-je-bestanden-heten) staan, zodat er iets is om je bestanden mee te
+lezen. Alles onder die map telt mee, hoe hij ook is ingedeeld. Je
 kunt het instellen later opnieuw doorlopen vanuit **Instellingen**.
 
 ### Hoe je bestanden gelezen worden
@@ -17,7 +20,7 @@ kunt het instellen later opnieuw doorlopen vanuit **Instellingen**.
 Nummers worden automatisch ontdekt in je muziekmap. Er is **geen verplichte naamconventie**, en er wordt niets aangenomen over hoe je bibliotheek is ingedeeld: losse bestanden in één map en een boom van vijf niveaus diep zijn allebei gewoon.
 
 - **De dans** wordt herkend wanneer een naam uit je dansenlijst ergens in de bestandsnaam of in de tags staat: `10. Hep Harz (Cercle).mp3`, `11-La Violette - valse 5tps.mp3`, of een dans die in de tags is geschreven. Twee bronnen die het eens zijn maken een antwoord betrouwbaar, en als een bestand twee dansen noemt zonder iets dat ze scheidt, wordt er niets aangenomen.
-- **De artiest** komt uit de artiesttags. Een mapnaam wordt niet als artiest gelezen: hetzelfde niveau is in de ene bibliotheek een artiest en in de volgende een land.
+- **De artiest** komt uit de artiesttags. Een mapnaam wordt niet als artiest gelezen, tenzij jij dat verklaart: hetzelfde niveau is in de ene bibliotheek een artiest en in de volgende een land.
 - **De titel** komt uit de titeltag, of anders uit de bestandsnaam met een eventueel volgnummer eraf.
 
 Alles wat zo niet beantwoord is, wacht op jou in **Nakijken** in plaats van met een gok te worden ingevuld. Een nummer staat in je bibliotheek of in Nakijken, nooit allebei: de oversteek vraagt een artiest, een titel, een dans uit de gepubliceerde lijst, en jouw akkoord op alle drie. Een bibliotheek die nog niet is nagekeken toont terecht geen muziek.
@@ -32,7 +35,7 @@ Als je bibliotheek *wél* een vaste vorm heeft, kun je dat zeggen. Open **Nakijk
 
 Elk van de vier zet je apart aan, en ze staan allemaal uit. Vink aan wat jouw bibliotheek daadwerkelijk gebruikt; de rest blijft dichtgeklapt en doet niets, zodat een regel die je niet ziet je bestanden nooit raakt. Iets uitvinken laat staan wat je erin hebt gezet, voor het geval je het terug wilt.
 
-- **Bestandsnaampatronen.** `%d` dans, `%a` artiest, `%t` titel, `%n` volgnummer, `%i` negeren, `%ex` extensie; al het andere moet er letterlijk staan. `%d - %a - %t` leest `Mazurka - Naragonia - Idiosyncrasie.mp3`. Een patroon moet een hele naam dekken, en het eerste patroon in de lijst dat past is het patroon dat antwoordt, dus zet het meest specifieke bovenaan.
+- **Patronen voor bestandsnamen.** `%d` dans, `%a` artiest, `%t` titel, `%n` volgnummer, `%i` negeren, `%ex` extensie; al het andere moet er letterlijk staan. `%d - %a - %t` leest `Mazurka - Naragonia - Idiosyncrasie.mp3`. Een patroon moet een hele naam dekken, en het eerste patroon in de lijst dat past is het patroon dat antwoordt, dus zet het meest specifieke bovenaan.
 - **Mapniveaus.** Geteld van buiten naar binnen. Niveau 1 als artiest bestempelen leest die map als artiest voor elk bestand dat diep genoeg zit, en zegt niets over de bestanden die dat niet zijn.
 - **Tags.** Welke tagvelden welke waarde bevatten. Standaard gelden artiest en albumartiest als artiest, het titelveld als titel, en geldt geen enkele tag als dans. Een dansnaam uit je lijst wordt hoe dan ook in elke tag herkend, wat je hier ook instelt.
 - **Een eigen danstag.** Sommige bibliotheken dragen de dans in een vrije tag van zichzelf: een ID3v2 `TXXX`-frame of een Xiph-veld dat `DANCE`, `STYLE` of hoe je tagger het ook noemde heet. Geef die tagnaam hier op en de waarde wordt als dans gelezen, in zijn geheel: een waarde die de lijst niet kent parkeert het nummer, precies als elk ander verklaard antwoord. Het paneel laat zien op hoeveel van je bestanden zo'n tag staat voordat je je eraan verbindt.
@@ -118,7 +121,7 @@ Alles wat op jou wacht, met een teller van hoeveel nummers dat zijn. Niets berei
 Deze twee staan naast Nakijken zolang de ingebouwde webserver die pagina's aanbiedt, dus wat de
 werkbalk toont is wat een telefoon ook echt kan bereiken. Klik erop voor het adres als QR-code, met
 bij de afstandsbediening de pincode ernaast. Zie
-[Telefoonafstandsbediening en webweergave](#telefoonafstandsbediening-en-webweergave).
+[Telefoonafstandsbediening en schermpagina](#telefoonafstandsbediening-en-schermpagina).
 
 ---
 
@@ -205,7 +208,7 @@ De wachtrij kan verschillende soorten items bevatten, elk met een eigen uiterlij
 - **Nummer**: een muziekbestand. Toont dans, artiest, titel en duur.
 - **Auto-nummer**: een willekeurig gekozen nummer, vervaagd weergegeven met een recycle-icoon. Het staat onderaan de wachtrij, onder de verzoeken, zolang de auto-wachtrij aanstaat en er iets speelt. Het heeft twee extra acties:
   - **Ander nummer**: kies een ander willekeurig nummer
-  - **Vastzetten**: maak van het auto-nummer een gewoon nummer dat blijft staan
+  - **Behouden**: maak van het auto-nummer een gewoon nummer dat blijft staan
 - **Stop**: een markering waar het afspelen pauzeert tot jij verdergaat. Oranje gemarkeerd.
 - **Onderbreking**: het afspelen houdt even op en gaat vanzelf verder na de ingestelde duur. Blauw gemarkeerd.
 - **Bericht**: een tekstmededeling op het scherm, eventueel met een duur. Teal gemarkeerd.
@@ -227,7 +230,7 @@ De werkbalk boven de wachtrij biedt:
 - **Stop aanvragen**: zet een stopmarkering in de wachtrij
 - **Onderbreking aanvragen**: zet een onderbreking met de duur uit de instellingen in de wachtrij
 - **Bericht aanvragen**: opent een venster voor een bericht met eventueel een duur
-- **De avond afsluiten**: zet de slotmuziek in de wachtrij. Uit zolang er geen bestand in de instellingen staat, en zolang er al een in de wachtrij staat of speelt.
+- **Einde** (de avond afsluiten): zet de slotmuziek in de wachtrij. Uit zolang er geen bestand in de instellingen staat, en zolang er al een in de wachtrij staat of speelt.
 - **Geselecteerd item verwijderen**: haalt het geselecteerde item weg
 - **Wachtrij wissen**: haalt alles weg (met bevestiging)
 - **Omhoog verplaatsen** en **Omlaag verplaatsen**: verzetten het geselecteerde item een plek, hetzelfde wat Ctrl+Omhoog en Ctrl+Omlaag doen
@@ -263,12 +266,12 @@ Waar de avond begint en waar hij eindigt staan als regels in de lijst.
 - **Geschiedenis exporteren**: bewaart die avond als JSON. Handig als verslag van een avond. Er staan de dansen, artiesten, titels en tijden in, en niet waar de bestanden op je schijf staan, dus je kunt het zo aan een organisator geven.
 - **Rapport**: bewaart die avond als document in plaats van als gegevens. Het is één HTML-bestand, opmaak en al, dat elke browser op elke computer of telefoon opent, met een kop voor de avond en de artiest, titel en tijd van elk nummer dat gedraaid is, in de volgorde waarin ze gedraaid zijn. Print het vanuit de browser als degene die erom vroeg een PDF wilde. Dat is wat een auteursrechtenorganisatie vraagt, en niemand daar hoort JSON te moeten lezen om het te vinden.
 - **Spreadsheet**: dezelfde drie kolommen, maar dan als rijen: een CSV-bestand dat elke spreadsheet opent. Voor een auteursrechtenorganisatie die een upload aanneemt of een sjabloon uitdeelt, waar een document de verkeerde vorm heeft en de tabel uit het rapport overgetypt zou moeten worden.
-- **Nieuwe avond**: bewaart deze avond en begint een nieuwe (met bevestiging). Er wordt niets verwijderd: de avond wordt opgeborgen en de geschiedenis begint leeg. Handig na een soundcheck, of op een avond die niet met het eindsignaal is afgesloten.
+- **Nieuwe avond**: bewaart deze avond en begint een nieuwe (met bevestiging). Er wordt niets verwijderd: de avond wordt opgeborgen en de geschiedenis begint leeg. Handig na een soundcheck, of op een avond die niet met de slotmuziek is afgesloten.
 - **Verwijderen**: gooit die avond weg (met bevestiging). Dit kan niet ongedaan worden gemaakt, en zo blijft het bestand een omvang die iemand gekozen heeft.
 
 ### Avonden
 
-Een avond sluit zichzelf af zodra het eindsignaal gespeeld is: de avond wordt bewaard en de geschiedenis begint opnieuw, zodat er tijdens het opruimen niets onthouden hoeft te worden. De avond verdwijnt daarbij niet van het scherm; hij wordt de avond waar je naar kijkt in plaats van de avond die loopt. Elke opgeborgen avond kun je lezen, exporteren en verwijderen, en avonden worden nooit door elkaar gehaald.
+Een avond sluit zichzelf af zodra de slotmuziek gespeeld is: de avond wordt bewaard en de geschiedenis begint opnieuw, zodat er tijdens het opruimen niets onthouden hoeft te worden. De avond verdwijnt daarbij niet van het scherm; hij wordt de avond waar je naar kijkt in plaats van de avond die loopt. Elke opgeborgen avond kun je lezen, exporteren en verwijderen, en avonden worden nooit door elkaar gehaald.
 
 Is een avond nooit afgesloten, omdat de applicatie afgesloten werd of de laptop leeg raakte, dan staat hij er bij de volgende start nog. Na meer dan acht uur stilte wordt er een keer gevraagd, voordat er iets speelt, of de avond bewaard moet worden om opnieuw te beginnen of dat ermee doorgegaan wordt. Geen van beide antwoorden verwijdert iets. Opnieuw beginnen bergt de avond op op het moment dat de muziek stopte, niet op het moment dat de vraag gesteld werd, zodat een avond die om twee uur ’s nachts eindigde er ook zo uitziet, hoe lang de laptop daarna ook dicht bleef.
 
@@ -479,7 +482,7 @@ antwoord dan terug vanuit de [nummercatalogus](#nummercatalogus), waar het numme
 De regel biedt aan wat de naam bedoeld kan hebben, zodat een spelfout één klik is in plaats van
 overtypen. Daarnaast:
 
-- **Gebruik voor alle N die X zeggen** zet die dans op elk wachtend nummer met dezelfde claim. Het
+- **Gebruik voor alle N met "X"** zet die dans op elk wachtend nummer met dezelfde claim. Het
   zet de dans en niets anders, dus elk van die nummers wil nog steeds zijn eigen bevestiging:
   artiesten en titels worden niet gedeeld.
 - **X is geen dans** zegt dat de waarde troep is. `trad` is geen dans en wordt het nooit, dus hij
@@ -506,8 +509,9 @@ ingedeeld.
 
 ### Maximaal aantal wachtrijitems
 
-Het maximumaantal nummers in de wachtrij, tussen 1 en 100. Onderbrekingen, berichten en stopmarkeringen tellen
-niet mee. Is de wachtrij vol, dan kunnen er geen nummers meer bij tot er nummers gespeeld of
+Het maximumaantal nummers in de wachtrij, tussen 1 en 100. Alleen nummers die je zelf aanvroeg
+tellen mee: onderbrekingen, berichten, stopmarkeringen, het auto-nummer en het einde van de avond
+niet. Is de wachtrij vol, dan kunnen er geen nummers meer bij tot er nummers gespeeld of
 verwijderd zijn.
 
 ### Onderbrekingsduur
@@ -567,7 +571,7 @@ Vier vakjes, een per plek waar je eigen panelen een nummer als regel schrijven: 
 terwijl er iets speelt, de regel eronder, een regel van de wachtrij en een regel van de
 geschiedenis. Het scherm dat de zaal leest hoort daar niet bij. Dat schrijft de artiest en de titel
 in een vaste vorm van zichzelf, dus de zaal leest hetzelfde wat je hier ook instelt. De
-plaatshouders zijn dezelfde als bij de bestandsnaampatronen, maar dan andersom gelezen: `%d` de dans,
+plaatshouders zijn dezelfde als bij de patronen voor bestandsnamen, maar dan andersom gelezen: `%d` de dans,
 `%a` de artiest, `%t` de titel. Al het andere komt er letterlijk te staan zoals je het typt, dus
 `%t (%d)` geeft "Salamandre (Mazurka)".
 
@@ -599,8 +603,8 @@ voor projectors of externe schermen die de zaal ziet.
 ### Automatisch willekeurig nummer
 
 Aangezet staat er onderaan de wachtrij altijd een willekeurig gekozen nummer klaar zolang er iets
-speelt, zodat de muziek niet zomaar ophoudt. Het auto-nummer verschijnt vervaagd en kan vernieuwd
-(ander nummer) of vastgezet (blijft staan) worden. Het blijft onder alles staan wat je zelf
+speelt, zodat de muziek niet zomaar ophoudt. Het auto-nummer verschijnt vervaagd: **Ander nummer**
+kiest een ander nummer en **Behouden** laat het blijvend staan. Het blijft onder alles staan wat je zelf
 toevoegt, en er wordt een nieuw nummer gekozen zodra het vorige begint te spelen. Heb je een
 eindtijd voor de avond ingesteld, dan stopt het aanvullen zodra een nummer daar voorbij zou lopen.
 
@@ -643,11 +647,13 @@ speelt en wat er komt.
   een bericht, dan staat de berichttekst er.
 - **Voortgangsbalk**: een groene balk in het midden
 - **Onderste helft**: de volgende dans en zijn gegevens, of "Geen volgend nummer" bij een lege
-  wachtrij
+  wachtrij. Een onderbreking of een bericht met een duur zegt hoe lang het duurt, als "Onderbreking
+  (30 seconden)" of "Bericht (2 minuten)", want niets telt het af voordat het speelt. Een bericht
+  staat er als "Bericht" met de tekst eronder, in plaats van al voluit voordat het aan de beurt is.
 - **Achter een onderbreking, stop of bericht**: staat er een onderbreking, een stop of een bericht als volgende en zit daar
   meteen een dans achter, dan staat die dans er ook onder. Zulke items zet je juist in de wachtrij
-  zodat de zaal rijen kan vormen of een partner kan zoeken, en dan wil de vloer weten waarvoor. Het
-  webscherm laat hetzelfde zien.
+  zodat de zaal rijen kan vormen of een partner kan zoeken, en dan wil de vloer weten waarvoor. De
+  schermpagina laat hetzelfde zien.
 
 ### Configuratie
 
@@ -660,12 +666,12 @@ plaats van een venster met een titelbalk erboven.
 
 ---
 
-## Telefoonafstandsbediening en webweergave
+## Telefoonafstandsbediening en schermpagina
 
 Ready4Balfolk kan twee pagina's over je lokale netwerk aanbieden vanuit een kleine ingebouwde
 webserver:
 
-- **De weergavepagina** toont wat er speelt en wat er komt, voor elk apparaat met een browser: een
+- **De schermpagina** toont wat er speelt en wat er komt, voor elk apparaat met een browser: een
   tablet naast het podium werkt zo als presentatiescherm zonder videokabel.
 - **De afstandsbediening** kan afspelen, pauzeren, overslaan, een willekeurig nummer toevoegen, een stop,
   een onderbreking of een bericht aanvragen, de avond afsluiten, en de bibliotheek doorzoeken, wat een DJ

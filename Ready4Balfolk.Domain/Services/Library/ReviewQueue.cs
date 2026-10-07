@@ -129,7 +129,7 @@ public static class ReviewQueueBuilder
             if (!entry.IsAvailable)
             {
                 // Kept, but not reachable. Nothing can be answered about a file that is not there:
-                // the preview will not play and the tags cannot be written.
+                // the preview will not play, and an answer could not be checked against it.
                 continue;
             }
 
@@ -200,7 +200,10 @@ public static class ReviewQueueBuilder
     private static int Confidence(DerivedFrom from, ReviewedField field) => true switch
     {
         // Somebody looked at it and said yes, which nothing derived can equal.
-        _ when field.ApprovedAs is ApprovalKind.Individual => 5,
+        _ when field.ApprovedAs is ApprovalKind.Individual => 6,
+        // A rule they vouched for answered it. Not this track in particular, so below an answer
+        // of their own, but above anything the files said about themselves.
+        _ when field.ApprovedAs is ApprovalKind.ByRule => 5,
         _ when string.IsNullOrWhiteSpace(field.Value) => 0,
         _ => from.Reason switch
         {
