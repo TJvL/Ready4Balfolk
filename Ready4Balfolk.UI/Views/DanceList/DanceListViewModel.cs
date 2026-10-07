@@ -14,8 +14,10 @@ using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
@@ -141,10 +143,14 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
             .Subscribe(DescribeOrigin)
             .DisposeWith(_disposables);
 
-        _disposables.Add(ToggleTagCommand.ReportFailures(_loggerService, "Failed to change the dance pool"));
-        _disposables.Add(ClearPoolCommand.ReportFailures(_loggerService, "Failed to clear the dance pool"));
-        _disposables.Add(PickDanceCommand.ReportFailures(_loggerService, "Failed to queue a track of that dance"));
-        _disposables.Add(UpdateCommand.ReportFailures(_loggerService, "Failed to update the dance list"));
+        _disposables.Add(ToggleTagCommand.ReportFailures(
+            _loggerService, "Failed to change the dance pool", _notifications, UiStrings.DanceList_ChangePoolFailed));
+        _disposables.Add(ClearPoolCommand.ReportFailures(
+            _loggerService, "Failed to clear the dance pool", _notifications, UiStrings.DanceList_ClearPoolFailed));
+        _disposables.Add(PickDanceCommand.ReportFailures(
+            _loggerService, "Failed to queue a track of that dance", _notifications, UiStrings.DanceList_PickDanceFailed));
+        _disposables.Add(UpdateCommand.ReportFailures(
+            _loggerService, "Failed to update the dance list", _notifications, UiStrings.DanceList_UpdateCommandFailed));
     }
 
     /// <summary>Puts a tag in the pool, or takes it out again.</summary>
@@ -202,8 +208,9 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
     /// </para>
     /// <para>
     /// A file the store throws on rather than refuses is reported once, in the words a refusal
-    /// would have used. It used to be said twice, an English line through the log and the
-    /// translated one beside it, for the one file.
+    /// would have used, and written to the log in English beside it. It used to be said twice on
+    /// screen, an English line through the log and the translated one beside it, for the one file,
+    /// and the translated one carried the exception's own text in whatever language it was in.
     /// </para>
     /// </remarks>
     public async Task UpdateFromFileAsync(string sourcePath)
@@ -216,7 +223,11 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         }
         catch (Exception exception)
         {
-            _loggerService.Report(DanceListReports.Failed(exception.Message, _store.Status), exception);
+            _loggerService.Report(
+                "Failed to update the dance list from a file",
+                _notifications,
+                DanceListReports.Failed(DomainStrings.DanceList_FileUnreadable, _store.Status),
+                exception);
         }
         finally
         {

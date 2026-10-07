@@ -13,6 +13,7 @@ using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
@@ -170,10 +171,14 @@ public partial class TrackCatalogViewModel : ReactiveObject, IDisposable
             .ToProperty(this, x => x.EmptyStateText);
         _emptyStateTextHelper.DisposeWith(_disposables);
 
-        _disposables.Add(ClearSearchCommand.ReportFailures(_loggerService, "Failed to clear the search"));
-        _disposables.Add(EditTrackCommand.ReportFailures(_loggerService, "Failed to edit the track"));
-        _disposables.Add(WithdrawTrackCommand.ReportFailures(_loggerService, "Failed to send the track back to review"));
-        _disposables.Add(EnqueueTrackCommand.ReportFailures(_loggerService, "Failed to queue the track"));
+        _disposables.Add(ClearSearchCommand.ReportFailures(
+            _loggerService, "Failed to clear the search", _notificationService, UiStrings.TrackCatalog_ClearSearchFailed));
+        _disposables.Add(EditTrackCommand.ReportFailures(
+            _loggerService, "Failed to edit the track", _notificationService, UiStrings.Track_EditFailed));
+        _disposables.Add(WithdrawTrackCommand.ReportFailures(
+            _loggerService, "Failed to send the track back to review", _notificationService, UiStrings.TrackCatalog_WithdrawFailed));
+        _disposables.Add(EnqueueTrackCommand.ReportFailures(
+            _loggerService, "Failed to queue the track", _notificationService, UiStrings.TrackCatalog_EnqueueFailed));
     }
 
     /// <summary>

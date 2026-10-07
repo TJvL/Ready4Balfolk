@@ -74,7 +74,7 @@ public sealed class FirstRunDanceListPromiseTests
             DanceListReader.Read(content);
             return true;
         }
-        catch (InvalidDataException)
+        catch (DanceListRefusedException)
         {
             return false;
         }

@@ -5,6 +5,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -102,7 +103,8 @@ public sealed class ReviewViewModelTests : IDisposable
         var trackStoreForDiscovery = Substitute.For<ITrackStore>();
         trackStoreForDiscovery.IsLoading.Returns(Observable.Return(false));
         var discovery = new DiscoveryViewModel(
-            settingsStore, _libraryIndex, danceListStore, trackStoreForDiscovery, Substitute.For<ILoggerService>());
+            settingsStore, _libraryIndex, danceListStore, trackStoreForDiscovery, Substitute.For<ILoggerService>(),
+            Substitute.For<INotificationService>());
 
         _sut = new ReviewViewModel(
             _libraryIndex, danceListStore, settingsStore, _trackStore, _preview,

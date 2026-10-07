@@ -1,11 +1,7 @@
-using System.Reactive.Linq;
-
 namespace Ready4Balfolk.Domain.Services.Logging;
 
 public sealed class NoOpLoggerService : ILoggerService
 {
-    public IObservable<LogEntry> WhenErrorLogged => Observable.Empty<LogEntry>();
-
     public Task LogAsync(LogLevel logLevel, string message) => Task.CompletedTask;
 
     public Task DebugAsync(string message) => Task.CompletedTask;

@@ -16,6 +16,7 @@ using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -108,7 +109,11 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
             .Skip(1)
             .Where(screen => screen is not Screen.Review)
             .Subscribe(_ => StopPreviewAsync().SafeFireAndForget(exception =>
-                _loggerService.Report("Failed to stop the preview on leaving the screen", exception)))
+                _loggerService.Report(
+                    "Failed to stop the preview on leaving the screen",
+                    _notifications,
+                    UiStrings.Review_StopPreviewFailed,
+                    exception)))
             .DisposeWith(_disposables);
 
         preview.WhenProgressChanged
@@ -134,7 +139,8 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
                 await RefreshCommand.Execute().FirstAsync();
             }))
             .Subscribe(_ => { }, exception =>
-                _loggerService.Report("Failed to change the dance rule", exception))
+                _loggerService.Report(
+                    "Failed to change the dance rule", _notifications, UiStrings.Review_DanceRuleFailed, exception))
             .DisposeWith(_disposables);
 
         // The queue waits for the scan and then builds itself. A first run reaches this screen while
@@ -166,12 +172,18 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
                 CultureInfo.CurrentCulture, UiStrings.Review_Scanning, count))
             .DisposeWith(_disposables);
 
-        _disposables.Add(RefreshCommand.ReportFailures(_loggerService, "Failed to build the review queue"));
-        _disposables.Add(ApproveCommand.ReportFailures(_loggerService, "Failed to approve the track"));
-        _disposables.Add(WithdrawCommand.ReportFailures(_loggerService, "Failed to take back the answer"));
-        _disposables.Add(ApproveFolderCommand.ReportFailures(_loggerService, "Failed to approve the folder"));
-        _disposables.Add(UseDanceForAllCommand.ReportFailures(_loggerService, "Failed to use the dance for every track"));
-        _disposables.Add(NotADanceCommand.ReportFailures(_loggerService, "Failed to mark the value as not a dance"));
+        _disposables.Add(RefreshCommand.ReportFailures(
+            _loggerService, "Failed to build the review queue", _notifications, UiStrings.Review_RefreshFailed));
+        _disposables.Add(ApproveCommand.ReportFailures(
+            _loggerService, "Failed to approve the track", _notifications, UiStrings.Review_ApproveFailed));
+        _disposables.Add(WithdrawCommand.ReportFailures(
+            _loggerService, "Failed to take back the answer", _notifications, UiStrings.Review_WithdrawFailed));
+        _disposables.Add(ApproveFolderCommand.ReportFailures(
+            _loggerService, "Failed to approve the folder", _notifications, UiStrings.Review_ApproveFolderFailed));
+        _disposables.Add(UseDanceForAllCommand.ReportFailures(
+            _loggerService, "Failed to use the dance for every track", _notifications, UiStrings.Review_UseDanceForAllFailed));
+        _disposables.Add(NotADanceCommand.ReportFailures(
+            _loggerService, "Failed to mark the value as not a dance", _notifications, UiStrings.Review_NotADanceFailed));
     }
 
     /// <summary>True while the library is being read, which on a first run is most of this screen.</summary>
@@ -295,7 +307,8 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
         }
         catch (Exception exception)
         {
-            _loggerService.Report("Failed to build the review queue", exception);
+            _loggerService.Report(
+                "Failed to build the review queue", _notifications, UiStrings.Review_RefreshFailed, exception);
         }
         finally
         {
@@ -669,7 +682,8 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
     {
         _rowSubscriptions.Dispose();
         _preview.StopAsync().SafeFireAndForget(
-            exception => _loggerService.Report("Failed to stop the preview", exception));
+            exception => _loggerService.Report(
+                "Failed to stop the preview", _notifications, UiStrings.Review_StopPreviewFailed, exception));
         _disposables.Dispose();
     }
 

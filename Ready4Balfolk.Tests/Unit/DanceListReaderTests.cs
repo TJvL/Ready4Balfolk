@@ -31,7 +31,7 @@ public sealed class DanceListReaderTests
         // The categories-and-weights shape is gone, and there is no migration from it.
         const string json = """{"formatVersion":2,"categories":[{"name":"Common","dances":[]}]}""";
 
-        var exception = Assert.Throws<InvalidDataException>(() => DanceListReader.Read(json));
+        var exception = Assert.Throws<DanceListRefusedException>(() => DanceListReader.Read(json));
 
         Assert.Contains("2", exception.Message);
     }
@@ -41,17 +41,17 @@ public sealed class DanceListReaderTests
     {
         const string json = """{"formatVersion":5,"dances":[{"slug":"an-dro","names":["An dro"]}]}""";
 
-        Assert.Throws<InvalidDataException>(() => DanceListReader.Read(json));
+        Assert.Throws<DanceListRefusedException>(() => DanceListReader.Read(json));
     }
 
     [Fact]
-    public void Read_NotJson_IsRefused() => Assert.Throws<InvalidDataException>(() => DanceListReader.Read("nope"));
+    public void Read_NotJson_IsRefused() => Assert.Throws<DanceListRefusedException>(() => DanceListReader.Read("nope"));
 
     // A truncated download read as an empty list would leave the application with no vocabulary
     // and no sign that anything had gone wrong.
     [Fact]
     public void Read_NoDances_IsRefused() =>
-        Assert.Throws<InvalidDataException>(() => DanceListReader.Read("""{"formatVersion":4,"dances":[]}"""));
+        Assert.Throws<DanceListRefusedException>(() => DanceListReader.Read("""{"formatVersion":4,"dances":[]}"""));
 
     [Fact]
     public void Read_ANameMeaningTwoDances_IsRefusedAndSaysWhich()
@@ -61,7 +61,7 @@ public sealed class DanceListReaderTests
              "dances":[{"slug":"a","names":["Hanter dro"]},{"slug":"b","names":["Hanter-dro"]}]}
             """;
 
-        var exception = Assert.Throws<InvalidDataException>(() => DanceListReader.Read(json));
+        var exception = Assert.Throws<DanceListRefusedException>(() => DanceListReader.Read(json));
 
         Assert.Contains("Hanter-dro", exception.Message);
     }
@@ -74,6 +74,6 @@ public sealed class DanceListReaderTests
              "dances":[{"slug":"an-dro","names":["An dro"],"tags":["bretagne","invented"]}]}
             """;
 
-        Assert.Throws<InvalidDataException>(() => DanceListReader.Read(json));
+        Assert.Throws<DanceListRefusedException>(() => DanceListReader.Read(json));
     }
 }

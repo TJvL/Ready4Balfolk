@@ -5,6 +5,7 @@ using ManagedBass;
 using ManagedBass.Fx;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Settings;
 
 namespace Ready4Balfolk.Domain.Services.Audio;
@@ -39,6 +40,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private EqualizerSettings _equalizerSettings = EqualizerSettings.Flat;
 
     /// <param name="loggerService">Where initialisation results and playback failures are recorded.</param>
+    /// <param name="notifications">Where the DJ is told that the sound has gone, or never came.</param>
     /// <param name="settingsStore">Supplies the equalizer settings the effect chain starts from.</param>
     /// <param name="useNoSoundDevice">
     /// Initialises BASS against its "no sound" device instead of the default output. The library,
@@ -49,11 +51,12 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     /// </param>
     public ManagedBassAudioPlaybackService(
         ILoggerService loggerService,
+        INotificationService notifications,
         ISettingsStore settingsStore,
         bool useNoSoundDevice = false)
     {
         _loggerService = loggerService;
-        _availability = new AudioAvailability(loggerService);
+        _availability = new AudioAvailability(loggerService, notifications);
         _useNoSoundDevice = useNoSoundDevice;
         _equalizerSettings = settingsStore.Current.Equalizer;
 

@@ -5,6 +5,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -67,7 +68,7 @@ public sealed class DiscoveryViewModelTests : IDisposable
         danceListStore.Index.Returns(DanceListIndex.Empty);
 
         _sut = new DiscoveryViewModel(
-            _settingsStore, _libraryIndex, danceListStore, trackStore, Substitute.For<ILoggerService>());
+            _settingsStore, _libraryIndex, danceListStore, trackStore, Substitute.For<ILoggerService>(), Substitute.For<INotificationService>());
     }
 
     public void Dispose() => _sut.Dispose();

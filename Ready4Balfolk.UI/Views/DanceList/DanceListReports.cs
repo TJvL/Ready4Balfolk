@@ -1,7 +1,7 @@
 using System.Globalization;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.UI.Resources;
-using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.DanceList;
 

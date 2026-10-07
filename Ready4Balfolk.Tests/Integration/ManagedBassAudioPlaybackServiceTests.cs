@@ -1,6 +1,7 @@
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
 
@@ -28,6 +29,7 @@ public sealed class ManagedBassAudioPlaybackServiceTests : IDisposable
     private readonly Uri _first;
     private readonly Uri _second;
     private readonly RecordingLoggerService _logger = new();
+    private readonly INotificationService _notifications = Substitute.For<INotificationService>();
     private readonly ManagedBassAudioPlaybackService _sut;
 
     public ManagedBassAudioPlaybackServiceTests()
@@ -40,7 +42,7 @@ public sealed class ManagedBassAudioPlaybackServiceTests : IDisposable
         var settingsStore = Substitute.For<ISettingsStore>();
         settingsStore.Current.Returns(new ApplicationSettings());
 
-        _sut = new ManagedBassAudioPlaybackService(_logger, settingsStore, useNoSoundDevice: true);
+        _sut = new ManagedBassAudioPlaybackService(_logger, _notifications, settingsStore, useNoSoundDevice: true);
     }
 
     [Fact]

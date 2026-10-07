@@ -5,6 +5,7 @@ using NSubstitute;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Audio;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
 
@@ -34,6 +35,7 @@ public sealed class ManagedBassPlaybackTests : IDisposable
     private readonly string _root;
     private readonly Uri _track;
     private readonly RecordingLoggerService _logger = new();
+    private readonly INotificationService _notifications = Substitute.For<INotificationService>();
     private readonly ManagedBassAudioPlaybackService _sut;
 
     public ManagedBassPlaybackTests()
@@ -45,7 +47,7 @@ public sealed class ManagedBassPlaybackTests : IDisposable
         var settingsStore = Substitute.For<ISettingsStore>();
         settingsStore.Current.Returns(new ApplicationSettings());
 
-        _sut = new ManagedBassAudioPlaybackService(_logger, settingsStore, useNoSoundDevice: true);
+        _sut = new ManagedBassAudioPlaybackService(_logger, _notifications, settingsStore, useNoSoundDevice: true);
     }
 
     [Fact]
@@ -158,7 +160,8 @@ public sealed class ManagedBassPlaybackTests : IDisposable
             await _sut.PlayAsync();
 
             var reported = await _logger.NextErrorAsync(TestContext.Current.CancellationToken);
-            Assert.Equal(DomainStrings.Audio_OutputGone, reported.Message);
+            Assert.Equal("Audio output is gone", reported.Message);
+            _notifications.Received(1).Show(DomainStrings.Audio_OutputGone, NotificationSeverity.Error);
 
             // Asked again, which is what a DJ pressing play a second time looks like: the device
             // is still gone, but the notice already said so once.

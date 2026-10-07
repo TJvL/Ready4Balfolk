@@ -38,7 +38,9 @@ public sealed class EndOfNightAudio(
     /// </summary>
     /// <remarks>
     /// A file that will not say how long it is still plays; it simply contributes nothing to the
-    /// projection, which is better than refusing to end the evening over a missing header.
+    /// projection, which is better than refusing to end the evening over a missing header. Written
+    /// to the log and not shown for the same reason: nothing the DJ asked for has failed, and a
+    /// notice would be about a header nobody in the hall can do anything with.
     /// </remarks>
     private TimeSpan? ReadDuration(string path)
     {

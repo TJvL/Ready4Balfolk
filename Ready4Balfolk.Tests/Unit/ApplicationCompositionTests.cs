@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Tracks;
@@ -45,5 +46,36 @@ public sealed class ApplicationCompositionTests
         var viaInterface = provider.GetRequiredService<ITrackEditorService>();
 
         Assert.Same(concrete, viaInterface);
+    }
+
+    /// <summary>
+    /// The domain tells the DJ through the interface it declares, and what it reaches is the very
+    /// list the overlay draws.
+    /// </summary>
+    /// <remarks>
+    /// A second instance behind the interface would take every failure a store or the audio engine
+    /// reports and put it on a list nothing is bound to: the DJ would be told nothing, silently,
+    /// which is the failure this whole arrangement exists to end.
+    /// </remarks>
+    [Fact]
+    public void Notifications_AreTheSameInstanceUnderTheDomainsInterface()
+    {
+        var services = new ServiceCollection();
+        var options = new ApplicationOptions
+        {
+            AlsoRegister = s =>
+            {
+                s.AddSingleton(Substitute.For<IDanceListStore>());
+                s.AddSingleton(Substitute.For<ILibraryIndex>());
+                s.AddSingleton(Substitute.For<ITrackStore>());
+            }
+        };
+
+        ApplicationComposition.ConfigureServices(services, options);
+        using var provider = services.BuildServiceProvider();
+
+        Assert.Same(
+            provider.GetRequiredService<NotificationService>(),
+            provider.GetRequiredService<INotificationService>());
     }
 }

@@ -15,6 +15,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -48,6 +49,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     private readonly ILibraryIndex _libraryIndex;
     private readonly IDanceListStore _danceListStore;
     private readonly ILoggerService _loggerService;
+    private readonly INotificationService _notifications;
     private readonly CompositeDisposable _disposables = [];
 
     private IReadOnlyList<string> _fileNames = [];
@@ -70,12 +72,14 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         ILibraryIndex libraryIndex,
         IDanceListStore danceListStore,
         ITrackStore trackStore,
-        ILoggerService loggerService)
+        ILoggerService loggerService,
+        INotificationService notifications)
     {
         _settingsStore = settingsStore;
         _libraryIndex = libraryIndex;
         _danceListStore = danceListStore;
         _loggerService = loggerService;
+        _notifications = notifications;
 
         DraftPattern = string.Empty;
         CustomDanceTag = string.Empty;
@@ -136,14 +140,24 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
             .Subscribe(_ => PreviewDraft())
             .DisposeWith(_disposables);
 
-        _disposables.Add(RefreshCommand.ReportFailures(_loggerService, "Failed to read the library for the discovery screen"));
-        _disposables.Add(DeclareDraftCommand.ReportFailures(_loggerService, "Failed to declare the pattern"));
-        _disposables.Add(RemovePatternCommand.ReportFailures(_loggerService, "Failed to remove the pattern"));
-        _disposables.Add(MovePatternUpCommand.ReportFailures(_loggerService, "Failed to move the pattern"));
-        _disposables.Add(MovePatternDownCommand.ReportFailures(_loggerService, "Failed to move the pattern"));
-        _disposables.Add(ApplyRolesAndTagsCommand.ReportFailures(_loggerService, "Failed to save the folder roles and tag fields"));
-        _disposables.Add(AcceptProposalCommand.ReportFailures(_loggerService, "Failed to take the proposal"));
-        _disposables.Add(DismissProposalCommand.ReportFailures(_loggerService, "Failed to turn the proposal down"));
+        _disposables.Add(RefreshCommand.ReportFailures(
+            _loggerService, "Failed to read the library for the discovery screen",
+            _notifications, UiStrings.Discovery_ReadFailed));
+        _disposables.Add(DeclareDraftCommand.ReportFailures(
+            _loggerService, "Failed to declare the pattern", _notifications, UiStrings.Discovery_DeclareFailed));
+        _disposables.Add(RemovePatternCommand.ReportFailures(
+            _loggerService, "Failed to remove the pattern", _notifications, UiStrings.Discovery_RemovePatternFailed));
+        _disposables.Add(MovePatternUpCommand.ReportFailures(
+            _loggerService, "Failed to move the pattern", _notifications, UiStrings.Discovery_MovePatternFailed));
+        _disposables.Add(MovePatternDownCommand.ReportFailures(
+            _loggerService, "Failed to move the pattern", _notifications, UiStrings.Discovery_MovePatternFailed));
+        _disposables.Add(ApplyRolesAndTagsCommand.ReportFailures(
+            _loggerService, "Failed to save the folder roles and tag fields",
+            _notifications, UiStrings.Discovery_SaveChoicesFailed));
+        _disposables.Add(AcceptProposalCommand.ReportFailures(
+            _loggerService, "Failed to take the proposal", _notifications, UiStrings.Discovery_AcceptProposalFailed));
+        _disposables.Add(DismissProposalCommand.ReportFailures(
+            _loggerService, "Failed to turn the proposal down", _notifications, UiStrings.Discovery_DismissProposalFailed));
     }
 
     [Reactive] public partial bool IsBusy { get; private set; }
@@ -253,7 +267,11 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         }
         catch (Exception exception)
         {
-            _loggerService.Report("Failed to read the library for the discovery screen", exception);
+            _loggerService.Report(
+                "Failed to read the library for the discovery screen",
+                _notifications,
+                UiStrings.Discovery_ReadFailed,
+                exception);
         }
         finally
         {

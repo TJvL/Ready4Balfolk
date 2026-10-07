@@ -14,6 +14,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using ReactiveUI.Reactive;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Library;
@@ -38,7 +39,7 @@ namespace Ready4Balfolk.UI;
 internal sealed class ApplicationStartup(
     ISettingsStore settingsStore,
     ILoggerService logger,
-    INotificationService notifications,
+    NotificationService notifications,
     IConfirmationService confirmations,
     ITrackStore trackStore,
     IDanceListStore danceListStore,
@@ -96,11 +97,20 @@ internal sealed class ApplicationStartup(
             .Take(1)
             .SelectMany(_ =>
                 Observable.Merge(
-                    RunLoad(token => danceListStore.LoadAsync(token), "Failed to load the dance list"),
+                    RunLoad(
+                        token => danceListStore.LoadAsync(token),
+                        "Failed to load the dance list",
+                        UiStrings.App_DanceListLoadFailed),
                     // Opened before anything asks it a question: the track store reads it on the
                     // first music directory it is handed, which is as soon as these are through.
-                    RunLoad(token => libraryIndex.OpenAsync(token), "Failed to open the library index"),
-                    RunLoad(token => historyStore.LoadAsync(token), "Failed to load queue history")
+                    RunLoad(
+                        token => libraryIndex.OpenAsync(token),
+                        "Failed to open the library index",
+                        UiStrings.App_LibraryOpenFailed),
+                    RunLoad(
+                        token => historyStore.LoadAsync(token),
+                        "Failed to load queue history",
+                        UiStrings.App_HistoryLoadFailed)
                 // ToList waits for every load to finish before emitting once. The wizard reads the
                 // dance list to decide what to show, so it cannot open while that load is still in
                 // flight, or a profile that has a list looks like a fresh one.
@@ -111,7 +121,11 @@ internal sealed class ApplicationStartup(
                 ApplyTheLibrarySettings();
                 ShowSetupIfNeeded();
                 AskAboutUnfinishedNightAsync().SafeFireAndForget(exception =>
-                    logger.Report("Failed to ask about an unfinished night", exception));
+                    logger.Report(
+                        "Failed to ask about an unfinished night",
+                        notifications,
+                        UiStrings.App_UnfinishedNightAskFailed,
+                        exception));
             }));
 
         mainWindow.Closing += (_, e) =>
@@ -128,7 +142,7 @@ internal sealed class ApplicationStartup(
             e.Cancel = true;
 
             HandleClosingAsync(mainWindow).SafeFireAndForget(exception =>
-                logger.Report("Failed to handle window closing", exception));
+                logger.Report("Failed to handle window closing", notifications, UiStrings.App_CloseFailed, exception));
         };
     }
 
@@ -149,17 +163,20 @@ internal sealed class ApplicationStartup(
             .DistinctUntilChanged()
             .Subscribe(configuration => trackStore.ApplyAsync(configuration)
                 .SafeFireAndForget(exception =>
-                    logger.Report("Failed to apply the library settings", exception))));
+                    logger.Report(
+                        "Failed to apply the library settings",
+                        notifications,
+                        UiStrings.App_LibrarySettingsFailed,
+                        exception))));
 
     private void OnMainWindowOpened(MainWindow mainWindow, IApplicationAppearance appearance)
     {
         _ = logger.InfoAsync($"Window opened in {Program.StartupStopwatch.ElapsedMilliseconds} ms");
 
-        _disposables.Add(logger.WhenErrorLogged
-            .GroupBy(entry => entry.Message)
-            .SelectMany(group => group.Throttle(TimeSpan.FromSeconds(2)))
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(entry => notifications.Show(entry.Message, NotificationSeverity.Error)));
+        // Whatever was said while the application was being put together, a settings file that
+        // would not read or an audio device that would not open, has been waiting for a window to
+        // be read in. Its four seconds start now.
+        notifications.WindowOpened();
 
         appearance.ApplyShowButtonText(settingsStore.Current.ShowButtonText);
         _disposables.Add(settingsStore.Observe()
@@ -182,6 +199,10 @@ internal sealed class ApplicationStartup(
         // says nothing because it is not, and no way to try again short of guessing that the switch
         // has to be flicked. Off is the truth, and ticking it again is the retry.
         //
+        // The DJ is told here rather than by the server, which only writes its failure to the log:
+        // this is where the switch moves, so this is what there is to say, and the settings panel
+        // carries the reason beside the switch.
+        //
         // Watched before the first apply, or a server that fails in the moment between the two is
         // never noticed and the switch stays up over nothing.
         void SwitchOffIfItCouldNotStart()
@@ -191,10 +212,16 @@ internal sealed class ApplicationStartup(
                 return;
             }
 
+            notifications.Show(UiStrings.WebServer_CouldNotStart, NotificationSeverity.Error);
+
             settingsStore
                 .UpdateAsync(settings => settings with { WebServerEnabled = false })
                 .SafeFireAndForget(exception =>
-                    logger.Report("Failed to switch the presentation server off after it would not start", exception));
+                    logger.Report(
+                        "Failed to switch the presentation server off after it would not start",
+                        notifications,
+                        UiStrings.WebServer_SwitchOffFailed,
+                        exception));
         }
 
         _disposables.Add(webServer.WhenChanged.Subscribe(_ => SwitchOffIfItCouldNotStart()));
@@ -208,7 +235,11 @@ internal sealed class ApplicationStartup(
             .Select(ToWebServerOptions)
             .DistinctUntilChanged()
             .Subscribe(options => webServer.ApplyAsync(options).SafeFireAndForget(exception =>
-                logger.Report("Failed to apply presentation server settings", exception))));
+                logger.Report(
+                    "Failed to apply presentation server settings",
+                    notifications,
+                    UiStrings.WebServer_ApplyFailed,
+                    exception))));
 
         SyncPresentationWindows(settingsStore.Current.PresentationDisplayCount);
         _disposables.Add(settingsStore.Observe()
@@ -287,6 +318,8 @@ internal sealed class ApplicationStartup(
         // Asked to stop, never waited for. The process is about to end and the socket goes with it,
         // so there is nothing here worth making the user watch: awaiting Kestrel's drain is what
         // made the close button appear to do nothing while a browser held a WebSocket open.
+        // Written to the log and not shown: the window closes a moment from now, with nothing left
+        // on screen to read it in, and a server that did not drain is gone with the process anyway.
         webServer.DisposeAsync().AsTask().SafeFireAndForget(exception =>
             logger.Report("Presentation server did not shut down cleanly", exception));
 
@@ -379,9 +412,10 @@ internal sealed class ApplicationStartup(
 
     private void ApplyWebServer(ApplicationSettings settings) =>
         webServer.ApplyAsync(ToWebServerOptions(settings)).SafeFireAndForget(exception =>
-            logger.Report("Failed to start the presentation server", exception));
+            logger.Report(
+                "Failed to start the presentation server", notifications, UiStrings.WebServer_ApplyFailed, exception));
 
-    private IObservable<Unit> RunLoad(Func<CancellationToken, Task> loader, string errorMessage) =>
+    private IObservable<Unit> RunLoad(Func<CancellationToken, Task> loader, string logLine, string screenText) =>
         Observable.Defer(() => Observable.FromAsync(loader)
             .TimeInterval()
             .Do(interval => logger.InfoAsync($"Load completed | Duration: {interval.Interval:g}"))
@@ -389,7 +423,7 @@ internal sealed class ApplicationStartup(
             .SubscribeOn(RxSchedulers.TaskpoolScheduler)
             .Catch<Unit, Exception>(exception =>
             {
-                logger.Report(errorMessage, exception);
+                logger.Report(logLine, notifications, screenText, exception);
                 // Just continue.
                 return Observable.Empty<Unit>();
             }));

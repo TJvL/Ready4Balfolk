@@ -25,6 +25,7 @@ public partial class HistoryView : ReactiveUserControl<HistoryViewModel>
                 // The nights on file are read when somebody looks at them, rather than on every
                 // track that finishes: the list only changes when a night is opened or filed.
                 Handlers.Run(
+                    "Failed to read the nights on file",
                     UiStrings.History_ReadNightsFailed,
                     () => ViewModel?.RefreshNightsAsync() ?? Task.CompletedTask);
                 ScrollToLatest();

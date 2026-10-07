@@ -9,8 +9,10 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Data.Sqlite;
 using Ready4Balfolk.Domain.Models.History;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.History;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 
 namespace Ready4Balfolk.Domain.Stores.History;
 
@@ -32,6 +34,7 @@ public sealed class QueueHistoryStore(
     IApplicationSettingsDirectory dataDirectory,
     IFileSystem fileSystem,
     ILoggerService loggerService,
+    INotificationService notifications,
     TimeProvider time)
     : IQueueHistoryStore
 {
@@ -101,7 +104,8 @@ public sealed class QueueHistoryStore(
             // Deliberately not deleted and rebuilt the way the library index is. The index is
             // derived and a scan puts it back; a history is the only copy there is of an evening,
             // and an unreadable one is a thing to look at rather than a thing to tidy away.
-            loggerService.Report("Failed to read the history database", exception);
+            loggerService.Report(
+                "Failed to read the history database", notifications, DomainStrings.History_ReadFailed, exception);
         }
         finally
         {
@@ -146,6 +150,7 @@ public sealed class QueueHistoryStore(
                     "UPDATE nights SET ended_at = $endedAt WHERE id = $id;",
                     current.Id,
                     "Failed to end the night",
+                    DomainStrings.History_EndNightFailed,
                     command => command.Parameters.AddWithValue(
                         "$endedAt", Format(endedAt ?? time.GetLocalNow().DateTime)));
             }
@@ -174,7 +179,8 @@ public sealed class QueueHistoryStore(
                 DELETE FROM nights WHERE id = $id;
                 """,
                 nightId,
-                "Failed to delete the night");
+                "Failed to delete the night",
+                DomainStrings.History_DeleteNightFailed);
 
             // Only the running night is on screen as it happens; throwing away a filed one leaves
             // tonight alone.
@@ -218,7 +224,8 @@ public sealed class QueueHistoryStore(
         }
         catch (Exception exception) when (exception is SqliteException or JsonException)
         {
-            loggerService.Report("Failed to list the nights", exception);
+            loggerService.Report(
+                "Failed to list the nights", notifications, DomainStrings.History_ListNightsFailed, exception);
             return [];
         }
         finally
@@ -243,7 +250,8 @@ public sealed class QueueHistoryStore(
         }
         catch (Exception exception) when (exception is SqliteException or JsonException)
         {
-            loggerService.Report("Failed to read a night", exception);
+            loggerService.Report(
+                "Failed to read a night", notifications, DomainStrings.History_ReadNightFailed, exception);
             return null;
         }
         finally
@@ -475,13 +483,14 @@ public sealed class QueueHistoryStore(
         }
         catch (SqliteException exception)
         {
-            loggerService.Report("Failed to write a history entry", exception);
+            loggerService.Report(
+                "Failed to write a history entry", notifications, DomainStrings.History_WriteFailed, exception);
             return nightId;
         }
     }
 
     private async Task ExecuteOnNightAsync(
-        string sql, long nightId, string failureMessage, Action<SqliteCommand>? bind = null)
+        string sql, long nightId, string logLine, string screenText, Action<SqliteCommand>? bind = null)
     {
         try
         {
@@ -494,7 +503,7 @@ public sealed class QueueHistoryStore(
         }
         catch (SqliteException exception)
         {
-            loggerService.Report(failureMessage, exception);
+            loggerService.Report(logLine, notifications, screenText, exception);
         }
     }
 

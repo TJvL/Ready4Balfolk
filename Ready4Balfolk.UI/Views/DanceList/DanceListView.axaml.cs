@@ -34,18 +34,19 @@ public partial class DanceListView : ReactiveUserControl<DanceListViewModel>
     /// that never reaches the internet. It goes through the same reader a download does.
     /// </summary>
     private void OnUpdateFromFileClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run(UiStrings.DanceList_UpdateFromFileFailed, async () =>
-        {
-            var path = await App.Services.GetRequiredService<IFilePickerService>()
-                .PickFileToOpenAsync(UiStrings.DanceList_UpdateFromFileTip, FileKind.Json);
-
-            if (path is not null)
+        Handlers.Run(
+            "Failed to update the dance list from a file", UiStrings.DanceList_UpdateFromFileFailed, async () =>
             {
-                // Every failure is reported by the view model as a notification, because a refused
-                // file is an ordinary answer here rather than an exception the user can act on.
-                await ViewModel!.UpdateFromFileAsync(path);
-            }
-        });
+                var path = await App.Services.GetRequiredService<IFilePickerService>()
+                    .PickFileToOpenAsync(UiStrings.DanceList_UpdateFromFileTip, FileKind.Json);
+
+                if (path is not null)
+                {
+                    // Every failure is reported by the view model as a notification, because a refused
+                    // file is an ordinary answer here rather than an exception the user can act on.
+                    await ViewModel!.UpdateFromFileAsync(path);
+                }
+            });
 
     /// <summary>Remembers what the keyboard is on, so the panel can give it back.</summary>
     private void WhateverTookTheKeyboard(object? sender, FocusChangedEventArgs e)

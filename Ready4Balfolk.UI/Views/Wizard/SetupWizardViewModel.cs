@@ -11,6 +11,7 @@ using AsyncAwaitBestPractices;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
@@ -24,6 +25,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
     private readonly ISettingsStore _settingsStore;
     private readonly NavigationService _navigation;
     private readonly ILoggerService _loggerService;
+    private readonly INotificationService _notifications;
     private readonly CompositeDisposable _disposables = [];
     private readonly Subject<Unit> _finished = new();
 
@@ -57,11 +59,13 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
         ReviewStepViewModel reviewStep,
         ISettingsStore settingsStore,
         NavigationService navigation,
-        ILoggerService loggerService)
+        ILoggerService loggerService,
+        INotificationService notifications)
     {
         _settingsStore = settingsStore;
         _navigation = navigation;
         _loggerService = loggerService;
+        _notifications = notifications;
 
         // An explanation first, then the dance list, because the vocabulary is what everything
         // else in the application is said in. Nothing on that step needs answering: it fetches the
@@ -82,7 +86,11 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
             .Skip(1)
             .Where(step => step is not ReviewStepViewModel)
             .Subscribe(_ => reviewStep.Review.StopPreviewAsync().SafeFireAndForget(exception =>
-                _loggerService.Report("Failed to stop the preview on leaving the review step", exception)))
+                _loggerService.Report(
+                    "Failed to stop the preview on leaving the review step",
+                    _notifications,
+                    UiStrings.Review_StopPreviewFailed,
+                    exception)))
             .DisposeWith(_disposables);
 
         _progressTextHelper = this.WhenAnyValue(x => x.CurrentIndex)
@@ -120,10 +128,13 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
         _blockedReasonHelper.DisposeWith(_disposables);
 
         Steps[0].EnterAsync().SafeFireAndForget(
-            exception => _loggerService.Report("Failed to enter the first setup step", exception));
+            exception => _loggerService.Report(
+                "Failed to enter the first setup step", _notifications, UiStrings.Wizard_StepFailed, exception));
 
-        _disposables.Add(BackCommand.ReportFailures(_loggerService, "Failed to go back a step"));
-        _disposables.Add(ContinueCommand.ReportFailures(_loggerService, "Setup wizard step failed"));
+        _disposables.Add(BackCommand.ReportFailures(
+            _loggerService, "Failed to go back a step", _notifications, UiStrings.Wizard_BackFailed));
+        _disposables.Add(ContinueCommand.ReportFailures(
+            _loggerService, "Setup wizard step failed", _notifications, UiStrings.Wizard_ContinueFailed));
     }
 
     /// <summary>
@@ -174,7 +185,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
         }
         catch (Exception exception)
         {
-            _loggerService.Report("Setup wizard step failed", exception);
+            _loggerService.Report("Setup wizard step failed", _notifications, UiStrings.Wizard_ContinueFailed, exception);
         }
         finally
         {
@@ -190,5 +201,6 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
 
     private void EnterCurrentStep() =>
         CurrentStep.EnterAsync().SafeFireAndForget(
-            exception => _loggerService.Report("Failed to enter a setup step", exception));
+            exception => _loggerService.Report(
+                "Failed to enter a setup step", _notifications, UiStrings.Wizard_StepFailed, exception));
 }

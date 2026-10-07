@@ -8,6 +8,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -214,7 +215,8 @@ public sealed class MainWindowViewModelTests : IDisposable
         _preview,
         Substitute.For<INotificationService>(),
         Substitute.For<IConfirmationService>(),
-        new DiscoveryViewModel(_settingsStore, _libraryIndex, _danceListStore, _trackStore, new NoOpLoggerService()),
+        new DiscoveryViewModel(
+            _settingsStore, _libraryIndex, _danceListStore, _trackStore, new NoOpLoggerService(), Substitute.For<INotificationService>()),
         new NavigationService(),
         new NoOpLoggerService());
 
@@ -228,11 +230,13 @@ public sealed class MainWindowViewModelTests : IDisposable
             new FakeTimeProvider()),
         new MusicDirectoryStepViewModel(_settingsStore, _fileSystem),
         new DiscoveryStepViewModel(
-            new DiscoveryViewModel(_settingsStore, _libraryIndex, _danceListStore, _trackStore, new NoOpLoggerService())),
+            new DiscoveryViewModel(
+            _settingsStore, _libraryIndex, _danceListStore, _trackStore, new NoOpLoggerService(), Substitute.For<INotificationService>())),
         new ReviewStepViewModel(BuildReview()),
         _settingsStore,
         _navigation,
-        new NoOpLoggerService());
+        new NoOpLoggerService(),
+        Substitute.For<INotificationService>());
 
     public void Dispose()
     {

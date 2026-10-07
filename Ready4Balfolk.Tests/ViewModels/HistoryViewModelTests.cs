@@ -4,6 +4,7 @@ using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
@@ -37,7 +38,7 @@ public sealed class HistoryViewModelTests : IDisposable
         settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
 
         _sut = new HistoryViewModel(
-            _historyStore, settingsStore, _confirmation, Substitute.For<ILoggerService>());
+            _historyStore, settingsStore, _confirmation, Substitute.For<ILoggerService>(), Substitute.For<INotificationService>());
     }
 
     [Fact]

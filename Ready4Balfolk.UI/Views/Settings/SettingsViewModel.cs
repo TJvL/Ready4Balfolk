@@ -13,7 +13,9 @@ using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Platform;
@@ -28,6 +30,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
 {
     private readonly ISettingsStore _settingsStore;
     private readonly ILoggerService _loggerService;
+    private readonly INotificationService _notifications;
     private readonly IConfirmationService _confirmationService;
     private readonly PresentationWebServer _webServer;
     private readonly IFileSystem _fileSystem;
@@ -116,9 +119,10 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     /// with it, so the accepted half of a language change is otherwise unreachable.
     /// </remarks>
     public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
-        IConfirmationService confirmationService, PresentationWebServer webServer,
-        IFileSystem fileSystem, Action restart, IScheduler? saveScheduler = null)
-        : this(settingsStore, loggerService, confirmationService, webServer, fileSystem, saveScheduler)
+        INotificationService notifications, IConfirmationService confirmationService,
+        PresentationWebServer webServer, IFileSystem fileSystem, Action restart,
+        IScheduler? saveScheduler = null)
+        : this(settingsStore, loggerService, notifications, confirmationService, webServer, fileSystem, saveScheduler)
     {
         _restart = restart;
     }
@@ -130,12 +134,13 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     /// machine and fails on a busy one.
     /// </remarks>
     public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
-        IConfirmationService confirmationService, PresentationWebServer webServer,
-        IFileSystem fileSystem, IScheduler? saveScheduler = null)
+        INotificationService notifications, IConfirmationService confirmationService,
+        PresentationWebServer webServer, IFileSystem fileSystem, IScheduler? saveScheduler = null)
     {
         _saveScheduler = saveScheduler ?? DefaultScheduler.Instance;
         _settingsStore = settingsStore;
         _loggerService = loggerService;
+        _notifications = notifications;
         _confirmationService = confirmationService;
         _webServer = webServer;
         _fileSystem = fileSystem;
@@ -283,7 +288,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .DistinctUntilChanged()
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(language => OnLanguageChangedAsync(language).SafeFireAndForget(exception =>
-                _loggerService.Report("Failed to change language", exception)))
+                _loggerService.Report(
+                    "Failed to change language", _notifications, UiStrings.Settings_LanguageChangeFailed, exception)))
             .DisposeWith(_disposables);
 
         settingsStore.Observe()
@@ -308,7 +314,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .Subscribe(_ => UpdateWebServerStatus())
             .DisposeWith(_disposables);
 
-        _disposables.Add(RegeneratePinCommand.ReportFailures(_loggerService, "Failed to make a new PIN"));
+        _disposables.Add(RegeneratePinCommand.ReportFailures(
+            _loggerService, "Failed to make a new PIN", _notifications, UiStrings.Settings_NewPinFailed));
     }
 
     /// <summary>
@@ -344,7 +351,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         var pin = RemoteAccessService.GeneratePin();
         WebRemoteControlPin = pin;
         CommitDirectAsync(s => s with { WebRemoteControlPin = pin }).SafeFireAndForget(exception =>
-            _loggerService.Report("Failed to save the remote control pin", exception));
+            _loggerService.Report(
+                "Failed to save the remote control pin", _notifications, UiStrings.Settings_PinSaveFailed, exception));
     }
 
     private void UpdateWebServerStatus()
@@ -427,7 +435,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .Throttle(TimeSpan.FromMilliseconds(300), _saveScheduler)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(value => CommitDirectAsync(transform(value)).SafeFireAndForget(exception =>
-                _loggerService.Report("Failed to save settings", exception)))
+                _loggerService.Report(
+                    "Failed to save settings", _notifications, DomainStrings.Settings_SaveFailed, exception)))
             .DisposeWith(_disposables);
     }
 
@@ -450,7 +459,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            _loggerService.Report("Failed to save settings", ex);
+            _loggerService.Report("Failed to save settings", _notifications, DomainStrings.Settings_SaveFailed, ex);
         }
     }
 
@@ -496,7 +505,8 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            _loggerService.Report("Failed to change language", ex);
+            _loggerService.Report(
+                "Failed to change language", _notifications, UiStrings.Settings_LanguageChangeFailed, ex);
         }
     }
 

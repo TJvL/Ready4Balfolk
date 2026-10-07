@@ -7,6 +7,7 @@ using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Resources;
@@ -57,7 +58,7 @@ public sealed class SettingsViewModelTests : IDisposable
         _webServer = new PresentationWebServer(
             Substitute.For<IServiceProvider>(), new NoOpLoggerService(), TimeProvider.System);
 
-        _sut = new SettingsViewModel(_settingsStore, new NoOpLoggerService(), _confirmations,
+        _sut = new SettingsViewModel(_settingsStore, new NoOpLoggerService(), Substitute.For<INotificationService>(), _confirmations,
             _webServer, _fileSystem, () => _restarts++, _throttles.Scheduler);
     }
 
@@ -229,7 +230,7 @@ public sealed class SettingsViewModelTests : IDisposable
     }
 
     private SettingsViewModel Panel(PresentationWebServer webServer) => new(
-        _settingsStore, new NoOpLoggerService(), _confirmations, webServer, _fileSystem);
+        _settingsStore, new NoOpLoggerService(), Substitute.For<INotificationService>(), _confirmations, webServer, _fileSystem);
 
     private static NetworkAdapter Wifi(string address) =>
         new(NetworkInterfaceType.Wireless80211, true, [IPAddress.Parse(address)]);
@@ -310,7 +311,7 @@ public sealed class SettingsViewModelTests : IDisposable
     public async Task ExportLog_HandsThePathToTheLogger()
     {
         var logger = Substitute.For<ILoggerService>();
-        using var panel = new SettingsViewModel(_settingsStore, logger, _confirmations,
+        using var panel = new SettingsViewModel(_settingsStore, logger, Substitute.For<INotificationService>(), _confirmations,
             _webServer, _fileSystem, () => { });
 
         await panel.ExportLogAsync("/tmp/ready4balfolk.log");

@@ -9,15 +9,16 @@ using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Resources;
-using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.DanceList;
 
 namespace Ready4Balfolk.Tests.ViewModels;
@@ -482,8 +483,8 @@ public sealed class DanceListViewModelTests : IDisposable
     public async Task UpdateFromFile_TheFileIsUnreadable_IsReportedOnceRatherThanThrown()
     {
         // The path came from a file picker, so anything can be behind it, including a directory.
-        // One file, one notice: the log puts a reported failure on screen by itself, so a second
-        // one shown beside it is the same failure said twice.
+        // One file, one notice, in the words a refusal would have used and in the DJ's language.
+        // What .NET said about it goes to the log with an English line, and never to the screen.
         _status.OnNext(new DanceListStatus(3, 3, DanceListOrigin.Cached, DateTimeOffset.UnixEpoch));
         var thrown = new IOException("that is a folder");
         _store.UpdateFromFileAsync(Arg.Any<IFileInfo>(), Arg.Any<CancellationToken>())
@@ -492,9 +493,12 @@ public sealed class DanceListViewModelTests : IDisposable
         await _sut.UpdateFromFileAsync("/somewhere/dances.json");
 
         await _logger.Received(1).ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
-        await _logger.Received(1).ErrorAsync(
-            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, "that is a folder"), thrown);
-        _notifications.DidNotReceive().Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>());
+        await _logger.Received(1).ErrorAsync("Failed to update the dance list from a file", thrown);
+        _notifications.Received(1).Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>());
+        _notifications.Received(1).Show(
+            string.Format(
+                CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, DomainStrings.DanceList_FileUnreadable),
+            NotificationSeverity.Error);
         Assert.False(_sut.IsUpdating);
     }
 

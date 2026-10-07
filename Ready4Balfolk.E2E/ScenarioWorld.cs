@@ -9,6 +9,7 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.History;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.E2E;
 
@@ -218,8 +219,10 @@ public sealed class ScenarioWorld : IApplicationSettingsDirectory, IDisposable
     /// </remarks>
     public ScenarioWorld WithAnEveningNobodyEnded(TimeSpan howLongAgo)
     {
+        // Nobody to tell: there is no application yet while a world is being written.
+        using var nowhere = new NotificationService();
         using var history = new QueueHistoryStore(
-            this, _fileSystem, new NoOpLoggerService(), new AnHourInThePast(howLongAgo));
+            this, _fileSystem, new NoOpLoggerService(), nowhere, new AnHourInThePast(howLongAgo));
 
         var stopped = DateTime.Now - howLongAgo;
 

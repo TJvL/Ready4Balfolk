@@ -1616,4 +1616,168 @@ It holds {2} tracks in the library.</value>
   <data name="Review_SeekPreviewFailed" xml:space="preserve">
     <value>Failed to move through the preview</value>
   </data>
+
+  <!-- What a command or the application could not do. The log says it in English, separately. -->
+  <data name="App_SomethingWentWrong" xml:space="preserve">
+    <value>Something went wrong. What it was is in the log, which can be exported from the settings.</value>
+  </data>
+  <data name="App_CloseFailed" xml:space="preserve">
+    <value>Failed to close the application</value>
+  </data>
+  <data name="App_UnfinishedNightAskFailed" xml:space="preserve">
+    <value>Failed to ask about the evening that was never ended</value>
+  </data>
+  <data name="App_DanceListLoadFailed" xml:space="preserve">
+    <value>Failed to load the dance list</value>
+  </data>
+  <data name="App_LibraryOpenFailed" xml:space="preserve">
+    <value>Failed to open the library</value>
+  </data>
+  <data name="App_HistoryLoadFailed" xml:space="preserve">
+    <value>Failed to load the history</value>
+  </data>
+  <data name="App_LibrarySettingsFailed" xml:space="preserve">
+    <value>Failed to apply the music folder settings</value>
+  </data>
+  <data name="WebServer_CouldNotStart" xml:space="preserve">
+    <value>The presentation in a browser could not start and has been switched off. The settings say why.</value>
+  </data>
+  <data name="WebServer_ApplyFailed" xml:space="preserve">
+    <value>Failed to apply the settings of the presentation in a browser</value>
+  </data>
+  <data name="WebServer_SwitchOffFailed" xml:space="preserve">
+    <value>Failed to switch off the presentation in a browser after it would not start</value>
+  </data>
+  <data name="Settings_LanguageChangeFailed" xml:space="preserve">
+    <value>Failed to change the language</value>
+  </data>
+  <data name="Settings_NewPinFailed" xml:space="preserve">
+    <value>Failed to make a new PIN</value>
+  </data>
+  <data name="Settings_PinSaveFailed" xml:space="preserve">
+    <value>Failed to save the new PIN</value>
+  </data>
+  <data name="History_ShowNightFailed" xml:space="preserve">
+    <value>Failed to show the night</value>
+  </data>
+  <data name="History_StartNewNightFailed" xml:space="preserve">
+    <value>Failed to start a new night</value>
+  </data>
+  <data name="Review_DanceRuleFailed" xml:space="preserve">
+    <value>Failed to change whether dances outside the list are let in</value>
+  </data>
+  <data name="Review_RefreshFailed" xml:space="preserve">
+    <value>Failed to gather the tracks waiting for review</value>
+  </data>
+  <data name="Review_ApproveFailed" xml:space="preserve">
+    <value>Failed to save the answer</value>
+  </data>
+  <data name="Review_WithdrawFailed" xml:space="preserve">
+    <value>Failed to take the answer back</value>
+  </data>
+  <data name="Review_ApproveFolderFailed" xml:space="preserve">
+    <value>Failed to answer the whole folder</value>
+  </data>
+  <data name="Review_UseDanceForAllFailed" xml:space="preserve">
+    <value>Failed to use the dance for every track</value>
+  </data>
+  <data name="Review_NotADanceFailed" xml:space="preserve">
+    <value>Failed to mark the value as not a dance</value>
+  </data>
+  <data name="Wizard_StepFailed" xml:space="preserve">
+    <value>Failed to open this step of the setup</value>
+  </data>
+  <data name="Wizard_BackFailed" xml:space="preserve">
+    <value>Failed to go back a step</value>
+  </data>
+  <data name="Wizard_ContinueFailed" xml:space="preserve">
+    <value>Failed to finish this step of the setup</value>
+  </data>
+  <data name="Wizard_DanceList_FetchFailed" xml:space="preserve">
+    <value>Failed to fetch the dance list</value>
+  </data>
+  <data name="Equalizer_ApplyFailed" xml:space="preserve">
+    <value>Failed to apply the equalizer to the sound</value>
+  </data>
+  <data name="Equalizer_SaveFailed" xml:space="preserve">
+    <value>Failed to save the equalizer</value>
+  </data>
+  <data name="Equalizer_ResetFailed" xml:space="preserve">
+    <value>Failed to reset the equalizer</value>
+  </data>
+  <data name="Discovery_ReadFailed" xml:space="preserve">
+    <value>Failed to read the library for this screen</value>
+  </data>
+  <data name="Discovery_DeclareFailed" xml:space="preserve">
+    <value>Failed to add the pattern</value>
+  </data>
+  <data name="Discovery_RemovePatternFailed" xml:space="preserve">
+    <value>Failed to remove the pattern</value>
+  </data>
+  <data name="Discovery_MovePatternFailed" xml:space="preserve">
+    <value>Failed to move the pattern</value>
+  </data>
+  <data name="Discovery_SaveChoicesFailed" xml:space="preserve">
+    <value>Failed to save the folder roles and tag fields</value>
+  </data>
+  <data name="Discovery_AcceptProposalFailed" xml:space="preserve">
+    <value>Failed to take the proposal</value>
+  </data>
+  <data name="Discovery_DismissProposalFailed" xml:space="preserve">
+    <value>Failed to turn the proposal down</value>
+  </data>
+  <data name="DanceList_ChangePoolFailed" xml:space="preserve">
+    <value>Failed to change the dances drawn from</value>
+  </data>
+  <data name="DanceList_ClearPoolFailed" xml:space="preserve">
+    <value>Failed to draw from every dance again</value>
+  </data>
+  <data name="DanceList_PickDanceFailed" xml:space="preserve">
+    <value>Failed to queue a track of that dance</value>
+  </data>
+  <data name="DanceList_UpdateCommandFailed" xml:space="preserve">
+    <value>Failed to update the dance list</value>
+  </data>
+  <data name="Playback_PlayPauseFailed" xml:space="preserve">
+    <value>Failed to play or pause</value>
+  </data>
+  <data name="Playback_RestartFailed" xml:space="preserve">
+    <value>Failed to start the track again</value>
+  </data>
+  <data name="Playback_NextFailed" xml:space="preserve">
+    <value>Failed to move on to the next item</value>
+  </data>
+  <data name="Playback_SeekFailed" xml:space="preserve">
+    <value>Failed to move through the track</value>
+  </data>
+  <data name="Track_EditFailed" xml:space="preserve">
+    <value>Failed to edit the track</value>
+  </data>
+  <data name="TrackCatalog_ClearSearchFailed" xml:space="preserve">
+    <value>Failed to clear the search</value>
+  </data>
+  <data name="TrackCatalog_WithdrawFailed" xml:space="preserve">
+    <value>Failed to send the track back to review</value>
+  </data>
+  <data name="TrackCatalog_EnqueueFailed" xml:space="preserve">
+    <value>Failed to queue the track</value>
+  </data>
+  <data name="Queue_RandomTrackFailed" xml:space="preserve">
+    <value>Failed to queue a random track</value>
+  </data>
+  <data name="Queue_StopFailed" xml:space="preserve">
+    <value>Failed to queue a stop</value>
+  </data>
+  <data name="Queue_DelayFailed" xml:space="preserve">
+    <value>Failed to queue a delay</value>
+  </data>
+  <data name="Queue_EndOfNightFailed" xml:space="preserve">
+    <value>Failed to queue the end of the night</value>
+  </data>
+  <data name="Queue_RemoveFailed" xml:space="preserve">
+    <value>Failed to remove the item</value>
+  </data>
+  <data name="Queue_ClearFailed" xml:space="preserve">
+    <value>Failed to clear the queue</value>
+  </data>
 </root>

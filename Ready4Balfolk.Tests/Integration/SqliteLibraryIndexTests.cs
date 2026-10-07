@@ -6,6 +6,7 @@ using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Tests.Helpers;
@@ -27,7 +28,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     {
         _tempDir = new FileSystem().DirectoryInfo.New(Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
         _tempDir.Create();
-        _sut = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        _sut = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -207,7 +208,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     {
         // Not an error: the settings replay and the toolbar badge reach the store before startup's
         // explicit open, and that ordering accident must not become an error toast on every launch.
-        using var unopened = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        using var unopened = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
 
         await unopened.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
 
@@ -223,7 +224,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await File.WriteAllTextAsync(
             Path.Combine(_tempDir.FullName, "library.sqlite"), "this is not a database", Token);
 
-        using var healed = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        using var healed = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
         await healed.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
 
         Assert.Single(await healed.SnapshotByPathAsync(Token));
@@ -250,7 +251,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         _sut.Dispose();
         await StampSchemaVersionAsync(AnEarlierSchema);
 
-        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
         await rebuilt.OpenAsync(Token);
 
         Assert.Empty(await rebuilt.SnapshotByPathAsync(Token));
@@ -275,7 +276,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         _sut.Dispose();
         await StampSchemaVersionAsync(ALaterSchema);
 
-        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
 
         Assert.Empty(await rebuilt.SnapshotByPathAsync(Token));
         Assert.Equal("Le Tourdion", Assert.Single((await rebuilt.ApprovalsAsync(Token))[LibraryKey.For([9])]).Value);
@@ -293,7 +294,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         _sut.Dispose();
         await StampSchemaVersionAsync(AnEarlierSchema);
 
-        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
 
         Assert.Equal(["/music/a.mp3"], await rebuilt.IndexedPathsAsync(Token));
         // The derived half really is gone, or this would only be proving the file was left alone.
@@ -311,7 +312,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         _sut.Dispose();
         await StampSchemaVersionAsync(AnEarlierSchema);
 
-        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
 
         Assert.Equal(2, (await rebuilt.IndexedPathsAsync(Token)).Count);
         // Counted over reachable rows alone, so the kept one is still marked unreachable.
@@ -328,7 +329,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         _sut.Dispose();
         await StampSchemaVersionAsync(AnEarlierSchema);
 
-        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
 
         Assert.Empty(await rebuilt.SnapshotByPathAsync(Token));
         Assert.Single(await rebuilt.GetIgnoredValuesAsync(Token));
@@ -342,7 +343,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
         _sut.Dispose();
 
-        using var reopened = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService());
+        using var reopened = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
 
         Assert.Equal(["/music/a.mp3"], (await reopened.SnapshotByPathAsync(Token)).Keys);
     }

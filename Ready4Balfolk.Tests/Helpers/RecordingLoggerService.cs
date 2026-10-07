@@ -1,7 +1,9 @@
-using System.Reactive.Linq;
 using Ready4Balfolk.Domain.Services.Logging;
 
 namespace Ready4Balfolk.Tests.Helpers;
+
+/// <summary>One error or worse that was written to the log.</summary>
+internal sealed record LogEntry(LogLevel Level, string Message, Exception? Exception = null);
 
 /// <summary>A logger that keeps what it was told, and can be waited on.</summary>
 /// <remarks>
@@ -17,8 +19,6 @@ internal sealed class RecordingLoggerService : ILoggerService, IDisposable
 
     /// <summary>How many reports have been handed out by <see cref="NextErrorAsync" />.</summary>
     private int _taken;
-
-    public IObservable<LogEntry> WhenErrorLogged => Observable.Empty<LogEntry>();
 
     /// <summary>Everything reported so far.</summary>
     public IReadOnlyList<LogEntry> Errors

@@ -6,6 +6,8 @@ using AsyncAwaitBestPractices;
 using Avalonia.Threading;
 using Ready4Balfolk.Domain.Services.Library;
 using Ready4Balfolk.Domain.Services.Logging;
+using Ready4Balfolk.Domain.Services.Notifications;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Views.Dialogs.MissingFolders;
 
 namespace Ready4Balfolk.UI.Services;
@@ -25,7 +27,10 @@ namespace Ready4Balfolk.UI.Services;
 /// library.
 /// </para>
 /// </remarks>
-public sealed class MissingFolderPromptService(ConfirmationService owner, ILoggerService loggerService)
+public sealed class MissingFolderPromptService(
+    ConfirmationService owner,
+    ILoggerService loggerService,
+    INotificationService notifications)
     : IMissingFolderPrompt
 {
     private Func<Task>? _exit;
@@ -58,7 +63,8 @@ public sealed class MissingFolderPromptService(ConfirmationService owner, ILogge
             // application out from under it would leave that continuation on a dispatcher that is
             // going away. It returns first, writes nothing, and the shutdown follows.
             Dispatcher.UIThread.Post(() => exit().SafeFireAndForget(exception =>
-                loggerService.Report("Failed to close after the library question", exception)));
+                loggerService.Report(
+                    "Failed to close after the library question", notifications, UiStrings.App_CloseFailed, exception)));
         }
 
         return answer;

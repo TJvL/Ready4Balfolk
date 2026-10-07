@@ -22,7 +22,10 @@ public static class DanceListReader
     /// Parses and checks a list. Refusing is the point: read as an empty list, a truncated download
     /// would leave the application with no vocabulary and no sign that anything went wrong.
     /// </summary>
-    /// <exception cref="InvalidDataException">Unparseable, the wrong format version, or invalid.</exception>
+    /// <exception cref="DanceListRefusedException">
+    /// Unparseable, the wrong format version, or invalid. Its message is the English line for the
+    /// log, and its screen text is what the DJ is told.
+    /// </exception>
     public static DanceList Read(string json)
     {
         DanceList? list;
@@ -32,12 +35,13 @@ public static class DanceListReader
         }
         catch (JsonException exception)
         {
-            throw new InvalidDataException(DomainStrings.DanceList_InvalidJson, exception);
+            throw new DanceListRefusedException(
+                "The dance list is not readable JSON", DomainStrings.DanceList_InvalidJson, exception);
         }
 
         if (list is null)
         {
-            throw new InvalidDataException(DomainStrings.DanceList_NoDances);
+            throw new DanceListRefusedException("The dance list is empty", DomainStrings.DanceList_NoDances);
         }
 
         // The version first, because a file in a dead format has no dances where this one looks
@@ -46,28 +50,37 @@ public static class DanceListReader
         // guessing at either is worse than keeping the list already loaded.
         if (list.FormatVersion != DanceList.CurrentFormatVersion)
         {
-            throw new InvalidDataException(string.Format(
-                CultureInfo.CurrentCulture,
-                DomainStrings.DanceList_WrongFormatVersion,
-                list.FormatVersion,
-                DanceList.CurrentFormatVersion));
+            throw new DanceListRefusedException(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "The dance list is format version {0}, and this build reads version {1}",
+                    list.FormatVersion,
+                    DanceList.CurrentFormatVersion),
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    DomainStrings.DanceList_WrongFormatVersion,
+                    list.FormatVersion,
+                    DanceList.CurrentFormatVersion));
         }
 
         if (list.IsEmpty)
         {
-            throw new InvalidDataException(DomainStrings.DanceList_NoDances);
+            throw new DanceListRefusedException("The dance list has no dances", DomainStrings.DanceList_NoDances);
         }
 
         var problems = DanceListValidation.Validate(list);
         if (problems.DuplicateNames.Count > 0)
         {
             // A name meaning two dances is what makes discovery ambiguous, so it is named out loud.
-            throw new InvalidDataException(string.Format(
-                CultureInfo.CurrentCulture,
-                DomainStrings.DanceList_DuplicateNames,
-                string.Join(", ", problems.DuplicateNames.Distinct(StringComparer.Ordinal))));
+            var names = string.Join(", ", problems.DuplicateNames.Distinct(StringComparer.Ordinal));
+            throw new DanceListRefusedException(
+                $"The dance list uses one name for more than one dance: {names}",
+                string.Format(CultureInfo.CurrentCulture, DomainStrings.DanceList_DuplicateNames, names));
         }
 
-        return problems.Any ? throw new InvalidDataException(DomainStrings.DanceList_Invalid) : list;
+        return problems.Any
+            ? throw new DanceListRefusedException(
+                "The dance list breaks the rules the list is built on", DomainStrings.DanceList_Invalid)
+            : list;
     }
 }
