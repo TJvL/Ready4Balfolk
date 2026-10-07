@@ -18,7 +18,7 @@ Ready4Balfolk is a five-project Avalonia desktop application for managing and pl
 
 - **Reactive-first**: state flows as `IObservable<T>` from Domain stores/services; the UI subscribes and reacts.
 - **Immutable models**: all Domain models are sealed records; mutations produce new instances.
-- **Interface-driven**: every store and service has an interface for testability and DI.
+- **Interface-driven**: every store and stateful service has an interface for testability and DI. Pure functions of their input (`DanceListReader`, `DanceListValidation`, `AudioContentHasher`, `TrackClaims`, `NightReport` and the like) are static classes instead, and are tested by calling them.
 - **MVVM with compiled bindings**: Views bind to ViewModels; `x:DataType` is set on every view.
 
 ---
@@ -27,35 +27,42 @@ Ready4Balfolk is a five-project Avalonia desktop application for managing and pl
 
 ### Models
 
-All models are **sealed records** with `[JsonPropertyName]` attributes for persistence. They are organised by subdirectory:
+All models are **sealed records**, organised by subdirectory. Only `Dance` and `DanceList` carry `[JsonPropertyName]`, because their names are BigBalfolkList's; everything else is stored under its property names (#308).
 
 | Directory | Contents |
 |-----------|----------|
 | `Tracks/` | `Track`: file path, dance, artist, title, length. Carries `OriginalDance` for re-resolution. |
-| `QueueItems/` | `IQueueItem` interface + six implementations: `TrackQueueItem`, `DelayQueueItem`, `MessageQueueItem`, `StopQueueItem`, `AutoTrackQueueItem`, `EndOfNightQueueItem`. The last is the file named in the settings and deliberately not a `TrackQueueItem`: it is not in the library and must never enter it. |
+| `QueueItems/` | `IQueueItem` interface + seven implementations: `TrackQueueItem`, `DelayQueueItem`, `MessageQueueItem`, `StopQueueItem`, `AutoTrackQueueItem`, `EndOfNightQueueItem` and `GapQueueItem`. `EndOfNightQueueItem` is the file named in the settings and deliberately not a `TrackQueueItem`: it is not in the library and must never enter it. `GapQueueItem` is the standard gap between two dances while it runs, and is only ever the current item, never a queued one. |
 | `Dances/` | `DanceList` -> `Dance`, exactly as BigBalfolkList publishes it: a top-level `Tags` vocabulary and a flat list of `{slug, names, tags}`. A dance's identity is its `Slug`; its `Names` are a flat set of equals whose first entry is what gets displayed; everything else is a tag, so nothing is filed under one grouping at the expense of another. There is no hierarchy and no weight. `DanceListIndex` is the folded-name-to-slug lookup built over a list, `DanceListProblems` is what validation reports, and `DanceListStatus`/`DanceListUpdate` say where the list came from and what came of asking for a newer one. |
-| `Settings/` | `ApplicationSettings`, `ApplicationTheme` enum, `WindowState`. |
+| `Settings/` | `ApplicationSettings` and what it is made of: `ApplicationTheme`, `ApplicationLanguage`, `WindowState`, `EqualizerSettings`, `DisplayTemplates`, and the declared discovery rules (`DiscoverySettings`, `TagTrust`, `TagField`, `FolderRole`). |
 | `History/` | `QueueHistoryEntry` (abstract, `[JsonPolymorphic]`) with `TrackHistoryEntry`, `MessageHistoryEntry`, `DelayHistoryEntry`, `StopHistoryEntry`, `EndOfNightHistoryEntry`, each carrying `StartedAt`, `FinishedAt` and a `CompletionStatus` of `Finished`, `Skipped` or `FileMissing`. `QueueHistory` is one night: `Id`, `StartedAt`, `EndedAt` and the entries; `NightSummary` is the little a list of nights shows. |
+| `Presentation/` | `PresentationState` and the `PresentationItem`s in it: what a presentation surface draws, reduced once by `PresentationStateService` for the window and the browser alike. |
 
-**To add a new model:** create a `sealed record` in the appropriate subdirectory. Add `[JsonPropertyName]` attributes if it will be serialised. If it is polymorphic, add `[JsonPolymorphic]` + `[JsonDerivedType]` on the base type.
+**To add a new model:** create a `sealed record` in the appropriate subdirectory. If it is serialised polymorphically, add `[JsonPolymorphic]` + `[JsonDerivedType]` on the base type. A model that persists is renamed only together with what reads the old name back.
 
 ### Stores
 
-Stores manage **persisted state** with thread-safe, reactive updates. Every store follows the same pattern:
+Stores own **persisted state** and publish it as observables. There is no one shape they all follow; the ones that publish a single value share this:
 
-```
-Interface:  IXxxStore  →  Current, Observe(), LoadAsync(), UpdateAsync(Func<T,T>)
-Impl:       XxxStore   →  BehaviorSubject<T> + SemaphoreSlim + persistence
-```
+- **`BehaviorSubject<T>`** holds what is current, replays it to a new subscriber and broadcasts every change. `Current` reads it and `Observe()` exposes it.
+- **`SemaphoreSlim(1, 1)`** serialises the store's own reads and writes, so a write cannot interleave with a load.
+- **`ILoadableStore`** is the stores that load after the window opens (`IsLoading`), so a screen can say it is waiting rather than showing an empty list as though it were the answer.
+- **The directory comes from `IApplicationSettingsDirectory`**, never a path built at the call site, so a test and a scenario each point a store at their own.
 
-**Pattern elements:**
+| Store | Holds | How it loads and writes |
+|-------|-------|-------------------------|
+| `SettingsStore` | `ApplicationSettings`, as `settings.json` | Reads the file **in its constructor**, because a setting is needed while the application is being composed. Never throws there: an unreadable file is kept beside the real one as `.corrupt` and the defaults are used. Writes through `UpdateAsync(Func<T, T>)`, a pure transformation applied under the semaphore and persisted, indented so the file stays editable by hand. |
+| `DanceListStore` | The published dance list, as `dance_list.json` | `LoadAsync` reads the cached copy; `RefreshAsync` and `UpdateFromFileAsync` replace it whole. No `UpdateAsync`: the list is read-only vocabulary. Also exposes an `Index`, rebuilt *before* the new list is published, so a subscriber reacting to a change never reads a lookup built from the list it just replaced. |
+| `QueueHistoryStore` | The evenings, in `history.sqlite` | `LoadAsync` opens the running night; entries are appended with `AddAsync`. See Nights below. |
+| `SqliteLibraryIndex` | What is in the music directory, in `library.sqlite` | `OpenAsync`, then queried and written by `TrackStore`. See Library index below. |
+| `TrackStore` | The library as the application plays from it | A DynamicData `SourceList<Track>` rather than a subject, exposed through `Connect()` for collection binding. `ApplyAsync(TrackLibraryConfiguration)` hands it the music directory, the declared rules and the dance rule as one value, so they cannot be applied in an order that scans the library twice. `LibraryWatcher` notices changes on disk and the store decides what each is worth. |
 
-- **`BehaviorSubject<T>`**: holds the current value, replays last value to new subscribers, broadcasts changes.
-- **`SemaphoreSlim(1, 1)`**: binary semaphore serialising access so concurrent calls cannot interleave a read with a write.
-- **`UpdateAsync(Func<T, T>)`**: caller passes a pure transformation function; the store atomically applies it, updates the subject, and persists to disk.
-- **Persistence**: the settings store is JSON (`JsonSerializer.SerializeAsync` with `WriteIndented = true`, so the file stays human-editable). The library index and the night history are SQLite; see those sections below. Stores accept a `DirectoryInfo` at construction (the app-data directory).
+**To add a new store:**
 
-The `TrackStore` is different: it uses a DynamicData `SourceList<Track>` instead of `BehaviorSubject`, exposes `Connect()` for reactive collection binding, integrates a `FileSystemWatcher` for live directory monitoring, and uses `Task.WhenEach()` for streaming track discovery.
+1. Create `IXxxStore` in `Stores/{Feature}/` and `XxxStore` beside it. Take `IApplicationSettingsDirectory` for where it writes, hold its state in a `BehaviorSubject<T>` behind `Current` and `Observe()`, and serialise its own I/O with a `SemaphoreSlim(1, 1)`.
+2. If it loads after the window opens, implement `ILoadableStore` and give it a `LoadAsync(CancellationToken)`; if it is needed while the application is composed, read in the constructor as `SettingsStore` does, and never throw there.
+3. Register it in `ConfigureServices` in `ApplicationComposition.cs` as a singleton: `services.AddSingleton<IXxxStore, XxxStore>();`.
+4. Add its `LoadAsync` to the loads `ApplicationStartup.Run` starts once the main window has opened, with an English log line and a `UiStrings` text for its failure.
 
 ### Discovery: claims and corroboration
 
@@ -65,7 +72,7 @@ The `TrackStore` is different: it uses a DynamicData `SourceList<Track>` instead
 
 - **Claims are raw.** A dance claim carries the text somebody wrote, not a slug: turning text into a dance is the list's job, and a claim the list does not recognise is still a claim. That unrecognised value is exactly what parks a track in review and what 21 identical misspellings group by.
 - **Nothing is discarded silently.** Losing claims, and values refused as ripper placeholders, stay on the resolution. A wrong source is only visible next to what it beat, and "the artist tag says Unknown Artist" is a different thing to look at than "there is no artist tag".
-- **Three tiers, and the top one that spoke is the only one considered** (`ClaimTrust`): `Declared` (a discovery setting the user filled in), `Measured` (calibration over the library's own strings), `Observed` (this file's tags and name). A tier is not a vote to be weighed: a user who declares a rule has taken responsibility for it, so a declaration replaces the tags rather than arguing with them, and is not "corroborated" by a weaker source agreeing. Only `Observed` is produced today; the tiers above it arrive with declared settings and calibration.
+- **Three tiers, and the top one that spoke is the only one considered** (`ClaimTrust`): `Declared` (a discovery setting the user filled in), `Measured` (calibration over the library's own strings), `Observed` (this file's tags and name). A tier is not a vote to be weighed: a user who declares a rule has taken responsibility for it, so a declaration replaces the tags rather than arguing with them, and is not "corroborated" by a weaker source agreeing. `Declared` and `Observed` are produced; `Measured` is not, because calibration proposes a rule on the rules panel and what the user accepts is claimed as declared.
 - **`DecisionReason` keeps the several meanings of a blank apart**: `NoClaim`, `Unusable`, `Contested` are three different situations, and the review screen has to tell a person which one it is looking at.
 - **Independence is per `ClaimSourceKind`**, not per claim: the title tag and the comment tag are one kind between them, because the same ripper wrote both in the same pass and a dance appearing in both proves nothing.
 
@@ -74,16 +81,26 @@ The `TrackStore` is different: it uses a DynamicData `SourceList<Track>` instead
 How each field is then decided:
 
 - **The dance is decided by agreement**, because it is the one field with a real vocabulary behind it. Two independent kinds agreeing wins; one kind alone still answers when nothing contradicts it; two dances with nothing to separate them answer **nothing**, because inventing a confident answer is the failure the feature exists to prevent.
-- **Artist and title are decided in order**, because nothing can check them. An album artist and a performer disagreeing is ordinary rather than a contest, so the first usable claim answers and the order the collector emits them in *is* the trust order (album artist before artist, title tag before file name). Step 3 makes that order declarable.
+- **Artist and title are decided in order**, because nothing can check them. An album artist and a performer disagreeing is ordinary rather than a contest, so within the winning tier the first usable claim answers, and the order the collector emits them in *is* the trust order. See Claims below.
 - **Brackets break a dance tie**, and nothing else does. `ClaimSource.IsDeliberate` says somebody wrote this as a statement about the track; a dance-shaped word in a sentence is an accident of language. Where the brackets say nothing either, the answer is nothing.
 - **Folder agreement fills gaps only.** A `Folder` claim is dropped the moment any other kind resolves, so a folder of mazurkas with one scottish in it keeps the scottish, and it never corroborates: it is computed from sibling file names, so counting it as a second source is counting one source twice. The folder is a grouping and no more: `TrackEvidence.FolderKey` claims nothing about it being an album.
 - **Matching is on whole words** (`DanceNameScanner`), longest name first: "Bourrée 3 temps" beats the "Bourrée" inside it, and "Andro" must not match inside "Androgyne".
 - **Names are compared on a match key, not on their spelling** (`DanceWords`). The published file carries two word lists: a number word becomes its digit and glue is dropped, so `Bourrée à trois temps`, `Bourrée in 3`, `Bourrée 3t` and `Bourrée 3` are one key and one dance. The same pass runs over a file name before scanning it, which is what lets a library written in French, Dutch or German match at all. Measured on the reference library: 921 file names carried a recognisable dance without it, 972 with, and 9 answers changed: 8 of them corrections, `Valse 8 temps` having been filed as a 3-time waltz.
 - **Glue is stepped over rather than ending a match**, so `valse à 3 temps` finds `valse 3`. The cost is that glue no longer separates: `Valse de la mazurka` reads as `valse mazurka`. That is the same trade the list makes on its own names, and a word that is not glue still ends a match, so `Bourrée du Berry 3 temps` is not `Bourrée 3 temps`.
 - **Genre is not evidence.** Measured on the reference library, of 400 resolved tracks only 69 carry a genre at all and the whole set of values is `Music`, `Folk`, `Balfolk`, `Breton`; across ~530 files a genre supplied a dance name once. It is not read at all.
-- **The artist comes from tags, the title from the title tag or the whole file name.** Neither is taken from a path segment or a file name field, because which level or field means what is exactly what an unconfigured library cannot say. `ArtistNames` still blocks ripper placeholders (`Unknown Artist`, `Various Artists`, digits-only): dances are a closed set the dance list defines and get a whitelist, artists are open and get a blocklist.
+- **Undeclared, the artist comes from tags and the title from the title tag or the whole file name.** Neither is taken from a path segment or a file name field unless the user declared what that level or field means, because that is exactly what an unconfigured library cannot say. `ArtistNames` blocks ripper placeholders (`Unknown Artist`, `Various Artists`, digits-only): dances are a closed set the dance list defines and get a whitelist, artists are open and get a blocklist.
 
-Claims live only as long as the resolution today. Storing them so a review screen can show where a value came from after a restart is the schema work in step 4.
+**Claims.** `Services/Discovery/Claims/` holds one `IClaimDiscovery` per thing that can speak about a file, and `TrackClaims.Collect` asks them in this order:
+
+1. `PatternClaimDiscovery`: the first declared file name pattern that matches the whole name. `Declared`.
+2. `FolderClaimDiscovery`: the folder levels the user gave a role, where the file is deep enough to have them. `Declared`.
+3. `DanceClaimDiscovery`: a declared dance tag or custom tag, read whole (`Declared`); names from the list found in the title, album and comment tags and in the file name, bracketed or not, and the dance the rest of the folder agreed on (`Observed`).
+4. `TagClaimDiscovery`: the tag fields for artist and title, in the declared order (`Declared`) or the built-in one (`Observed`).
+5. `FilenameTitleDiscovery`: the whole file name as a title, with a leading track number taken off. `Observed`.
+
+The tier decides first and the order only inside it: a declared pattern beats a declared folder role, and both beat a declared tag order, while any declaration beats every observed claim wherever it was emitted.
+
+The claims themselves are not stored. The index keeps where each field's answer came from and why (`dance_kind`, `dance_detail`, `dance_reason` and the same for artist and title), which is what review shows next to a value.
 
 ### Declared settings: the informed greenlight
 
@@ -108,7 +125,7 @@ On a 2685-file library with BigBalfolkList imported and nothing else configured,
 
 - **`Microsoft.Data.Sqlite` appears in `SqliteLibraryIndex` and `QueueHistoryStore` and nowhere else.** Extracting a `.Data` project later should be a file move, not an untangling.
 - `id INTEGER PRIMARY KEY` is an alias for the rowid, so there is no second index to maintain. **`content_hash BLOB UNIQUE` is the natural key** and what an upsert conflicts on, so a renamed or retagged file keeps its row along with everything the user decided about it.
-- The hash is over **the audio stream only** (`AudioContentHasher`, using TagLib's invariant start/end positions). Nothing in the application writes tags into a file: a correction from the editor is stored as an approval in the library index (`TrackEditorService.ApplyAsync`), never written back to the tag.
+- The hash is over **the audio only** (`AudioContentHasher`, using TagLib's invariant start/end positions), so a file retagged by another program keeps its row. It samples rather than reading everything: a slice from each end of the audio and its length. Nothing in the application writes tags into a file: a correction from the editor is stored as an approval in the library index (`TrackEditorService.ApplyAsync`), never written back to the tag.
 - The **fast path is path + size + last-write-time**, held in a snapshot read once per scan. Hashing would be a better check and is what the row is keyed by, but it means opening the file, which is the cost the index exists to avoid.
 - The index stores **the slug, not a name**, plus `original_dance` for the review screen to group identical unknown values by. The review count itself is the gate's: the track store publishes how many indexed tracks were held out of the library, so all three hold-back reasons count.
 - **The file carries the shape it was laid out in, in `PRAGMA user_version`.** `SchemaVersion` in `SqliteLibraryIndex` goes up with any change to the schema, and an index stamped with anything else is deleted and laid out again rather than opened: an older stamp and a newer one alike, because going back a build has to work the first time. Only the `tracks` table is thrown away, because only it was worked out from the files and the scan that follows works it out again. **The approvals, the ignored values and the whole of `track_paths` are read out before the file goes and written back after**, all three or none of them. The paths have to come across or the rebuild is itself a way of losing a library: the missing-folder question is asked about the folders the indexed paths name, so an emptied `track_paths` asks nobody anything on a start with the drive unplugged, and the reconciliation that closes the scan then deletes every carried approval for pointing at no track. Every enum the index stores a member of has pinned numeric values, and a test holds them there: a member inserted in front of one would turn every answer into a different one, and the stamp cannot help, because the rebuild reads the old file back out by exactly those numbers.
@@ -124,40 +141,29 @@ On a 2685-file library with BigBalfolkList imported and nothing else configured,
 - **A filed night is still reachable.** `ListNightsAsync` is summaries rather than nights, because a list of evenings is chosen from and only one of them is read; `ReadNightAsync` reads that one, and export and delete take an id. The screen used to be able to reach only the night that was running, so the account of an evening left the screen the moment it ended and the file grew for the life of the application with nothing anybody could do about it.
 - **An entry records its finish as well as its start.** `RecordCurrentItemAsync` runs the moment an item stops being the current one, so what a room heard is the time between the two: a track's own length says how long it is, not how long it was played for.
 - **Entries keep their polymorphic JSON as a `payload` column** rather than being flattened. `kind` is lifted back out of that payload so it cannot drift from it, and so counting what an evening was made of costs no parsing.
-- An unreadable database is **logged and left alone**, unlike the library index, which deletes and rebuilds itself. `App` asks once at startup about a night that was never ended and has been quiet for more than eight hours: a gap rather than a date, because a ball crossing midnight is normal. Starting fresh passes `LastActivityAt` to `EndNightAsync`, so the night is filed at the finish of its last entry rather than at the moment somebody answered, which can be days later.
-
-`TrackTextTemplate` is how a track is written on the screens that write one as a line, in the
-placeholders the file name patterns already use, read the other way round: a pattern takes a name
-apart, a template puts one together. It lives in the domain because four surfaces render it and the
-rule about a field with nothing in it, that it takes its separator with it, has to be the same on
-all of them. `DisplayTemplates` in the settings holds one per surface, defaulting to what each said
-before it existed. The catalogue is deliberately not one of them: it is a table sorted per field.
-
-`DanceListStore` owns `dance_list.json` and additionally exposes an `Index`. The index is rebuilt *before* the new list is published, so a subscriber reacting to a change never reads a lookup built from the list it just replaced.
-
-**To add a new store:**
-
-1. Create `IXxxStore` in `Stores/{Feature}/` with `Current`, `Observe()`, `LoadAsync()`, `UpdateAsync()`.
-2. Create `XxxStore` implementing the interface. Use `BehaviorSubject<T>`, `SemaphoreSlim`, and JSON serialisation as in existing stores.
-3. Register in `ConfigureServices` in `ApplicationComposition.cs` as a singleton: `services.AddSingleton<IXxxStore, XxxStore>();`.
-4. Call `LoadAsync()` from `ApplicationStartup.Run`, inside the `MainWindow.Opened` subscription alongside the other stores.
+- An unreadable database is **logged and left alone**, unlike the library index, which deletes and rebuilds itself. `ApplicationStartup` asks once at startup about a night that was never ended and has been quiet for more than eight hours: a gap rather than a date, because a ball crossing midnight is normal. Starting fresh passes `LastActivityAt` to `EndNightAsync`, so the night is filed at the finish of its last entry rather than at the moment somebody answered, which can be days later.
 
 ### Services
 
-Services hold **ephemeral runtime state** and operational logic, queue management, playback orchestration, random selection, synonym resolution, track discovery. They consume stores and expose reactive observables.
+Services hold **runtime state** and the logic that is not persistence: the queue, playback, random selection, track discovery, what the presentation shows. They consume stores and expose observables.
 
 | Service | Responsibility |
 |---------|---------------|
 | `QueueService` | In-memory queue backed by `SourceList<IQueueItem>`. Delegates all validation to a `QueueGuard` (see below). Changes name the row rather than its position: `Move` and `Remove` take a `QueueItemId`, because every dance that ends renumbers the queue and a caller's position is always a snapshot. A row that has gone comes back as `QueueChangeResult.Gone`, which is the queue having moved on rather than the queue saying no. |
 | `QueueConsumptionService` | Dequeues items, drives playback, tracks elapsed time, records history, and holds the gap between two dances. `GapQueueItem` is the gap while it runs: it is the *current* item and never a queued one, so every surface draws it the way it draws a delay, and nothing has to filter it out of the queue or the remote. Recording skips it, and no time is lost by that: entries carry a start and a finish, so the gap is the space between two rows. `TrackGaps` is the same rule for anything projecting when the evening ends. An advance that starts on its own arrives from somewhere else, a track ending on the audio library's callback thread or a countdown on a timer thread, so both go through the constructor's advance scheduler, which the application supplies as the UI thread. |
-| `AudioPlaybackService` | ManagedBass wrapper for audio playback (play, pause, seek, volume). |
+| `ManagedBassAudioPlaybackService` | `IAudioPlaybackService` over BASS: select, play, pause, restart, seek, preload the next file, and the equalizer chain. No volume: that is the mixing desk's. BASS is initialised in the constructor, and a library that will not load is reported through `AudioAvailability` rather than thrown, so the window still comes up. |
+| `PreviewPlaybackService` | Plays one file so a person can hear what it is, for review. Refused outright while the queue is playing: there is one output and the room is on it. |
+| `PresentationStateService` | Reduces the queue and the player to the `PresentationState` every presentation surface draws, once, so the desktop window and the browser cannot disagree. |
+| `TrackTextTemplate` | How a track is written as a line on the screens that write one, in the placeholders the file name patterns use, read the other way round. In the domain because four surfaces render it and the rule about an empty field, that it takes its separator with it, has to be the same on all of them. `DisplayTemplates` in the settings holds one per surface. The catalogue is deliberately not one of them: it is a table sorted per field. |
+| `EndOfNightAudio` | The file the user nominated as the end of the night, checked before it is offered, so the button is disabled when the path stops resolving rather than failing in front of a room. |
+| `NightReport`, `NightSpreadsheet` | One night written out for a rights organisation: an HTML document a person reads, and a CSV for an upload. The same three columns either way. Static. |
 | `RandomTrackService` | Random selection over the dances a `RandomSelectionScope` reaches: a `Pool` of tags (empty means every dance) or one `SingleDance`. Every dance in the pool is equally likely and a dance's tracks share its share, so forty recordings of one waltz do not drown out the rest. Deduplicates against queue + history + currently playing, and groups tracks by slug so an unresolved track never takes part. |
 | `DancePool` | The tags a pick draws from, held in memory and read by the dance panel, the auto-queue and the phone remote alike. Not persisted: it is a decision about tonight. |
 | `TrackDiscoveryService` | Opens a file once and reports what it says about itself (`TrackEvidence`): filename, path segments, tags, duration, format, content hash. It decides nothing. |
-| `AudioContentHasher` | SHA-256 over the audio between the tags, so the application's own tag edits do not move a row in the library index. |
+| `AudioContentHasher` | SHA-256 over a slice from each end of the audio between the tags, plus its length, so a file retagged elsewhere keeps its row in the library index. Static. |
 | `DanceListReader` | The one door the list comes through, from all three sources: the cached copy on disk, a fetch, and a file the user picked. Nothing is shipped with the build, so a machine nobody has fetched or imported on has no vocabulary and says so. Refuses anything that is not format version 4, is empty, or breaks validation. Static, because it is a pure function of the bytes. |
 | `DanceListFeed` | Downloads the raw `dances.json` from the BigBalfolkList repository. Caching off: the reason to press update is that something was merged a minute ago. |
-| `DanceListValidation` | Checks the invariants everything else rests on: a name belongs to exactly one dance, slugs are unique, and every tag a dance carries is declared at the top of the file. |
+| `DanceListValidation` | Checks the invariants everything else rests on: a name belongs to exactly one dance, slugs are unique, and every tag a dance carries is declared at the top of the file. Static. |
 
 **To add a new service:**
 
@@ -171,7 +177,7 @@ The `QueueService` does not contain any validation logic itself. Instead, it del
 
 **Components:**
 
-- **`IQueueRule`**: interface that each rule implements. Every method returns a nullable value: `null` means "no opinion" (defer to other rules), a non-null value means "I have a verdict". Methods:
+- **`IQueueRule`**: interface that each rule implements. Every method but `GetEvictionIndices` returns a nullable value: `null` means "no opinion" (defer to other rules), a non-null value means "I have a verdict". `GetEvictionIndices` returns a list, empty when the rule evicts nothing. Methods:
   - `GetPreAddRemovalPredicate(newItem, currentItems)`: returns an optional predicate identifying items that should be removed *before* the new item is evaluated. `EndOfNightRule` uses it to take the auto-track out from under the entry that ends the evening.
   - `EvaluateAdd(item, adjustedItems)`: returns a `QueueRuleVerdict` to allow or deny adding the item. Receives the queue *after* pre-add removals have been applied.
   - `GetEvictionIndices(currentItems)`: returns indices of items that should be evicted when settings or history change.
@@ -206,6 +212,8 @@ The `QueueService` does not contain any validation logic itself. Instead, it del
 
 ### Helpers
 
+`UnawaitedWork` is how work nothing can await is started: it runs the work and, when it fails, writes the English log line and shows the screen text (see Logging). A bare discard leaves the exception on a task nobody observes, and an `async void` rethrows it on the UI thread, which closes the application in the middle of an evening. Where a call site already hands `SafeFireAndForget` a handler of its own, that handler is the report and `UnawaitedWork` is not added on top.
+
 `StringNormalizer.Normalize(string)`: decomposes Unicode (FormD), strips diacritics (non-spacing marks), keeps only letters/digits/spaces, lowercases, and collapses whitespace. Used throughout for case-insensitive, accent-insensitive name matching (resolving a name to a dance, uniqueness checks, search filtering).
 
 ---
@@ -236,12 +244,11 @@ That is four exception handlers in total, none of them in `Program.cs` itself.
 
 ### Setup wizard
 
-`Views/Wizard/` holds a first-run wizard shown when `ApplicationSettings.SetupCompleted` is false (and never during a smoke test, which has nobody to answer it). It is also reachable from Settings -> Troubleshooting -> *Run setup again*.
+`Views/Wizard/` holds a first-run wizard shown when `ApplicationSettings.SetupCompleted` is false (and never during a smoke test, which has nobody to answer it). It is also reachable from Settings -> Library -> *Run setup again*. It is a screen inside the main window (`Screen.Setup`), not a window of its own.
 
 - A step is a `WizardStepViewModel`: `Title`, `Explanation`, an optional `CanContinue` observable, and `EnterAsync`/`CommitAsync`. `SetupWizardViewModel` owns the ordered list, and its continue command follows `CurrentStep.CanContinue` through `.Switch()` so a step's opinion stops counting the moment it is left.
 - Steps are registered `AddTransient`, so a second run starts from what is on disk rather than from the last visit. A step that wraps a singleton screen has to say so to that screen as well: `DiscoveryStepViewModel` tells the `DiscoveryViewModel` it shares with the rules panel to fill its switches from disk again, or a second run would show, and commit, whatever was left there unsaved. Each needs an `IViewFor<T>` registration for `ViewModelViewHost` to resolve it.
-- The wizard is modal over the main window, so it takes over confirmation ownership for as long as it is open (`ConfirmationService.UseOwner`). Without that, a confirmation raised from a step is parented to a window the user cannot reach: it closes immediately and reads as a button that does nothing.
-- Order: explain, fetch the dance list, point at the music, then answer what could not be placed. The dance list comes first because it is the vocabulary everything else is said in, and its step has nothing to answer: it fetches the published list, or imports one from a file, and shows what arrived. It blocks until a list has arrived, because nothing ships with the build and a machine with no list can answer nothing at all; a hall with no wifi imports a `dances.json` from a stick instead.
+- Order: explain, fetch the dance list, point at the music, say how the library is arranged, then answer what could not be placed. The dance list comes first because it is the vocabulary everything else is said in, and its step has nothing to answer: it fetches the published list, or imports one from a file, and shows what arrived. It blocks until a list has arrived, because nothing ships with the build and a machine with no list can answer nothing at all; a hall with no wifi imports a `dances.json` from a stick instead. "How your library is arranged" cannot be skipped either: it will not be passed until one of the four discovery mechanisms is ticked, and declaring the shape before answering files one at a time is what makes the last step a pile of leftovers rather than the whole library.
 
 ### Views & ViewModels
 
@@ -255,7 +262,13 @@ Namespace: `Ready4Balfolk.UI.Views.{Feature}`.
 
 Some features also include sub-item ViewModels (e.g. `TrackViewModel`, `DanceCardViewModel`, `TagChipViewModel`, `HistoryItemViewModel`) and converters. Converters used by more than one feature live in `Converters/`.
 
-**MainWindow** is the shell. Its `MainWindowViewModel` receives all sub-ViewModels via constructor injection. Navigation uses `IsVisible` bindings on `Panel` children, one panel per screen, all stacked. The `NotificationOverlayView` is always visible on top.
+Three kinds of view do not follow the trio:
+
+- **`NotificationOverlayView`** is a plain `UserControl` whose `x:DataType` is the `NotificationService` itself: the bars are the service's list, and a view model in between would only copy it.
+- **`PresentationWindow`** is a plain `Window` over `PresentationDisplayViewModel`, one per display, opened and closed by `ApplicationStartup` rather than navigated to.
+- **The dialogs** in `Views/Dialogs/` are `ReactiveWindow<T>`s, built and shown by the service that asks the question (`ConfirmationService`, `TrackEditorService`, `MissingFolderPromptService` and the like) rather than resolved from the container.
+
+**MainWindow** is the shell. Its `MainWindowViewModel` is handed the always-visible view models (toolbar, playback, equalizer, queue, catalogue) directly, and everything else as a `Lazy<T>`, or a `Func<T>` for the wizard, built on first navigation into a nullable `[Reactive]` property. Each screen is a `DockPanel` whose `IsVisible` follows `Navigation`, holding a `ViewModelViewHost` bound to that property, so the view is resolved through its `IViewFor<T>` registration once there is a view model to show. The `NotificationOverlayView` is always visible on top.
 
 ### Source Generators
 
@@ -277,10 +290,7 @@ Some features also include sub-item ViewModels (e.g. `TrackViewModel`, `DanceCar
 
 Enabled globally via `<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>` in the `.csproj`. Every XAML file must set `x:DataType` to its ViewModel type.
 
-**Fall back to `{ReflectionBinding}`** in two cases:
-
-- **DataGrid columns**: columns are not in the visual tree, so compiled bindings cannot resolve their DataContext.
-- **TreeView `IsExpanded` style setters**: style bindings cannot use compiled bindings for two-way sync.
+**Fall back to `{ReflectionBinding}`** for **DataGrid columns** only: columns are not in the visual tree, so compiled bindings cannot resolve their DataContext. `TrackCatalogView` is the one place that needs it.
 
 ### Code-Behind
 
@@ -308,23 +318,23 @@ public enum Screen { Main, Settings, Help, Review, Setup }
 1. Add a value to the `Screen` enum.
 2. Add a derived `[ObservableAsProperty] public partial bool IsXxxScreen { get; }` and wire it in the constructor.
 3. Create the view folder in `Views/{Feature}/` with the standard View + ViewModel.
-4. Register the ViewModel in `ApplicationComposition.cs`.
-5. Add the ViewModel as a property on `MainWindowViewModel` (injected via constructor).
-6. Add a `Panel` in `MainWindow.axaml` with `IsVisible="{Binding Navigation.IsXxxScreen}"`.
+4. In `ApplicationComposition.cs`, register the ViewModel, a `Lazy<XxxViewModel>` over it, and `IViewFor<XxxViewModel>` for its view.
+5. On `MainWindowViewModel`, take the `Lazy<XxxViewModel>` and add a nullable `[Reactive] public partial XxxViewModel? Xxx { get; set; }`, filled the first time `CurrentScreen` becomes `Screen.Xxx`.
+6. In `MainWindow.axaml`, add a `DockPanel` with `IsVisible="{Binding Navigation.IsXxxScreen}"` holding `<rxui:ViewModelViewHost ViewModel="{Binding Xxx}" />`.
 7. Add a navigation button in the toolbar or appropriate location.
 
 ### UI Services
 
 | Service | Purpose |
 |---------|---------|
-| `ConfirmationService` | Shows a modal `ConfirmationDialogView`. Requires `SetOwner(Window)` to be called once at startup (done in `ApplicationStartup.Run`). Returns `Task<bool>`. |
-| `MissingFolderPromptService` | Implements the Domain's `IMissingFolderPrompt`: shows `MissingFoldersDialogView` for a scan that found no music where the index says there is some. Marshals onto the UI thread, since a scan does not run on it, and takes its owner window from `ConfirmationService` so a question raised from inside the wizard is parented to the wizard. Keeping the tracks is what an unanswered question means. |
-| `NotificationService` | Implements the Domain's `INotificationService`: the bars along the bottom of the window, a DynamicData `SourceList<NotificationItem>` bound to `NotificationOverlayView`. Asked from any thread and moves onto the UI thread itself. Auto-dismisses after 4 seconds, counted from when the window opens for anything said before it did. An error already on screen is not shown again beside itself. Supports `Information`, `Warning`, `Error` severity. |
+| `ConfirmationService` | Shows a modal `ConfirmationDialogView`. Requires `SetOwner(Window)` to be called once at startup (done in `ApplicationStartup.Run`), and is where other dialogs read their owner (`CurrentOwner`). Returns `Task<bool>`. |
+| `MissingFolderPromptService` | Implements the Domain's `IMissingFolderPrompt`: shows `MissingFoldersDialogView` for a scan that found no music where the index says there is some. Marshals onto the UI thread, since a scan does not run on it, and takes its owner window from `ConfirmationService`. Keeping the tracks is what an unanswered question means. |
+| `NotificationService` | Implements the Domain's `INotificationService`: the bars along the bottom of the window, a DynamicData `SourceList<NotificationItem>` bound to `NotificationOverlayView`. Asked from any thread and moves onto the UI thread itself. Auto-dismisses after 4 seconds, counted from when the window opens for anything said before it did. An error already on screen is not shown again beside itself. `NotificationSeverity` is `Information`, `Warning` or `Error`. |
 | `FileLogSinkService` | Implements Avalonia's `ILogSink` to bridge framework logs into the Domain `ILoggerService`. Wired in `ApplicationComposition.cs` via `AfterSetup`. |
 
 ### Converters
 
-All value converters follow a static instance pattern for use with `{x:Static}` in XAML:
+Value converters follow a static instance pattern for use with `{x:Static}` in XAML:
 
 ```csharp
 public sealed class DurationFormatConverter : IValueConverter
@@ -340,6 +350,8 @@ Text="{Binding Length, Converter={x:Static local:DurationFormatConverter.Instanc
 
 Existing converters: `BoolToStringConverter` and `WeightConverter` in `Converters/`; `DurationFormatConverter` and the multi-value `TrackTextConverter` in `Views/Queue/`; `SeverityToBrushConverter` in `Views/Notifications/`; `FolderRoleDisplayConverter` in `Views/Discovery/`; `ReviewStateBrushConverter` and `PickerZIndex` in `Views/Review/`; `LanguageDisplayConverter`, `MinutesOfDayConverter` and `ThemeDisplayConverter` in `Views/Settings/`; `AudioFormatToBrushConverter` and `AudioFormatToIconConverter` in `Views/TrackCatalog/`.
 
+`BoolToStringConverter` is the exception: it carries its two labels as properties, so each use declares its own instance in XAML resources.
+
 **To add a new converter:** create a class implementing `IValueConverter` with `public static readonly XxxConverter Instance = new();`. Place it in the feature folder where it is used.
 
 ### Presentation Windows
@@ -354,7 +366,8 @@ A **class library, not a web application**. The Avalonia app is the host and sta
 `FrameworkReference Microsoft.AspNetCore.App` is how a non-web project gets ASP.NET Core. Nothing in
 the desktop app depends on the server running, and switching it off costs the app nothing.
 
-It serves two pages, both from `wwwroot/` and both embedded rather than copied next to the
+It serves two pages and what they need: every file in `wwwroot/`, `/api/config`,
+`/api/remote/login` and the two hubs. The files are embedded rather than copied next to the
 executable (`GenerateEmbeddedFilesManifest`, because flatpak-builder stages a single published
 directory and a self-contained publish should not depend on loose files surviving it):
 
@@ -397,16 +410,16 @@ it is switched on.
 
 ### Logging
 
-`ILoggerService` is the Domain logging abstraction with `LogAsync`, `DebugAsync`, `InfoAsync`, `WarningAsync`, `ErrorAsync`, `CriticalAsync`, and `ExportAsync` methods.
+`ILoggerService` is the Domain logging abstraction with `LogAsync`, `DebugAsync`, `InfoAsync`, `WarningAsync`, `ErrorAsync`, `CriticalAsync`, and `ExportAsync` methods, and `Report` from `LoggerServiceExtensions`.
 
 | Implementation | Behaviour |
 |----------------|-----------|
 | `FileLoggerService` | Writes to `app.log` in the app-data directory. Moves it to `app.log.1` and starts over when it exceeds 512 KB. Uses `SemaphoreSlim` for thread-safe writes. Has a configurable `MinimumLevel`. Exporting writes both halves, oldest first, with the user profile directory written as `~`. |
-| `NoOpLoggerService` | Does nothing: used in tests. |
+| `NoOpLoggerService` | Does nothing. Used in tests, and by `SettingsStore` when it is built without a logger. |
 
 **Format:** `2025-01-15 14:30:00.123 [INFO] message`
 
-**Usage:** inject `ILoggerService` and call `await logger.InfoAsync("message")`. Logging is fire-and-forget (the `Task` offloads to a background thread).
+**Usage:** inject `ILoggerService`. A level method returns a `Task` already running on the thread pool, so a caller discards it (`_ = logger.InfoAsync("message")`) unless it must know the line is written, as a test does. A failure is reported with `Report`, which returns nothing.
 
 **The log and the screen are separate, and nothing couples them.**
 
@@ -457,7 +470,7 @@ The same five, because Release is stricter than Debug and CI builds Release. `CO
 It is **four jobs that run beside each other**, because a pull request goes green when the slowest one finishes rather than when the longest list of steps does:
 
 - `test`, on Ubuntu and Windows. The tests have to run somewhere they could fail differently: `Directory.Build.targets` resolves the BASS natives from the host OS, and the paths the stores write to are not the same shape on Windows.
-- `style`: `dotnet format --verify-no-changes` and `scripts/check-translations.py`, which compares the `.resx` key sets in both directions. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed. One platform for both: `.gitattributes` normalises line endings, so neither can answer differently per platform.
+- `style`: `dotnet format --verify-no-changes` and `scripts/check-translations.py`, which compares the `.resx` key sets in both directions, fails on a key nothing reads, and fails on a resx string handed to the logger as its log line. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed. One platform for both: `.gitattributes` normalises line endings, so neither can answer differently per platform.
 - `scenarios`: the end to end suite. Its own job above all because it is the leg that grows every time a scenario is written, and beside the others it grows on its own rather than on top of them.
 - `verify`, which needs the other three. A matrix reports one check per leg, so requiring those directly means editing the ruleset every time one is split, and a leg nobody remembered to add is a leg that cannot block a merge.
 
@@ -467,7 +480,7 @@ No coverage is collected. It was, as an artifact on every run, and nothing ever 
 
 **Native debug symbols are dropped from the output** (`DropNativeDebugSymbols` in `Directory.Build.props`). SkiaSharp and HarfBuzz ship a `.pdb` beside every native library for every runtime they support, and MSBuild copies them: `libSkiaSharp.pdb` alone is 81 MB and arrives once per Windows runtime in each project's output. It made the four outputs of this solution 2.2 GB, nearly all of it copying rather than compiling, and none of it usable on the machine doing the copying. Only the natives are stripped; the symbols of the code in this repository are what a stack trace is read from.
 
-Two build-level gates are worth knowing about. `TreatWarningsAsErrors` does not reach the Avalonia XAML compiler, so `AVLN5001` (the obsolete-member warning) is listed in `WarningsAsErrors` separately. And every workflow declares a `concurrency` group so a superseded push is cancelled, except on `main`, where a commit left with no verdict is worse than a slow one.
+Two build-level gates are worth knowing about. `TreatWarningsAsErrors` does not reach the Avalonia XAML compiler, so `AVLN5001` (the obsolete-member warning) is listed in `WarningsAsErrors` separately. And `verify`, `build-binaries` and `check-icons` declare a `concurrency` group so a superseded push is cancelled, except on `main`, where a commit left with no verdict is worse than a slow one. `verify-packages` always cancels, `release` never does, and the three workflows that are only ever called (`build-flatpak`, `build-inno-setup`, `smoke-test-packages`) have none of their own: they run inside their caller's.
 
 **The smoke test.** CI packages every artifact but cannot tell a healthy one from a broken one by looking. `Directory.Build.targets` takes the architecture of the BASS, BASSFLAC and BASS_FX natives from the `RuntimeIdentifier`, but the operating system always from the *host*, so a publish for another OS lands the wrong ones and still succeeds. And a native that is present is not the same as one that loads. Either way the failure only shows up when a user double-clicks it.
 
@@ -477,17 +490,17 @@ So the app can start itself for inspection:
 ./Ready4Balfolk.UI --smoke-test
 ```
 
-`SmokeTest.Run` starts the application for real, waits for the main window, then resolves `IAudioPlaybackService`: which is what loads BASS, and is why killing the app after a timeout would not do: the service is a lazy singleton that nothing on the startup path touches, so a build with no BASS at all reaches a running window quite happily. It then checks BASS_FX (`IsEqualizerAvailable`), checks every extension the app offers is registered, **decodes a file in each format**, **starts the presentation server and fetches the display page and its assets from it**, scans everything this run appended to `app.log` for `[ERROR]` and `[CRITICAL]`, prints the log if anything failed, and exits: `0` passed, `1` a check failed, `2` startup hung.
+`SmokeTest.Run` starts the application for real, waits for the main window, then asks `IAudioPlaybackService` whether BASS came up. Killing the app after a timeout would not do: BASS is loaded as the main window's view models are built, and a library that will not load is reported rather than thrown, so a build with no BASS at all reaches a running window quite happily. It then checks BASS_FX (`IsEqualizerAvailable`), checks every extension the app offers is registered, **decodes a file in each format**, **starts the presentation server and fetches the display page and its assets from it**, scans everything this run appended to `app.log` for `[ERROR]` and `[CRITICAL]`, prints the log if anything failed, and exits: `0` passed, `1` a check failed, `2` startup hung.
 
 The decode matters because registering a plugin is not the same as being able to read a file with it. v1.1.0 shipped Windows builds with BASSFLAC present and unloadable, so `.flac` was silently missing from the catalogue for every Windows user.
 
-The presentation server is the other half a package can drop. The display page and its scripts are embedded in `Ready4Balfolk.Web` and served out of the assembly, so a package that loses them starts perfectly and serves nothing; and a Flatpak whose manifest lost `--share=network` gets a sandbox with no network of its own, where the listener still binds inside the sandbox but no address the hall could reach exists at all. The check asks for `display.js`, `app.css`, `strings.js` and `remote.js` as well as the page, because the page has a route of its own and only those four travel through the static file middleware a browser depends on. It drives `PresentationWebServer.ApplyAsync` directly rather than flipping the setting, so a local run leaves the DJ's own switch alone, and it asks for a port of its own so a machine already serving its display page is not a failure.
+The presentation server is the other half a package can drop. The display page and its scripts are embedded in `Ready4Balfolk.Web` and served out of the assembly, so a package that loses them starts perfectly and serves nothing; and a Flatpak whose manifest lost `--share=network` gets a sandbox with no network of its own, where the listener still binds inside the sandbox but no address the hall could reach exists at all. The check asks for `display.js`, `app.css`, `strings.js`, `remote.js` and `lib/signalr.min.js` as well as the page, because the page has a route of its own and only the files travel through the static file middleware a browser depends on. It drives `PresentationWebServer.ApplyAsync` directly rather than flipping the setting, so a local run leaves the DJ's own switch alone, and it asks for a port of its own so a machine already serving its display page is not a failure.
 
 `scripts/smoke-test-media/` holds the fixtures: the same 1.5 s chromatic scale, A4 up to G♯5, encoded as `.wav`, `.aiff`, `.flac`, `.mp3`, `.mp2` and `.ogg`. They are committed rather than generated, for the same reason the icons are: CI decodes them on every pull request, and generating them there would put ffmpeg on the critical path of every run, which `windows-latest` does not ship. Regenerate with `scripts/generate-smoke-test-media.sh` and commit the result; the output is deterministic, so an unchanged scale produces no diff.
 
 `.mp1` and `.aif` have no fixture. Nothing has encoded MPEG audio layer 1 for decades, and `.aif` is byte for byte the same format as `.aiff`; both are covered by the registered-extensions check instead.
 
-Two things exist only for this mode. `App` skips its exit confirmation dialog, since nobody is there to answer one; and BASS initialises against its "no sound" device, so the library, its plugins and the effect chain come up exactly as they would against real hardware on a runner that has no sound card. That keeps the check measuring whether the natives shipped rather than whether the machine can make a noise.
+Two things exist only for this mode. `ApplicationStartup` skips its exit confirmation dialog, since nobody is there to answer one; and BASS initialises against its "no sound" device, so the library, its plugins and the effect chain come up exactly as they would against real hardware on a runner that has no sound card. That keeps the check measuring whether the natives shipped rather than whether the machine can make a noise.
 
 Run it the way CI does with the wrappers, which set up a headless display and unpick some platform-specific traps:
 
@@ -509,8 +522,8 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 
 ### Reactive Patterns
 
-- **Domain → UI:** stores expose `IObservable<T>` via `BehaviorSubject.AsObservable()` or DynamicData `SourceList.Connect()`. ViewModels subscribe in the constructor, marshal to the UI thread with `.ObserveOn(RxApp.MainThreadScheduler)`, and collect subscriptions in a `CompositeDisposable` that is disposed when the ViewModel is disposed.
-- **DynamicData collections:** `service.Connect()` → `.ObserveOn(RxApp.MainThreadScheduler)` → `.Bind(out _items)` → `.Subscribe()`. The resulting `ReadOnlyObservableCollection<T>` is bound to the view's `ItemsSource`.
+- **Domain → UI:** stores expose `IObservable<T>` via `BehaviorSubject.AsObservable()` or DynamicData `SourceList.Connect()`. ViewModels subscribe in the constructor, marshal to the UI thread with `.ObserveOn(RxSchedulers.MainThreadScheduler)`, and collect subscriptions in a `CompositeDisposable` that is disposed when the ViewModel is disposed.
+- **DynamicData collections:** `service.Connect()` → `.ObserveOn(RxSchedulers.MainThreadScheduler)` → `.Bind(out _items)` → `.Subscribe()`. The resulting `ReadOnlyObservableCollection<T>` is bound to the view's `ItemsSource`.
 - **Derived properties:** `this.WhenAnyValue(x => x.Prop).Select(...)` piped to `.ToProperty(this, x => x.DerivedProp)` to produce `[ObservableAsProperty]` values.
 - **Disposal:** all subscriptions are added to `CompositeDisposable` via `.DisposeWith(_disposables)`. ViewModels implement `IDisposable`.
 
@@ -519,7 +532,7 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 | Mechanism | Where used |
 |-----------|-----------|
 | `SemaphoreSlim(1, 1)` | All stores: serialises file I/O. `FileLoggerService`: serialises log writes. |
-| `ObserveOn(RxApp.MainThreadScheduler)` | All ViewModel subscriptions that touch UI-bound properties or collections. |
+| `ObserveOn(RxSchedulers.MainThreadScheduler)` | All ViewModel subscriptions that touch UI-bound properties or collections. |
 | `ObserveOn(TaskPoolScheduler.Default)` | Work that must stay off the UI thread, such as `TrackStore` re-resolving every track when the dance list changes. |
 
 ---
@@ -527,15 +540,15 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 ## How To: Add a New Feature (Checklist)
 
 1. **Model**: add sealed records in `Domain/Models/{Feature}/` if new data types are needed.
-2. **Store** (if persistent state): create `IXxxStore` + `XxxStore` in `Domain/Stores/{Feature}/`. Follow the `BehaviorSubject` + `SemaphoreSlim` + JSON pattern.
+2. **Store** (if persistent state): create `IXxxStore` + `XxxStore` in `Domain/Stores/{Feature}/`, as described under Stores.
 3. **Service** (if runtime logic): create `IXxxService` + `XxxService` in `Domain/Services/{Feature}/`.
-4. **Register**: add store/service to `ConfigureServices` in `ApplicationComposition.cs`. Call `store.LoadAsync()` from `ApplicationStartup.Run` if it persists data.
+4. **Register**: add store/service to `ConfigureServices` in `ApplicationComposition.cs`. Add the store's `LoadAsync` to the loads in `ApplicationStartup.Run` if it loads after the window opens.
 5. **ViewModel**: create `{Feature}ViewModel : ReactiveObject` in `UI/Views/{Feature}/`. Use `[Reactive]`, `[ObservableAsProperty]`, `[ReactiveCommand]`. Subscribe to stores/services in the constructor, dispose in `Dispose()`.
 6. **View**: create `{Feature}View.axaml` + `.axaml.cs` extending `ReactiveUserControl<{Feature}ViewModel>`. Set `x:DataType`. Use compiled bindings.
-7. **Register ViewModel**: add to `ApplicationComposition.cs` as singleton. Add as a property on `MainWindowViewModel` if it is a top-level screen.
-8. **Navigation**: add to `Screen` enum, wire `IsXxxScreen`, add `IsVisible` panel in `MainWindow.axaml`, add toolbar button.
+7. **Register ViewModel**: add to `ApplicationComposition.cs` as singleton. A top-level screen also needs a `Lazy<T>` and an `IViewFor<T>`; see To add a new screen.
+8. **Navigation**: add to `Screen` enum, wire `IsXxxScreen`, add the `DockPanel` and its `ViewModelViewHost` in `MainWindow.axaml`, add toolbar button.
 9. **Converters**: if needed, add with the static `Instance` pattern in the feature folder.
-10. **Strings**: add the English text to `UiStrings.resx`, the Dutch to `UiStrings.nl.resx`, and the property to `UiStrings.Designer.cs`. The three are kept in step by hand.
+10. **Strings**: add the English text to `UiStrings.resx`, the Dutch to `UiStrings.nl.resx`, and the property to `UiStrings.Designer.cs`; the three are kept in step by hand. The same rule holds for `DomainStrings`, for the browser pages' `wwwroot/strings.js`, and for the two manuals, `help.md` and `help.nl.md`: nothing is written in one language only.
 
 ### Dutch glossary
 
