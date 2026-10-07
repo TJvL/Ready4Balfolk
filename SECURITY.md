@@ -18,12 +18,18 @@ accounts, no server component you connect to, and it sends nothing anywhere by i
 are worth naming.
 
 **The embedded web server is off by default.** When switched on it binds to every network interface
-on the chosen port, there is no local-only mode, and it serves two pages: a presentation display and
-a phone remote. It speaks plain HTTP, so anyone able to read traffic on that network can read what is
-on the screen and the remote's token. The on/off switch is the only guard on the server as a whole; the
-PIN guards the remote page on top of that, but the display page has no PIN check at all, so once the
-server is on, anyone on the network can load it. That is deliberate for a page whose whole content is
-being projected onto a wall in the same room. Do not put it on a network you do not trust.
+on the chosen port, and there is no local-only mode. It serves two pages, a presentation display and
+a phone remote, and what they need: the scripts and styles beside them, `/api/config`,
+`/api/remote/login`, and a SignalR hub for each page. It speaks plain HTTP, so anyone able to read
+traffic on that network can read what is on the screen, the remote's token, and the PIN itself when a
+phone logs in. The PIN is the worse of the two to lose, since it stays good until it is changed and
+every token is only as good as the PIN that bought it.
+
+The on/off switch is the only guard on the server as a whole. The PIN guards the remote's hub, where
+everything that changes the queue happens, and not the remote page: anyone on the network can load
+that page, and it does nothing until a PIN is entered. The display page and its hub have no PIN check
+at all. That is deliberate for a page whose whole content is being projected onto a wall in the same
+room. Do not put the server on a network you do not trust.
 
 The remote is guarded by a six-digit PIN exchanged once for a token, with a per-address lockout after
 five wrong attempts. The PIN protects against someone idly poking at the port, not against a
