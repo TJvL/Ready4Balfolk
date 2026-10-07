@@ -44,6 +44,6 @@ public sealed record TrackResolution
         _ => TitleDecision
     };
 
-    /// <summary>What one field was told, most trusted first.</summary>
+    /// <summary>What one field was told, in the order collected: the trust order within a tier.</summary>
     public IEnumerable<Claim> ClaimsFor(TrackField field) => Claims.Where(claim => claim.Field == field);
 }

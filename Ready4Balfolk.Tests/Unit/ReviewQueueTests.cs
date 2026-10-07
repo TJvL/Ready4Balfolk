@@ -45,8 +45,8 @@ public sealed class ReviewQueueTests
     }
 
     /// <summary>
-    /// Nothing can be answered about a file that is not there: the preview will not play and the
-    /// tags cannot be written. A kept row waits for its drive, not for a person.
+    /// Nothing can be answered about a file that is not there: the preview will not play, and an
+    /// answer could not be checked against it. A kept row waits for its drive, not for a person.
     /// </summary>
     [Fact]
     public void ATrackThatCannotBeReached_IsNotInTheQueue()
@@ -75,6 +75,32 @@ public sealed class ReviewQueueTests
         ]);
 
         Assert.Equal("silent.mp3", Assert.Single(queue).Tracks[0].FileName);
+    }
+
+    [Fact]
+    public void AFieldARuleAnswered_IsSurerThanTwoSourcesAgreeing()
+    {
+        // A declaration is the user vouching for the rule, which is worth more than two tags
+        // happening to agree. Both tracks wait for a title, so only the other two fields differ.
+        var queue = Build(
+            [
+                Entry("/music/agreed.mp3", [1], title: null) with
+                {
+                    Dance = new DerivedFrom(ClaimSourceKind.FileName, "brackets", DecisionReason.Corroborated),
+                    ArtistFrom = new DerivedFrom(ClaimSourceKind.Tag, "artist", DecisionReason.Corroborated)
+                },
+                Entry("/music/declared.mp3", [2], title: null) with
+                {
+                    Dance = new DerivedFrom(ClaimSourceKind.FileName, "%d - %a", DecisionReason.SoleValue),
+                    ArtistFrom = new DerivedFrom(ClaimSourceKind.FileName, "%d - %a", DecisionReason.SoleValue)
+                }
+            ],
+            Approved([2], TrackField.Dance, "Mazurka") with { Kind = ApprovalKind.ByRule },
+            Approved([2], TrackField.Artist, "Naragonia") with { Kind = ApprovalKind.ByRule });
+
+        Assert.Equal(
+            ["agreed.mp3", "declared.mp3"],
+            Assert.Single(queue).Tracks.Select(track => track.FileName));
     }
 
     [Fact]

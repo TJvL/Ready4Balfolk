@@ -15,9 +15,9 @@ public partial class DiscoveryView : ReactiveUserControl<DiscoveryViewModel>
     /// Whether the screen carries its own save button for the folders and tags.
     /// </summary>
     /// <remarks>
-    /// True in the settings, where nothing else would commit them. False inside the wizard, whose
-    /// continue button already means "save this and move on": two buttons that both look like the
-    /// way forward is how a step gets left half applied.
+    /// True on the review screen's rules panel, where nothing else would commit them. False inside
+    /// the wizard, whose continue button already means "save this and move on": two buttons that
+    /// both look like the way forward is how a step gets left half applied.
     /// </remarks>
     public static readonly StyledProperty<bool> ShowSaveButtonProperty =
         AvaloniaProperty.Register<DiscoveryView, bool>(nameof(ShowSaveButton), defaultValue: true);

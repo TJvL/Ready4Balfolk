@@ -15,9 +15,9 @@ public class ConfirmationService : IConfirmationService
     /// The window a modal question belongs to, or null before there is one.
     /// </summary>
     /// <remarks>
-    /// Read by anything else that puts up a dialog, so "which window owns this" is answered in one
-    /// place rather than once per service. There is one window: the wizard and every other screen
-    /// are controls inside it.
+    /// Read by <see cref="MissingFolderPromptService"/> rather than set a second time. The file
+    /// pickers and the track editor still keep an owner of their own (#310). There is one window:
+    /// the wizard and every other screen are controls inside it.
     /// </remarks>
     public Window? CurrentOwner { get; private set; }
 

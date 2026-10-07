@@ -99,9 +99,6 @@ jobs:
       - name: Restore
         run: dotnet restore Ready4Balfolk.sln
 
-      # Formatting is analysed from the source rather than from a build, but the analysers load the
-      # references, so the natives have to be where a build would have put them.
-
       - name: Check formatting
         run: dotnet format Ready4Balfolk.sln --verify-no-changes --verbosity normal --no-restore
 

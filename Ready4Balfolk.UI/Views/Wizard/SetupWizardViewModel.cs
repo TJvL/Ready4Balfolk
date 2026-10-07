@@ -48,7 +48,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
 
     public IReadOnlyList<WizardStepViewModel> Steps { get; }
 
-    /// <summary>Fires once, when the last step has been committed. The window closes on it.</summary>
+    /// <summary>Fires once, when the last step has been committed and the main screen is back.</summary>
     public IObservable<Unit> Finished => _finished.AsObservable();
 
     public SetupWizardViewModel(
