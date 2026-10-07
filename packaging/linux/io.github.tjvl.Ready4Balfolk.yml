@@ -26,6 +26,10 @@ modules:
       - install -d /app/bin
       - cp -r stage/bin/* /app/bin/
       - chmod +x /app/bin/Ready4Balfolk.UI
+      # Where a Flatpak keeps the licences it was built under. The copies beside the program in
+      # /app/bin come with the publish output; these are the ones the tooling looks for.
+      - install -Dm644 stage/bin/LICENSE /app/share/licenses/io.github.tjvl.Ready4Balfolk/LICENSE
+      - install -Dm644 stage/bin/LICENSE.BASS /app/share/licenses/io.github.tjvl.Ready4Balfolk/LICENSE.BASS
       - install -Dm644 stage/share/applications/io.github.tjvl.Ready4Balfolk.desktop /app/share/applications/io.github.tjvl.Ready4Balfolk.desktop
       - |
         for size in 16 24 32 48 64 128 256 512; do
