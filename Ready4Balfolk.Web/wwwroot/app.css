@@ -167,7 +167,8 @@ html, body {
 }
 
 /* A dropped socket must be obvious on a screen nobody is standing at, but it must not cover the
-   dance name: SignalR reconnects by itself and the picture stays true meanwhile. */
+   dance name: the page keeps trying to connect for as long as it is open, and the picture stays
+   true meanwhile. */
 .link-lost {
   position: fixed;
   right: 1.2vw;

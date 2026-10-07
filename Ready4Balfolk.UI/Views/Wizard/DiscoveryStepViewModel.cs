@@ -34,7 +34,7 @@ public sealed class DiscoveryStepViewModel : WizardStepViewModel
         Discovery.StartFromWhatIsOnDisk();
     }
 
-    /// <summary>The same screen the settings keep afterwards.</summary>
+    /// <summary>The same screen the review screen's rules panel keeps afterwards.</summary>
     public DiscoveryViewModel Discovery { get; }
 
     public override string Title => UiStrings.Wizard_Discovery_Title;
@@ -69,8 +69,8 @@ public sealed class DiscoveryStepViewModel : WizardStepViewModel
     /// Next is what saves the folder levels and the tags here.
     /// </summary>
     /// <remarks>
-    /// The screen keeps a save button of its own for the settings, where nothing else would commit
-    /// it. Inside a wizard that button is a second way to do what the continue button already means,
+    /// The screen keeps a save button of its own for the rules panel, where nothing else would
+    /// commit it. Inside a wizard that button is a second way to do what the continue button already means,
     /// and two buttons that both look like the way forward is how a step gets left half applied.
     /// </remarks>
     public override async Task<bool> CommitAsync()

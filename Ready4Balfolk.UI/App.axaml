@@ -99,7 +99,7 @@
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
-        <!-- Kept in step with the ShowButtonText setting by App.OnFrameworkInitializationCompleted,
+        <!-- Kept in step with the ShowButtonText setting by ApplicationStartup.OnMainWindowOpened,
              so every button swaps between its icon and its label at once. -->
         <Style Selector="controls|ButtonContent">
             <Setter Property="ShowText" Value="{DynamicResource ShowButtonText}" />
