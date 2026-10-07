@@ -68,4 +68,15 @@
         <AvaloniaResource Include="Assets\icon.ico" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!--The licences travel with every build: GPLv3 expects its text to go with the object code,
+            and the exception that lets the BASS libraries ship beside a GPL program exists only in
+            LICENSE.BASS. Beside the program rather than inside the single file, so a person can
+            open them; every package is made from this output.-->
+        <None Include="..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest"
+              CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+        <None Include="..\LICENSE.BASS" Link="LICENSE.BASS" CopyToOutputDirectory="PreserveNewest"
+              CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+    </ItemGroup>
+
 </Project>

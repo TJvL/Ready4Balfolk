@@ -2,6 +2,7 @@
 Type=Application
 Name=Ready4Balfolk
 Comment=Music queue manager for bal folk events
+Comment[nl]=Muziekwachtrij voor balfolkavonden
 Exec=Ready4Balfolk.UI
 Icon=io.github.tjvl.Ready4Balfolk
 Terminal=false
