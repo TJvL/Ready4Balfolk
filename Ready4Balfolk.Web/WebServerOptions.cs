@@ -3,7 +3,11 @@ namespace Ready4Balfolk.Web;
 /// <summary>What the embedded server should currently be doing.</summary>
 /// <param name="Enabled">Whether it should be listening at all.</param>
 /// <param name="Port">The TCP port, already clamped by the settings record.</param>
-/// <param name="RemoteControlEnabled">Whether the remote page and its hub exist at all.</param>
+/// <param name="RemoteControlEnabled">
+/// Whether the remote answers. Off, <c>/remote</c> is a 404 and every token is refused, so the hub
+/// accepts no connection. The hub is still mapped and the remote's files are still served, which
+/// is harmless: neither does anything without a token.
+/// </param>
 /// <param name="RemoteControlPin">The PIN the remote exchanges for a connection token.</param>
 /// <remarks>
 /// There is no bind-to-loopback option. A browser on this machine has nothing to offer that the

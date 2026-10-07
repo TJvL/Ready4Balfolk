@@ -55,7 +55,7 @@
                     AutomationProperties.AutomationId="wizard.back"
                     IsVisible="{CompiledBinding !IsFirstStep}"
                     MinWidth="100" />
-            <!-- The accent class is provided by FluentAvalonia at runtime, so this is a false positive. -->
+            <!-- The accent class comes from FluentTheme at runtime, so this is a false positive. -->
             <!-- ReSharper disable once Xaml.StyleClassNotFound -->
             <Button Content="{CompiledBinding ContinueLabel}"
                     Command="{CompiledBinding ContinueCommand}"
