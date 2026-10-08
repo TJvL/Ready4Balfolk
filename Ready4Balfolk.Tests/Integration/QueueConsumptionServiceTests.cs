@@ -24,6 +24,7 @@ namespace Ready4Balfolk.Tests.Integration;
 
 public sealed class QueueConsumptionServiceTests : IDisposable
 {
+    private readonly FakeTimeProvider _time = new();
     private readonly IAudioPlaybackService _audio;
     private readonly QueueService _queue;
     private readonly IQueueHistoryStore _history;
@@ -74,8 +75,10 @@ public sealed class QueueConsumptionServiceTests : IDisposable
             _settingsStore, _history, trackStore, () => null, () => TimeSpan.Zero, new NoOpLoggerService(),
             TimeProvider.System);
 
+        // On a clock that moves only when a test moves it, so a countdown such as the gap between
+        // two dances is still running when the test looks at it, however slow the machine is.
         _sut = new QueueConsumptionService(
-            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), _notifications, TimeProvider.System,
+            _audio, _queue, _history, _settingsStore, new NoOpLoggerService(), _notifications, _time,
             ImmediateScheduler.Instance);
     }
 
@@ -169,14 +172,15 @@ public sealed class QueueConsumptionServiceTests : IDisposable
     [Fact]
     public async Task AdvanceAsync_RecordsWhenTheTrackStarted()
     {
-        var before = DateTime.Now;
         var track = new TrackQueueItem(TestData.CreateTrack(), false);
         _queue.Enqueue(track);
+        var started = _time.GetLocalNow().DateTime;
         await _sut.AdvanceAsync();
+        _time.Advance(TimeSpan.FromMinutes(3));
         await _sut.AdvanceAsync();
 
         await _history.Received(1).AddAsync(Arg.Is<TrackHistoryEntry>(e =>
-            e!.StartedAt != null && e.StartedAt >= before && e.StartedAt <= DateTime.Now));
+            e!.StartedAt == started && e.FinishedAt == started.AddMinutes(3)));
     }
 
     [Fact]
@@ -354,20 +358,18 @@ public sealed class QueueConsumptionServiceTests : IDisposable
         _queue.Enqueue(new TrackQueueItem(waiting, false));
 
         await _sut.AdvanceAsync();
+
+        // An answer rather than a poll: the end of a track is handled after the history row is
+        // written, so the gap arrives when it arrives, and this ends the moment it does.
+        var gapStarted = new TaskCompletionSource();
+        using var watching = _sut.WhenCurrentItemChanged
+            .Where(item => item is GapQueueItem)
+            .Take(1)
+            .Subscribe(_ => gapStarted.TrySetResult());
         _playbackEnded.OnNext(RxUnit.Default);
 
-        await WaitUntilAsync(() => _sut.CurrentItem is GapQueueItem);
+        await gapStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         return new Uri(waiting.FileInfo.FullName);
-    }
-
-    private static async Task WaitUntilAsync(Func<bool> condition)
-    {
-        for (var attempt = 0; attempt < 100 && !condition(); attempt++)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
-
-        Assert.True(condition());
     }
 
     [Fact]

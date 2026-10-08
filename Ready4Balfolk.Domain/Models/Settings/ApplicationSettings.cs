@@ -60,15 +60,27 @@ public sealed record ApplicationSettings(
     bool GapBetweenTracksEnabled = false,
     int GapBetweenTracksSeconds = 10)
 {
-    public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
-        ApplicationLanguage.English, new WindowState(), [])
+    public ApplicationSettings() : this(
+        MusicDirectoryPath: string.Empty,
+        MaxQueueItems: 6,
+        DelaySeconds: 30,
+        PresentationDisplayCount: 0,
+        AutoQueueRandomTrack: true,
+        AllowDuplicateTracksInQueue: false,
+        RequirePlaybackConfirmation: true,
+        ApplicationTheme: ApplicationTheme.Automatic,
+        ApplicationLanguage: ApplicationLanguage.English,
+        MainWindowState: new WindowState(),
+        PresentationWindowStates: [])
     {
     }
 
     /// <summary>Time of day after which the queue stops accepting entries, clamped to a real time.</summary>
+    [JsonIgnore]
     public TimeSpan QueueCutoff => TimeSpan.FromMinutes(Math.Clamp(QueueCutoffMinutesOfDay, 0, (24 * 60) - 1));
 
     /// <summary>How far past the cutoff the queue may still run before adds are refused.</summary>
+    [JsonIgnore]
     public TimeSpan QueueCutoffGrace => TimeSpan.FromMinutes(Math.Max(0, QueueCutoffGraceMinutes));
 
     /// <summary>The port the embedded server listens on, clamped to the unprivileged range.</summary>

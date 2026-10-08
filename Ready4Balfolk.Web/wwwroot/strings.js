@@ -2,7 +2,9 @@
    Domain sends a kind, not a rendered label, so each surface localizes for itself. These mirror the
    Presentation_* entries in UiStrings.resx; keep them in step when those change. The language comes
    from the app's own setting through /api/config, so the projector and the desktop window never
-   disagree. */
+   disagree.
+   scripts/check-translations.py holds the two tables to the same keys and placeholders and fails
+   on a key no page reads. It reads each entry as one line of key: "text", so keep them that way. */
 
 (function (global) {
   "use strict";
@@ -69,7 +71,6 @@
       searchLabel: "Search",
       searchPlaceholder: "Dance, artist or title",
       noMatches: "Nothing matches that",
-      searchHint: "Search the library",
 
       silentPause: "Silent pause",
       waitsForYou: "Waits for you",
@@ -159,7 +160,6 @@
       searchLabel: "Zoeken",
       searchPlaceholder: "Dans, artiest of titel",
       noMatches: "Niets gevonden",
-      searchHint: "Doorzoek de bibliotheek",
 
       silentPause: "Stille onderbreking",
       waitsForYou: "Wacht op jou",
