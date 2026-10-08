@@ -42,6 +42,16 @@ public sealed class UnrecognisedValueClassifierTests
     }
 
     [Fact]
+    public void AValueInsideSeveralNames_OffersTheShortestNameFirst()
+    {
+        // The plain bourrées are the common ones. Longest first, "Bourrée Auvergnate" led and the
+        // two a bare "Bourrée" most often means came after it.
+        var (_, slugs) = UnrecognisedValueClassifier.Classify("Bourrée", _index);
+
+        Assert.Equal(["bourree-2-temps", "bourree-3-temps", "bourree-auvergnate"], slugs);
+    }
+
+    [Fact]
     public void AValueInsideExactlyOneName_IsStillOneDecision()
     {
         var (kind, slugs) = UnrecognisedValueClassifier.Classify("Auvergnate", _index);

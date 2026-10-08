@@ -1,6 +1,9 @@
+using System.IO.Abstractions.TestingHelpers;
+using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Stores.Library;
+using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Unit;
 
@@ -14,6 +17,21 @@ namespace Ready4Balfolk.Tests.Unit;
 public sealed class FolderAgreementTests
 {
     private const string Root = "/music";
+
+    private static readonly MockFileSystem FileSystem = new();
+
+    /// <summary>How the index remembers a dance that folder agreement gave.</summary>
+    private static readonly DerivedFrom ByAgreement = new(
+        ClaimSource.FolderAgreement.Kind, ClaimSource.FolderAgreement.Detail, DecisionReason.SoleValue);
+
+    private readonly DanceListIndex _dances = DanceListIndex.Build(new DanceList
+    {
+        Dances =
+        [
+            TestData.CreateDance("mazurka", names: ["Mazurka"]),
+            TestData.CreateDance("bourree", names: ["Bourrée"])
+        ]
+    });
 
     private static LibraryEntry Entry(string path, string? danceSlug) =>
         new()
@@ -69,52 +87,46 @@ public sealed class FolderAgreementTests
     public void KeyFor_OutsideTheRoot_HasTheEmptyKey() =>
         Assert.Equal(string.Empty, FolderAgreement.KeyFor("/elsewhere/deep/a.mp3", Root));
 
-    // --- AgreedDanceAround ---
+    // --- Apply, the way the watcher calls it ---
 
     [Fact]
-    public void AgreedDanceAround_SiblingsInTheSameFolderAgree_IsThatDance()
+    public void Apply_SiblingsInTheSameFolderAgree_FillsTheDroppedInFile()
     {
-        var known = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
-        {
-            [Path.Combine(Root, "Mazurkas", "one.mp3")] = Entry(Path.Combine(Root, "Mazurkas", "one.mp3"), "mazurka"),
-            [Path.Combine(Root, "Mazurkas", "two.mp3")] = Entry(Path.Combine(Root, "Mazurkas", "two.mp3"), "mazurka")
-        };
+        var droppedIn = Unnamed("Mazurkas", "new");
 
-        var agreed = FolderAgreement.AgreedDanceAround(
-            Path.Combine(Root, "Mazurkas", "new.mp3"), "Mazurkas", known, Root);
+        var rescued = ApplyToDroppedIn(
+            droppedIn,
+            Entry(Path.Combine(Root, "Mazurkas", "one.mp3"), "mazurka"),
+            Entry(Path.Combine(Root, "Mazurkas", "two.mp3"), "mazurka"));
 
-        Assert.Equal("mazurka", agreed);
+        Assert.Equal(1, rescued);
+        Assert.Equal("mazurka", droppedIn.Resolution.DanceSlug);
     }
 
     /// <summary>The folder around the file, not the library as a whole.</summary>
     [Fact]
-    public void AgreedDanceAround_AnotherFolderAgrees_SaysNothing()
+    public void Apply_AnotherFolderAgrees_SaysNothing()
     {
-        var known = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
-        {
-            [Path.Combine(Root, "Mazurkas", "one.mp3")] = Entry(Path.Combine(Root, "Mazurkas", "one.mp3"), "mazurka")
-        };
+        var droppedIn = Unnamed("Bourrees", "new");
 
-        var agreed = FolderAgreement.AgreedDanceAround(
-            Path.Combine(Root, "Bourrees", "new.mp3"), "Bourrees", known, Root);
+        ApplyToDroppedIn(droppedIn, Entry(Path.Combine(Root, "Mazurkas", "one.mp3"), "mazurka"));
 
-        Assert.Null(agreed);
+        Assert.Null(droppedIn.Resolution.DanceSlug);
     }
 
     /// <summary>
+    /// The watcher reads a file again when it changes, while its old row is still in the index.
     /// Otherwise a file already carrying a dance would vote for its own answer, and the folder
     /// would always agree with whatever that file already said.
     /// </summary>
     [Fact]
-    public void AgreedDanceAround_TheFileItself_IsNotAVoice()
+    public void Apply_TheFileItself_IsNotAVoice()
     {
-        var path = Path.Combine(Root, "Mazurkas", "self.mp3");
-        var known = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
-        {
-            [path] = Entry(path, "mazurka")
-        };
+        var droppedIn = Unnamed("Mazurkas", "self");
 
-        Assert.Null(FolderAgreement.AgreedDanceAround(path, "Mazurkas", known, Root));
+        ApplyToDroppedIn(droppedIn, Entry(droppedIn.File.FullName, "mazurka"));
+
+        Assert.Null(droppedIn.Resolution.DanceSlug);
     }
 
     /// <summary>
@@ -122,30 +134,67 @@ public sealed class FolderAgreementTests
     /// not mount must not decide the dance of the ones that are still there.
     /// </summary>
     [Fact]
-    public void AgreedDanceAround_ARowThatIsNotAvailable_IsNotAVoice()
+    public void Apply_ARowThatIsNotAvailable_IsNotAVoice()
     {
-        var sibling = Path.Combine(Root, "Mazurkas", "one.mp3");
-        var known = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
-        {
-            [sibling] = Entry(sibling, "mazurka") with { IsAvailable = false }
-        };
+        var droppedIn = Unnamed("Mazurkas", "new");
 
-        Assert.Null(FolderAgreement.AgreedDanceAround(
-            Path.Combine(Root, "Mazurkas", "new.mp3"), "Mazurkas", known, Root));
+        ApplyToDroppedIn(
+            droppedIn,
+            Entry(Path.Combine(Root, "Mazurkas", "one.mp3"), "mazurka") with { IsAvailable = false });
+
+        Assert.Null(droppedIn.Resolution.DanceSlug);
     }
 
     [Fact]
-    public void AgreedDanceAround_UnresolvedSiblings_AreNotVoices()
+    public void Apply_UnresolvedSiblings_AreNotVoices()
     {
-        var known = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
-        {
-            [Path.Combine(Root, "Mixed", "one.mp3")] = Entry(Path.Combine(Root, "Mixed", "one.mp3"), null),
-            [Path.Combine(Root, "Mixed", "two.mp3")] = Entry(Path.Combine(Root, "Mixed", "two.mp3"), "mazurka")
-        };
+        var droppedIn = Unnamed("Mixed", "new");
 
-        var agreed = FolderAgreement.AgreedDanceAround(
-            Path.Combine(Root, "Mixed", "new.mp3"), "Mixed", known, Root);
+        ApplyToDroppedIn(
+            droppedIn,
+            Entry(Path.Combine(Root, "Mixed", "one.mp3"), null),
+            Entry(Path.Combine(Root, "Mixed", "two.mp3"), "mazurka"));
 
-        Assert.Equal("mazurka", agreed);
+        Assert.Equal("mazurka", droppedIn.Resolution.DanceSlug);
     }
+
+    /// <summary>
+    /// The scan filled 02 and 03 in from 01, and then 01 was deleted. What is left is the folder's
+    /// own verdict about two files, and nothing in the folder says mazurka any more.
+    /// </summary>
+    [Fact]
+    public void Apply_SiblingsTheFolderItselfAnswered_AreNotVoices()
+    {
+        var droppedIn = Unnamed("Mazurkas", "04 W");
+
+        ApplyToDroppedIn(
+            droppedIn,
+            Entry(Path.Combine(Root, "Mazurkas", "02 Y.mp3"), "mazurka") with { Dance = ByAgreement },
+            Entry(Path.Combine(Root, "Mazurkas", "03 Z.mp3"), "mazurka") with { Dance = ByAgreement });
+
+        Assert.Null(droppedIn.Resolution.DanceSlug);
+    }
+
+    /// <summary>A file that names no dance, read the way the watcher reads one.</summary>
+    private ScannedFile Unnamed(string folder, string name)
+    {
+        var evidence = TestData.CreateEvidence(name, segments: [folder]);
+
+        return new ScannedFile(
+            FileSystem.FileInfo.New(Path.Combine(Root, folder, evidence.FileName)),
+            evidence,
+            TrackInformationResolver.Resolve(evidence, _dances));
+    }
+
+    /// <summary>
+    /// What the watcher hands over when one file is dropped into a folder the index already holds:
+    /// a batch of that file alone, with every sibling answered from the index.
+    /// </summary>
+    private int ApplyToDroppedIn(ScannedFile droppedIn, params LibraryEntry[] known) =>
+        FolderAgreement.Apply(
+            [droppedIn],
+            known.ToDictionary(entry => entry.Path, StringComparer.Ordinal),
+            Root,
+            _dances,
+            DeclaredDiscovery.Undeclared);
 }

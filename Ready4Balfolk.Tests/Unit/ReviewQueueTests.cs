@@ -242,6 +242,39 @@ public sealed class ReviewQueueTests
         Assert.Equal(["Mazurka"], Assert.Single(Assert.Single(queue).Tracks).Suggestions);
     }
 
+    [Fact]
+    public void AValueFittingSeveralDances_OffersThemAll_ThePlainOnesFirst()
+    {
+        // The bourrées of the published list. "(Bourrée)" fits all seven, and a cap of three offered
+        // the long regional variants and never "Bourrée 2 temps" or "Bourrée 3 temps".
+        var dances = DanceListIndex.Build(new DanceList
+        {
+            Dances =
+            [
+                TestData.CreateDance("bourree-2-temps", names: ["Bourrée 2 temps"]),
+                TestData.CreateDance("bourree-3-temps", names: ["Bourrée 3 temps"]),
+                TestData.CreateDance("bourree-3-temps-auvergnate", names: ["Bourrée 3 temps Auvergnate", "Bourrée auvergnate"]),
+                TestData.CreateDance("bourree-3-temps-de-berry", names: ["Bourrée 3 temps de Berry", "Bourrée de Berry"]),
+                TestData.CreateDance("bourree-de-chamberat", names: ["Bourrée de Chambérat"]),
+                TestData.CreateDance("bourree-en-cercle", names: ["Bourrée en cercle"]),
+                TestData.CreateDance("bourree-planiere", names: ["Bourrée planière"])
+            ]
+        });
+
+        var queue = ReviewQueueBuilder.Build(
+            new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
+            {
+                ["/music/a.mp3"] = Entry("/music/a.mp3", [1], slug: null, originalDance: "Bourrée")
+            },
+            new Dictionary<string, IReadOnlyList<TrackApproval>>(StringComparer.Ordinal),
+            dances,
+            Root);
+
+        var suggestions = Assert.Single(Assert.Single(queue).Tracks).Suggestions;
+        Assert.Equal(7, suggestions.Count);
+        Assert.Equal(["Bourrée 2 temps", "Bourrée 3 temps"], suggestions.Take(2));
+    }
+
     private IReadOnlyList<ReviewGroup> Build(LibraryEntry[] entries, params TrackApproval[] approvals) =>
         ReviewQueueBuilder.Build(
             entries.ToDictionary(entry => entry.Path, StringComparer.Ordinal),
