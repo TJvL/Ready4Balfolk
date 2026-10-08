@@ -10,6 +10,7 @@ using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Playback;
 
@@ -109,7 +110,7 @@ public sealed class PlaybackViewModelTests : IDisposable
         _currentItem.OnNext(delay);
 
         Assert.False(_sut.HasTrack);
-        Assert.Equal("Delay", _sut.DanceName);
+        Assert.Equal(UiStrings.Playback_Delay, _sut.DanceName);
     }
 
     [Fact]

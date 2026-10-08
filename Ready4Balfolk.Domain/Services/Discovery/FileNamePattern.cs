@@ -28,9 +28,12 @@ public enum PatternProblem
     DuplicateField
 }
 
-/// <summary>One field a pattern picked out of a file name.</summary>
+/// <summary>What a pattern picked out of a file name.</summary>
 public sealed record FileNamePatternMatch
 {
+    /// <summary>The pattern that matched, as the user wrote it, so a claim can say which rule it came from.</summary>
+    public required string Pattern { get; init; }
+
     public string? Dance { get; init; }
 
     public string? Artist { get; init; }
@@ -192,6 +195,7 @@ public sealed class FileNamePattern
         return match.Success
             ? new FileNamePatternMatch
             {
+                Pattern = Text,
                 Dance = Captured(match, "d"),
                 Artist = Captured(match, "a"),
                 Title = Captured(match, "t"),

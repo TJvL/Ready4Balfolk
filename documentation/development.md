@@ -27,7 +27,7 @@ Ready4Balfolk is a five-project Avalonia desktop application for managing and pl
 
 ### Models
 
-All models are **sealed records**, organised by subdirectory. Only `Dance` and `DanceList` carry `[JsonPropertyName]`, because their names are BigBalfolkList's; everything else is stored under its property names (#308).
+All models are **sealed records**, organised by subdirectory. **Every model that is stored names each stored member with `[JsonPropertyName]`**: `Dance` and `DanceList` because their names are BigBalfolkList's, and the settings (`ApplicationSettings` and the records it is made of) and the history entries in the spelling they have always been written under. `settings.json` is read skipping what it does not recognise, so a rename without a pinned name puts a setting back to its default without a word; a history entry is the only copy there is of an evening, and a rename would read every older night back with that member empty. Tests in `SettingsStoreTests` and `QueueHistoryStoreTests` hold the stored names and fail on any read-back member that has none.
 
 | Directory | Contents |
 |-----------|----------|
@@ -38,7 +38,7 @@ All models are **sealed records**, organised by subdirectory. Only `Dance` and `
 | `History/` | `QueueHistoryEntry` (abstract, `[JsonPolymorphic]`) with `TrackHistoryEntry`, `MessageHistoryEntry`, `DelayHistoryEntry`, `StopHistoryEntry`, `EndOfNightHistoryEntry`, each carrying `StartedAt`, `FinishedAt` and a `CompletionStatus` of `Finished`, `Skipped` or `FileMissing`. `QueueHistory` is one night: `Id`, `StartedAt`, `EndedAt` and the entries; `NightSummary` is the little a list of nights shows. |
 | `Presentation/` | `PresentationState` and the `PresentationItem`s in it: what a presentation surface draws, reduced once by `PresentationStateService` for the window and the browser alike. |
 
-**To add a new model:** create a `sealed record` in the appropriate subdirectory. If it is serialised polymorphically, add `[JsonPolymorphic]` + `[JsonDerivedType]` on the base type. A model that persists is renamed only together with what reads the old name back.
+**To add a new model:** create a `sealed record` in the appropriate subdirectory. If it is serialised polymorphically, add `[JsonPolymorphic]` + `[JsonDerivedType]` on the base type. A member of a model that persists gets a `[JsonPropertyName]` when it is added, and its C# name can then change freely; the stored name changes only together with what reads the old one back.
 
 ### Stores
 
@@ -140,7 +140,9 @@ On a 2685-file library with BigBalfolkList imported and nothing else configured,
 - **`ended_at` is what makes it a finished night.** `EndNightAsync` sets it and publishes an empty night; nothing is deleted, which is why `QueueConsumptionService` can call it on its own the moment an `EndOfNightHistoryEntry` lands. `DeleteNightAsync` is the destructive one, and only a person calls it, on whichever night they are looking at.
 - **A filed night is still reachable.** `ListNightsAsync` is summaries rather than nights, because a list of evenings is chosen from and only one of them is read; `ReadNightAsync` reads that one, and export and delete take an id. The screen used to be able to reach only the night that was running, so the account of an evening left the screen the moment it ended and the file grew for the life of the application with nothing anybody could do about it.
 - **An entry records its finish as well as its start.** `RecordCurrentItemAsync` runs the moment an item stops being the current one, so what a room heard is the time between the two: a track's own length says how long it is, not how long it was played for.
-- **Entries keep their polymorphic JSON as a `payload` column** rather than being flattened. `kind` is lifted back out of that payload so it cannot drift from it, and so counting what an evening was made of costs no parsing.
+- **Entries keep their polymorphic JSON as a `payload` column** rather than being flattened. `kind` and `started_at` are lifted back out of it for a person opening the file, so what an evening was made of can be read without parsing JSON; nothing in the application queries either, and a night is counted by its rows. The payload is read with the same lenient enum converter as the settings, so a `CompletionStatus` a later build adds costs an older build that one entry's status rather than the whole night.
+- **Deleting a night is one transaction.** Its entries and its row go together or not at all, so a failure between the two cannot leave a night listed with nothing in it.
+- **The file carries the shape it was laid out in, in `PRAGMA user_version`**, as the library index does. `SchemaVersion` in `QueueHistoryStore` goes up with any change to the schema, together with whatever carries the older nights across. A file stamped zero was written before the stamp existed and in exactly the current shape, so it is stamped and opened as it stands. **A file stamped with anything else is refused and left byte for byte as it was found**, newer or older: it is reported the way an unreadable database is, and nothing is written into it.
 - An unreadable database is **logged and left alone**, unlike the library index, which deletes and rebuilds itself. `ApplicationStartup` asks once at startup about a night that was never ended and has been quiet for more than eight hours: a gap rather than a date, because a ball crossing midnight is normal. Starting fresh passes `LastActivityAt` to `EndNightAsync`, so the night is filed at the finish of its last entry rather than at the moment somebody answered, which can be days later.
 
 ### Services
@@ -213,6 +215,8 @@ The `QueueService` does not contain any validation logic itself. Instead, it del
 ### Helpers
 
 `UnawaitedWork` is how work nothing can await is started: it runs the work and, when it fails, writes the English log line and shows the screen text (see Logging). A bare discard leaves the exception on a task nobody observes, and an `async void` rethrows it on the UI thread, which closes the application in the middle of an evening. Where a call site already hands `SafeFireAndForget` a handler of its own, that handler is the report and `UnawaitedWork` is not added on top.
+
+`TagLibFileAbstraction` hands TagLib an `IFileInfo` instead of a path, so a tag read goes through the same `IFileSystem` as every other read and a test on a `MockFileSystem` never reaches the disk. File access goes through `System.IO.Abstractions` everywhere, with two agreed exceptions: `SqliteLibraryIndex` deleting its own database files, which SQLite opens on the real disk anyway, and `ManagedBassAudioPlaybackService` looking for the BASS native library next to the executable.
 
 `StringNormalizer.Normalize(string)`: decomposes Unicode (FormD), strips diacritics (non-spacing marks), keeps only letters/digits/spaces, lowercases, and collapses whitespace. Used throughout for case-insensitive, accent-insensitive name matching (resolving a name to a dance, uniqueness checks, search filtering).
 
@@ -473,7 +477,7 @@ The same five, because Release is stricter than Debug and CI builds Release. `CO
 It is **four jobs that run beside each other**, because a pull request goes green when the slowest one finishes rather than when the longest list of steps does:
 
 - `test`, on Ubuntu and Windows. The tests have to run somewhere they could fail differently: `Directory.Build.targets` resolves the BASS natives from the host OS, and the paths the stores write to are not the same shape on Windows.
-- `style`: `dotnet format --verify-no-changes` and `scripts/check-translations.py`, which compares the `.resx` key sets in both directions, fails on a key nothing reads, and fails on a resx string handed to the logger as its log line. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed. One platform for both: `.gitattributes` normalises line endings, so neither can answer differently per platform.
+- `style`: `dotnet format --verify-no-changes` and `scripts/check-translations.py`, which compares the `.resx` key sets and `{0}` placeholders in both directions, compares each designer file with its resx, fails on a key nothing in the application reads (the tests do not count), fails on a resx string handed to the logger as its log line, and holds the two tables in `wwwroot/strings.js` to the same rules. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed. One platform for both: `.gitattributes` normalises line endings, so neither can answer differently per platform.
 - `scenarios`: the end to end suite. Its own job above all because it is the leg that grows every time a scenario is written, and beside the others it grows on its own rather than on top of them.
 - `verify`, which needs the other three. A matrix reports one check per leg, so requiring those directly means editing the ruleset every time one is split, and a leg nobody remembered to add is a leg that cannot block a merge.
 
@@ -551,7 +555,7 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 7. **Register ViewModel**: add to `ApplicationComposition.cs` as singleton. A top-level screen also needs a `Lazy<T>` and an `IViewFor<T>`; see To add a new screen.
 8. **Navigation**: add to `Screen` enum, wire `IsXxxScreen`, add the `DockPanel` and its `ViewModelViewHost` in `MainWindow.axaml`, add toolbar button.
 9. **Converters**: if needed, add with the static `Instance` pattern in the feature folder.
-10. **Strings**: add the English text to `UiStrings.resx`, the Dutch to `UiStrings.nl.resx`, and the property to `UiStrings.Designer.cs`; the three are kept in step by hand. The same rule holds for `DomainStrings`, for the browser pages' `wwwroot/strings.js`, and for the two manuals, `help.md` and `help.nl.md`: nothing is written in one language only.
+10. **Strings**: add the English text to `UiStrings.resx`, the Dutch to `UiStrings.nl.resx`, and the property to `UiStrings.Designer.cs`. The designer file is written by hand, not generated, so no IDE tool may regenerate it; `scripts/check-translations.py` fails when the three fall out of step. The same rule holds for `DomainStrings`, for the browser pages' `wwwroot/strings.js`, and for the two manuals, `help.md` and `help.nl.md`: nothing is written in one language only.
 
 ### Dutch glossary
 

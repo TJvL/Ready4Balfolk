@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Ready4Balfolk.Domain.Models.Settings;
 
 /// <summary>What the user has told the application about the shape of their library.</summary>
@@ -24,23 +26,30 @@ public sealed record DiscoverySettings
     public static readonly DiscoverySettings Undeclared = new();
 
     /// <summary>Whether names are read by the patterns below.</summary>
+    [JsonPropertyName("UsesFileNamePatterns")]
     public bool UsesFileNamePatterns { get; init; }
 
     /// <summary>Whether the folders a file sits in say what it is.</summary>
+    [JsonPropertyName("UsesFolderRoles")]
     public bool UsesFolderRoles { get; init; }
 
     /// <summary>Whether the tag fields below are trusted rather than the built-in guesses.</summary>
+    [JsonPropertyName("UsesTagTrust")]
     public bool UsesTagTrust { get; init; }
 
     /// <summary>Whether a custom tag is read as the dance.</summary>
+    [JsonPropertyName("UsesCustomDanceTag")]
     public bool UsesCustomDanceTag { get; init; }
 
     /// <summary>File name patterns, in order. The first one that matches a name whole wins.</summary>
+    [JsonPropertyName("FileNamePatterns")]
     public IReadOnlyList<string> FileNamePatterns { get; init; } = [];
 
     /// <summary>What each folder level means, outermost first. Index 0 is level 1.</summary>
+    [JsonPropertyName("FolderRoles")]
     public IReadOnlyList<FolderRole> FolderRoles { get; init; } = [];
 
+    [JsonPropertyName("TagTrust")]
     public TagTrust TagTrust { get; init; } = new();
 
     /// <summary>
@@ -51,6 +60,7 @@ public sealed record DiscoverySettings
     /// what that tag is called is theirs. Naming it here is the declaration: the field is read
     /// whole, recognised or not, exactly like a trusted tag field.
     /// </remarks>
+    [JsonPropertyName("CustomDanceTag")]
     public string? CustomDanceTag { get; init; }
 
     /// <summary>

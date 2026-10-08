@@ -3,7 +3,12 @@ using Ready4Balfolk.Domain.Models.Dances;
 
 namespace Ready4Balfolk.Domain.Services.Discovery.Claims;
 
-public partial class BracketGroupsExtension
+/// <summary>What a file name says inside its brackets.</summary>
+/// <remarks>
+/// Brackets are how somebody writes a dance into a name on purpose, so they are the one thing that
+/// breaks a tie between two dances a name mentions.
+/// </remarks>
+public static partial class BracketGroups
 {
     /// <summary>The contents of every bracketed group in the name, as match keys.</summary>
     /// <remarks>
@@ -12,17 +17,15 @@ public partial class BracketGroupsExtension
     /// keeps its "de" while the matched name has lost it, and a dance written in brackets on
     /// purpose is never recognised as deliberate.
     /// </remarks>
-    public static List<string> BracketedGroups(string fileName, DanceWords words) =>
+    public static List<string> In(string fileName, DanceWords words) =>
     [
         .. AnyBrackets().Matches(fileName)
             .Select(match => words.KeyFor(match.Groups[1].Value))
             .Where(text => text.Length > 0)
     ];
 
-    [GeneratedRegex(@"[(\[]([^)\]]*)[)\]]", RegexOptions.CultureInvariant)]
-    private static partial Regex AnyBrackets();
-
-    public static string? TrailingBracket(string fileName)
+    /// <summary>The contents of a trailing bracket, when it is not a year.</summary>
+    public static string? Trailing(string fileName)
     {
         var match = BracketedText().Match(fileName);
         if (!match.Success)
@@ -35,6 +38,9 @@ public partial class BracketGroupsExtension
         // "(1997)" is an edition, not a dance. Nothing was claimed, so nothing is discarded.
         return inside.Length > 0 && !LooksLikeAYear(inside) ? inside : null;
     }
+
+    [GeneratedRegex(@"[(\[]([^)\]]*)[)\]]", RegexOptions.CultureInvariant)]
+    private static partial Regex AnyBrackets();
 
     [GeneratedRegex(@"\(([^)]*)\)\s*$", RegexOptions.CultureInvariant)]
     private static partial Regex BracketedText();

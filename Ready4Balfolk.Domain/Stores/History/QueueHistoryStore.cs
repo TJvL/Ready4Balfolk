@@ -2,10 +2,10 @@ using System.Globalization;
 using System.IO.Abstractions;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reflection;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Data.Sqlite;
 using Ready4Balfolk.Domain.Models.History;
@@ -13,6 +13,7 @@ using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.History;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Notifications;
+using Ready4Balfolk.Domain.Stores.Settings;
 
 namespace Ready4Balfolk.Domain.Stores.History;
 
@@ -26,8 +27,15 @@ namespace Ready4Balfolk.Domain.Stores.History;
 /// </para>
 /// <para>
 /// Entries keep their polymorphic JSON as a payload rather than being flattened into columns: the
-/// models do not change, ordering is the database's problem, and the kind is lifted out of the
-/// payload so a night can be counted without reading it.
+/// models do not change, and ordering is the database's problem. The kind and the start are lifted
+/// out of the payload beside it for whoever opens the file to look at an evening, which nothing in
+/// this class does: it reads the payload, and counts a night by its rows.
+/// </para>
+/// <para>
+/// The file carries the shape it was laid out in, in <c>PRAGMA user_version</c>, and a file stamped
+/// with any other shape is refused and left exactly as it is, unlike the library index, which
+/// rebuilds itself. That one is derived and a scan puts it back; this one is the only copy there is
+/// of the evenings in it.
 /// </para>
 /// </remarks>
 public sealed class QueueHistoryStore(
@@ -40,12 +48,26 @@ public sealed class QueueHistoryStore(
 {
     private const string DatabaseFileName = "history.sqlite";
 
+    /// <summary>The shape this build was written against, stamped in the file's user_version.</summary>
+    /// <remarks>
+    /// Raise it in the same commit as any change to <see cref="Schema"/>, together with whatever
+    /// carries an older file's nights across to the new shape: a file stamped with any number but
+    /// this one is not opened at all. Zero is the one exception, because it is what every file
+    /// written before the stamp existed reads back, and those were all laid out in exactly this
+    /// shape, so they are stamped as they stand.
+    /// </remarks>
+    private const int SchemaVersion = 1;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         Converters =
         {
-            new JsonStringEnumConverter()
+            // Lenient for the reason the settings are: a status added by a later build would
+            // otherwise throw on the one entry carrying it, and that throw takes the whole night
+            // with it on any build that does not know the name. One entry read with the wrong
+            // status is the price instead. Written exactly as the stock converter writes it.
+            new LenientEnumConverter()
         }
     };
 
@@ -99,7 +121,7 @@ public sealed class QueueHistoryStore(
                 _ = loggerService.InfoAsync($"Loaded the current night ({night.Entries.Count} entries)");
             }
         }
-        catch (Exception exception) when (exception is SqliteException or JsonException)
+        catch (Exception exception) when (IsUnreadable(exception))
         {
             // Deliberately not deleted and rebuilt the way the library index is. The index is
             // derived and a scan puts it back; a history is the only copy there is of an evening,
@@ -222,7 +244,7 @@ public sealed class QueueHistoryStore(
 
             return nights;
         }
-        catch (Exception exception) when (exception is SqliteException or JsonException)
+        catch (Exception exception) when (CannotOpen(exception) || exception is FormatException)
         {
             loggerService.Report(
                 "Failed to list the nights", notifications, DomainStrings.History_ListNightsFailed, exception);
@@ -248,7 +270,7 @@ public sealed class QueueHistoryStore(
             var connection = await EnsureOpenLockedAsync(CancellationToken.None);
             return await ReadNightLockedAsync(connection, nightId, CancellationToken.None);
         }
-        catch (Exception exception) when (exception is SqliteException or JsonException)
+        catch (Exception exception) when (IsUnreadable(exception))
         {
             loggerService.Report(
                 "Failed to read a night", notifications, DomainStrings.History_ReadNightFailed, exception);
@@ -343,11 +365,24 @@ public sealed class QueueHistoryStore(
         {
             await connection.OpenAsync(token);
 
+            // Asked before anything is written, the journal mode included, so a file this build
+            // will not open is left byte for byte as it was found.
+            var stamped = await ReadSchemaVersionAsync(connection, token);
+            if (stamped is not 0 and not SchemaVersion)
+            {
+                throw new InvalidDataException(
+                    $"{DatabaseFileName} was laid out for schema {stamped} and this build expects "
+                    + $"{SchemaVersion}; leaving it as it is");
+            }
+
             // WAL so a machine that stops mid-evening leaves a readable database rather than a
             // truncated one. That is the whole reason this is not a file being rewritten.
             await ExecuteAsync(connection, "PRAGMA journal_mode=WAL;", token);
             await ExecuteAsync(connection, "PRAGMA synchronous=NORMAL;", token);
             await ExecuteAsync(connection, Schema, token);
+            // Interpolated rather than bound: a pragma takes no parameters, and the value is a
+            // constant of this file rather than anything a caller supplies.
+            await ExecuteAsync(connection, $"PRAGMA user_version = {SchemaVersion};", token);
         }
         catch
         {
@@ -481,7 +516,7 @@ public sealed class QueueHistoryStore(
             await transaction.CommitAsync();
             return id;
         }
-        catch (SqliteException exception)
+        catch (Exception exception) when (CannotOpen(exception))
         {
             loggerService.Report(
                 "Failed to write a history entry", notifications, DomainStrings.History_WriteFailed, exception);
@@ -495,16 +530,47 @@ public sealed class QueueHistoryStore(
         try
         {
             var connection = await EnsureOpenLockedAsync(CancellationToken.None);
+
+            // One transaction whatever the statement count. Deleting a night is two statements, and
+            // outside one a failure between them left a night with its entries gone and its row
+            // still listed: an evening that reads as one where nothing happened.
+            await using var transaction = await connection.BeginTransactionAsync(CancellationToken.None);
             await using var command = connection.CreateCommand();
+            command.Transaction = (SqliteTransaction)transaction;
             command.CommandText = sql;
             command.Parameters.AddWithValue("$id", nightId);
             bind?.Invoke(command);
             await command.ExecuteNonQueryAsync();
+            await transaction.CommitAsync();
         }
-        catch (SqliteException exception)
+        catch (Exception exception) when (CannotOpen(exception))
         {
             loggerService.Report(logLine, notifications, screenText, exception);
         }
+    }
+
+    /// <summary>What opening the file or writing to it can meet.</summary>
+    /// <remarks>
+    /// An InvalidDataException is a file stamped for a shape this build does not know, which is
+    /// refused rather than opened, and is reported the way any other database failure is.
+    /// </remarks>
+    private static bool CannotOpen(Exception exception) =>
+        exception is SqliteException or InvalidDataException;
+
+    /// <summary>What reading a night back can meet, on top of what opening the file can.</summary>
+    /// <remarks>
+    /// A JsonException is an entry whose payload will not parse, and a FormatException a stored
+    /// time that will not.
+    /// </remarks>
+    private static bool IsUnreadable(Exception exception) =>
+        CannotOpen(exception) || exception is JsonException or FormatException;
+
+    /// <summary>Which shape the file on disk was laid out in. Zero until something stamps it.</summary>
+    private static async Task<long> ReadSchemaVersionAsync(SqliteConnection connection, CancellationToken token)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA user_version;";
+        return Convert.ToInt64(await command.ExecuteScalarAsync(token), provider: null);
     }
 
     private static async Task ExecuteAsync(SqliteConnection connection, string sql, CancellationToken token)
@@ -521,8 +587,10 @@ public sealed class QueueHistoryStore(
             return;
         }
 
-        var filePath = typeInfo.Properties
-            .FirstOrDefault(property => property.Name == nameof(TrackHistoryEntry.FilePath));
+        // Found by the property it serialises rather than by the name it is stored under, so the
+        // path stays out of an export even if the two ever come apart.
+        var filePath = typeInfo.Properties.FirstOrDefault(property =>
+            property.AttributeProvider is PropertyInfo { Name: nameof(TrackHistoryEntry.FilePath) });
         if (filePath is not null)
         {
             typeInfo.Properties.Remove(filePath);
@@ -562,7 +630,9 @@ public sealed class QueueHistoryStore(
         CREATE TABLE IF NOT EXISTS entries (
             night_id   INTEGER NOT NULL,
             ordinal    INTEGER NOT NULL,
-            -- Lifted out of the payload so counting what an evening was made of costs no parsing.
+            -- This and started_at are lifted out of the payload for a person opening the file, so
+            -- what an evening was made of can be read without parsing JSON. Nothing in the
+            -- application queries either; it reads the payload.
             kind       TEXT    NOT NULL,
             started_at TEXT    NULL,
             payload    TEXT    NOT NULL,

@@ -1,3 +1,4 @@
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
@@ -32,6 +33,8 @@ public sealed class DiscoveryViewModelTests : IDisposable
     ];
 
     private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
+    // Where the pause after the last keystroke is counted, moved by the test rather than waited out.
+    private readonly HistoricalScheduler _typing = new();
     private readonly ILibraryIndex _libraryIndex = Substitute.For<ILibraryIndex>();
     private readonly DiscoveryViewModel _sut;
 
@@ -68,7 +71,8 @@ public sealed class DiscoveryViewModelTests : IDisposable
         danceListStore.Index.Returns(DanceListIndex.Empty);
 
         _sut = new DiscoveryViewModel(
-            _settingsStore, _libraryIndex, danceListStore, trackStore, Substitute.For<ILoggerService>(), Substitute.For<INotificationService>());
+            _settingsStore, _libraryIndex, danceListStore, trackStore, Substitute.For<ILoggerService>(),
+            Substitute.For<INotificationService>(), _typing);
     }
 
     public void Dispose() => _sut.Dispose();
@@ -85,6 +89,21 @@ public sealed class DiscoveryViewModelTests : IDisposable
         Assert.True(_sut.CanDeclareDraft);
         Assert.NotEmpty(_sut.DraftSamples);
         Assert.NotEmpty(_sut.DraftMisses);
+    }
+
+    [Fact]
+    public async Task TypingAPattern_MeasuresItOnceTheTypingPauses()
+    {
+        // Measured as it is typed, because a rule is agreed to on the strength of what it does, but
+        // not on every keystroke: a half-typed pattern is not one anybody is agreeing to.
+        await Refresh();
+
+        _sut.DraftPattern = "%d - %a - %t";
+        _typing.AdvanceBy(DiscoveryViewModel.DraftPreviewQuiet - TimeSpan.FromMilliseconds(1));
+        Assert.Empty(_sut.DraftSamples);
+
+        _typing.AdvanceBy(TimeSpan.FromMilliseconds(1));
+        Assert.NotEmpty(_sut.DraftSamples);
     }
 
     [Fact]
@@ -407,5 +426,6 @@ public sealed class DiscoveryViewModelTests : IDisposable
     /// The screen previews as the pattern is typed, on a throttle. A test should not wait out a
     /// timer, so it asks for the same measurement directly.
     /// </summary>
-    private void Preview() => _sut.PreviewDraftNow();
+    /// <summary>Stops typing for as long as the screen waits before measuring the draft.</summary>
+    private void Preview() => _typing.AdvanceBy(DiscoveryViewModel.DraftPreviewQuiet);
 }

@@ -1,8 +1,10 @@
+using System.Text.Json.Serialization;
+
 namespace Ready4Balfolk.Domain.Models.History;
 
 public sealed record MessageHistoryEntry(
-    string Message,
-    TimeSpan? Duration,
+    [property: JsonPropertyName("Message")] string Message,
+    [property: JsonPropertyName("Duration")] TimeSpan? Duration,
     CompletionStatus CompletionStatus,
     DateTime? StartedAt = null,
     DateTime? FinishedAt = null) : QueueHistoryEntry(CompletionStatus, StartedAt, FinishedAt);
