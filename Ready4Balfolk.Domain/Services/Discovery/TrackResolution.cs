@@ -32,7 +32,6 @@ public sealed record TrackResolution
 
     public string Title => TitleDecision.Value ?? string.Empty;
 
-    public bool IsResolved => DanceSlug is not null;
 
     /// <summary>True when two independent sources agreed on the dance, rather than one speaking alone.</summary>
     public bool IsCorroborated => DanceDecision.IsCorroborated;

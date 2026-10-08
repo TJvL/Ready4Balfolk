@@ -168,11 +168,6 @@ public sealed class DanceListStore(
                 _ = loggerService.WarningAsync($"Refused a dance list: {exception.Message}");
                 return DanceListUpdate.Failed(exception.ScreenText);
             }
-            catch (FileNotFoundException exception)
-            {
-                _ = loggerService.WarningAsync($"Refused a dance list: {exception.Message}");
-                return DanceListUpdate.Failed(DomainStrings.DanceList_FileUnreadable);
-            }
 
             var known = Current.Dances.Select(dance => dance.Slug).ToHashSet(StringComparer.Ordinal);
             var added = list.Dances.Count(dance => !known.Contains(dance.Slug));

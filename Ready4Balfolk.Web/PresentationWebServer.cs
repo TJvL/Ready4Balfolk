@@ -210,8 +210,7 @@ public sealed class PresentationWebServer(
             // The pages localize themselves, but the language is the app's setting rather than the
             // browser's: a Dutch projector next to a Dutch desktop window must not read English.
             app.MapGet("/api/config", (ISettingsStore settings) => Results.Ok(new WebConfigDto(
-                settings.Current.ApplicationLanguage == ApplicationLanguage.Dutch ? "nl" : "en",
-                _access.IsEnabled)));
+                settings.Current.ApplicationLanguage == ApplicationLanguage.Dutch ? "nl" : "en")));
 
             app.MapPost("/api/remote/login", (RemoteLoginRequest request, HttpContext http) =>
             {
@@ -369,4 +368,4 @@ public sealed class PresentationWebServer(
 public sealed record RemoteLoginRequest(string? Pin);
 
 /// <summary>What a page needs to know before it draws anything.</summary>
-public sealed record WebConfigDto(string Language, bool RemoteEnabled);
+public sealed record WebConfigDto(string Language);

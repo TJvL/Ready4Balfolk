@@ -16,7 +16,6 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     /// <remarks>Ten times a second: smooth to the eye, and nothing to a machine playing one file.</remarks>
     private static readonly TimeSpan ProgressPollInterval = TimeSpan.FromMilliseconds(100);
 
-    private readonly Subject<Uri?> _selectedChanged = new();
     private readonly Subject<Unit> _playbackStarted = new();
     private readonly Subject<Unit> _playbackPaused = new();
     private readonly Subject<Unit> _playbackRestarted = new();
@@ -73,8 +72,6 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     }
 
     public bool IsPlaying => _channel != 0 && Bass.ChannelIsActive(_channel) == PlaybackState.Playing;
-    public bool IsPaused => _channel != 0 && Bass.ChannelIsActive(_channel) == PlaybackState.Paused;
-    public bool IsStopped => _channel == 0 || Bass.ChannelIsActive(_channel) == PlaybackState.Stopped;
     public bool IsEqualizerAvailable { get; private set; }
 
     /// <summary>
@@ -89,7 +86,6 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     /// </remarks>
     internal (int Playing, int Preloaded) OpenChannels => (_channel, _preloadedChannel);
 
-    public IObservable<Uri?> WhenSelectedChanged => _selectedChanged.AsObservable();
     public IObservable<Unit> WhenPlaybackStarted => _playbackStarted.AsObservable();
     public IObservable<Unit> WhenPlaybackPaused => _playbackPaused.AsObservable();
     public IObservable<Unit> WhenPlaybackRestarted => _playbackRestarted.AsObservable();
@@ -137,7 +133,6 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                     }
 
                     SetupEndSync();
-                    _selectedChanged.OnNext(source);
 
                     var lengthInBytes = Bass.ChannelGetLength(_channel);
                     var lengthInSeconds = Bass.ChannelBytes2Seconds(_channel, lengthInBytes);
@@ -282,7 +277,6 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
             {
                 FreeChannel();
                 FreePreloadedChannel();
-                _selectedChanged.OnNext(null);
                 _playbackCleared.OnNext(Unit.Default);
             }
             finally
@@ -300,7 +294,6 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
             try
             {
                 FreeChannel();
-                _selectedChanged.OnNext(null);
                 _playbackCleared.OnNext(Unit.Default);
             }
             finally

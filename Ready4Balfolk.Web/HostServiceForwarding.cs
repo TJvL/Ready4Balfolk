@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
@@ -41,7 +40,6 @@ public static class HostServiceForwarding
         services.AddSingleton(hostServices.GetRequiredService<IDancePool>());
         services.AddSingleton(hostServices.GetRequiredService<ITrackStore>());
         services.AddSingleton(hostServices.GetRequiredService<ISettingsStore>());
-        services.AddSingleton(hostServices.GetRequiredService<ILoggerService>());
         services.AddSingleton(hostServices.GetRequiredService<IRemoteCommandDispatcher>());
 
         return services;

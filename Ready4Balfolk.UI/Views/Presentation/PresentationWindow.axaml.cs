@@ -8,8 +8,6 @@ public partial class PresentationWindow : Window
 {
     private bool _isBorderless;
 
-    public int WindowIndex { get; set; }
-
     public bool AllowClose { get; set; }
 
     public bool IsBorderless
