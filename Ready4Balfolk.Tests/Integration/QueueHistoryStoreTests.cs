@@ -353,10 +353,15 @@ public sealed class QueueHistoryStoreTests : IDisposable
     {
         var emissions = new List<QueueHistory>();
         using var subscription = _sut.Observe().Subscribe(emissions.Add);
+        var entry = new StopHistoryEntry(CompletionStatus.Finished);
 
-        await _sut.AddAsync(new StopHistoryEntry(CompletionStatus.Finished));
+        await _sut.AddAsync(entry);
 
-        Assert.True(emissions.Count >= 2); // initial + update
+        // The history as it stood when subscribed, and then the history with the entry in it. A
+        // second emission alone says something changed, not that what changed was this entry.
+        Assert.Equal(2, emissions.Count);
+        Assert.Empty(emissions[0].Entries);
+        Assert.Same(entry, Assert.Single(emissions[1].Entries));
     }
 
     /// <summary>The names an entry is stored under, which a rename in code must not move.</summary>
@@ -510,6 +515,51 @@ public sealed class QueueHistoryStoreTests : IDisposable
 
         Assert.Empty(nights);
         notifications.Received(1).Show(DomainStrings.History_ListNightsFailed, NotificationSeverity.Error);
+    }
+
+    [Fact]
+    public async Task ANightStoreSqliteCannotOpen_IsReportedAndLeftByteForByte()
+    {
+        // The opposite of the library index, which deletes a file it cannot open and builds a new
+        // one. That one is derived and a scan puts it back; this one is the only copy there is of
+        // every evening in it, and a file somebody can still take to a recovery tool is worth more
+        // than a clean start. Making the two stores consistent would be an easy change to make by
+        // accident, and it would cost every night on the machine without a single other test failing.
+        _sut.Dispose();
+        var path = Path.Combine(_tempDir.FullName, "history.sqlite");
+        var damaged = "this was an evening once, and is not a database any more"u8.ToArray();
+        await File.WriteAllBytesAsync(path, damaged, TestContext.Current.CancellationToken);
+        var notifications = Substitute.For<INotificationService>();
+
+        using var reopened = new QueueHistoryStore(
+            _directory, _fileSystem, new NoOpLoggerService(), notifications, TimeProvider.System);
+        await reopened.LoadAsync(TestContext.Current.CancellationToken);
+        await reopened.AddAsync(Track());
+
+        notifications.Received(1).Show(DomainStrings.History_ReadFailed, NotificationSeverity.Error);
+        Assert.Equal(damaged, await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task ANightWithAnEntryThatWillNotParse_IsReportedAndKeptInTheFile()
+    {
+        // One bad payload stops the night being read back, and that is all it may do: the night and
+        // every entry in it, the bad one included, stay where they are for somebody to look at.
+        await _sut.AddAsync(Track());
+        await _sut.AddAsync(new StopHistoryEntry(CompletionStatus.Finished));
+        _sut.Dispose();
+        await ExecuteSqlAsync("UPDATE entries SET payload = '{ not json' WHERE ordinal = 1;");
+        var notifications = Substitute.For<INotificationService>();
+
+        using var reopened = new QueueHistoryStore(
+            _directory, _fileSystem, new NoOpLoggerService(), notifications, TimeProvider.System);
+        await reopened.LoadAsync(TestContext.Current.CancellationToken);
+
+        notifications.Received(1).Show(DomainStrings.History_ReadFailed, NotificationSeverity.Error);
+        Assert.Empty(reopened.Current.Entries);
+        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM nights;"));
+        Assert.Equal(2, await CountAsync("SELECT COUNT(*) FROM entries;"));
+        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM entries WHERE payload = '{ not json';"));
     }
 
     private const string TrackPath = "/tmp/test.mp3";

@@ -101,6 +101,25 @@ public sealed class NightSpreadsheetTests
     }
 
     [Fact]
+    public void Render_KeepsATagWithALineBreakInItOnOneRecord()
+    {
+        var csv = NightSpreadsheet.Render(Night(
+            TestData.CreateHistoryEntry("Nara\u001bgonia", "Salamandre\r\nlive\tat Gennetines", Evening)));
+
+        // In a CSV a line break is what ends a record, so one left in a title splits the track in
+        // two and reads its second half as a row of its own, one column across. The escape has no
+        // spelling at all and is left out, the same as the report leaves it out.
+        var rows = Lines(csv);
+        Assert.Equal(2, rows.Length);
+        Assert.Equal("20:30,Naragonia,Salamandre  live at Gennetines", rows[1]);
+
+        // Nothing but the two record ends either, since a lone line feed or carriage return is
+        // read as one too by most of what opens the file.
+        Assert.Equal(2, csv.Count(character => character == '\n'));
+        Assert.Equal(2, csv.Count(character => character == '\r'));
+    }
+
+    [Fact]
     public void Render_OfAnEveningWithNothingInItIsStillItsHeader()
     {
         var rows = Lines(NightSpreadsheet.Render(QueueHistory.Empty));

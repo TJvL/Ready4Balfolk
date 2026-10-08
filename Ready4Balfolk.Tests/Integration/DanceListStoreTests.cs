@@ -133,8 +133,10 @@ public sealed class DanceListStoreTests : IDisposable
     [Fact]
     public async Task RefreshAsync_Offline_KeepsTheListItHas()
     {
+        // A list must be there to keep. Loaded with no cache the store holds an empty list, and a
+        // refresh that wiped it would leave the same empty list behind.
+        await WriteCache(TestData.CreateSimpleDanceList());
         await _sut.LoadAsync(CancellationToken.None);
-        var before = _sut.Current;
         _feed.DownloadAsync(Arg.Any<CancellationToken>())
             .Returns<Task<string>>(_ => throw new HttpRequestException("no network"));
 
@@ -142,7 +144,8 @@ public sealed class DanceListStoreTests : IDisposable
 
         // Offline is an ordinary state for a laptop in a hall, not a failure to recover from.
         Assert.Equal(DanceListUpdateOutcome.Failed, update.Outcome);
-        Assert.Equal(before, _sut.Current);
+        Assert.Equal(["mazurka", "scottish", "plinn"], _sut.Current.Dances.Select(dance => dance.Slug));
+        Assert.Equal(DanceListOrigin.Cached, _sut.Status.Origin);
     }
 
     [Fact]
@@ -165,14 +168,16 @@ public sealed class DanceListStoreTests : IDisposable
     [Fact]
     public async Task RefreshAsync_RefusedList_KeepsTheListItHas()
     {
+        // Seeded for the reason the offline test is: an empty list survives being wiped.
+        await WriteCache(TestData.CreateSimpleDanceList());
         await _sut.LoadAsync(CancellationToken.None);
-        var before = _sut.Current;
         _feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns("""{"formatVersion":4,"dances":[]}""");
 
         var update = await _sut.RefreshAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(DanceListUpdateOutcome.Failed, update.Outcome);
-        Assert.Equal(before, _sut.Current);
+        Assert.Equal(["mazurka", "scottish", "plinn"], _sut.Current.Dances.Select(dance => dance.Slug));
+        Assert.Equal(DanceListOrigin.Cached, _sut.Status.Origin);
     }
 
     [Fact]
