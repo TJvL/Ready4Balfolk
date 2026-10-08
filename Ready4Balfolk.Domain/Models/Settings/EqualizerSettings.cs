@@ -26,11 +26,14 @@ public sealed record EqualizerSettings
 
     public static readonly EqualizerSettings Flat = new();
 
+    [JsonPropertyName("Enabled")]
     public bool Enabled { get; init; }
 
+    [JsonPropertyName("LowCutEnabled")]
     public bool LowCutEnabled { get; init; }
 
     /// <summary>One gain in dB per entry in <see cref="BandCenterFrequencies"/>.</summary>
+    [JsonPropertyName("BandGains")]
     public IReadOnlyList<double> BandGains
     {
         get;
@@ -38,6 +41,7 @@ public sealed record EqualizerSettings
     } = NormalizeGains(null);
 
     /// <summary>Output trim, mainly to buy back headroom when bands are boosted.</summary>
+    [JsonPropertyName("PreampDecibels")]
     public double PreampDecibels
     {
         get;
@@ -45,6 +49,7 @@ public sealed record EqualizerSettings
     }
 
     /// <summary>Corner frequency of the high pass, applied only when <see cref="LowCutEnabled"/>.</summary>
+    [JsonPropertyName("LowCutHertz")]
     public double LowCutHertz
     {
         get;

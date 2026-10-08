@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Ready4Balfolk.Domain.Models.Settings;
 
 /// <summary>How a track is written on each screen that writes one as a line.</summary>
@@ -19,14 +21,18 @@ public sealed record DisplayTemplates
     public static readonly DisplayTemplates Default = new();
 
     /// <summary>The large line of what is playing.</summary>
+    [JsonPropertyName("NowPlayingPrimary")]
     public string NowPlayingPrimary { get; init; } = "%d";
 
     /// <summary>The line under it.</summary>
+    [JsonPropertyName("NowPlayingSecondary")]
     public string NowPlayingSecondary { get; init; } = "%a - %t";
 
     /// <summary>One row of the queue.</summary>
+    [JsonPropertyName("QueueItem")]
     public string QueueItem { get; init; } = "%d - %a - %t";
 
     /// <summary>One row of the night's account.</summary>
+    [JsonPropertyName("HistoryItem")]
     public string HistoryItem { get; init; } = "%d - %a - %t";
 }

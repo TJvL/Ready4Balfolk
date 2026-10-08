@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Models.Settings;
@@ -29,10 +30,13 @@ public sealed record TagTrust
     /// <summary>Nothing, because no tag field is reliably the dance. It is a thing to declare.</summary>
     public static readonly IReadOnlyList<TagField> DefaultForDance = [];
 
+    [JsonPropertyName("Artist")]
     public IReadOnlyList<TagField>? Artist { get; init; }
 
+    [JsonPropertyName("Title")]
     public IReadOnlyList<TagField>? Title { get; init; }
 
+    [JsonPropertyName("Dance")]
     public IReadOnlyList<TagField>? Dance { get; init; }
 
     /// <summary>Compares what was declared rather than which list objects hold it.</summary>

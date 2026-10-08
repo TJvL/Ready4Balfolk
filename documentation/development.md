@@ -27,7 +27,7 @@ Ready4Balfolk is a five-project Avalonia desktop application for managing and pl
 
 ### Models
 
-All models are **sealed records**, organised by subdirectory. Only `Dance` and `DanceList` carry `[JsonPropertyName]`, because their names are BigBalfolkList's; everything else is stored under its property names (#308).
+All models are **sealed records**, organised by subdirectory. **Every model that is stored names each stored member with `[JsonPropertyName]`**: `Dance` and `DanceList` because their names are BigBalfolkList's, and the settings (`ApplicationSettings` and the records it is made of) and the history entries in the spelling they have always been written under. `settings.json` is read skipping what it does not recognise, so a rename without a pinned name puts a setting back to its default without a word; a history entry is the only copy there is of an evening, and a rename would read every older night back with that member empty. Tests in `SettingsStoreTests` and `QueueHistoryStoreTests` hold the stored names and fail on any read-back member that has none.
 
 | Directory | Contents |
 |-----------|----------|
@@ -38,7 +38,7 @@ All models are **sealed records**, organised by subdirectory. Only `Dance` and `
 | `History/` | `QueueHistoryEntry` (abstract, `[JsonPolymorphic]`) with `TrackHistoryEntry`, `MessageHistoryEntry`, `DelayHistoryEntry`, `StopHistoryEntry`, `EndOfNightHistoryEntry`, each carrying `StartedAt`, `FinishedAt` and a `CompletionStatus` of `Finished`, `Skipped` or `FileMissing`. `QueueHistory` is one night: `Id`, `StartedAt`, `EndedAt` and the entries; `NightSummary` is the little a list of nights shows. |
 | `Presentation/` | `PresentationState` and the `PresentationItem`s in it: what a presentation surface draws, reduced once by `PresentationStateService` for the window and the browser alike. |
 
-**To add a new model:** create a `sealed record` in the appropriate subdirectory. If it is serialised polymorphically, add `[JsonPolymorphic]` + `[JsonDerivedType]` on the base type. A model that persists is renamed only together with what reads the old name back.
+**To add a new model:** create a `sealed record` in the appropriate subdirectory. If it is serialised polymorphically, add `[JsonPolymorphic]` + `[JsonDerivedType]` on the base type. A member of a model that persists gets a `[JsonPropertyName]` when it is added, and its C# name can then change freely; the stored name changes only together with what reads the old one back.
 
 ### Stores
 
@@ -140,7 +140,9 @@ On a 2685-file library with BigBalfolkList imported and nothing else configured,
 - **`ended_at` is what makes it a finished night.** `EndNightAsync` sets it and publishes an empty night; nothing is deleted, which is why `QueueConsumptionService` can call it on its own the moment an `EndOfNightHistoryEntry` lands. `DeleteNightAsync` is the destructive one, and only a person calls it, on whichever night they are looking at.
 - **A filed night is still reachable.** `ListNightsAsync` is summaries rather than nights, because a list of evenings is chosen from and only one of them is read; `ReadNightAsync` reads that one, and export and delete take an id. The screen used to be able to reach only the night that was running, so the account of an evening left the screen the moment it ended and the file grew for the life of the application with nothing anybody could do about it.
 - **An entry records its finish as well as its start.** `RecordCurrentItemAsync` runs the moment an item stops being the current one, so what a room heard is the time between the two: a track's own length says how long it is, not how long it was played for.
-- **Entries keep their polymorphic JSON as a `payload` column** rather than being flattened. `kind` is lifted back out of that payload so it cannot drift from it, and so counting what an evening was made of costs no parsing.
+- **Entries keep their polymorphic JSON as a `payload` column** rather than being flattened. `kind` and `started_at` are lifted back out of it for a person opening the file, so what an evening was made of can be read without parsing JSON; nothing in the application queries either, and a night is counted by its rows. The payload is read with the same lenient enum converter as the settings, so a `CompletionStatus` a later build adds costs an older build that one entry's status rather than the whole night.
+- **Deleting a night is one transaction.** Its entries and its row go together or not at all, so a failure between the two cannot leave a night listed with nothing in it.
+- **The file carries the shape it was laid out in, in `PRAGMA user_version`**, as the library index does. `SchemaVersion` in `QueueHistoryStore` goes up with any change to the schema, together with whatever carries the older nights across. A file stamped zero was written before the stamp existed and in exactly the current shape, so it is stamped and opened as it stands. **A file stamped with anything else is refused and left byte for byte as it was found**, newer or older: it is reported the way an unreadable database is, and nothing is written into it.
 - An unreadable database is **logged and left alone**, unlike the library index, which deletes and rebuilds itself. `ApplicationStartup` asks once at startup about a night that was never ended and has been quiet for more than eight hours: a gap rather than a date, because a ball crossing midnight is normal. Starting fresh passes `LastActivityAt` to `EndNightAsync`, so the night is filed at the finish of its last entry rather than at the moment somebody answered, which can be days later.
 
 ### Services
