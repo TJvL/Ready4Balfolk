@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Reflection;
 
 namespace Ready4Balfolk.Domain.Services.Dances;
 
@@ -12,6 +13,18 @@ public sealed class DanceListFeed : IDanceListFeed, IDisposable
 {
     private static readonly Uri ListUri =
         new("https://raw.githubusercontent.com/TJvL/BigBalfolkList/main/dances.json");
+
+    /// <summary>The version of this build, as the user agent says it.</summary>
+    /// <remarks>
+    /// The build's own rather than a number written here, which said 1.0 for every release there
+    /// has been. Without the commit after the plus, which says nothing to whoever reads a request.
+    /// </remarks>
+    private static string ProductVersion { get; } =
+        typeof(DanceListFeed).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion.Split('+')[0] is { Length: > 0 } version
+            ? version
+            : "dev";
 
     private readonly HttpClient _client;
 
@@ -32,7 +45,7 @@ public sealed class DanceListFeed : IDanceListFeed, IDisposable
             // Long enough for a slow hall connection, short enough that startup is never held up.
             Timeout = TimeSpan.FromSeconds(15)
         };
-        _client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Ready4Balfolk", "1.0"));
+        _client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Ready4Balfolk", ProductVersion));
         _client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
     }
 

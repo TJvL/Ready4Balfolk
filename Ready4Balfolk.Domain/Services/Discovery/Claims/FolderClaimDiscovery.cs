@@ -9,9 +9,9 @@ namespace Ready4Balfolk.Domain.Services.Discovery.Claims;
 /// another is ordinary, and a rule firing on the files that have the depth while staying quiet
 /// on the rest is the honest reading of "level 2 is the album".
 /// </remarks>
-public class FolderClaimDiscovery(DeclaredDiscovery declared) : IClaimDiscovery
+public sealed class FolderClaimDiscovery(DeclaredDiscovery declared) : IClaimDiscovery
 {
-    public IEnumerable<Claim> CollectClaims(TrackEvidence evidence, string? folderDance = null)
+    public IEnumerable<Claim> CollectClaims(TrackEvidence evidence)
     {
         for (var level = 1; level <= evidence.PathSegments.Count; level++)
         {
@@ -24,13 +24,10 @@ public class FolderClaimDiscovery(DeclaredDiscovery declared) : IClaimDiscovery
                 _ => (TrackField?)null
             };
 
-            if (field is not null)
+            if (field is not null
+                && ClaimCreator.AddIfSaid(field.Value, evidence.PathSegments[level - 1], ClaimSource.FolderLevel(level), ClaimTrust.Declared) is { } claim)
             {
-                var claim = ClaimCreator.AddIfSaid(field.Value, evidence.PathSegments[level - 1], ClaimSource.FolderLevel(level), ClaimTrust.Declared);
-                if (claim is not null)
-                {
-                    yield return claim;
-                }
+                yield return claim;
             }
         }
     }

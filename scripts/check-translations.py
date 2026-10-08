@@ -27,6 +27,23 @@ changes language with the application, and treating the log line as the notice i
 application came to show English error bars. The check reads the application's own source (not the
 tests, which may well name a resx string beside a logger call to say it is not what was logged) and
 looks at the one argument of each logging call that becomes the log line.
+
+Only the application's own projects count as readers. A key the tests still name, after the screen
+that showed it has gone, is a key the DJ never sees, and a test reading it proves only that the
+string exists.
+
+The two designer files are written by hand, one property per key, and are compared with their
+English resx: a property whose key has gone returns null at runtime instead of failing the build,
+and a key with no property cannot be read at all.
+
+Every {0} placeholder has to appear in both languages. A Dutch string that lost one drops the value
+it was meant to show, and one that gained a {1} the code never passes throws when it is formatted.
+
+The browser pages keep their own strings, in Ready4Balfolk.Web/wwwroot/strings.js, as an English and
+a Dutch table. Those are held to the same rules: the same keys in both, the same placeholders, and
+no key that nothing reads. A page reads one through t("key") or R4B.t("key"), and the hub reads one
+by sending a RemoteRefusal code that the page passes straight to t(), so every such code also has to
+be a key in both tables.
 """
 
 import re
@@ -41,6 +58,21 @@ PAIRS = [
 ]
 
 SOURCE_GLOBS = ("*.cs", "*.axaml")
+
+# The application's own projects, the only ones whose reads and whose logging count. The tests are
+# left out of both: a test that names a string proves only that the string exists, and a test can
+# perfectly well put a resx string beside a logger call, to assert that it is not what was logged.
+APPLICATION_PROJECTS = ("Ready4Balfolk.Domain", "Ready4Balfolk.UI", "Ready4Balfolk.Web")
+
+DESIGNERS = {
+    "Ready4Balfolk.UI/Resources/UiStrings.resx": "Ready4Balfolk.UI/Resources/UiStrings.Designer.cs",
+    "Ready4Balfolk.Domain/Resources/DomainStrings.resx":
+        "Ready4Balfolk.Domain/Resources/DomainStrings.Designer.cs",
+}
+
+STRINGS_JS = "Ready4Balfolk.Web/wwwroot/strings.js"
+WEB_SCRIPTS = "Ready4Balfolk.Web/wwwroot"
+REFUSALS = "Ready4Balfolk.Web/Contracts/PresentationDtos.cs"
 
 # Build output and the SDK's own restore cache both nest a copy of the source tree; walking them
 # would let a key be "read" by the very generated file that proves it never is.
@@ -75,15 +107,159 @@ INTERPOLATION_HOLE = re.compile(r"\{([^{}]*)\}")
 XML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 
 
-def keys(path: Path) -> set[str]:
-    """The data keys of a resx. ElementTree ignores comments, so the template examples in the
-    header do not count as entries."""
+def entries(path: Path) -> dict[str, str]:
+    """The data entries of a resx, key to text. ElementTree ignores comments, so the template
+    examples in the header do not count as entries."""
     root = ET.parse(path).getroot()
     return {
-        element.get("name")
+        element.get("name"): element.findtext("value") or ""
         for element in root.findall("data")
         if element.get("name") is not None
     }
+
+
+# A composite format item: {0}, {1,-8} or {0:d MMMM yyyy}. Escaped braces are removed first, so
+# "{{0}}", which formats as the literal text {0}, is not one.
+FORMAT_ITEM = re.compile(r"\{(\d+)[^{}]*\}")
+
+
+def placeholders(text: str) -> set[str]:
+    """The indices of the format items in a string."""
+    return set(FORMAT_ITEM.findall(text.replace("{{", "").replace("}}", "")))
+
+
+def placeholder_mismatches(english: dict[str, str], dutch: dict[str, str], where: str) -> list[str]:
+    """Every key whose two languages do not ask for the same values."""
+    problems = []
+    for key in sorted(english.keys() & dutch.keys()):
+        theirs, ours = placeholders(english[key]), placeholders(dutch[key])
+        if theirs != ours:
+            problems.append(
+                f"ERROR: {where} '{key}' has placeholders {sorted(theirs)} in English and "
+                f"{sorted(ours)} in Dutch")
+    return problems
+
+
+DESIGNER_PROPERTY = re.compile(
+    r"public\s+static\s+string\s+([A-Za-z_][A-Za-z0-9_]*)\s*=>\s*"
+    r"ResourceManager\.GetString\(\s*\"([^\"]*)\"")
+DESIGNER_DECLARATION = re.compile(r"public\s+static\s+string\s+([A-Za-z_][A-Za-z0-9_]*)")
+
+
+def designer_mismatches(designer: Path, english: set[str], where: str) -> list[str]:
+    """Where the hand-written designer file and its English resx disagree. Each property has to
+    fetch the key it is named after, every key has to have a property, and every property a key."""
+    text = designer.read_text(encoding="utf-8")
+    problems = []
+    fetched = {}
+    for name, key in DESIGNER_PROPERTY.findall(text):
+        if name != key:
+            problems.append(f"ERROR: {where} property '{name}' fetches the key '{key}'")
+        fetched[name] = key
+    for name in DESIGNER_DECLARATION.findall(text):
+        if name not in fetched:
+            # A string property in any other shape would drop out of the comparison below unseen.
+            problems.append(
+                f"ERROR: {where} declares '{name}' in a shape the check cannot read; write it as "
+                f"public static string {name} => ResourceManager.GetString(\"{name}\", Culture)!;")
+    keys_fetched = set(fetched.values())
+    for key in sorted(keys_fetched - english):
+        problems.append(f"ERROR: {where} reads '{key}', which its resx does not define")
+    for key in sorted(english - keys_fetched):
+        problems.append(f"ERROR: {where} has no property for '{key}', which its resx defines")
+    return problems
+
+
+JS_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+JS_LINE_COMMENT = re.compile(r"^\s*//[^\n]*$", re.MULTILINE)
+JS_TABLE_OPEN = re.compile(r"^\s*(?:var|let|const)\s+TABLE\s*=\s*\{\s*$")
+JS_LANGUAGE_OPEN = re.compile(r"^\s*([a-z]{2})\s*:\s*\{\s*$")
+JS_LANGUAGE_CLOSE = re.compile(r"^\s*\},?\s*$")
+JS_ENTRY = re.compile(r'^\s*([A-Za-z_$][A-Za-z0-9_$]*)\s*:\s*"((?:\\.|[^"\\])*)"\s*,?\s*$')
+
+# A page asks for a string as t("key") or R4B.t("key"); remote.js binds t to R4B.t.
+JS_READ = re.compile(r"""\bt\(\s*["']([A-Za-z_$][A-Za-z0-9_$]*)["']""")
+
+
+def js_without_comments(text: str) -> str:
+    """The script with its comments dropped, so a key named in one is not mistaken for a read."""
+    return JS_LINE_COMMENT.sub("", JS_BLOCK_COMMENT.sub("", text))
+
+
+def strings_js_tables(path: Path) -> tuple[dict[str, dict[str, str]], list[str]]:
+    """The language tables of strings.js, language to key to text, and every line inside the table
+    the check could not read. A line it cannot read is an error rather than a skip: a string
+    written in some other shape would otherwise drop out of every comparison here unseen."""
+    tables: dict[str, dict[str, str]] = {}
+    problems = []
+    in_table, language = False, None
+    for line in js_without_comments(path.read_text(encoding="utf-8")).splitlines():
+        if not in_table:
+            in_table = bool(JS_TABLE_OPEN.match(line))
+            continue
+        if not line.strip():
+            continue
+        if language is None:
+            opened = JS_LANGUAGE_OPEN.match(line)
+            if opened:
+                language = opened.group(1)
+                tables[language] = {}
+            elif line.strip().startswith("}"):
+                break
+            else:
+                problems.append(f"ERROR: {STRINGS_JS} has a table line the check cannot read: {line.strip()}")
+            continue
+        if JS_LANGUAGE_CLOSE.match(line):
+            language = None
+            continue
+        entry = JS_ENTRY.match(line)
+        if entry:
+            tables[language][entry.group(1)] = entry.group(2)
+        else:
+            problems.append(f"ERROR: {STRINGS_JS} has a {language} line the check cannot read: {line.strip()}")
+    return tables, problems
+
+
+def remote_refusals(path: Path) -> set[str]:
+    """The codes the hub sends a phone when it refuses a command, each the key of a string."""
+    text = path.read_text(encoding="utf-8")
+    start = text.find("class RemoteRefusal")
+    if start < 0:
+        return set()
+    end = text.find("\n}", start)
+    return set(re.findall(r'const\s+string\s+\w+\s*=\s*"([^"]*)"', text[start:end]))
+
+
+def strings_js_problems(repo: Path) -> list[str]:
+    """Everything wrong with the browser pages' own strings; see the module docstring."""
+    tables, problems = strings_js_tables(repo / STRINGS_JS)
+    english, dutch = tables.get("en", {}), tables.get("nl", {})
+    if not english or not dutch:
+        return problems + [f"ERROR: {STRINGS_JS} has no en and nl table the check can read"]
+    for language in sorted(tables.keys() - {"en", "nl"}):
+        problems.append(f"ERROR: {STRINGS_JS} has a '{language}' table the check does not compare")
+
+    for key in sorted(english.keys() - dutch.keys()):
+        problems.append(f"ERROR: {STRINGS_JS} has no Dutch for '{key}'")
+    for key in sorted(dutch.keys() - english.keys()):
+        problems.append(f"ERROR: {STRINGS_JS} has Dutch for '{key}', which the English table does not define")
+    problems.extend(placeholder_mismatches(english, dutch, STRINGS_JS))
+
+    read: set[str] = set()
+    for script in sorted((repo / WEB_SCRIPTS).glob("*.js")):
+        read.update(JS_READ.findall(js_without_comments(script.read_text(encoding="utf-8"))))
+    refusals = remote_refusals(repo / REFUSALS)
+    if not refusals:
+        problems.append(f"ERROR: {REFUSALS} has no RemoteRefusal codes the check can read")
+    for code in sorted(refusals - (english.keys() & dutch.keys())):
+        problems.append(f"ERROR: RemoteRefusal sends '{code}', which {STRINGS_JS} does not word in both languages")
+    read |= refusals
+
+    for key in sorted(english.keys() - read):
+        problems.append(f"ERROR: {STRINGS_JS} defines '{key}', which no page reads")
+    if not problems:
+        print(f"{STRINGS_JS}: {len(english)} strings, both languages complete.")
+    return problems
 
 
 AXAML_QUOTED = re.compile(r'"([^"]*)"')
@@ -129,13 +305,15 @@ def _axaml_readers(text: str) -> set[str]:
 
 
 def referenced_identifiers(repo: Path) -> set[str]:
-    """Every resx key name the application's source actually reads, .cs and .axaml alike, skipping
-    generated designer files. A key counts only via a UiStrings.TheKey/DomainStrings.TheKey member
-    access or a bare string literal that is exactly the key name; see the module docstring."""
+    """Every resx key name the application's own source actually reads, .cs and .axaml alike,
+    skipping the designer files and the test projects. A key counts only via a
+    UiStrings.TheKey/DomainStrings.TheKey member access or a bare string literal that is exactly
+    the key name; see the module docstring."""
     read: set[str] = set()
     for pattern in SOURCE_GLOBS:
         for path in repo.rglob(pattern):
-            if IGNORED_DIR_PARTS & set(path.relative_to(repo).parts):
+            parts = path.relative_to(repo).parts
+            if IGNORED_DIR_PARTS & set(parts) or parts[0] not in APPLICATION_PROJECTS:
                 continue
             if path.name.endswith(".Designer.cs"):
                 continue
@@ -146,10 +324,6 @@ def referenced_identifiers(repo: Path) -> set[str]:
                 read.update(_axaml_readers(text))
     return read
 
-
-# The projects whose logging is the application's. The tests are left out: a test can perfectly
-# well put a resx string beside a logger call, to assert that it is not what was logged.
-APPLICATION_PROJECTS = ("Ready4Balfolk.Domain", "Ready4Balfolk.UI", "Ready4Balfolk.Web")
 
 # Each call that writes a log line, and the position of the argument that becomes it. Report,
 # UnawaitedWork.Start, Handlers.Run and ReportFailures take the English line and, separately, the
@@ -373,7 +547,8 @@ def main() -> int:
             failed = True
             continue
 
-        english, dutch = keys(english_path), keys(dutch_path)
+        english_text, dutch_text = entries(english_path), entries(dutch_path)
+        english, dutch = set(english_text), set(dutch_text)
 
         for key in sorted(english - dutch):
             print(f"ERROR: {dutch_name} has no translation for '{key}'")
@@ -384,11 +559,21 @@ def main() -> int:
             failed = True
 
         for key in sorted(english - read):
-            print(f"ERROR: {english_name} defines '{key}', which no .cs or .axaml file reads")
+            print(f"ERROR: {english_name} defines '{key}', which nothing in the application reads")
+            failed = True
+
+        designer_name = DESIGNERS[english_name]
+        for problem in (placeholder_mismatches(english_text, dutch_text, english_name)
+                        + designer_mismatches(repo / designer_name, english, designer_name)):
+            print(problem)
             failed = True
 
         if english == dutch:
             print(f"{english_name}: {len(english)} strings, both languages complete.")
+
+    for problem in strings_js_problems(repo):
+        print(problem)
+        failed = True
 
     if not logged:
         print("No resx string is handed to the logger as the line it writes.")

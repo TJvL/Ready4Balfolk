@@ -43,11 +43,11 @@ public static class TrackClaims
             // it, so a pattern beats a folder role, and both beat the tag fields.
             new PatternClaimDiscovery(declared),
             new FolderClaimDiscovery(declared),
-            new DanceClaimDiscovery(index, declared),
+            new DanceClaimDiscovery(index, declared, folderDance),
             new TagClaimDiscovery(declared),
-            new FilenameTitleDiscovery()
+            new FileNameTitleClaimDiscovery()
         ];
 
-        return discoveries.SelectMany(discovery => discovery.CollectClaims(evidence, folderDance));
+        return discoveries.SelectMany(discovery => discovery.CollectClaims(evidence));
     }
 }
