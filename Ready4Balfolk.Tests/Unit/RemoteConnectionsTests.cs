@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Connections.Features;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
+using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.Web.Hubs;
 using Ready4Balfolk.Web.Security;
 
@@ -189,16 +187,7 @@ public sealed class RemoteConnectionsTests
         var token = _access.TryLogin(Pin, Client).Token;
         Assert.NotNull(token);
 
-        var http = new DefaultHttpContext();
-        http.Request.QueryString = QueryString.Create("access_token", token);
-
-        var features = new FeatureCollection();
-        features.Set<IHttpContextFeature>(new CarriedHttpContext(http));
-
-        var context = Substitute.For<HubCallerContext>();
-        context.ConnectionId.Returns(connectionId);
-        context.Features.Returns(features);
-        return context;
+        return TestData.CreateHubConnection(connectionId, token);
     }
 
     private ISingleClientProxy ProxyFor(string connectionId)
@@ -206,11 +195,5 @@ public sealed class RemoteConnectionsTests
         var proxy = Substitute.For<ISingleClientProxy>();
         _clients.Client(connectionId).Returns(proxy);
         return proxy;
-    }
-
-    /// <summary>How SignalR hands the opening request through to a live connection.</summary>
-    private sealed class CarriedHttpContext(HttpContext context) : IHttpContextFeature
-    {
-        public HttpContext? HttpContext { get; set; } = context;
     }
 }

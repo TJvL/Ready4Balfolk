@@ -2,7 +2,7 @@ using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using Ready4Balfolk.Domain.Services.Logging;
 
-namespace Ready4Balfolk.Tests.Unit;
+namespace Ready4Balfolk.Tests.Integration;
 
 /// <summary>What the export button actually hands over.</summary>
 /// <remarks>

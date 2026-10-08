@@ -1,9 +1,7 @@
 using System.Reflection;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Connections.Features;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
+using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.Web.Hubs;
 using Ready4Balfolk.Web.Security;
 
@@ -72,25 +70,13 @@ public sealed class RemoteTokenFilterTests : IDisposable
             RemoteHub.TurnedOutMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
     }
 
-    private HubInvocationContext Invocation(string token)
-    {
-        var http = new DefaultHttpContext();
-        http.Request.QueryString = QueryString.Create("access_token", token);
-
-        var features = new FeatureCollection();
-        features.Set<IHttpContextFeature>(new CarriedHttpContext(http));
-
-        var context = Substitute.For<HubCallerContext>();
-        context.ConnectionId.Returns("phone");
-        context.Features.Returns(features);
-
-        return new HubInvocationContext(
-            context,
+    private HubInvocationContext Invocation(string token) =>
+        new(
+            TestData.CreateHubConnection("phone", token),
             Substitute.For<IServiceProvider>(),
             _hub,
             typeof(TestHub).GetMethod(nameof(TestHub.Command), BindingFlags.Public | BindingFlags.Instance)!,
             []);
-    }
 
     public void Dispose() => _hub.Dispose();
 
@@ -99,11 +85,5 @@ public sealed class RemoteTokenFilterTests : IDisposable
     {
         /// <summary>Reaches the caller, the way every real command on the remote hub does.</summary>
         public Task Command() => Clients.Caller.SendAsync("nothing");
-    }
-
-    /// <summary>How SignalR hands the opening request through to a live connection.</summary>
-    private sealed class CarriedHttpContext(HttpContext context) : IHttpContextFeature
-    {
-        public HttpContext? HttpContext { get; set; } = context;
     }
 }

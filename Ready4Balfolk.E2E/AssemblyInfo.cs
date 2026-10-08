@@ -2,7 +2,8 @@ using Ready4Balfolk.E2E;
 using Xunit.Sdk;
 using Xunit.v3;
 
-// One dispatcher for the assembly, handed out one scenario at a time.
+// One session for the assembly. In the runner it only starts a process per scenario; in each of those
+// processes it holds the dispatcher, for the one scenario that process runs.
 [assembly: AssemblyFixture(typeof(HeadlessSession))]
 
 // Scenarios run beside each other, because each one is a process of its own: what they would have

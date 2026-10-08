@@ -1,6 +1,13 @@
 using System.IO.Abstractions.TestingHelpers;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Connections.Features;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.SignalR;
+using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.History;
 using Ready4Balfolk.Domain.Models.Tracks;
+using Ready4Balfolk.Domain.Services.Discovery;
 
 namespace Ready4Balfolk.Tests.Helpers;
 
@@ -49,4 +56,49 @@ public static class TestData
                 CreateDance("plinn", ["bretagne", "suite"], "Plinn")
             ]
         };
+
+    /// <summary>
+    /// What discovery read off one file: <paramref name="fileName"/> gets an mp3 extension, and the
+    /// file sits in a folder called Artist unless <paramref name="segments"/> says otherwise.
+    /// </summary>
+    public static TrackEvidence CreateEvidence(string fileName, IReadOnlyList<string>? segments = null) => new()
+    {
+        FileName = fileName + ".mp3",
+        PathSegments = segments ?? ["Artist"],
+        Duration = TimeSpan.FromSeconds(180),
+        Format = AudioFormat.Mp3,
+        ContentHash = [1]
+    };
+
+    /// <summary>A mazurka that played to the end, as the night's history remembers it.</summary>
+    public static TrackHistoryEntry CreateHistoryEntry(string artist, string title, DateTime startedAt) => new(
+        Path.Combine(Path.GetTempPath(), "mazurka.mp3"), "Mazurka", artist, title,
+        TimeSpan.FromMinutes(3), false, CompletionStatus.Finished, startedAt);
+
+    /// <summary>
+    /// A connection under a hub, opened with <paramref name="token"/> on the query string, which
+    /// is where SignalR keeps it. Pass null for a phone that brought no token at all.
+    /// </summary>
+    public static HubCallerContext CreateHubConnection(string connectionId, string? token)
+    {
+        var http = new DefaultHttpContext();
+        if (token is not null)
+        {
+            http.Request.QueryString = QueryString.Create("access_token", token);
+        }
+
+        var features = new FeatureCollection();
+        features.Set<IHttpContextFeature>(new CarriedHttpContext(http));
+
+        var context = Substitute.For<HubCallerContext>();
+        context.ConnectionId.Returns(connectionId);
+        context.Features.Returns(features);
+        return context;
+    }
+
+    /// <summary>How SignalR hands the opening request through to a live connection.</summary>
+    private sealed class CarriedHttpContext(HttpContext context) : IHttpContextFeature
+    {
+        public HttpContext? HttpContext { get; set; } = context;
+    }
 }

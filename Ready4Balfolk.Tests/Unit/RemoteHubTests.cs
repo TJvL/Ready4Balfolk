@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Connections.Features;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Presentation;
@@ -244,27 +241,9 @@ public sealed class RemoteHubTests : IDisposable
     /// Puts a connection carrying <paramref name="token" /> under the hub, and hands back the
     /// proxy standing in for the phone at the other end of it.
     /// </summary>
-    /// <remarks>
-    /// The token is read off the query string of the HTTP request the socket was opened with,
-    /// which is where SignalR keeps it, so that is where a test has to put it.
-    /// </remarks>
     private ISingleClientProxy ConnectAs(string? token)
     {
-        var httpContext = new DefaultHttpContext();
-        if (token is not null)
-        {
-            httpContext.Request.QueryString = QueryString.Create("access_token", token);
-        }
-
-        var httpContextFeature = Substitute.For<IHttpContextFeature>();
-        httpContextFeature.HttpContext.Returns(httpContext);
-
-        var features = new FeatureCollection();
-        features.Set(httpContextFeature);
-
-        var context = Substitute.For<HubCallerContext>();
-        context.Features.Returns(features);
-        _sut.Context = context;
+        _sut.Context = TestData.CreateHubConnection("phone", token);
 
         var caller = Substitute.For<ISingleClientProxy>();
         var clients = Substitute.For<IHubCallerClients>();
@@ -633,7 +612,7 @@ public sealed class RemoteHubTests : IDisposable
         // Refused connections are aborted on the spot, and a second abort on a socket that is
         // already gone is the turn-out walking over connections it does not own.
         _access.Configure(true, Pin);
-        var refused = Connection("phone", "not-a-token");
+        var refused = TestData.CreateHubConnection("phone", "not-a-token");
         _sut.Context = refused;
         _sut.Clients = Callers();
 
@@ -653,7 +632,7 @@ public sealed class RemoteHubTests : IDisposable
         var token = _access.TryLogin(Pin, "192.168.1.50").Token;
         Assert.NotNull(token);
 
-        var context = Connection(connectionId, token);
+        var context = TestData.CreateHubConnection(connectionId, token);
         _sut.Context = context;
         _sut.Clients = Callers();
 
@@ -666,26 +645,6 @@ public sealed class RemoteHubTests : IDisposable
         var clients = Substitute.For<IHubCallerClients>();
         clients.Caller.Returns(Substitute.For<ISingleClientProxy>());
         return clients;
-    }
-
-    private static HubCallerContext Connection(string connectionId, string token)
-    {
-        var http = new DefaultHttpContext();
-        http.Request.QueryString = QueryString.Create("access_token", token);
-
-        var features = new FeatureCollection();
-        features.Set<IHttpContextFeature>(new CarriedHttpContext(http));
-
-        var context = Substitute.For<HubCallerContext>();
-        context.ConnectionId.Returns(connectionId);
-        context.Features.Returns(features);
-        return context;
-    }
-
-    /// <summary>How SignalR hands the opening request through to a live connection.</summary>
-    private sealed class CarriedHttpContext(HttpContext context) : IHttpContextFeature
-    {
-        public HttpContext? HttpContext { get; set; } = context;
     }
 
     public void Dispose()
