@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.IO.Abstractions;
 using System.Security.Cryptography;
+using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Services.Tracks;
 
@@ -19,6 +20,12 @@ namespace Ready4Balfolk.Domain.Services.Tracks;
 /// seconds, and the identity is just as good: two different recordings would have to share their
 /// first slice, their last slice and their exact byte length to collide.
 /// </para>
+/// <para>
+/// Where the audio is comes from TagLib for most formats, but not for FLAC and AIFF, which this
+/// finds itself. TagLib reports a FLAC's range as the whole file, metadata blocks included, and a
+/// tagged AIFF's range as its ID3 chunk alone: a fixed title then moved an approved FLAC to a new
+/// row and back into review, and two AIFF recordings with the same tags became one track.
+/// </para>
 /// </remarks>
 public static class AudioContentHasher
 {
@@ -29,17 +36,137 @@ public static class AudioContentHasher
     private const int ReadEverythingBelow = SampleSize * 3;
 
     /// <summary>
-    /// Hashes the audio between the tags. TagLib reports where the audio starts and ends, so a
-    /// leading ID3 block or a trailing tag is skipped rather than hashed.
+    /// Hashes the audio of a file TagLib has read, given the range TagLib reported for it. For FLAC
+    /// and AIFF that range is not the audio, so the file's own structure says where it is instead.
+    /// </summary>
+    /// <exception cref="IOException">The file could not be read.</exception>
+    public static byte[] Compute(IFileInfo fileInfo, AudioFormat format, long tagLibStart, long tagLibEnd)
+    {
+        using var stream = Open(fileInfo);
+
+        var (start, end) = format switch
+        {
+            AudioFormat.Flac => FlacFrames(stream, tagLibStart, tagLibEnd) ?? (tagLibStart, tagLibEnd),
+            // TagLib's range for a tagged AIFF is the one part never to hash, so a file that will
+            // not walk is hashed whole rather than by it.
+            AudioFormat.Aif => AiffSoundData(stream) ?? (0, stream.Length),
+            _ => (tagLibStart, tagLibEnd)
+        };
+
+        return Hash(stream, start, end);
+    }
+
+    /// <summary>
+    /// Hashes the audio between the tags, trusting the range it is given, so a leading ID3 block or
+    /// a trailing tag is skipped rather than hashed.
     /// </summary>
     /// <exception cref="IOException">The file could not be read.</exception>
     public static byte[] Compute(IFileInfo fileInfo, long audioStart, long audioEnd)
     {
-        using var stream = fileInfo.FileSystem.FileStream.New(fileInfo.FullName, FileMode.Open, FileAccess.Read,
+        using var stream = Open(fileInfo);
+        return Hash(stream, audioStart, audioEnd);
+    }
+
+    private static FileSystemStream Open(IFileInfo fileInfo) =>
+        fileInfo.FileSystem.FileStream.New(fileInfo.FullName, FileMode.Open, FileAccess.Read,
             FileShare.Read, SampleSize, FileOptions.SequentialScan);
 
+    /// <summary>The FLAC frames: everything after the last metadata block.</summary>
+    /// <returns>Where the frames are, or null when the file does not walk as a FLAC.</returns>
+    /// <remarks>
+    /// The Vorbis comment and the pictures are metadata blocks, so a tagger rewrites the blocks and
+    /// never the frames. TagLib's start is still taken, as the place the stream begins: it is past
+    /// an ID3v2 tag some taggers put in front of the stream. So is its end, which is short of an
+    /// ID3v1 or APE tag at the back; the frames otherwise run to the end of the file.
+    /// </remarks>
+    private static (long Start, long End)? FlacFrames(Stream stream, long tagLibStart, long tagLibEnd)
+    {
+        Span<byte> header = stackalloc byte[4];
+        var position = Math.Max(tagLibStart, 0);
+
+        if (!ReadAt(stream, position, header) || !header.SequenceEqual("fLaC"u8))
+        {
+            return null;
+        }
+
+        position += header.Length;
+        while (true)
+        {
+            // A flag byte, its top bit marking the last block, then the block's length in 24 bits.
+            if (!ReadAt(stream, position, header))
+            {
+                return null;
+            }
+
+            position += header.Length + ((header[1] << 16) | (header[2] << 8) | header[3]);
+
+            if ((header[0] & 0x80) != 0)
+            {
+                return (position, tagLibEnd);
+            }
+        }
+    }
+
+    /// <summary>The sample data in an AIFF or AIFF-C file's SSND chunk.</summary>
+    /// <returns>Where the samples are, or null when the file has no SSND chunk to find.</returns>
+    /// <remarks>
+    /// The ID3 chunk can come before the SSND chunk or after it, depending on the tagger, so the
+    /// chunks are walked rather than either end trusted. IFF is big-endian, and a chunk with an odd
+    /// length is followed by a pad byte its length does not count.
+    /// </remarks>
+    private static (long Start, long End)? AiffSoundData(Stream stream)
+    {
+        Span<byte> header = stackalloc byte[12];
+
+        if (!ReadAt(stream, 0, header)
+            || !header[..4].SequenceEqual("FORM"u8)
+            || !(header[8..].SequenceEqual("AIFF"u8) || header[8..].SequenceEqual("AIFC"u8)))
+        {
+            return null;
+        }
+
+        var chunk = header[..8];
+        long position = header.Length;
+        while (true)
+        {
+            if (!ReadAt(stream, position, chunk))
+            {
+                return null;
+            }
+
+            var data = position + chunk.Length;
+            long size = BinaryPrimitives.ReadUInt32BigEndian(chunk[4..]);
+
+            if (chunk[..4].SequenceEqual("SSND"u8))
+            {
+                // The samples start after an offset and a block size, plus however many bytes the
+                // offset says to skip for alignment.
+                return ReadAt(stream, data, chunk)
+                    ? (data + chunk.Length + BinaryPrimitives.ReadUInt32BigEndian(chunk[..4]), data + size)
+                    : null;
+            }
+
+            position = data + size + (size & 1);
+        }
+    }
+
+    /// <returns>False when the file is too short to hold what is asked for.</returns>
+    private static bool ReadAt(Stream stream, long position, Span<byte> buffer)
+    {
+        if (position < 0 || position > stream.Length - buffer.Length)
+        {
+            return false;
+        }
+
+        stream.Seek(position, SeekOrigin.Begin);
+        stream.ReadExactly(buffer);
+        return true;
+    }
+
+    private static byte[] Hash(Stream stream, long audioStart, long audioEnd)
+    {
         var start = Math.Clamp(audioStart, 0, stream.Length);
-        // A negative or unknown end position means TagLib could not say, so use the end of the file
+        // A negative or unknown end position means nobody could say, so use the end of the file
         // rather than hashing nothing.
         var end = audioEnd <= start ? stream.Length : Math.Min(audioEnd, stream.Length);
         var length = end - start;

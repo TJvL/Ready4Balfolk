@@ -1,5 +1,7 @@
+using System.Buffers.Binary;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Tracks;
 
 namespace Ready4Balfolk.Tests.Integration;
@@ -89,6 +91,76 @@ public sealed class AudioContentHasherTests
         var b = WriteLong('b', middle: 'x');
 
         Assert.NotEqual(AudioContentHasher.Compute(a, 0, a.Length), AudioContentHasher.Compute(b, 0, b.Length));
+    }
+
+    [Fact]
+    public void Aiff_AnId3ChunkInFrontOfTheSamples_IsWalkedPast()
+    {
+        // TagLib writes the ID3 chunk after the samples, but not every tagger does, and an
+        // odd-length chunk carries a pad byte its length leaves out. Either way the walk has to
+        // land on the same samples.
+        var (shortTag, _) = WriteAiff("short-tag", "AIFF"u8, id3Length: 7, "SAMPLES-SAMPLES"u8);
+        var (longTag, _) = WriteAiff("long-tag", "AIFF"u8, id3Length: 300, "SAMPLES-SAMPLES"u8);
+
+        Assert.Equal(
+            AudioContentHasher.Compute(shortTag, AudioFormat.Aif, -1, -1),
+            AudioContentHasher.Compute(longTag, AudioFormat.Aif, -1, -1));
+    }
+
+    [Fact]
+    public void Aiff_OnlyTheSamplesAreHashed()
+    {
+        // AIFF-C, with alignment bytes the SSND offset says to skip and a chunk after the samples:
+        // the range is the samples to the byte, whatever TagLib said it was.
+        var (file, samples) = WriteAiff("aifc", "AIFC"u8, id3Length: 5, "SAMPLES-SAMPLES"u8, alignment: 4);
+
+        Assert.Equal(
+            AudioContentHasher.Compute(file, samples, samples + 15),
+            AudioContentHasher.Compute(file, AudioFormat.Aif, 0, 12));
+    }
+
+    /// <summary>An AIFF laid out by hand: COMM, then ID3, then SSND, then an annotation.</summary>
+    /// <returns>The file, and where its first sample is.</returns>
+    private (IFileInfo File, long Samples) WriteAiff(string name, ReadOnlySpan<byte> formType, int id3Length,
+        ReadOnlySpan<byte> samples, int alignment = 0)
+    {
+        using var body = new MemoryStream();
+        body.Write(formType);
+        Chunk(body, "COMM"u8, new byte[18]);
+        Chunk(body, "ID3 "u8, [.. Enumerable.Repeat((byte)'T', id3Length)]);
+
+        var sound = new byte[8 + alignment + samples.Length];
+        BinaryPrimitives.WriteUInt32BigEndian(sound, (uint)alignment);
+        Array.Fill(sound, (byte)0xEE, 8, alignment);
+        samples.CopyTo(sound.AsSpan(8 + alignment));
+        // Past the FORM header, the chunks so far, the SSND chunk's own header, and its offset and
+        // block size.
+        var first = 8 + body.Length + 8 + 8 + alignment;
+        Chunk(body, "SSND"u8, sound);
+
+        Chunk(body, "ANNO"u8, "an annotation after the samples"u8.ToArray());
+
+        var bytes = new byte[8 + body.Length];
+        "FORM"u8.CopyTo(bytes);
+        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(4), (uint)body.Length);
+        body.ToArray().CopyTo(bytes, 8);
+
+        var path = $"/hash/{name}.aiff";
+        _fileSystem.File.WriteAllBytes(path, bytes);
+        return (_fileSystem.FileInfo.New(path), first);
+
+        static void Chunk(MemoryStream into, ReadOnlySpan<byte> id, byte[] data)
+        {
+            Span<byte> size = stackalloc byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(size, (uint)data.Length);
+            into.Write(id);
+            into.Write(size);
+            into.Write(data);
+            if (data.Length % 2 == 1)
+            {
+                into.WriteByte(0);
+            }
+        }
     }
 
     /// <summary>A file long enough that the hasher samples its ends rather than reading it whole.</summary>

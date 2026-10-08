@@ -34,7 +34,7 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
                 Duration = file.Properties.Duration,
                 Format = format,
                 ContentHash = AudioContentHasher.Compute(
-                    fileInfo, file.InvariantStartPosition, file.InvariantEndPosition)
+                    fileInfo, format, file.InvariantStartPosition, file.InvariantEndPosition)
             };
 
             return evidence;
