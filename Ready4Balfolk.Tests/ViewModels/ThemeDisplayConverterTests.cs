@@ -17,7 +17,10 @@ public sealed class ThemeDisplayConverterTests
     [InlineData(ApplicationTheme.Automatic, nameof(UiStrings.Settings_ThemeAuto))]
     public void Convert_ReturnsTheMatchingResourceString(ApplicationTheme theme, string expectedResourceKey)
     {
-        var expected = UiStrings.ResourceManager.GetString(expectedResourceKey, CultureInfo.InvariantCulture);
+        // The converter reads the resource in the application's language, which is the current UI
+        // culture, so the expectation does too. Reading it in the invariant culture would only
+        // match when the machine running the test happens to be set to English.
+        var expected = UiStrings.ResourceManager.GetString(expectedResourceKey, CultureInfo.CurrentUICulture);
 
         var result = ThemeDisplayConverter.Instance.Convert(theme, typeof(string), null, CultureInfo.InvariantCulture);
 
