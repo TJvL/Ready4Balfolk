@@ -16,7 +16,7 @@ namespace Ready4Balfolk.Domain.Services.Audio;
 /// Said once per change. A night whose output has gone keeps being asked to play, and a
 /// notification per attempt would bury the one that meant something.
 /// </remarks>
-public sealed class AudioAvailability(ILoggerService loggerService, INotificationService notifications)
+internal sealed class AudioAvailability(ILoggerService loggerService, INotificationService notifications)
     : IDisposable
 {
     private readonly BehaviorSubject<bool> _isAvailable = new(true);

@@ -176,10 +176,6 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         SelectedTheme = current.ApplicationTheme;
         SelectedLanguage = current.ApplicationLanguage;
 
-        ThrottledSave(x => x.MusicDirectoryPath, v => s => s with
-        {
-            MusicDirectoryPath = v
-        });
         ThrottledSave(x => x.MaxQueueItems, v => s => s with
         {
             MaxQueueItems = v

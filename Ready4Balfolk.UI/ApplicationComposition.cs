@@ -306,7 +306,6 @@ public static class ApplicationComposition
         // View registrations for ViewModelViewHost resolution
         services.AddTransient<IViewFor<SettingsViewModel>, SettingsView>();
         services.AddTransient<IViewFor<HelpViewModel>, HelpView>();
-        services.AddTransient<IViewFor<DiscoveryViewModel>, DiscoveryView>();
         services.AddTransient<IViewFor<ReviewViewModel>, ReviewView>();
 
         services.AddSingleton<PresentationDisplayViewModel>();

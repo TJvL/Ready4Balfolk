@@ -19,8 +19,6 @@ namespace Ready4Balfolk.Domain.Models.Dances;
 /// </remarks>
 public sealed record DanceWords
 {
-    public static readonly DanceWords None = new();
-
     /// <summary>Glue that says nothing: articles, prepositions, and "temps" and its translations.</summary>
     public IReadOnlySet<string> Ignored { get; init; } = new HashSet<string>(StringComparer.Ordinal);
 

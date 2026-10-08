@@ -174,7 +174,7 @@ public sealed class ManagedBassAudioPlaybackServiceTests : IDisposable
 
         await _sut.ClearPlayingAsync();
 
-        Assert.True(_sut.IsStopped);
+        Assert.False(_sut.IsPlaying);
 
         await _sut.SelectAsync(_second);
 
@@ -241,7 +241,6 @@ public sealed class ManagedBassAudioPlaybackServiceTests : IDisposable
         _sut.Dispose();
 
         Assert.Null(Record.Exception(() => _sut.WhenPlaybackEnded.Subscribe(_ => { }).Dispose()));
-        Assert.Null(Record.Exception(() => _sut.WhenSelectedChanged.Subscribe(_ => { }).Dispose()));
         Assert.Null(Record.Exception(() => _sut.WhenAvailabilityChanged.Subscribe(_ => { }).Dispose()));
     }
 

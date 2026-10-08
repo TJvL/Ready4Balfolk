@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -39,7 +38,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private readonly BehaviorSubject<TimeSpan> _elapsed = new(TimeSpan.Zero);
     private readonly BehaviorSubject<TimeSpan> _totalDuration = new(TimeSpan.Zero);
     private readonly BehaviorSubject<bool> _isPlaying = new(false);
-    private readonly Subject<Unit> _itemCompleted = new();
 
     /// <summary>Set the moment the application starts closing, and never put down again.</summary>
     private volatile bool _closing;
@@ -56,7 +54,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     public IObservable<TimeSpan> WhenElapsedChanged => _elapsed.AsObservable();
     public IObservable<TimeSpan> WhenTotalDurationChanged => _totalDuration.AsObservable();
     public IObservable<bool> WhenIsPlayingChanged => _isPlaying.AsObservable();
-    public IObservable<Unit> WhenItemCompleted => _itemCompleted.AsObservable();
 
     /// <remarks>
     /// <c>advanceScheduler</c> is where an advance is run from. Everything else that touches the
@@ -594,7 +591,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
             await _history.EndNightAsync(finishedAt);
         }
 
-        _itemCompleted.OnNext(Unit.Default);
     }
 
     private void CleanupCurrentItem()
