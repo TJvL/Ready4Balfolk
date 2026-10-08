@@ -268,6 +268,16 @@ public sealed class TrackInformationResolverTests
     }
 
     [Fact]
+    public void ALooseDanceInsideABracketedWord_IsNotBracketed()
+    {
+        // "Tour" is loose in the title and only a substring of "Tournai" in the brackets. Counted
+        // as bracketed, it tied with the "Valse" that really is, and the track came out contested.
+        var resolution = Resolve(TestData.CreateEvidence("03 - La Tour (Valse de Tournai)"));
+
+        Assert.Equal("waltz", resolution.DanceSlug);
+    }
+
+    [Fact]
     public void TwoDancesBothInBrackets_StillResolvesToNothing()
     {
         // "09. Thijsjes Doopwals (valse 3 temps, mazurka)" names two dances on purpose. Brackets

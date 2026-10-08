@@ -47,7 +47,10 @@ public static class FolderAgreement
     /// <remarks>
     /// The folder is everything in it, not only what this scan happened to read: unchanged
     /// siblings are answered from the index and never re-scanned, and without their votes a new
-    /// file dropped into an established folder of mazurkas saw a folder of one.
+    /// file dropped into an established folder of mazurkas saw a folder of one. A sibling the
+    /// folder itself answered is not one of them, though: its dance is the folder's own verdict
+    /// played back, and once the file that really said "mazurka" is gone, the siblings it spoke
+    /// for would go on agreeing with each other with nothing left behind them.
     /// </remarks>
     public static int Apply(
         IReadOnlyCollection<ScannedFile> scanned,
@@ -60,7 +63,10 @@ public static class FolderAgreement
         // A row whose file could not be reached does not get a vote. Otherwise the tracks on a dead
         // drive decide the dance of the ones that are still there.
         var knownSlugsByFolder = known.Values
-            .Where(entry => entry.IsAvailable && entry.DanceSlug is not null && !scannedPaths.Contains(entry.Path))
+            .Where(entry => entry.IsAvailable
+                && entry.DanceSlug is not null
+                && !IsFolderAgreement(entry.Dance)
+                && !scannedPaths.Contains(entry.Path))
             .GroupBy(entry => KeyFor(entry.Path, rootPath), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Select(entry => entry.DanceSlug!).ToList(), StringComparer.Ordinal);
 
@@ -97,24 +103,12 @@ public static class FolderAgreement
         return rescued;
     }
 
-    /// <summary>
-    /// What the folder around one file says, for the watcher path where there is no scan.
-    /// </summary>
+    /// <summary>Whether a stored dance is one this class gave, rather than one a file said.</summary>
     /// <remarks>
-    /// A file dropped into an established folder has to get the same answer as one the scan read,
-    /// or the same file resolves differently depending on who noticed it.
+    /// The index keeps where a value came from by kind and detail, not the claim that carried it,
+    /// so the detail is what tells folder agreement apart from a folder level the user declared.
     /// </remarks>
-    public static string? AgreedDanceAround(
-        string path,
-        string folderKey,
-        IReadOnlyDictionary<string, LibraryEntry> known,
-        string rootPath) =>
-        AgreedDance([
-            .. known.Values
-                .Where(entry => entry.IsAvailable
-                    && entry.DanceSlug is not null
-                    && !string.Equals(entry.Path, path, StringComparison.Ordinal)
-                    && string.Equals(KeyFor(entry.Path, rootPath), folderKey, StringComparison.Ordinal))
-                .Select(entry => entry.DanceSlug!)
-        ]);
+    private static bool IsFolderAgreement(DerivedFrom from) =>
+        from.Kind == ClaimSource.FolderAgreement.Kind
+        && string.Equals(from.Detail, ClaimSource.FolderAgreement.Detail, StringComparison.Ordinal);
 }

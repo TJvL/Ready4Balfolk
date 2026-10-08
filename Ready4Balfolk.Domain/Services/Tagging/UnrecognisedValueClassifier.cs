@@ -83,41 +83,14 @@ public static class UnrecognisedValueClassifier
     }
 
     /// <summary>
-    /// Whether the needle appears in the name as whole words, so "Bourrée" is inside
+    /// Whether the needle sits inside a longer name as whole words, so "Bourrée" is inside
     /// "Bourrée 3 temps" but "Ron" is not inside "Rond de Landéda".
     /// </summary>
-    private static bool ContainsAsWords(string foldedName, string foldedNeedle)
-    {
-        if (string.Equals(foldedName, foldedNeedle, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        var name = foldedName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var needle = foldedNeedle.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (needle.Length == 0 || needle.Length > name.Length)
-        {
-            return false;
-        }
-
-        for (var start = 0; start + needle.Length <= name.Length; start++)
-        {
-            var matches = true;
-            for (var offset = 0; offset < needle.Length; offset++)
-            {
-                if (!string.Equals(name[start + offset], needle[offset], StringComparison.Ordinal))
-                {
-                    matches = false;
-                    break;
-                }
-            }
-
-            if (matches)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    /// <remarks>
+    /// The name itself does not count: a value equal to a name is that name, not a value too
+    /// general to choose between several.
+    /// </remarks>
+    private static bool ContainsAsWords(string foldedName, string foldedNeedle) =>
+        !string.Equals(foldedName, foldedNeedle, StringComparison.Ordinal)
+        && WholeWords.Contains(foldedName, foldedNeedle);
 }
