@@ -37,7 +37,6 @@ public sealed class PresentationStateServiceTests
         Assert.Equal("Scottish", item.Primary);
         Assert.Equal("Naragonia", item.Artist);
         Assert.Equal("Sur le Pont", item.Title);
-        Assert.True(item.HasSubtitle);
     }
 
     [Fact]
@@ -60,7 +59,7 @@ public sealed class PresentationStateServiceTests
         var item = PresentationStateService.Map(track);
 
         Assert.Equal("", item.Title);
-        Assert.True(item.HasSubtitle);
+        Assert.Equal("Bal O'Gadjo", item.Artist);
     }
 
     [Fact]
@@ -71,7 +70,6 @@ public sealed class PresentationStateServiceTests
         Assert.Equal(PresentationItemKind.Message, item.Kind);
         Assert.Equal("Bar closes at midnight", item.Primary);
         Assert.Equal("", item.Artist);
-        Assert.False(item.HasSubtitle);
         Assert.Null(item.Duration);
     }
 

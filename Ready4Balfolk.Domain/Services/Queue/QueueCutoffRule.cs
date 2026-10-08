@@ -87,6 +87,6 @@ public sealed class QueueCutoffRule(
     public bool? CanClear(IReadOnlyList<IQueueItem> currentItems) => null;
 
     /// <summary>An item that pauses the queue for an unknowable length of time.</summary>
-    public static bool IsHalt(IQueueItem item) =>
+    private static bool IsHalt(IQueueItem item) =>
         item is StopQueueItem or MessageQueueItem { Duration: null };
 }
