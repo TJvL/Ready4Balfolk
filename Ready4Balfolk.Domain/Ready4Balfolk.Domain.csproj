@@ -30,11 +30,4 @@
       <InternalsVisibleTo Include="Ready4Balfolk.E2E" />
     </ItemGroup>
 
-    <ItemGroup>
-      <EmbeddedResource Update="Resources\DomainStrings.resx">
-        <Generator>PublicResXFileCodeGenerator</Generator>
-        <LastGenOutput>DomainStrings.Designer.cs</LastGenOutput>
-      </EmbeddedResource>
-    </ItemGroup>
-
 </Project>
