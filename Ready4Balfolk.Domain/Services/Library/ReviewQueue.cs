@@ -49,7 +49,8 @@ public sealed record ReviewTrack
     public int SharedBy { get; init; }
 
     /// <summary>
-    /// What the unknown value might have meant, best first.
+    /// What the unknown value might have meant: the closest first, or for a value inside several
+    /// names, the shortest name first.
     /// </summary>
     /// <remarks>
     /// Offered rather than applied: "Scottiche" is a misspelling of exactly one dance and saying so
@@ -225,7 +226,9 @@ public static class ReviewQueueBuilder
 
         var (_, slugs) = UnrecognisedValueClassifier.Classify(value, dances);
 
-        return [.. slugs.Take(3).Select(dances.DisplayNameFor)];
+        // Every one of them, uncapped. "(Bourrée)" fits seven dances in the published list, and a
+        // cap of three offered the long regional variants and never "Bourrée 2 temps".
+        return [.. slugs.Select(dances.DisplayNameFor)];
     }
 
     /// <summary>The dance value this track claims that the list cannot answer, or nothing.</summary>
