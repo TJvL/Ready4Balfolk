@@ -392,14 +392,11 @@ public sealed class SetupWizardViewModelTests : IDisposable
     }
 
     [Fact]
-    public void FinishingTheLastStep_Signals()
+    public void FinishingTheLastStep_GoesBackToTheMainScreen()
     {
-        var finished = false;
-        using var subscription = _sut.Finished.Subscribe(_ => finished = true);
-
         RunToTheEnd();
 
-        Assert.True(finished);
+        Assert.Equal(Screen.Main, _navigation.CurrentScreen);
     }
 
     [Fact]

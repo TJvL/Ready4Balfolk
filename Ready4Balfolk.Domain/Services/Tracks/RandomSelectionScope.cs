@@ -20,5 +20,9 @@ public abstract record RandomSelectionScope
     public sealed record SingleDance(string Slug) : RandomSelectionScope;
 
     /// <summary>Anything at all: the pool with nothing in it.</summary>
+    /// <remarks>
+    /// Only the tests name it, and it stays for them: a pool with nothing chosen is what the dance
+    /// panel holds before anybody clicks a tag, and a dozen tests draw from exactly that.
+    /// </remarks>
     public static RandomSelectionScope EntireList { get; } = new Pool([]);
 }
