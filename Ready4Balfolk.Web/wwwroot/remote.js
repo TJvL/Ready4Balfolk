@@ -98,7 +98,7 @@
     var elapsed = snapshot.elapsedSeconds;
     text("nowElapsed", window.R4B.mmss(elapsed));
     text("nowLeft", duration > 0 ? "-" + window.R4B.mmss(duration - elapsed) : "");
-    id("nowBar").style.width = duration > 0 ? Math.min(100, (elapsed / duration) * 100) + "%" : "0%";
+    id("nowBar").style.width = window.R4B.progressWidth(elapsed, duration);
 
     id("ppIcon").innerHTML = snapshot.isPlaying
       ? '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'
@@ -501,7 +501,7 @@
     var previous = connection;
     var mine = new signalR.HubConnectionBuilder()
       .withUrl("/hubs/remote?access_token=" + encodeURIComponent(token))
-      .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
+      .withAutomaticReconnect(window.R4B.retryDelays)
       .build();
     connection = mine;
 

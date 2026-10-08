@@ -61,8 +61,7 @@
 
       var duration = snapshot.durationSeconds;
       var elapsed = snapshot.elapsedSeconds;
-      // A stop has no end, so the bar stays empty rather than sitting at a meaningless zero.
-      el.bar.style.width = duration > 0 ? Math.min(100, (elapsed / duration) * 100) + "%" : "0%";
+      el.bar.style.width = window.R4B.progressWidth(elapsed, duration);
       el.remaining.textContent = duration > 0 ? window.R4B.mmss(duration - elapsed) : "";
     }
 
@@ -99,7 +98,7 @@
       .withUrl("/hubs/display")
       // The reason SignalR is here rather than a bare WebSocket: a projector left running all
       // evening will lose its socket at some point, and nobody is standing at it to reload.
-      .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
+      .withAutomaticReconnect(window.R4B.retryDelays)
       .build();
 
     connection.on("snapshot", render);

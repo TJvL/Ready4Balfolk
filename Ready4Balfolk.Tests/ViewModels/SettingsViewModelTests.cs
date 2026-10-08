@@ -108,6 +108,21 @@ public sealed class SettingsViewModelTests : IDisposable
         await _settingsStore.DidNotReceive().UpdateAsync(Arg.Any<Func<ApplicationSettings, ApplicationSettings>>());
     }
 
+    [Fact]
+    public async Task ATemplateChangedElsewhere_IsShownHereAndNotWrittenBack()
+    {
+        // The templates were loaded and saved but never followed, so a change from anywhere else
+        // left this screen showing, and on the next keystroke saving, the old one.
+        _stored.OnNext(_settings with
+        {
+            DisplayTemplatesOrNull = _settings.DisplayTemplates with { QueueItem = "%t (%d)" }
+        });
+        Settle();
+
+        Assert.Equal("%t (%d)", _sut.QueueItemTemplate);
+        await _settingsStore.DidNotReceive().UpdateAsync(Arg.Any<Func<ApplicationSettings, ApplicationSettings>>());
+    }
+
     // --- The remote's PIN ---
 
     [Fact]

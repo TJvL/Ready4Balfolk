@@ -6,15 +6,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Audio;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Notifications;
-using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
+using Ready4Balfolk.UI.Views.Queue;
 
 namespace Ready4Balfolk.UI.Views.Playback;
 
@@ -339,8 +340,7 @@ public sealed partial class PlaybackViewModel : ReactiveObject, IDisposable
         TotalTime = "0:00";
     }
 
-    private static string FormatTime(TimeSpan time)
-        => $"{(int)time.TotalMinutes}:{time.Seconds:D2}";
+    private static string FormatTime(TimeSpan time) => DurationFormatConverter.Format(time);
 
     /// <summary>
     /// Moves playback to a position on the bar, one at a time.

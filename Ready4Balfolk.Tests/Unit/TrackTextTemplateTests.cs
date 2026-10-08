@@ -1,4 +1,5 @@
-using Ready4Balfolk.Domain.Services.Presentation;
+using Ready4Balfolk.Domain.Helpers;
+using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Tests.Helpers;
 
 namespace Ready4Balfolk.Tests.Unit;
@@ -85,5 +86,15 @@ public sealed class TrackTextTemplateTests
         var track = TestData.CreateTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre");
 
         Assert.Equal("Mazurka: Salamandre", TrackTextTemplate.Render("%d: %t", track));
+    }
+
+    [Fact]
+    public void AQueuedTrackWithNoArtist_IsNamedWithoutTheEmptySeparator()
+    {
+        // What the error bar says when a file will not play. Built by hand, it read
+        // "Mazurka -  - Salamandre", the one case every other surface avoids.
+        var track = TestData.CreateTrack(dance: "Mazurka", artist: "", title: "Salamandre");
+
+        Assert.Equal("Mazurka - Salamandre", new TrackQueueItem(track, false).Description);
     }
 }

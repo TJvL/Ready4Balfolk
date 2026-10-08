@@ -5,9 +5,11 @@ using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Presentation;
 using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Views.Queue;
 
 namespace Ready4Balfolk.UI.Views.Presentation;
 
@@ -165,8 +167,7 @@ public sealed partial class PresentationDisplayViewModel : ReactiveObject, IDisp
     private static string TrackLine(PresentationItem item) =>
         TrackTextTemplate.Render(TrackLineTemplate, string.Empty, item.Artist, item.Title);
 
-    private static string FormatTimeLeft(TimeSpan remaining) =>
-        $"{(int)remaining.TotalMinutes}:{remaining.Seconds:D2}";
+    private static string FormatTimeLeft(TimeSpan remaining) => DurationFormatConverter.Format(remaining);
 
     public void Dispose() => _disposables.Dispose();
 }

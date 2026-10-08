@@ -49,8 +49,7 @@ public sealed class DeclaredDiscovery
     }
 
     /// <summary>The role declared for a level, counted from 1 outermost.</summary>
-    public FolderRole RoleForLevel(int level) =>
-        level >= 1 && level <= FolderRoles.Count ? FolderRoles[level - 1] : FolderRole.Unknown;
+    public FolderRole RoleForLevel(int level) => DiscoverySettings.RoleAt(FolderRoles, level);
 
     /// <summary>
     /// What the first pattern to match this name whole makes of it, or null when none does.

@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 using AsyncAwaitBestPractices;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Notifications;
-using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Platform;
 using Ready4Balfolk.UI.Resources;
@@ -34,6 +34,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     private readonly IConfirmationService _confirmationService;
     private readonly PresentationWebServer _webServer;
     private readonly IFileSystem _fileSystem;
+    private readonly IReadOnlyList<SettingField> _fields;
     private readonly IScheduler _saveScheduler;
     private readonly CompositeDisposable _disposables = [];
 
@@ -145,130 +146,17 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         _webServer = webServer;
         _fileSystem = fileSystem;
 
-        var current = settingsStore.Current;
-        MusicDirectoryPath = current.MusicDirectoryPath;
-        MaxQueueItems = current.MaxQueueItems;
-        DelaySeconds = current.DelaySeconds;
-        PresentationDisplayCount = current.PresentationDisplayCount;
-        AutoQueueRandomTrack = current.AutoQueueRandomTrack;
-        AllowDuplicateTracksInQueue = current.AllowDuplicateTracksInQueue;
-        RequirePlaybackConfirmation = current.RequirePlaybackConfirmation;
-        ShowButtonText = current.ShowButtonText;
-        GapBetweenTracksEnabled = current.GapBetweenTracksEnabled;
-        GapBetweenTracksSeconds = current.GapBetweenTracksSeconds;
-        NowPlayingPrimaryTemplate = current.DisplayTemplates.NowPlayingPrimary;
-        NowPlayingSecondaryTemplate = current.DisplayTemplates.NowPlayingSecondary;
-        QueueItemTemplate = current.DisplayTemplates.QueueItem;
-        HistoryItemTemplate = current.DisplayTemplates.HistoryItem;
-        QueueCutoffEnabled = current.QueueCutoffEnabled;
-        QueueCutoffMinutesOfDay = current.QueueCutoffMinutesOfDay;
-        QueueCutoffGraceMinutes = current.QueueCutoffGraceMinutes;
-        EndOfNightAudioPath = current.EndOfNightAudioPath;
-        PlayEndOfNightAtCutoff = current.PlayEndOfNightAtCutoff;
         IsEndOfNightAudioMissing = false;
-        WebServerEnabled = current.WebServerEnabled;
-        WebServerPort = current.WebServerPort;
-        WebRemoteControlEnabled = current.WebRemoteControlEnabled;
-        WebRemoteControlPin = current.WebRemoteControlPin;
         WebServerStatus = "";
         WebServerAddresses = "";
         IsWebServerBusy = false;
-        SelectedTheme = current.ApplicationTheme;
-        SelectedLanguage = current.ApplicationLanguage;
 
-        ThrottledSave(x => x.MaxQueueItems, v => s => s with
+        _fields = Fields();
+        foreach (var field in _fields)
         {
-            MaxQueueItems = v
-        });
-        ThrottledSave(x => x.DelaySeconds, v => s => s with
-        {
-            DelaySeconds = v
-        });
-        ThrottledSave(x => x.PresentationDisplayCount, v => s => s with
-        {
-            PresentationDisplayCount = v
-        });
-        ThrottledSave(x => x.AutoQueueRandomTrack, v => s => s with
-        {
-            AutoQueueRandomTrack = v
-        });
-        ThrottledSave(x => x.AllowDuplicateTracksInQueue, v => s => s with
-        {
-            AllowDuplicateTracksInQueue = v
-        });
-        ThrottledSave(x => x.RequirePlaybackConfirmation, v => s => s with
-        {
-            RequirePlaybackConfirmation = v
-        });
-        ThrottledSave(x => x.ShowButtonText, v => s => s with
-        {
-            ShowButtonText = v
-        });
-        ThrottledSave(x => x.GapBetweenTracksEnabled, v => s => s with
-        {
-            GapBetweenTracksEnabled = v
-        });
-        ThrottledSave(x => x.GapBetweenTracksSeconds, v => s => s with
-        {
-            GapBetweenTracksSeconds = v
-        });
-        ThrottledSave(x => x.NowPlayingPrimaryTemplate, v => s => s with
-        {
-            DisplayTemplatesOrNull = s.DisplayTemplates with { NowPlayingPrimary = v }
-        });
-        ThrottledSave(x => x.NowPlayingSecondaryTemplate, v => s => s with
-        {
-            DisplayTemplatesOrNull = s.DisplayTemplates with { NowPlayingSecondary = v }
-        });
-        ThrottledSave(x => x.QueueItemTemplate, v => s => s with
-        {
-            DisplayTemplatesOrNull = s.DisplayTemplates with { QueueItem = v }
-        });
-        ThrottledSave(x => x.HistoryItemTemplate, v => s => s with
-        {
-            DisplayTemplatesOrNull = s.DisplayTemplates with { HistoryItem = v }
-        });
-        ThrottledSave(x => x.QueueCutoffEnabled, v => s => s with
-        {
-            QueueCutoffEnabled = v
-        });
-        ThrottledSave(x => x.QueueCutoffMinutesOfDay, v => s => s with
-        {
-            QueueCutoffMinutesOfDay = v
-        });
-        ThrottledSave(x => x.QueueCutoffGraceMinutes, v => s => s with
-        {
-            QueueCutoffGraceMinutes = v
-        });
-        ThrottledSave(x => x.EndOfNightAudioPath, v => s => s with
-        {
-            EndOfNightAudioPath = v
-        });
-        ThrottledSave(x => x.PlayEndOfNightAtCutoff, v => s => s with
-        {
-            PlayEndOfNightAtCutoff = v
-        });
-        ThrottledSave(x => x.WebServerEnabled, v => s => s with
-        {
-            WebServerEnabled = v
-        });
-        ThrottledSave(x => x.WebServerPort, v => s => s with
-        {
-            WebServerPort = v
-        });
-        // Switching the remote on for the first time mints its PIN, so there is never a moment
-        // where the remote is reachable and the PIN is empty.
-        ThrottledSave(x => x.WebRemoteControlEnabled, v => s => s with
-        {
-            WebRemoteControlEnabled = v,
-            WebRemoteControlPin = v && s.WebRemoteControlPin.Length == 0
-                ? RemoteAccessService.GeneratePin()
-                : s.WebRemoteControlPin
-        });
-        ThrottledSave(x => x.SelectedTheme, v => s => s with
-        {
-            ApplicationTheme = v
-        });
+            field.Show(settingsStore.Current);
+            field.SaveWhenChanged();
+        }
 
         // Checked here as well as at the queue's button, so a path that resolves to nothing is
         // answered where it was typed.
@@ -394,28 +282,95 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     private void SyncFromStore(ApplicationSettings s)
     {
         _syncing = true;
-        MusicDirectoryPath = s.MusicDirectoryPath;
-        MaxQueueItems = s.MaxQueueItems;
-        DelaySeconds = s.DelaySeconds;
-        PresentationDisplayCount = s.PresentationDisplayCount;
-        AutoQueueRandomTrack = s.AutoQueueRandomTrack;
-        AllowDuplicateTracksInQueue = s.AllowDuplicateTracksInQueue;
-        RequirePlaybackConfirmation = s.RequirePlaybackConfirmation;
-        ShowButtonText = s.ShowButtonText;
-        GapBetweenTracksEnabled = s.GapBetweenTracksEnabled;
-        GapBetweenTracksSeconds = s.GapBetweenTracksSeconds;
-        QueueCutoffEnabled = s.QueueCutoffEnabled;
-        QueueCutoffMinutesOfDay = s.QueueCutoffMinutesOfDay;
-        QueueCutoffGraceMinutes = s.QueueCutoffGraceMinutes;
-        EndOfNightAudioPath = s.EndOfNightAudioPath;
-        PlayEndOfNightAtCutoff = s.PlayEndOfNightAtCutoff;
-        WebServerEnabled = s.WebServerEnabled;
-        WebServerPort = s.WebServerPort;
-        WebRemoteControlEnabled = s.WebRemoteControlEnabled;
-        WebRemoteControlPin = s.WebRemoteControlPin;
-        SelectedTheme = s.ApplicationTheme;
-        SelectedLanguage = s.ApplicationLanguage;
+        foreach (var field in _fields)
+        {
+            field.Show(s);
+        }
+
         _syncing = false;
+    }
+
+    /// <summary>One setting the screen shows: how it is read, and how a change to it is written.</summary>
+    /// <param name="Show">Puts the stored value on screen.</param>
+    /// <param name="SaveWhenChanged">Writes a change made on screen, or nothing for a setting saved elsewhere.</param>
+    private sealed record SettingField(Action<ApplicationSettings> Show, Action SaveWhenChanged);
+
+    /// <summary>Every setting the screen shows, listed once.</summary>
+    /// <remarks>
+    /// Loading, saving and following the store all walk this one list. Written out three times, the
+    /// three had already drifted: the display templates were loaded and saved but never followed,
+    /// so a change made anywhere else left this screen showing the old one. The language and the
+    /// PIN are shown and followed like the rest, and written by their own paths, because changing
+    /// either asks something first.
+    /// </remarks>
+    private IReadOnlyList<SettingField> Fields() =>
+    [
+        Field(s => s.MusicDirectoryPath, v => MusicDirectoryPath = v),
+        Field(s => s.MaxQueueItems, v => MaxQueueItems = v, x => x.MaxQueueItems, (s, v) => s with { MaxQueueItems = v }),
+        Field(s => s.DelaySeconds, v => DelaySeconds = v, x => x.DelaySeconds, (s, v) => s with { DelaySeconds = v }),
+        Field(s => s.PresentationDisplayCount, v => PresentationDisplayCount = v, x => x.PresentationDisplayCount,
+            (s, v) => s with { PresentationDisplayCount = v }),
+        Field(s => s.AutoQueueRandomTrack, v => AutoQueueRandomTrack = v, x => x.AutoQueueRandomTrack,
+            (s, v) => s with { AutoQueueRandomTrack = v }),
+        Field(s => s.AllowDuplicateTracksInQueue, v => AllowDuplicateTracksInQueue = v, x => x.AllowDuplicateTracksInQueue,
+            (s, v) => s with { AllowDuplicateTracksInQueue = v }),
+        Field(s => s.RequirePlaybackConfirmation, v => RequirePlaybackConfirmation = v, x => x.RequirePlaybackConfirmation,
+            (s, v) => s with { RequirePlaybackConfirmation = v }),
+        Field(s => s.ShowButtonText, v => ShowButtonText = v, x => x.ShowButtonText, (s, v) => s with { ShowButtonText = v }),
+        Field(s => s.GapBetweenTracksEnabled, v => GapBetweenTracksEnabled = v, x => x.GapBetweenTracksEnabled,
+            (s, v) => s with { GapBetweenTracksEnabled = v }),
+        Field(s => s.GapBetweenTracksSeconds, v => GapBetweenTracksSeconds = v, x => x.GapBetweenTracksSeconds,
+            (s, v) => s with { GapBetweenTracksSeconds = v }),
+        Field(s => s.DisplayTemplates.NowPlayingPrimary, v => NowPlayingPrimaryTemplate = v, x => x.NowPlayingPrimaryTemplate,
+            (s, v) => s with { DisplayTemplatesOrNull = s.DisplayTemplates with { NowPlayingPrimary = v } }),
+        Field(s => s.DisplayTemplates.NowPlayingSecondary, v => NowPlayingSecondaryTemplate = v, x => x.NowPlayingSecondaryTemplate,
+            (s, v) => s with { DisplayTemplatesOrNull = s.DisplayTemplates with { NowPlayingSecondary = v } }),
+        Field(s => s.DisplayTemplates.QueueItem, v => QueueItemTemplate = v, x => x.QueueItemTemplate,
+            (s, v) => s with { DisplayTemplatesOrNull = s.DisplayTemplates with { QueueItem = v } }),
+        Field(s => s.DisplayTemplates.HistoryItem, v => HistoryItemTemplate = v, x => x.HistoryItemTemplate,
+            (s, v) => s with { DisplayTemplatesOrNull = s.DisplayTemplates with { HistoryItem = v } }),
+        Field(s => s.QueueCutoffEnabled, v => QueueCutoffEnabled = v, x => x.QueueCutoffEnabled,
+            (s, v) => s with { QueueCutoffEnabled = v }),
+        Field(s => s.QueueCutoffMinutesOfDay, v => QueueCutoffMinutesOfDay = v, x => x.QueueCutoffMinutesOfDay,
+            (s, v) => s with { QueueCutoffMinutesOfDay = v }),
+        Field(s => s.QueueCutoffGraceMinutes, v => QueueCutoffGraceMinutes = v, x => x.QueueCutoffGraceMinutes,
+            (s, v) => s with { QueueCutoffGraceMinutes = v }),
+        Field(s => s.EndOfNightAudioPath, v => EndOfNightAudioPath = v, x => x.EndOfNightAudioPath,
+            (s, v) => s with { EndOfNightAudioPath = v }),
+        Field(s => s.PlayEndOfNightAtCutoff, v => PlayEndOfNightAtCutoff = v, x => x.PlayEndOfNightAtCutoff,
+            (s, v) => s with { PlayEndOfNightAtCutoff = v }),
+        Field(s => s.WebServerEnabled, v => WebServerEnabled = v, x => x.WebServerEnabled, (s, v) => s with { WebServerEnabled = v }),
+        Field(s => s.WebServerPort, v => WebServerPort = v, x => x.WebServerPort, (s, v) => s with { WebServerPort = v }),
+        // Switching the remote on for the first time mints its PIN, so there is never a moment
+        // where the remote is reachable and the PIN is empty.
+        Field(s => s.WebRemoteControlEnabled, v => WebRemoteControlEnabled = v, x => x.WebRemoteControlEnabled,
+            (s, v) => s with
+            {
+                WebRemoteControlEnabled = v,
+                WebRemoteControlPin = v && s.WebRemoteControlPin.Length == 0
+                    ? RemoteAccessService.GeneratePin()
+                    : s.WebRemoteControlPin
+            }),
+        Field(s => s.WebRemoteControlPin, v => WebRemoteControlPin = v),
+        Field(s => s.ApplicationTheme, v => SelectedTheme = v, x => x.SelectedTheme, (s, v) => s with { ApplicationTheme = v }),
+        Field(s => s.ApplicationLanguage, v => SelectedLanguage = v)
+    ];
+
+    private SettingField Field<T>(
+        Func<ApplicationSettings, T> read,
+        Action<T> show,
+        System.Linq.Expressions.Expression<Func<SettingsViewModel, T>>? property = null,
+        Func<ApplicationSettings, T, ApplicationSettings>? write = null)
+    {
+        void SaveWhenChanged()
+        {
+            if (property is not null && write is not null)
+            {
+                ThrottledSave(property, value => settings => write(settings, value));
+            }
+        }
+
+        return new SettingField(settings => show(read(settings)), SaveWhenChanged);
     }
 
     private void ThrottledSave<T>(

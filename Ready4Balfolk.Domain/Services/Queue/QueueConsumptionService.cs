@@ -375,12 +375,9 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
         switch (item)
         {
-            case AutoTrackQueueItem auto:
+            case TrackQueueItem or AutoTrackQueueItem:
                 _currentItem.OnNext(item);
-                return await TryStartAudioAsync(item, auto.TrackQueueItem.Track.FileInfo.FullName);
-            case TrackQueueItem track:
-                _currentItem.OnNext(item);
-                return await TryStartAudioAsync(item, track.Track.FileInfo.FullName);
+                return await TryStartAudioAsync(item, AudioItems.FileOf(item)!);
             case DelayQueueItem delay:
                 await _audio.ClearAsync();
                 _currentItem.OnNext(item);
@@ -522,13 +519,7 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
     private void PreloadNext()
     {
         var next = _queue.Peek();
-        var uri = next switch
-        {
-            TrackQueueItem t => new Uri(t.Track.FileInfo.FullName),
-            AutoTrackQueueItem a => new Uri(a.TrackQueueItem.Track.FileInfo.FullName),
-            EndOfNightQueueItem e => new Uri(e.FilePath),
-            _ => null
-        };
+        var uri = AudioItems.FileOf(next) is { } path ? new Uri(path) : null;
 
         // Reported rather than dropped: this is where a next track that will not open first says
         // so, minutes before the room is waiting on it.
@@ -560,23 +551,13 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
 
         QueueHistoryEntry entry = item switch
         {
-            AutoTrackQueueItem auto => new TrackHistoryEntry(
-                auto.TrackQueueItem.Track.FileInfo.FullName,
-                auto.TrackQueueItem.Track.Dance,
-                auto.TrackQueueItem.Track.Artist,
-                auto.TrackQueueItem.Track.Title,
-                auto.TrackQueueItem.Track.Length,
-                auto.TrackQueueItem.RandomlyAdded,
-                status,
-                _currentItemStartedAt,
-                finishedAt),
-            TrackQueueItem track => new TrackHistoryEntry(
-                track.Track.FileInfo.FullName,
-                track.Track.Dance,
-                track.Track.Artist,
-                track.Track.Title,
-                track.Track.Length,
-                track.RandomlyAdded,
+            _ when AudioItems.LibraryTrackOf(item) is { } track => new TrackHistoryEntry(
+                track.FileInfo.FullName,
+                track.Dance,
+                track.Artist,
+                track.Title,
+                track.Length,
+                item.RandomlyAdded,
                 status,
                 _currentItemStartedAt,
                 finishedAt),
