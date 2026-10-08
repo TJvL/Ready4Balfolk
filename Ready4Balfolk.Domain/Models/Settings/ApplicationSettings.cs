@@ -60,8 +60,18 @@ public sealed record ApplicationSettings(
     bool GapBetweenTracksEnabled = false,
     int GapBetweenTracksSeconds = 10)
 {
-    public ApplicationSettings() : this(string.Empty, 6, 30, 0, true, false, true, ApplicationTheme.Automatic,
-        ApplicationLanguage.English, new WindowState(), [])
+    public ApplicationSettings() : this(
+        MusicDirectoryPath: string.Empty,
+        MaxQueueItems: 6,
+        DelaySeconds: 30,
+        PresentationDisplayCount: 0,
+        AutoQueueRandomTrack: true,
+        AllowDuplicateTracksInQueue: false,
+        RequirePlaybackConfirmation: true,
+        ApplicationTheme: ApplicationTheme.Automatic,
+        ApplicationLanguage: ApplicationLanguage.English,
+        MainWindowState: new WindowState(),
+        PresentationWindowStates: [])
     {
     }
 
