@@ -65,6 +65,59 @@ public sealed class DrivingItWithoutAMouse(HeadlessSession session)
         });
     }
 
+    /// <summary>The queue is rearranged and trimmed from the keyboard.</summary>
+    /// <remarks>
+    /// World: a library of three dances, auto queue off, all three queued.
+    /// Steps: select the last entry, press Ctrl and the up arrow twice, then Delete.
+    /// Sees: the entry at the top, and then gone. The keys press the commands the toolbar's buttons
+    /// run, and the keyboard stays on the entry as it moves: it used to go with the row the move
+    /// replaced, so the second key landed nowhere.
+    /// </remarks>
+    [Fact]
+    public async Task TheQueueIsReorderedAndTrimmedFromTheKeyboard()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Schottische", artist: "Trio Loubelya", title: "La Belle")
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Idiosyncrasie")
+            .WhereTheTagsAreTrusted()
+            .WithSettings(settings => settings with { AutoQueueRandomTrack = false })
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 3,
+                "the library to be indexed");
+
+            application.DoubleClick(application.Row("catalog.tracks", "Salamandre"));
+            application.DoubleClick(application.Row("catalog.tracks", "La Belle"));
+            application.DoubleClick(application.Row("catalog.tracks", "Idiosyncrasie"));
+
+            Assert.Equal(3, application.RowsOf("queue.items").Count);
+
+            application.Click(application.Row("queue.items", "Idiosyncrasie"));
+            application.Press(PhysicalKey.ArrowUp, RawInputModifiers.Control);
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items")[1].Contains("Idiosyncrasie", StringComparison.Ordinal),
+                "the entry to move one place up");
+
+            application.Press(PhysicalKey.ArrowUp, RawInputModifiers.Control);
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items")[0].Contains("Idiosyncrasie", StringComparison.Ordinal),
+                "the entry to move to the top on the second press");
+
+            application.Press(PhysicalKey.Delete);
+
+            await application.WaitUntil(
+                () => application.RowsOf("queue.items").Count == 2,
+                "the entry to be taken out");
+            Assert.DoesNotContain(
+                application.RowsOf("queue.items"),
+                row => row.Contains("Idiosyncrasie", StringComparison.Ordinal));
+        });
+    }
+
     /// <summary>The search box is a key away, and the transport keeps out of it.</summary>
     /// <remarks>
     /// World: a library of two dances, auto queue off, with one of them already in the queue so

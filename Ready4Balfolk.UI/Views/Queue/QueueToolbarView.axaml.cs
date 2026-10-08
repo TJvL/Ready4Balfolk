@@ -1,12 +1,9 @@
-using System;
-using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.UI.Controls;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
-using Ready4Balfolk.UI.Views.Dialogs.Message;
 
 namespace Ready4Balfolk.UI.Views.Queue;
 
@@ -24,25 +21,9 @@ public partial class QueueToolbarView : ReactiveUserControl<QueueViewModel>
         Handlers.Run(
             "Failed to add the message", UiStrings.QueueToolbar_AddMessageFailed, async () =>
             {
-                var topLevel = TopLevel.GetTopLevel(this);
-                if (topLevel is not Window owner)
+                if (await App.Services.GetRequiredService<IDialogService>().RequestMessageAsync() is { } request)
                 {
-                    return;
-                }
-
-                var dialogVm = new RequestMessageDialogViewModel();
-                var dialog = new RequestMessageDialogView
-                {
-                    DataContext = dialogVm
-                };
-                await dialog.ShowDialog(owner);
-
-                if (dialogVm.DialogResult == true)
-                {
-                    var duration = dialogVm.UseDelay
-                        ? TimeSpan.FromSeconds((double)dialogVm.DelaySeconds)
-                        : (TimeSpan?)null;
-                    ViewModel?.EnqueueMessage(dialogVm.Message, duration);
+                    ViewModel?.EnqueueMessage(request.Message, request.Duration);
                 }
             });
     }
