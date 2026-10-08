@@ -133,8 +133,19 @@ public sealed class TrackDiscoveryServiceTests
         });
         var retagged = _sut.Gather(file, _root).ContentHash;
 
+        // And everything taken out again, which a tagger lays out afresh: TagLib then spread an Ogg
+        // setup header over three pages, and its own start position landed on the second.
+        using (var stripped = TagLib.File.Create(new TagLibFileAbstraction(file)))
+        {
+            stripped.RemoveTags(TagTypes.AllTags);
+            stripped.Save();
+        }
+
+        var cleared = _sut.Gather(file, _root).ContentHash;
+
         Assert.Equal(untagged, tagged);
         Assert.Equal(untagged, retagged);
+        Assert.Equal(untagged, cleared);
     }
 
     [Fact]

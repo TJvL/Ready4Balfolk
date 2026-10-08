@@ -27,10 +27,10 @@ namespace Ready4Balfolk.Domain.Services.Tracks;
 /// row and back into review, and two AIFF recordings with the same tags became one track.
 /// </para>
 /// <para>
-/// Ogg's range is right, but its bytes are not all audio: every page header carries a sequence
-/// number and a checksum, and a retag whose comment grows onto another page renumbers every page
-/// after it. Those two fields are left out of the hash, so a large cover added to an Ogg file keeps
-/// its identity as it does everywhere else.
+/// Ogg needs two things. TagLib's start can land inside the header pages, which a tagger lays out
+/// again on every save, so the first audio page is found by counting the header packets. And every
+/// page header carries a sequence number and a checksum, which a retag whose comment grows onto
+/// another page rewrites on every audio page behind it, so those two fields are left out.
 /// </para>
 /// </remarks>
 public static class AudioContentHasher
@@ -65,6 +65,7 @@ public static class AudioContentHasher
             // TagLib's range for a tagged AIFF is the one part never to hash, so a file that will
             // not walk is hashed whole rather than by it.
             AudioFormat.Aif => AiffSoundData(stream) ?? (0, stream.Length),
+            AudioFormat.Ogg => (OggFirstAudioPage(stream) ?? tagLibStart, tagLibEnd),
             _ => (tagLibStart, tagLibEnd)
         };
 
@@ -170,11 +171,72 @@ public static class AudioContentHasher
         }
     }
 
+    /// <summary>The first Ogg page after the Vorbis or Opus header packets.</summary>
+    /// <returns>Where it is, or null for a stream this does not know the headers of.</returns>
+    /// <remarks>
+    /// Both codecs end their last header packet on a page of its own, so the audio starts on a
+    /// fresh page. A packet ends at the first segment shorter than 255 bytes. Taken from TagLib
+    /// instead, a retag that laid the setup header over three pages instead of one moved the hash.
+    /// </remarks>
+    private static long? OggFirstAudioPage(Stream stream)
+    {
+        Span<byte> header = stackalloc byte[OggHeaderSize];
+        Span<byte> segments = stackalloc byte[255];
+        Span<byte> magic = stackalloc byte[8];
+
+        long position = 0;
+        var headerPackets = 0;
+        var packets = 0;
+        while (headerPackets == 0 || packets < headerPackets)
+        {
+            if (!ReadAt(stream, position, header) || !IsOggPage(header))
+            {
+                return null;
+            }
+
+            var table = segments[..header[OggHeaderSize - 1]];
+            if (!ReadAt(stream, position + OggHeaderSize, table))
+            {
+                return null;
+            }
+
+            if (headerPackets == 0)
+            {
+                // The first packet names the codec: "\x01vorbis" has three header packets, and
+                // "OpusHead" two.
+                if (!ReadAt(stream, position + OggHeaderSize + table.Length, magic))
+                {
+                    return null;
+                }
+
+                headerPackets = magic[..7].SequenceEqual("\u0001vorbis"u8) ? 3
+                    : magic.SequenceEqual("OpusHead"u8) ? 2
+                    : 0;
+                if (headerPackets == 0)
+                {
+                    return null;
+                }
+            }
+
+            foreach (var segment in table)
+            {
+                if (segment < 255)
+                {
+                    packets++;
+                }
+            }
+
+            position += OggHeaderSize + table.Length + BodyLength(table);
+        }
+
+        return position < stream.Length ? position : null;
+    }
+
     /// <summary>Where the Ogg pages start inside the slices the hash reads.</summary>
     /// <returns>The page starts, or null when the range does not walk as Ogg pages.</returns>
     /// <remarks>
-    /// TagLib's start is the first audio page, after the header pages a retag rewrites, and a tagger
-    /// copies every audio page as it was apart from its number and checksum. The front slice is
+    /// The range starts at the first audio page, and a tagger copies every audio page as it was
+    /// apart from its number and checksum. The front slice is
     /// walked page by page from there. The back slice is found from the end instead, so a long file
     /// is not read through: the first "OggS" whose pages run exactly to the end is where they start.
     /// </remarks>
