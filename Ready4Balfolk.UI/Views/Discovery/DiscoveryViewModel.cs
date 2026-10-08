@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -67,13 +68,21 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     /// </remarks>
     private bool _shownWhatIsOnDisk;
 
+    /// <summary>How long typing a pattern has to pause before the draft is measured.</summary>
+    internal static readonly TimeSpan DraftPreviewQuiet = TimeSpan.FromMilliseconds(200);
+
+    /// <remarks>
+    /// <c>previewScheduler</c> is where the pause after the last keystroke in a draft pattern is
+    /// counted. Real time unless a caller says otherwise, and only a test does.
+    /// </remarks>
     public DiscoveryViewModel(
         ISettingsStore settingsStore,
         ILibraryIndex libraryIndex,
         IDanceListStore danceListStore,
         ITrackStore trackStore,
         ILoggerService loggerService,
-        INotificationService notifications)
+        INotificationService notifications,
+        IScheduler? previewScheduler = null)
     {
         _settingsStore = settingsStore;
         _libraryIndex = libraryIndex;
@@ -135,7 +144,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         // The preview runs as the pattern is typed, because a rule is agreed to on the strength of
         // what it does, and asking for a separate "check" step is asking for it to be skipped.
         this.WhenAnyValue(x => x.DraftPattern)
-            .Throttle(TimeSpan.FromMilliseconds(200))
+            .Throttle(DraftPreviewQuiet, previewScheduler ?? DefaultScheduler.Instance)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => PreviewDraft())
             .DisposeWith(_disposables);
@@ -537,9 +546,6 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
                 _customTagCounts.GetValueOrDefault(name),
                 _indexedFiles);
     }
-
-    /// <summary>Measures the draft now rather than on the typing throttle.</summary>
-    public void PreviewDraftNow() => PreviewDraft();
 
     /// <summary>
     /// Measures the draft against what no rule has taken yet.

@@ -6,6 +6,11 @@
 # place a pull request here: its labels do. Dependabot applies "dependencies" itself; the rest are
 # applied by hand when the pull request is opened. The first category a label matches wins, so the
 # order below is the priority order, and the catch-all has to come last.
+#
+# One label per pull request, chosen by what a user of the app would notice, not by the commit type:
+# a fix to a test is "technical", not "bug", because no user ever met the bug. With two labels the
+# priority order above picks the heading, which is how a fix came to be listed as a new feature;
+# with none it lands in "Other changes".
 changelog:
   categories:
     - title: New features
@@ -20,10 +25,16 @@ changelog:
       labels:
         - documentation
 
+    # Internal changes to the app itself (the audio engine, the remote, the library index) that
+    # change no behaviour a user sees. Its own heading, because under "Build and CI" they read as
+    # pipeline work.
+    - title: Internal changes
+      labels:
+        - technical
+
     - title: Build and CI
       labels:
         - ci
-        - technical
 
     - title: Dependencies
       labels:

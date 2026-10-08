@@ -72,6 +72,13 @@ scripts/imagemagick/
 installer-output/
 flatpak-stage/
 
+# Publish output and Flatpak build state: where documentation/development.md and the workflows
+# publish to, and the cache flatpak-builder keeps beside the manifest it builds
+publish/
+publish-flatpak/
+flatpak-publish/
+.flatpak-builder/
+
 # AI
 CLAUDE.md
 .claude/

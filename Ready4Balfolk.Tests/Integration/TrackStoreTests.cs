@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
@@ -27,6 +28,11 @@ namespace Ready4Balfolk.Tests.Integration;
 public sealed class TrackStoreTests : IDisposable
 {
     private readonly WatchableMockFileSystem _fileSystem;
+    // The store's clock: the watcher's settling, the batch windows and a watcher's retries are all
+    // timed on it, and it moves only when a test moves it. Waiting for something moves it on as
+    // it polls, so a test reads the same as before without sitting through real seconds of
+    // settling, and a test about time says exactly how much of it passed.
+    private readonly HistoricalScheduler _clock = new();
     // Every watcher the store asked for, latest last. The store's watcher is a substitute, so a
     // "file appeared" is an event the test raises rather than a real FileSystemWatcher noticing a
     // real write: nothing here touches the filesystem, and nothing waits on it either.
@@ -211,7 +217,7 @@ public sealed class TrackStoreTests : IDisposable
     private TrackStore NewStore(
         TimeSpan? batchQuiet = null, TimeSpan? batchAtMost = null, ILibraryIndex? libraryIndex = null) => new(
         _loggerService, _notifications, _discoveryService, _danceListStore, libraryIndex ?? _libraryIndex,
-        _fileSystem, _missingFolderPrompt, batchQuiet, batchAtMost);
+        _fileSystem, _missingFolderPrompt, batchQuiet, batchAtMost, _clock);
 
     private IFileSystemWatcher CreateWatcher(string path)
     {
@@ -469,35 +475,29 @@ public sealed class TrackStoreTests : IDisposable
         // out again, so a folder copied in over a minute used to reach the library in one lump at
         // the end of it and the DJ watching the count saw a library that had noticed nothing.
         var quiet = TimeSpan.FromMilliseconds(200);
-        using var store = NewStore(quiet, TimeSpan.FromMilliseconds(400));
+        var atMost = TimeSpan.FromMilliseconds(400);
+        using var store = NewStore(quiet, atMost);
         CreateFile(_dirA, "a.mp3");
         _configuration = _configuration with { MusicDirectoryPath = _dirA.FullName };
         await store.ApplyAsync(_configuration);
         await WaitUntilAsync(() => store.Current.Count == 1);
 
-        // Written first and reported one at a time afterwards, so the copy is nothing but a stream
-        // of events that never pauses for as long as the batch would like.
-        for (var i = 0; i < 40; i++)
+        // A copy that never goes quiet for as long as the batch would like: a file every quarter of
+        // the quiet window, on the store's own clock, so no starved thread can let the window close
+        // and the test pass for the wrong reason. Each file settles before it is reported, so the
+        // copy runs for the settling time and then well past the ceiling.
+        var copyFor = LibraryWatcher.DefaultSettleFor + (atMost * 3);
+        var step = quiet / 4;
+        for (var elapsed = TimeSpan.Zero; elapsed < copyFor; elapsed += step)
         {
-            CreateFile(_dirA, $"b{i}.mp3");
+            CreateFileAndNotify(_dirA, $"b{elapsed.Ticks}.mp3");
+            Advance(step);
         }
 
-        using var copying = new CancellationTokenSource();
-        var copy = Task.Run(async () =>
-        {
-            // Round and round until the test has what it is waiting for: a copy that stops is a
-            // copy whose quiet window expires, and then nothing is being proved.
-            for (var i = 0; !copying.IsCancellationRequested; i++)
-            {
-                Notify(_dirA, $"b{i % 40}.mp3");
-                await Task.Delay(quiet / 4, CancellationToken.None);
-            }
-        }, CancellationToken.None);
-
-        await WaitUntilAsync(() => store.Current.Count > 1);
-
-        await copying.CancelAsync();
-        await copy;
+        // Still copying, and the quiet window has never once closed, so only the ceiling can have
+        // let a batch through. Waiting here moves the clock as well, which ends the copy's quiet:
+        // nothing is notified while it waits, so it is only the ceiling's answer being read.
+        await WaitUntilAsync(() => store.Current.Count > 1, advanceBy: TimeSpan.Zero);
     }
 
     [Fact]
@@ -1468,14 +1468,33 @@ public sealed class TrackStoreTests : IDisposable
             .Select(call => (string)call.GetArguments()[0]!)
     ];
 
-    private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 10_000)
+    /// <summary>Waits for the store, moving its clock on while it does.</summary>
+    /// <remarks>
+    /// The waiting itself is still real: a scan is real work on the thread pool. What no longer
+    /// passes in real time is the store's own timing, which moves a tenth of a second per look.
+    /// </remarks>
+    private async Task WaitUntilAsync(
+        Func<bool> condition, int timeoutMs = 10_000, TimeSpan? advanceBy = null)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         while (!condition())
         {
             Assert.True(stopwatch.ElapsedMilliseconds < timeoutMs,
                 "Timed out waiting for condition");
-            await Task.Delay(50, TestContext.Current.CancellationToken);
+            Advance(advanceBy ?? TimeSpan.FromMilliseconds(100));
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+    }
+
+    /// <summary>Moves the store's clock on, running whatever fell due.</summary>
+    /// <remarks>
+    /// One mover at a time: a virtual clock is not safe to advance from two threads at once.
+    /// </remarks>
+    private void Advance(TimeSpan by)
+    {
+        lock (_clock)
+        {
+            _clock.AdvanceBy(by);
         }
     }
 }

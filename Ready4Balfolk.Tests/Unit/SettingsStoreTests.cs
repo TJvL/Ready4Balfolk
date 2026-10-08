@@ -65,6 +65,21 @@ public sealed class SettingsStoreTests
     }
 
     [Fact]
+    public async Task UpdateAsync_WritesNothingThatIsWorkedOutFromSomethingElse()
+    {
+        // The file is written to be edited by hand, and a value worked out from another one is
+        // never read back: changing it there would do nothing, with nothing to say so.
+        var (store, fileSystem) = Create();
+
+        await store.UpdateAsync(s => s with { QueueCutoffMinutesOfDay = 23 * 60, QueueCutoffGraceMinutes = 10 });
+
+        var text = await fileSystem.File.ReadAllTextAsync(SettingsPathIn(fileSystem), TestContext.Current.CancellationToken);
+        Assert.Contains("\"QueueCutoffMinutesOfDay\"", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"QueueCutoff\"", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"QueueCutoffGrace\"", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task UpdateAsync_NotifiesSubscribers()
     {
         var (store, _) = Create();
