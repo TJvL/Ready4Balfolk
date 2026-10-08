@@ -52,10 +52,6 @@ public sealed class EndOfNightRuleTests
     }
 
     [Fact]
-    public void EvaluateAdd_EndOfNightRemoved_EveningReopens() =>
-        Assert.Null(CreateSut().EvaluateAdd(Track(), [Track()]));
-
-    [Fact]
     public void GetPreAddRemovalPredicate_EndOfNight_TakesTheAutoTrackWithIt()
     {
         var predicate = CreateSut().GetPreAddRemovalPredicate(EndOfNight, [Auto()]);

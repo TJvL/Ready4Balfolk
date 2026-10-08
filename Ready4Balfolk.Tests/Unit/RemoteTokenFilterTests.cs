@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.Web.Hubs;
@@ -19,12 +20,14 @@ public sealed class RemoteTokenFilterTests : IDisposable
 {
     private const string Pin = "123456";
 
-    private readonly RemoteAccessService _access = new();
+    private readonly FakeTimeProvider _time = new();
+    private readonly RemoteAccessService _access;
     private readonly ISingleClientProxy _caller = Substitute.For<ISingleClientProxy>();
     private readonly TestHub _hub = new();
 
     public RemoteTokenFilterTests()
     {
+        _access = new RemoteAccessService(_time);
         _access.Configure(true, Pin);
 
         var clients = Substitute.For<IHubCallerClients>();
@@ -58,8 +61,9 @@ public sealed class RemoteTokenFilterTests : IDisposable
         var sut = new RemoteTokenFilter(_access);
 
         // Not a PIN change, which closes the socket outright, but the same token simply reaching
-        // the end of its life while the phone sat in a pocket.
-        _access.Configure(true, "654321");
+        // the end of its life while the phone sat in a pocket. The PIN and the settings are left
+        // exactly as they were, so the clock is the only thing that can have refused it.
+        _time.Advance(TimeSpan.FromHours(13));
 
         await Assert.ThrowsAsync<HubException>(async () =>
             await sut.InvokeMethodAsync(invocation, _ => throw new InvalidOperationException("Ran anyway")));

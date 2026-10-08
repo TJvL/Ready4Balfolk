@@ -95,12 +95,18 @@ public sealed class QueueGuardTests
     [Fact]
     public void CanRemove_FirstDenyWins()
     {
-        var guard = CreateGuard();
-        var auto = new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack(), true));
-        Assert.False(guard.CanRemove(auto));
+        // Stub rules rather than the real ones: of those only the auto-track rule has an opinion
+        // on removal, so there is never a first and a later rule to choose between. Here a rule
+        // with nothing to say is passed over, the first refusal answers, and the rule behind it
+        // that would allow the removal is never the one heard.
+        var silent = Substitute.For<IQueueRule>();
+        var refuses = Substitute.For<IQueueRule>();
+        refuses.CanRemove(Arg.Any<IQueueItem>()).Returns(false);
+        var allows = Substitute.For<IQueueRule>();
+        allows.CanRemove(Arg.Any<IQueueItem>()).Returns(true);
+        var guard = new QueueGuard([silent, refuses, allows]);
 
-        var track = new TrackQueueItem(TestData.CreateTrack(), false);
-        Assert.True(guard.CanRemove(track));
+        Assert.False(guard.CanRemove(new TrackQueueItem(TestData.CreateTrack(), false)));
     }
 
     [Fact]
