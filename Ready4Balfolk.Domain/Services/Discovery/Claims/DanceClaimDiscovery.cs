@@ -1,3 +1,4 @@
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
@@ -68,7 +69,9 @@ public sealed class DanceClaimDiscovery(DanceListIndex index, DeclaredDiscovery 
 
         foreach (var (_, matchedName) in fileMatches)
         {
-            var inBrackets = bracketed.Any(group => group.Contains(matchedName, StringComparison.Ordinal));
+            // Whole words, as the scanner matched them. A substring made "Tour" bracketed in
+            // "La Tour (Valse de Tournai)", and two deliberate dances then resolved to nothing.
+            var inBrackets = bracketed.Any(group => WholeWords.Contains(group, matchedName));
             yield return ClaimCreator.Dance(matchedName, inBrackets ? ClaimSource.Brackets : ClaimSource.FileName);
         }
 

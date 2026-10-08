@@ -221,6 +221,8 @@ The `QueueService` does not contain any validation logic itself. Instead, it del
 
 `StringNormalizer.Normalize(string)`: decomposes Unicode (FormD), strips diacritics (non-spacing marks), keeps only letters/digits/spaces, lowercases, and collapses whitespace. Used throughout for case-insensitive, accent-insensitive name matching (resolving a name to a dance, uniqueness checks, search filtering).
 
+`WholeWords.Contains(text, needle)`: whether one folded text holds another as a run of whole words. Whether a dance sits in brackets, and whether a value sits inside a longer name, are both asked this way and never as a substring: "Tour" is not in "Tournai", and a substring once made it bracketed there.
+
 ---
 
 ## UI Layer (`Ready4Balfolk.UI/`)

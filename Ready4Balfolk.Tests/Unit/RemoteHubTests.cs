@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Presentation;
 using Ready4Balfolk.Domain.Models.QueueItems;
@@ -38,7 +39,11 @@ public sealed class RemoteHubTests : IDisposable
     private readonly IEndOfNightAudio _endOfNightAudio = Substitute.For<IEndOfNightAudio>();
     private readonly RemoteAccessService _access = new();
     private readonly IHubContext<RemoteHub> _remoteHubContext = Substitute.For<IHubContext<RemoteHub>>();
+    private readonly FakeTimeProvider _time = new();
     private readonly RemoteConnections _connections;
+
+    /// <summary>Well past the moment a turned-out phone has to close its own socket.</summary>
+    private static readonly TimeSpan PastTheBackstop = TimeSpan.FromMinutes(1);
     private readonly RemoteHub _sut;
 
     /// <summary>Runs the work where it was asked, which is what the UI thread does in the app.</summary>
@@ -53,7 +58,7 @@ public sealed class RemoteHubTests : IDisposable
 
     public RemoteHubTests()
     {
-        _connections = new RemoteConnections(_remoteHubContext, _access);
+        _connections = new RemoteConnections(_remoteHubContext, _access, _time);
         _settingsStore.Current.Returns(new ApplicationSettings());
         _trackStore.Current.Returns([]);
         _queueService.Enqueue(Arg.Any<IQueueItem>()).Returns(QueueAddResult.Allow());
@@ -195,11 +200,38 @@ public sealed class RemoteHubTests : IDisposable
         var caller = ConnectAs(null);
 
         await _sut.OnConnectedAsync();
+        _time.Advance(PastTheBackstop);
 
         await caller.Received(1).SendCoreAsync(
             RemoteHub.TurnedOutMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
         await caller.DidNotReceive().SendCoreAsync(
             DisplayHub.SnapshotMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
+        _sut.Context.Received(1).Abort();
+    }
+
+    /// <summary>The page is told, and gets the moment it needs to close the socket itself.</summary>
+    /// <remarks>
+    /// The send coming back means the notice was handed to the connection, not that it left, and
+    /// an abort straight behind it could win. The page then saw only a dead socket, reconnected on
+    /// the same token, and the helper read "Reconnecting" where the PIN form should have been
+    /// (#334). The close from this end is the backstop for a page that never reads the notice.
+    /// </remarks>
+    [Fact]
+    public async Task Connecting_WithAnOldToken_LeavesThePageAMomentToCloseItBeforeClosingItFromHere()
+    {
+        _access.Configure(true, "123456");
+        var token = _access.TryLogin("123456", "phone").Token;
+        _access.Configure(true, "654321");
+        var caller = ConnectAs(token);
+
+        await _sut.OnConnectedAsync();
+
+        await caller.Received(1).SendCoreAsync(
+            RemoteHub.TurnedOutMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
+        _sut.Context.DidNotReceive().Abort();
+
+        _time.Advance(PastTheBackstop);
+
         _sut.Context.Received(1).Abort();
     }
 
@@ -213,6 +245,7 @@ public sealed class RemoteHubTests : IDisposable
         var caller = ConnectAs(token);
 
         await _sut.OnConnectedAsync();
+        _time.Advance(PastTheBackstop);
 
         await caller.Received(1).SendCoreAsync(
             RemoteHub.TurnedOutMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
@@ -227,6 +260,7 @@ public sealed class RemoteHubTests : IDisposable
         var caller = ConnectAs(_access.TryLogin("123456", "phone").Token);
 
         await _sut.OnConnectedAsync();
+        _time.Advance(PastTheBackstop);
 
         _sut.Context.DidNotReceive().Abort();
         await caller.DidNotReceive().SendCoreAsync(
@@ -249,6 +283,12 @@ public sealed class RemoteHubTests : IDisposable
         var clients = Substitute.For<IHubCallerClients>();
         clients.Caller.Returns(caller);
         _sut.Clients = clients;
+
+        // A phone that is turned out is told through the hub context, which is the way a PIN
+        // change reaches it as well; it is the same phone either way.
+        var hubClients = Substitute.For<IHubClients>();
+        hubClients.Client("phone").Returns(caller);
+        _remoteHubContext.Clients.Returns(hubClients);
 
         return caller;
     }
@@ -589,6 +629,7 @@ public sealed class RemoteHubTests : IDisposable
 
         _access.Configure(true, "654321");
         await _connections.TurnOutStaleAsync();
+        _time.Advance(PastTheBackstop);
 
         phone.Received(1).Abort();
     }
@@ -602,6 +643,7 @@ public sealed class RemoteHubTests : IDisposable
 
         _access.Configure(true, "654321");
         await _connections.TurnOutStaleAsync();
+        _time.Advance(PastTheBackstop);
 
         phone.DidNotReceive().Abort();
     }
@@ -609,7 +651,7 @@ public sealed class RemoteHubTests : IDisposable
     [Fact]
     public async Task OnConnectedAsync_APhoneThatWasRefused_IsNeverRemembered()
     {
-        // Refused connections are aborted on the spot, and a second abort on a socket that is
+        // Refused connections are closed by their own turn-out, and a second abort on a socket that is
         // already gone is the turn-out walking over connections it does not own.
         _access.Configure(true, Pin);
         var refused = TestData.CreateHubConnection("phone", "not-a-token");
@@ -617,10 +659,12 @@ public sealed class RemoteHubTests : IDisposable
         _sut.Clients = Callers();
 
         await _sut.OnConnectedAsync();
+        _time.Advance(PastTheBackstop);
         refused.ClearReceivedCalls();
 
         _access.Configure(true, "654321");
         await _connections.TurnOutStaleAsync();
+        _time.Advance(PastTheBackstop);
 
         refused.DidNotReceive().Abort();
     }

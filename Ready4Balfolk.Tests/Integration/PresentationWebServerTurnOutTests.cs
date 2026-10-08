@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -51,6 +52,39 @@ public sealed class PresentationWebServerTurnOutTests
         // phone can tell, and the page reconnects at it rather than showing the PIN form.
         await told.Task.WaitAsync(Patience, cancellationToken);
         await closed.Task.WaitAsync(Patience, cancellationToken);
+    }
+
+    [Fact]
+    public async Task APhoneTurnedOutAgainAndAgain_IsToldWhyEveryTime()
+    {
+        // The notice and the close go down the same socket, and SendAsync coming back means the
+        // notice was handed to the connection, not that it left. An abort straight behind it could
+        // win, and the phone that lost it saw a dead socket, reconnected on the same token and was
+        // closed again, its helper reading "Reconnecting" instead of the PIN form (#334). One turn
+        // out is a race the notice nearly always wins, so this runs both ways of being turned out
+        // over and over: a new PIN under a connected phone, and that phone coming back on the token
+        // the new PIN ended.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var server = await RunningWebServer.StartAsync();
+
+        for (var round = 0; round < 20; round++)
+        {
+            var pin = (100000 + round).ToString(CultureInfo.InvariantCulture);
+            await RemoteWithPinAsync(server, pin, cancellationToken);
+
+            var token = await TokenForAsync(server, pin, cancellationToken);
+            await using (var phone = await ConnectedPhoneWithTokenAsync(server, token, cancellationToken))
+            {
+                var swept = TurnedOut(phone);
+                await RemoteWithPinAsync(server, "999999", cancellationToken);
+                await AssertToldAsync(swept, $"the new PIN in round {round}", cancellationToken);
+            }
+
+            await using var comingBack = Building(RemoteUrl(server, token));
+            var refused = TurnedOut(comingBack);
+            await comingBack.StartAsync(cancellationToken);
+            await AssertToldAsync(refused, $"the old token in round {round}", cancellationToken);
+        }
     }
 
     [Fact]
@@ -156,7 +190,30 @@ public sealed class PresentationWebServerTurnOutTests
     private static Task RemoteWithPinAsync(RunningWebServer server, string pin, CancellationToken cancellationToken) =>
         server.Server.ApplyAsync(new WebServerOptions(true, server.Port, true, pin), cancellationToken);
 
-    private static async Task<HubConnection> ConnectedPhoneAsync(
+    /// <summary>Whether the phone was told it is turned out, or only saw its socket go.</summary>
+    /// <remarks>
+    /// Settled by whichever comes first. The client reads its messages in order and raises
+    /// <c>Closed</c> after the last of them, so a notice that arrived at all has been handled by the
+    /// time the close is seen.
+    /// </remarks>
+    private static Task<bool> TurnedOut(HubConnection phone)
+    {
+        var outcome = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        phone.On(RemoteHub.TurnedOutMethod, () => { outcome.TrySetResult(true); });
+        phone.Closed += _ =>
+        {
+            outcome.TrySetResult(false);
+            return Task.CompletedTask;
+        };
+        return outcome.Task;
+    }
+
+    private static async Task AssertToldAsync(Task<bool> outcome, string what, CancellationToken cancellationToken) =>
+        Assert.True(
+            await outcome.WaitAsync(Patience, cancellationToken),
+            $"The phone turned out by {what} was closed without being told why.");
+
+    private static async Task<string> TokenForAsync(
         RunningWebServer server, string pin, CancellationToken cancellationToken)
     {
         using var client = new HttpClient();
@@ -165,9 +222,20 @@ public sealed class PresentationWebServerTurnOutTests
 
         var login = await response.Content.ReadFromJsonAsync<RemoteLoginResult>(cancellationToken);
         Assert.NotNull(login?.Token);
+        return login.Token;
+    }
 
-        var connection = Building(
-            $"http://127.0.0.1:{server.Port}/hubs/remote?access_token={Uri.EscapeDataString(login.Token)}");
+    private static string RemoteUrl(RunningWebServer server, string token) =>
+        $"http://127.0.0.1:{server.Port}/hubs/remote?access_token={Uri.EscapeDataString(token)}";
+
+    private static async Task<HubConnection> ConnectedPhoneAsync(
+        RunningWebServer server, string pin, CancellationToken cancellationToken) =>
+        await ConnectedPhoneWithTokenAsync(server, await TokenForAsync(server, pin, cancellationToken), cancellationToken);
+
+    private static async Task<HubConnection> ConnectedPhoneWithTokenAsync(
+        RunningWebServer server, string token, CancellationToken cancellationToken)
+    {
+        var connection = Building(RemoteUrl(server, token));
 
         // Registered before the socket opens, because the hub pushes this the moment it is let in.
         var established = new TaskCompletionSource();
