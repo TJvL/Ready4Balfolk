@@ -705,6 +705,78 @@ public sealed class DrivingItWithoutAMouse(HeadlessSession session)
         });
     }
 
+    /// <summary>Review in the main window takes the keyboard each time it is opened.</summary>
+    /// <remarks>
+    /// World: two tracks carrying a dance the published list does not know, so both are waiting
+    /// for a person.
+    /// Steps: wait for the toolbar to say both are waiting, open review and press Enter without
+    /// touching anything else; go back to the library and open review again.
+    /// Sees: the caret in the first row's dance box as review comes up, that row answered by the
+    /// key alone, and the caret in a dance box again when review is opened the second time. The
+    /// main window makes this screen once and then shows and hides the panel around it rather than
+    /// the screen itself, so a hook on the screen's own visibility hears the first opening and
+    /// never another. Every other scenario in the main window puts the keyboard in the queue
+    /// itself, so none of them would notice the queue not taking it.
+    /// </remarks>
+    [Fact]
+    public async Task ReviewInTheMainWindowTakesTheKeyboardEachTimeItIsOpened()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Scottiche", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Scottiche", artist: "Trio Loubelya", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .Save();
+
+        var waiting = string.Format(
+            CultureInfo.CurrentCulture,
+            UiStrings.Toolbar_ReviewNameWaiting,
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Toolbar_ReviewCount, 2));
+
+        await session.RunAsync(world, async application =>
+        {
+            // Opened once the queue is built, the way it is on any evening: the library is read at
+            // start, and review is opened some time afterwards.
+            await application.WaitUntil(
+                () => application.NameOf("toolbar.review") == waiting,
+                "the review button to say both tracks are waiting");
+
+            application.Click("toolbar.review");
+
+            await application.WaitUntil(
+                () => application.RowsOf("review.rows").Count == 2,
+                "both tracks to be waiting for a person");
+
+            var first = application.Rows("review.rows")[0];
+            await application.WaitUntil(
+                () => application.TheKeyboardIsOn(RunningApplication.Within(first, "review.dance")),
+                $"the caret to start in the first row, not on {application.WhateverHasTheKeyboardIsCalled()}");
+
+            application.Press(PhysicalKey.Enter);
+
+            await application.WaitUntil(
+                () => RunningApplication.Says(RunningApplication.Within(first, "review.status"))
+                    == UiStrings.Review_ParkedOnUnknownDance,
+                "the first row to be answered by the key alone");
+
+            application.Click("screen.back");
+
+            await application.WaitUntil(
+                () => !application.IsShowing("review.rows"),
+                "the library to come back");
+
+            application.Click("toolbar.review");
+
+            await application.WaitUntil(
+                () => application.Rows("review.rows").Count == 2,
+                "review to come back up");
+
+            await application.WaitUntil(
+                () => application.TheKeyboardIsOn(application.Find("review.rows"))
+                      && application.WhateverHasTheKeyboardIsCalled() == "review.dance",
+                $"the caret to be back in a dance box, not on {application.WhateverHasTheKeyboardIsCalled()}");
+        });
+    }
+
     /// <summary>The first-run wizard says which step it is on, and why it will not go on.</summary>
     /// <remarks>
     /// World: a library of one dance and nothing set up yet.

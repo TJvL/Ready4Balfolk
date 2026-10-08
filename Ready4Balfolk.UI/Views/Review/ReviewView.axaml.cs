@@ -40,15 +40,24 @@ public partial class ReviewView : ReactiveUserControl<ReviewViewModel>
         // its last step: the first press meant to answer a row finished setup instead.
         //
         // Hooked on visibility rather than activation, and on the row rather than the view: in the
-        // main window the view is made once and shown by toggling IsVisible, and in both hosts the
-        // queue is read after it is on screen, so there is nothing to put the caret in yet. The
-        // first row to be selected after each appearance, and only the first, or a click into a
-        // title would be thrown back to the first empty field.
-        this.GetObservable(IsVisibleProperty)
-            .Where(visible => visible)
-            .Select(_ => this.WhenAnyValue(view => view.ViewModel!.Selected)
-                .Where(row => row is not null)
-                .Take(1))
+        // main window the view is made once and shown by toggling IsVisible on the panel around
+        // it, and in both hosts the queue may be read after it is on screen, so there is nothing to
+        // put the caret in yet. Its own IsVisible and every ancestor's, because its own never
+        // changes when the panel's does. The first row to be selected after each appearance, and
+        // only the first, or a click into a title would be thrown back to the first empty field.
+        Observable.FromEventPattern<VisualTreeAttachmentEventArgs>(
+                handler => AttachedToVisualTree += handler,
+                handler => AttachedToVisualTree -= handler)
+            .Select(_ => this.GetSelfAndVisualAncestors()
+                .Select(visual => visual.GetObservable(IsVisibleProperty))
+                .CombineLatest(each => each.All(visible => visible)))
+            .Switch()
+            .DistinctUntilChanged()
+            .Select(visible => visible
+                ? this.WhenAnyValue(view => view.ViewModel!.Selected)
+                    .Where(row => row is not null)
+                    .Take(1)
+                : Observable.Empty<ReviewRowViewModel?>())
             .Switch()
             .Subscribe(_ => FocusFirstRowOnceItIsThere());
     }
