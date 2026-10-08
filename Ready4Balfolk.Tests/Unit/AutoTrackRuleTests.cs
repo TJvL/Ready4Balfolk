@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Tests.Helpers;
@@ -143,14 +144,22 @@ public sealed class AutoTrackRuleTests
 
     // --- Settings description ---
 
-    [Fact]
-    public void SettingDescription_MatchesGetPreAddRemovalPredicate_TrackStaysRatherThanBeingRemoved()
+    [Theory]
+    [InlineData("en", "removed", "bottom")]
+    [InlineData("nl", "verwijder", "onderaan")]
+    public void SettingDescription_MatchesGetPreAddRemovalPredicate_TrackStaysRatherThanBeingRemoved(
+        string language, string removed, string atTheBottom)
     {
         // GetPreAddRemovalPredicate_Regular_ReturnsNull above is the behaviour: a manually
         // added item never evicts the auto-track, it only ends up above it at the tail. The
-        // setting the DJ reads before turning this on must not claim the opposite.
-        var description = UiStrings.Settings_AutoQueueDescription;
-        Assert.DoesNotContain("removed", description, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("bottom", description, StringComparison.OrdinalIgnoreCase);
+        // setting the DJ reads before turning this on must not claim the opposite, in either
+        // language it ships in. Each translation is read by name rather than through the
+        // machine's own language, so the test checks both and does not depend on which one
+        // the machine running it happens to be set to.
+        var description = UiStrings.ResourceManager.GetString(
+            nameof(UiStrings.Settings_AutoQueueDescription), CultureInfo.GetCultureInfo(language));
+        Assert.NotNull(description);
+        Assert.DoesNotContain(removed, description, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(atTheBottom, description, StringComparison.OrdinalIgnoreCase);
     }
 }

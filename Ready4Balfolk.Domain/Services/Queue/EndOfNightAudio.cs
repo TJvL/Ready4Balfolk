@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Stores.Settings;
@@ -46,7 +47,7 @@ public sealed class EndOfNightAudio(
     {
         try
         {
-            using var file = TagLib.File.Create(path);
+            using var file = TagLib.File.Create(new TagLibFileAbstraction(fileSystem.FileInfo.New(path)));
             var duration = file.Properties.Duration;
             return duration > TimeSpan.Zero ? duration : null;
         }

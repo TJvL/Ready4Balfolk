@@ -84,6 +84,10 @@ public sealed class TrackStore : ITrackStore, IDisposable
     /// <param name="watcherBatchAtMost">
     /// How long a batch may gather while the watcher keeps talking, or the default.
     /// </param>
+    /// <param name="scheduler">
+    /// Where the watcher's settling and the batch windows are timed, or the default one. A test
+    /// hands in a clock it moves, rather than sitting through the real seconds of a copy.
+    /// </param>
     public TrackStore(
         ILoggerService loggerService,
         INotificationService notifications,
@@ -93,7 +97,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
         IFileSystem fileSystem,
         IMissingFolderPrompt missingFolderPrompt,
         TimeSpan? watcherBatchQuiet = null,
-        TimeSpan? watcherBatchAtMost = null)
+        TimeSpan? watcherBatchAtMost = null,
+        IScheduler? scheduler = null)
     {
         _loggerService = loggerService;
         _notifications = notifications;
@@ -102,7 +107,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
         _libraryIndex = libraryIndex;
         _fileSystem = fileSystem;
         _missingFolderPrompt = missingFolderPrompt;
-        _watcher = new LibraryWatcher(fileSystem, loggerService);
+        scheduler ??= DefaultScheduler.Instance;
+        _watcher = new LibraryWatcher(fileSystem, loggerService, scheduler: scheduler);
         // Answered together rather than one at a time. Copying an album in is one act, and every
         // file of it used to be its own index write and its own rebuild of the whole published
         // library, sorted and rebound on the UI thread while the DJ was working.
@@ -115,8 +121,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
         var changes = _watcher.Changes;
         _watcherSubscription = changes
             .Buffer(changes
-                .Throttle(watcherBatchQuiet ?? DefaultWatcherBatchQuiet)
-                .Merge(changes.Sample(watcherBatchAtMost ?? DefaultWatcherBatchAtMost)))
+                .Throttle(watcherBatchQuiet ?? DefaultWatcherBatchQuiet, scheduler)
+                .Merge(changes.Sample(watcherBatchAtMost ?? DefaultWatcherBatchAtMost, scheduler)))
             .Where(batch => batch.Count > 0)
             .Subscribe(OnFilesChanged);
 

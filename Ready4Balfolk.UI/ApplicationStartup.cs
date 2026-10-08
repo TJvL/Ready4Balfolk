@@ -47,10 +47,8 @@ internal sealed class ApplicationStartup(
     IQueueHistoryStore historyStore,
     PresentationWebServer webServer,
     NavigationService navigation,
-    ConfirmationService confirmationOwner,
+    DialogOwner dialogOwner,
     MissingFolderPromptService missingFolders,
-    FilePickerService pickers,
-    TrackEditorService trackEditor,
     TimeProvider time) : IDisposable
 {
     /// <summary>How long a silence has to be before it stops being the same evening.</summary>
@@ -81,13 +79,11 @@ internal sealed class ApplicationStartup(
         var mainWindow = new MainWindow();
         desktop.MainWindow = mainWindow;
 
-        confirmationOwner.SetOwner(mainWindow);
+        dialogOwner.Set(mainWindow);
         // Exiting is the third answer to a scan that found a folder with no music in it, and the
         // application is already being asked a question, so it does not ask a second one on the way
         // out. It still saves what a window has to be open to be asked for.
         missingFolders.SetExit(() => CloseAsync(mainWindow));
-        pickers.SetOwner(mainWindow);
-        trackEditor.SetOwner(mainWindow);
 
         mainWindow.Opened += (_, _) => OnMainWindowOpened(mainWindow, appearance);
 
@@ -353,7 +349,7 @@ internal sealed class ApplicationStartup(
         ShowSetup();
     }
 
-    public void ShowSetup() => navigation.CurrentScreen = Screen.Setup;
+    private void ShowSetup() => navigation.CurrentScreen = Screen.Setup;
 
     /// <summary>Asks once, about an evening that was never ended.</summary>
     /// <remarks>

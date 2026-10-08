@@ -3,8 +3,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.UI.Controls;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
@@ -189,22 +191,48 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
 
     private void OnQueueKeyDown(object? sender, KeyEventArgs e)
     {
+        if (ViewModel is not { } model)
+        {
+            return;
+        }
+
+        // Through the commands the toolbar's buttons run, so a key is refused exactly where its
+        // button is disabled: an entry that cannot move or be removed stays where it is.
         if (e.Key == Key.Delete)
         {
-            ViewModel?.DeleteSelectedItem();
+            CommandKeys.Press(model.RemoveSelectedCommand);
             e.Handled = true;
         }
         else if (e.Key == Key.Up && e.KeyModifiers == KeyModifiers.Control)
         {
-            ViewModel?.MoveSelectedUp();
+            CommandKeys.Press(model.MoveSelectedUpCommand);
+            KeepTheKeyboardOnTheSelection();
             e.Handled = true;
         }
         else if (e.Key == Key.Down && e.KeyModifiers == KeyModifiers.Control)
         {
-            ViewModel?.MoveSelectedDown();
+            CommandKeys.Press(model.MoveSelectedDownCommand);
+            KeepTheKeyboardOnTheSelection();
             e.Handled = true;
         }
     }
+
+    /// <summary>Puts the keyboard back on the entry that just moved.</summary>
+    /// <remarks>
+    /// A move takes the entry's row out of the list and puts a new one in, and the keyboard went
+    /// with the old row, so a second Ctrl+arrow, or a Delete straight after, landed nowhere. Posted
+    /// behind the move, which puts the selection back on the entry once the list has caught up.
+    /// </remarks>
+    private void KeepTheKeyboardOnTheSelection() =>
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (QueueListBox.SelectedItem is { } item && QueueListBox.ContainerFromItem(item) is { } row)
+                {
+                    row.Focus(NavigationMethod.Directional);
+                }
+            },
+            DispatcherPriority.Background);
 
     private void OnRefreshAutoQueuedClick(object? sender, RoutedEventArgs e) => ViewModel?.RefreshAutoTrack();
 

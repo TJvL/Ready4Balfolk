@@ -5,40 +5,32 @@ namespace Ready4Balfolk.Domain.Services.Discovery.Claims;
 /// <summary>What the first pattern to match the whole name makes of it.</summary>
 /// <remarks>
 /// A pattern is the user saying "my files are shaped like this", so what it picks out is claimed
-/// at the top tier: they have taken responsibility for the rule, and the code stops hedging.
+/// at the top tier: they have taken responsibility for the rule, and the code stops hedging. The
+/// match is <see cref="DeclaredDiscovery.MatchFileName"/>'s, the same one the preview a pattern is
+/// approved from runs, so what was shown and what is applied cannot be two readings of one rule.
 /// </remarks>
-public class PatternClaimDiscovery(DeclaredDiscovery declared) : IClaimDiscovery
+public sealed class PatternClaimDiscovery(DeclaredDiscovery declared) : IClaimDiscovery
 {
-    public IEnumerable<Claim> CollectClaims(TrackEvidence evidence, string? folderDance = null)
+    public IEnumerable<Claim> CollectClaims(TrackEvidence evidence)
     {
-        var (namePattern, patternMatch) = declared.Patterns
-            .Select(pattern => (Pattern: pattern, Match: pattern.Match(
-                pattern.UsesExtension ? evidence.FileName : evidence.FileNameWithoutExtension)))
-            .FirstOrDefault(candidate => candidate.Match is not null);
-
-        if (patternMatch is null)
+        if (declared.MatchFileName(evidence.FileName, evidence.FileNameWithoutExtension) is not { } match)
         {
             yield break;
         }
 
-        var source = ClaimSource.Pattern(namePattern.Text);
+        var source = ClaimSource.Pattern(match.Pattern);
 
-        var danceClaim = ClaimCreator.AddIfSaid(TrackField.Dance, patternMatch.Dance, source, ClaimTrust.Declared);
-        if (danceClaim is not null)
+        foreach (var (field, value) in new[]
+                 {
+                     (TrackField.Dance, match.Dance),
+                     (TrackField.Artist, match.Artist),
+                     (TrackField.Title, match.Title)
+                 })
         {
-            yield return danceClaim;
-        }
-
-        var artistClaim = ClaimCreator.AddIfSaid(TrackField.Artist, patternMatch.Artist, source, ClaimTrust.Declared);
-        if (artistClaim is not null)
-        {
-            yield return artistClaim;
-        }
-
-        var titleClaim = ClaimCreator.AddIfSaid(TrackField.Title, patternMatch.Title, source, ClaimTrust.Declared);
-        if (titleClaim is not null)
-        {
-            yield return titleClaim;
+            if (ClaimCreator.AddIfSaid(field, value, source, ClaimTrust.Declared) is { } claim)
+            {
+                yield return claim;
+            }
         }
     }
 }

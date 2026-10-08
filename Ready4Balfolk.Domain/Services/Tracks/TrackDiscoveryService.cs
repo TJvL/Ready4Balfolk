@@ -18,7 +18,7 @@ public sealed class TrackDiscoveryService : ITrackDiscoveryService
 
         try
         {
-            using var file = TagLib.File.Create(fileInfo.FullName);
+            using var file = TagLib.File.Create(new TagLibFileAbstraction(fileInfo));
             var tag = file.Tag;
 
             var evidence = new TrackEvidence

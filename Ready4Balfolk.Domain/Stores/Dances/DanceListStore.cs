@@ -58,31 +58,48 @@ public sealed class DanceListStore(
         _isLoading.OnNext(true);
         try
         {
-            var cachedFileInfo = fileSystem.FileInfo.New(DanceListFilePath);
-            if (cachedFileInfo.Exists)
+            // Under the same gate an update takes. Without it a refresh finishing while the cached
+            // copy was being read had the list it adopted replaced by that older copy, and the next
+            // start read the newer one back off the disk: the two disagreed for the whole session.
+            await _gate.WaitAsync(token);
+            try
             {
-                try
-                {
-                    var json = await fileSystem.File.ReadAllTextAsync(cachedFileInfo.FullName, token);
-                    var cached = DanceListReader.Read(json);
-                    _currentJson = json;
-                    Publish(cached, DanceListOrigin.Cached, cachedFileInfo.LastWriteTimeUtc);
-                    return;
-                }
-                catch (Exception exception) when (exception is DanceListRefusedException or IOException)
-                {
-                    Discard(cachedFileInfo, exception);
-                }
+                await LoadLockedAsync(token);
             }
-
-            // Nothing on disk and nothing shipped: the application has no dance vocabulary until
-            // somebody fetches one or imports one, and everything that needs dances says so.
-            Publish(DanceList.Empty, DanceListOrigin.None, obtainedAt: null);
+            finally
+            {
+                _gate.Release();
+            }
         }
         finally
         {
             _isLoading.OnNext(false);
         }
+    }
+
+    /// <summary>Publishes the cached copy, or no list at all when there is none. The gate must be held.</summary>
+    private async Task LoadLockedAsync(CancellationToken token)
+    {
+        var cachedFileInfo = fileSystem.FileInfo.New(DanceListFilePath);
+        if (cachedFileInfo.Exists)
+        {
+            try
+            {
+                var json = await fileSystem.File.ReadAllTextAsync(cachedFileInfo.FullName, token);
+                var cached = DanceListReader.Read(json);
+                _currentJson = json;
+                Publish(cached, DanceListOrigin.Cached, cachedFileInfo.LastWriteTimeUtc);
+                return;
+            }
+            catch (Exception exception) when (exception is DanceListRefusedException or IOException)
+            {
+                Discard(cachedFileInfo, exception);
+            }
+        }
+
+        // Nothing on disk and nothing shipped: the application has no dance vocabulary until
+        // somebody fetches one or imports one, and everything that needs dances says so.
+        Publish(DanceList.Empty, DanceListOrigin.None, obtainedAt: null);
     }
 
     public async Task<DanceListUpdate> RefreshAsync(CancellationToken token = default)

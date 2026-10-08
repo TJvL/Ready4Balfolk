@@ -3,7 +3,6 @@ using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Tests.Helpers;
-using Xunit.Internal;
 
 namespace Ready4Balfolk.Tests.Unit;
 
@@ -418,6 +417,5 @@ public sealed class TrackClaimsTests
 
     private IReadOnlyCollection<Claim> Collect(
         TrackEvidence evidence, DeclaredDiscovery? declared = null, string? folderDance = null) =>
-        TrackClaims.Collect(evidence, _index, declared, folderDance)
-            .CastOrToReadOnlyCollection();
+        [.. TrackClaims.Collect(evidence, _index, declared, folderDance)];
 }

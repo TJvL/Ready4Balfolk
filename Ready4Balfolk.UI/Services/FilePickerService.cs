@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Ready4Balfolk.Domain;
 using Ready4Balfolk.UI.Resources;
@@ -9,16 +8,11 @@ using Ready4Balfolk.UI.Resources;
 namespace Ready4Balfolk.UI.Services;
 
 /// <summary>The desktop's own pickers, asked through the window they belong to.</summary>
-public sealed class FilePickerService : IFilePickerService
+public sealed class FilePickerService(DialogOwner owner) : IFilePickerService
 {
-    private Window? _owner;
-
-    /// <summary>The window a picker belongs to, handed over once the main window exists.</summary>
-    public void SetOwner(Window owner) => _owner = owner;
-
     public async Task<string?> PickFileToOpenAsync(string title, FileKind kind)
     {
-        if (_owner?.StorageProvider is not { } storage)
+        if (owner.Current?.StorageProvider is not { } storage)
         {
             return null;
         }
@@ -35,7 +29,7 @@ public sealed class FilePickerService : IFilePickerService
 
     public async Task<string?> PickFolderAsync(string title)
     {
-        if (_owner?.StorageProvider is not { } storage)
+        if (owner.Current?.StorageProvider is not { } storage)
         {
             return null;
         }
@@ -51,7 +45,7 @@ public sealed class FilePickerService : IFilePickerService
 
     public async Task<string?> PickWhereToSaveAsync(string title, string suggestedName, FileKind kind)
     {
-        if (_owner?.StorageProvider is not { } storage)
+        if (owner.Current?.StorageProvider is not { } storage)
         {
             return null;
         }

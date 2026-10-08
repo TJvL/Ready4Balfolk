@@ -325,21 +325,22 @@ public sealed class SetupWizardViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ProgressText_CountsTheSteps() => Assert.Equal("Step 1 of 5", _sut.ProgressText);
+    public void ProgressText_CountsTheSteps() =>
+        Assert.Equal(string.Format(CultureInfo.CurrentCulture, UiStrings.Wizard_StepFormat, 1, 5), _sut.ProgressText);
 
     [Fact]
     public void ContinueLabel_SaysFinishOnlyOnTheLastStep()
     {
-        Assert.Equal("Next", _sut.ContinueLabel);
+        Assert.Equal(UiStrings.Wizard_Next, _sut.ContinueLabel);
 
         _sut.ContinueCommand.Execute().Subscribe();
-        Assert.Equal("Next", _sut.ContinueLabel);
+        Assert.Equal(UiStrings.Wizard_Next, _sut.ContinueLabel);
 
         _sut.ContinueCommand.Execute().Subscribe();
         _sut.ContinueCommand.Execute().Subscribe();
         _sut.ContinueCommand.Execute().Subscribe();
 
-        Assert.Equal("Finish", _sut.ContinueLabel);
+        Assert.Equal(UiStrings.Wizard_Finish, _sut.ContinueLabel);
     }
 
     [Fact]

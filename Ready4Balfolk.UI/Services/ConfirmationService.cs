@@ -1,33 +1,19 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using Avalonia.Threading;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Views.Dialogs.Confirmation;
 
 namespace Ready4Balfolk.UI.Services;
 
-public class ConfirmationService : IConfirmationService
+public class ConfirmationService(DialogOwner owner) : IConfirmationService
 {
-    public void SetOwner(Window owner) => CurrentOwner = owner;
-
-    /// <summary>
-    /// The window a modal question belongs to, or null before there is one.
-    /// </summary>
-    /// <remarks>
-    /// Read by <see cref="MissingFolderPromptService"/> rather than set a second time. The file
-    /// pickers and the track editor still keep an owner of their own (#310). There is one window:
-    /// the wizard and every other screen are controls inside it.
-    /// </remarks>
-    public Window? CurrentOwner { get; private set; }
-
     public async Task<bool> ConfirmAsync(string title, string message,
         string? confirmText = null, string? cancelText = null,
         ConfirmationStakes stakes = ConfirmationStakes.Destructive,
         CancellationToken cancellationToken = default)
     {
-        var owner = CurrentOwner;
-        if (owner is null)
+        if (owner.Current is not { } window)
         {
             return true;
         }
@@ -55,7 +41,7 @@ public class ConfirmationService : IConfirmationService
         using var withdrawal = cancellationToken.Register(
             () => Dispatcher.UIThread.Post(() => dialog.Close()));
 
-        await dialog.ShowDialog(owner);
+        await dialog.ShowDialog(window);
         return !cancellationToken.IsCancellationRequested && vm.DialogResult == true;
     }
 
