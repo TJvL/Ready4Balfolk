@@ -8,6 +8,7 @@ using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Stores.History;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.History;
 
@@ -44,7 +45,7 @@ public sealed class HistoryViewModelTests : IDisposable
     [Fact]
     public void InitialState_NoHistory()
     {
-        Assert.Equal("No history", _sut.ItemCountText);
+        Assert.Equal(UiStrings.History_NoHistory, _sut.ItemCountText);
         Assert.Empty(_sut.Items);
         Assert.False(_sut.HasItems);
     }
@@ -66,7 +67,7 @@ public sealed class HistoryViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ItemCountText_None() => Assert.Equal("No history", _sut.ItemCountText);
+    public void ItemCountText_None() => Assert.Equal(UiStrings.History_NoHistory, _sut.ItemCountText);
 
     [Fact]
     public void ItemCountText_Singular()
@@ -76,7 +77,8 @@ public sealed class HistoryViewModelTests : IDisposable
                 TimeSpan.FromMinutes(1), false, CompletionStatus.Finished)
         ]));
 
-        Assert.Equal("1 item", _sut.ItemCountText);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.History_ItemCount, 1), _sut.ItemCountText);
     }
 
     [Fact]
@@ -88,7 +90,8 @@ public sealed class HistoryViewModelTests : IDisposable
             new StopHistoryEntry(CompletionStatus.Finished)
         ]));
 
-        Assert.Equal("2 items", _sut.ItemCountText);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.History_ItemCountPlural, 2), _sut.ItemCountText);
     }
 
     [Fact]

@@ -95,7 +95,10 @@ public sealed class PresentationDisplayViewModelTests : IDisposable
             new PresentationItem(PresentationItemKind.Delay, "", "", "", TimeSpan.FromSeconds(45)),
             PresentationItem.None);
 
-        Assert.Equal("Delay (45 seconds)", _sut.NextDance);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_DelayWithDuration,
+                string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_Seconds, 45)),
+            _sut.NextDance);
     }
 
     [Fact]
@@ -106,7 +109,10 @@ public sealed class PresentationDisplayViewModelTests : IDisposable
             new PresentationItem(PresentationItemKind.Delay, "", "", "", TimeSpan.FromMinutes(5)),
             PresentationItem.None);
 
-        Assert.Equal("Delay (5 minutes)", _sut.NextDance);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_DelayWithDuration,
+                string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_Minutes, 5)),
+            _sut.NextDance);
     }
 
     [Fact]
@@ -117,14 +123,20 @@ public sealed class PresentationDisplayViewModelTests : IDisposable
             new PresentationItem(PresentationItemKind.Delay, "", "", "", TimeSpan.FromSeconds(1)),
             PresentationItem.None);
 
-        Assert.Equal("Delay (1 second)", _sut.NextDance);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_DelayWithDuration,
+                UiStrings.Presentation_OneSecond),
+            _sut.NextDance);
 
         Showing(
             PresentationItem.None,
             new PresentationItem(PresentationItemKind.Delay, "", "", "", TimeSpan.FromMinutes(1)),
             PresentationItem.None);
 
-        Assert.Equal("Delay (1 minute)", _sut.NextDance);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_DelayWithDuration,
+                UiStrings.Presentation_OneMinute),
+            _sut.NextDance);
     }
 
     [Fact]
@@ -148,7 +160,10 @@ public sealed class PresentationDisplayViewModelTests : IDisposable
                 TimeSpan.FromSeconds(20)),
             PresentationItem.None);
 
-        Assert.Equal("Message (20 seconds)", _sut.NextDance);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_MessageWithDuration,
+                string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_Seconds, 20)),
+            _sut.NextDance);
         Assert.Equal("Bar closes at eleven", _sut.NextTrack);
     }
 

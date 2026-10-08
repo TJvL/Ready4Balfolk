@@ -12,6 +12,7 @@ using Ready4Balfolk.Domain.Services.Queue;
 using Ready4Balfolk.Domain.Services.Tracks;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
+using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Queue;
 using RxUnit = System.Reactive.Unit;
@@ -411,13 +412,14 @@ public sealed class QueueViewModelTests : IDisposable
     // --- ItemCountText ---
 
     [Fact]
-    public void ItemCountText_EmptyQueue() => Assert.Equal("Queue empty", _sut.ItemCountText);
+    public void ItemCountText_EmptyQueue() => Assert.Equal(UiStrings.Queue_Empty, _sut.ItemCountText);
 
     [Fact]
     public void ItemCountText_OneItem()
     {
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(), false));
-        Assert.Equal("1 item", _sut.ItemCountText);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_ItemCount, 1), _sut.ItemCountText);
     }
 
     [Fact]
@@ -425,7 +427,8 @@ public sealed class QueueViewModelTests : IDisposable
     {
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("A"), false));
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack("B"), false));
-        Assert.Equal("2 items", _sut.ItemCountText);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_ItemCountPlural, 2), _sut.ItemCountText);
     }
 
     // --- FinishTimeText ---
@@ -437,7 +440,7 @@ public sealed class QueueViewModelTests : IDisposable
 
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
 
-        Assert.StartsWith("Playlist finishes at:", _sut.FinishTimeText, StringComparison.Ordinal);
+        Assert.StartsWith(TextBefore(UiStrings.Queue_PlaylistFinishesAt), _sut.FinishTimeText, StringComparison.Ordinal);
     }
 
     /// <summary>The line under the queue follows the clock while nothing else changes.</summary>
@@ -497,8 +500,18 @@ public sealed class QueueViewModelTests : IDisposable
     /// <summary>What the panel should be saying, this long after the evening began.</summary>
     private string FinishesAt(TimeSpan fromTheStart) => string.Format(
         CultureInfo.CurrentCulture,
-        "Playlist finishes at: {0}",
+        UiStrings.Queue_PlaylistFinishesAt,
         (_startOfTheEvening + fromTheStart).ToString("HH:mm", CultureInfo.CurrentCulture));
+
+    /// <summary>The words of a sentence that come before the time it is given.</summary>
+    /// <remarks>
+    /// Taken from the resource rather than written out, so the test reads the sentence in whatever
+    /// language the machine running it is set to, the way the panel does.
+    /// </remarks>
+    private static string TextBefore(string format) => format[..format.IndexOf("{0}", StringComparison.Ordinal)];
+
+    /// <summary>The words of a sentence that come after the time it is given.</summary>
+    private static string TextAfter(string format) => format[(format.IndexOf("{0}", StringComparison.Ordinal) + 3)..];
 
     [Fact]
     public void FinishTimeText_AutoQueueOnWithoutCutoff_GivesNoTime()
@@ -507,7 +520,7 @@ public sealed class QueueViewModelTests : IDisposable
         // track in the moment the current one runs out.
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
 
-        Assert.Equal("Playlist keeps going until you stop it", _sut.FinishTimeText);
+        Assert.Equal(UiStrings.Queue_PlaylistOpenEnded, _sut.FinishTimeText);
     }
 
     [Fact]
@@ -521,7 +534,8 @@ public sealed class QueueViewModelTests : IDisposable
 
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
 
-        Assert.Equal("Playlist winds down at: 23:00", _sut.FinishTimeText);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.Queue_PlaylistWindsDownAt, "23:00"), _sut.FinishTimeText);
     }
 
     [Fact]
@@ -533,8 +547,10 @@ public sealed class QueueViewModelTests : IDisposable
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
         _queueSource.Add(new StopQueueItem());
 
-        Assert.StartsWith("Playlist halts at:", _sut.FinishTimeText, StringComparison.Ordinal);
-        Assert.EndsWith("limit paused for the stop", _sut.FinishTimeText, StringComparison.Ordinal);
+        Assert.StartsWith(
+            TextBefore(UiStrings.Queue_PlaylistHaltsAtCutoffPaused), _sut.FinishTimeText, StringComparison.Ordinal);
+        Assert.EndsWith(
+            TextAfter(UiStrings.Queue_PlaylistHaltsAtCutoffPaused), _sut.FinishTimeText, StringComparison.Ordinal);
     }
 
     // --- HasItems ---
@@ -740,7 +756,7 @@ public sealed class QueueViewModelTests : IDisposable
         _queueSource.Add(new TrackQueueItem(TestData.CreateTrack(lengthSeconds: 300), false));
         _queueSource.Add(EndOfNight);
 
-        Assert.StartsWith("Playlist finishes at:", _sut.FinishTimeText, StringComparison.Ordinal);
+        Assert.StartsWith(TextBefore(UiStrings.Queue_PlaylistFinishesAt), _sut.FinishTimeText, StringComparison.Ordinal);
     }
 
     /// <summary>Everything is allowed except the auto-track, which the cutoff turns away.</summary>
