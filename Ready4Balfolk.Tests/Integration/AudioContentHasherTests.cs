@@ -119,6 +119,86 @@ public sealed class AudioContentHasherTests
             AudioContentHasher.Compute(file, AudioFormat.Aif, 0, 12));
     }
 
+    [Theory]
+    [InlineData(20)]
+    [InlineData(300)]
+    public void Ogg_PagesRenumberedBehindALongerComment_HashTheSame(int pages)
+    {
+        // A comment that grows onto another page renumbers every audio page behind it and so
+        // rewrites every checksum, while the audio itself is copied as it was. Twenty pages are
+        // read whole; three hundred are sampled at both ends.
+        var (before, beforeStart) = WriteOgg("before", headerPages: 1, pages);
+        var (after, afterStart) = WriteOgg("after", headerPages: 3, pages);
+
+        Assert.Equal(
+            AudioContentHasher.Compute(before, AudioFormat.Ogg, beforeStart, -1),
+            AudioContentHasher.Compute(after, AudioFormat.Ogg, afterStart, -1));
+    }
+
+    [Theory]
+    [InlineData(20)]
+    [InlineData(300)]
+    public void Ogg_ChangedAudioNearTheEnd_ChangesTheHash(int pages)
+    {
+        var (one, oneStart) = WriteOgg("one", headerPages: 1, pages);
+        var (other, otherStart) = WriteOgg("other", headerPages: 1, pages, changeLastPage: true);
+
+        Assert.NotEqual(
+            AudioContentHasher.Compute(one, AudioFormat.Ogg, oneStart, -1),
+            AudioContentHasher.Compute(other, AudioFormat.Ogg, otherStart, -1));
+    }
+
+    /// <summary>
+    /// An Ogg stream laid out by hand: header pages, then audio pages numbered on from them, each
+    /// with a checksum that follows its number the way a real one would.
+    /// </summary>
+    /// <returns>The file, and where its first audio page is.</returns>
+    private (IFileInfo File, long Audio) WriteOgg(string name, int headerPages, int audioPages,
+        bool changeLastPage = false)
+    {
+        using var file = new MemoryStream();
+        var random = new Random(277);
+        long audio = 0;
+
+        for (var page = 0; page < headerPages + audioPages; page++)
+        {
+            if (page == headerPages)
+            {
+                audio = file.Length;
+            }
+
+            var body = new byte[4000];
+            if (page >= headerPages)
+            {
+                random.NextBytes(body);
+                // A capture pattern inside the audio, which the search from the end must pass over.
+                "OggS"u8.CopyTo(body.AsSpan(1000));
+            }
+
+            if (changeLastPage && page == headerPages + audioPages - 1)
+            {
+                body[^1] ^= 0xFF;
+            }
+
+            var header = new byte[27 + 16];
+            "OggS"u8.CopyTo(header);
+            BinaryPrimitives.WriteInt64LittleEndian(header.AsSpan(6), page < headerPages ? 0 : page - headerPages);
+            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(14), 0x1234);
+            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(18), (uint)page);
+            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(22), (uint)page * 2654435761u);
+            header[26] = 16;
+            Array.Fill(header, (byte)255, 27, 15);
+            header[^1] = 4000 - (15 * 255);
+
+            file.Write(header);
+            file.Write(body);
+        }
+
+        var path = $"/hash/{name}{audioPages}.ogg";
+        _fileSystem.File.WriteAllBytes(path, file.ToArray());
+        return (_fileSystem.FileInfo.New(path), audio);
+    }
+
     /// <summary>An AIFF laid out by hand: COMM, then ID3, then SSND, then an annotation.</summary>
     /// <returns>The file, and where its first sample is.</returns>
     private (IFileInfo File, long Samples) WriteAiff(string name, ReadOnlySpan<byte> formType, int id3Length,

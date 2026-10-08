@@ -108,8 +108,9 @@ public sealed class TrackDiscoveryServiceTests
     public void Gather_RetaggingAFile_KeepsItsContentHash(string resource)
     {
         // The hash is the track's row in the index, and its approvals hang off it, so a tag edit
-        // made in another program must not move it. FLAC hashed its metadata blocks and a tagged
-        // AIFF hashed its ID3 chunk, so fixing a title sent an approved track back to review.
+        // made in another program must not move it. FLAC hashed its metadata blocks, a tagged AIFF
+        // hashed its ID3 chunk and Ogg its page numbers, so fixing a title sent an approved track
+        // back to review.
         var file = Audio("retagged" + Path.GetExtension(resource), resource: resource);
         var untagged = _sut.Gather(file, _root).ContentHash;
 
@@ -121,12 +122,13 @@ public sealed class TrackDiscoveryServiceTests
         });
         var tagged = _sut.Gather(file, _root).ContentHash;
 
-        // Longer, and with a cover, so the tags outgrow whatever room they had.
+        // Longer, and with a cover, so the tags outgrow whatever room they had. Big enough that an
+        // Ogg comment spills onto another page and every audio page behind it is renumbered.
         Retag(file, tag =>
         {
             tag.Title = "Salamandre, the long version from the second set";
             tag.Album = "Idem";
-            ByteVector cover = [.. new byte[16 * 1024]];
+            ByteVector cover = [.. new byte[96 * 1024]];
             tag.Pictures = [new Picture(cover)];
         });
         var retagged = _sut.Gather(file, _root).ContentHash;

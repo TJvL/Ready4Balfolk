@@ -26,6 +26,12 @@ namespace Ready4Balfolk.Domain.Services.Tracks;
 /// tagged AIFF's range as its ID3 chunk alone: a fixed title then moved an approved FLAC to a new
 /// row and back into review, and two AIFF recordings with the same tags became one track.
 /// </para>
+/// <para>
+/// Ogg's range is right, but its bytes are not all audio: every page header carries a sequence
+/// number and a checksum, and a retag whose comment grows onto another page renumbers every page
+/// after it. Those two fields are left out of the hash, so a large cover added to an Ogg file keeps
+/// its identity as it does everywhere else.
+/// </para>
 /// </remarks>
 public static class AudioContentHasher
 {
@@ -34,6 +40,15 @@ public static class AudioContentHasher
 
     /// <summary>Below this, the whole thing is cheaper to read than to seek around in.</summary>
     private const int ReadEverythingBelow = SampleSize * 3;
+
+    /// <summary>An Ogg page header without its segment table.</summary>
+    private const int OggHeaderSize = 27;
+
+    /// <summary>Where an Ogg page's sequence number starts; its checksum follows it.</summary>
+    private const int OggRenumberedAt = 18;
+
+    /// <summary>The sequence number and the checksum, the two fields a retag rewrites.</summary>
+    private const int OggRenumberedLength = 8;
 
     /// <summary>
     /// Hashes the audio of a file TagLib has read, given the range TagLib reported for it. For FLAC
@@ -53,7 +68,12 @@ public static class AudioContentHasher
             _ => (tagLibStart, tagLibEnd)
         };
 
-        return Hash(stream, start, end);
+        var range = Clamp(stream, start, end);
+
+        // An Ogg file that will not walk as pages is hashed as it is, which is no worse than before.
+        var renumbered = format == AudioFormat.Ogg ? OggPagesInSamples(stream, range) : null;
+
+        return Hash(stream, range, renumbered);
     }
 
     /// <summary>
@@ -64,7 +84,7 @@ public static class AudioContentHasher
     public static byte[] Compute(IFileInfo fileInfo, long audioStart, long audioEnd)
     {
         using var stream = Open(fileInfo);
-        return Hash(stream, audioStart, audioEnd);
+        return Hash(stream, Clamp(stream, audioStart, audioEnd), renumbered: null);
     }
 
     private static FileSystemStream Open(IFileInfo fileInfo) =>
@@ -150,6 +170,126 @@ public static class AudioContentHasher
         }
     }
 
+    /// <summary>Where the Ogg pages start inside the slices the hash reads.</summary>
+    /// <returns>The page starts, or null when the range does not walk as Ogg pages.</returns>
+    /// <remarks>
+    /// TagLib's start is the first audio page, after the header pages a retag rewrites, and a tagger
+    /// copies every audio page as it was apart from its number and checksum. The front slice is
+    /// walked page by page from there. The back slice is found from the end instead, so a long file
+    /// is not read through: the first "OggS" whose pages run exactly to the end is where they start.
+    /// </remarks>
+    private static List<long>? OggPagesInSamples(Stream stream, (long Start, long End) range)
+    {
+        var (start, end) = range;
+        var pages = new List<long>();
+        var sampledWhole = end - start <= ReadEverythingBelow;
+
+        if (!WalkOggPages(stream, start, sampledWhole ? end : start + SampleSize, end, pages))
+        {
+            return null;
+        }
+
+        // A header starting just before the back slice can still put its renumbered fields in it.
+        return sampledWhole || FindOggTail(stream, Math.Max(start, end - SampleSize - OggHeaderSize - 255), end, pages)
+            ? pages
+            : null;
+    }
+
+    /// <summary>Walks Ogg pages from a page start until past the limit.</summary>
+    /// <returns>False when something on the way is not an Ogg page.</returns>
+    private static bool WalkOggPages(Stream stream, long position, long limit, long end, List<long> pages)
+    {
+        Span<byte> header = stackalloc byte[OggHeaderSize];
+        Span<byte> segments = stackalloc byte[255];
+
+        while (position < limit)
+        {
+            if (!ReadAt(stream, position, header) || !IsOggPage(header))
+            {
+                return false;
+            }
+
+            var table = segments[..header[OggHeaderSize - 1]];
+            if (!ReadAt(stream, position + OggHeaderSize, table))
+            {
+                return false;
+            }
+
+            pages.Add(position);
+            position += OggHeaderSize + table.Length + BodyLength(table);
+            if (position > end)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Finds the pages that run to the end of the file, from somewhere before them.</summary>
+    /// <returns>False when no run of pages ends exactly at the end.</returns>
+    /// <remarks>
+    /// "OggS" can turn up in the audio by chance, but a run of pages that lands on the last byte
+    /// cannot, so a false start is passed over rather than trusted.
+    /// </remarks>
+    private static bool FindOggTail(Stream stream, long from, long end, List<long> pages)
+    {
+        var window = new byte[end - from];
+        if (!ReadAt(stream, from, window))
+        {
+            return false;
+        }
+
+        var span = window.AsSpan();
+        var tail = new List<long>();
+        var candidate = 0;
+        while (true)
+        {
+            var found = span[candidate..].IndexOf("OggS"u8);
+            if (found < 0)
+            {
+                return false;
+            }
+
+            candidate += found;
+            tail.Clear();
+
+            var position = candidate;
+            while (position + OggHeaderSize <= span.Length && IsOggPage(span.Slice(position, OggHeaderSize)))
+            {
+                var count = span[position + OggHeaderSize - 1];
+                if (position + OggHeaderSize + count > span.Length)
+                {
+                    break;
+                }
+
+                tail.Add(from + position);
+                position += OggHeaderSize + count + BodyLength(span.Slice(position + OggHeaderSize, count));
+            }
+
+            if (position == span.Length)
+            {
+                pages.AddRange(tail);
+                return true;
+            }
+
+            candidate++;
+        }
+    }
+
+    private static bool IsOggPage(ReadOnlySpan<byte> header) => header[..4].SequenceEqual("OggS"u8) && header[4] == 0;
+
+    private static int BodyLength(ReadOnlySpan<byte> segmentTable)
+    {
+        var length = 0;
+        foreach (var segment in segmentTable)
+        {
+            length += segment;
+        }
+
+        return length;
+    }
+
     /// <returns>False when the file is too short to hold what is asked for.</returns>
     private static bool ReadAt(Stream stream, long position, Span<byte> buffer)
     {
@@ -163,12 +303,21 @@ public static class AudioContentHasher
         return true;
     }
 
-    private static byte[] Hash(Stream stream, long audioStart, long audioEnd)
+    private static (long Start, long End) Clamp(Stream stream, long audioStart, long audioEnd)
     {
         var start = Math.Clamp(audioStart, 0, stream.Length);
         // A negative or unknown end position means nobody could say, so use the end of the file
         // rather than hashing nothing.
         var end = audioEnd <= start ? stream.Length : Math.Min(audioEnd, stream.Length);
+        return (start, end);
+    }
+
+    /// <param name="stream">The file.</param>
+    /// <param name="range">The audio, already clamped to the file.</param>
+    /// <param name="renumbered">Ogg page starts whose sequence number and checksum are left out.</param>
+    private static byte[] Hash(Stream stream, (long Start, long End) range, List<long>? renumbered)
+    {
+        var (start, end) = range;
         var length = end - start;
 
         using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -181,22 +330,24 @@ public static class AudioContentHasher
 
         if (length <= ReadEverythingBelow)
         {
-            AppendRange(stream, hasher, start, length);
+            AppendRange(stream, hasher, start, length, renumbered);
         }
         else
         {
-            AppendRange(stream, hasher, start, SampleSize);
-            AppendRange(stream, hasher, end - SampleSize, SampleSize);
+            AppendRange(stream, hasher, start, SampleSize, renumbered);
+            AppendRange(stream, hasher, end - SampleSize, SampleSize, renumbered);
         }
 
         return hasher.GetHashAndReset();
     }
 
-    private static void AppendRange(Stream stream, IncrementalHash hasher, long from, long count)
+    private static void AppendRange(Stream stream, IncrementalHash hasher, long from, long count,
+        List<long>? renumbered)
     {
         stream.Seek(from, SeekOrigin.Begin);
 
         var buffer = new byte[SampleSize];
+        var position = from;
         var remaining = count;
         while (remaining > 0)
         {
@@ -206,7 +357,19 @@ public static class AudioContentHasher
                 return;
             }
 
+            foreach (var page in renumbered ?? [])
+            {
+                // Zeroed where they fall in this read, which may be only part of them.
+                var fieldStart = Math.Max(page + OggRenumberedAt, position);
+                var fieldEnd = Math.Min(page + OggRenumberedAt + OggRenumberedLength, position + read);
+                if (fieldStart < fieldEnd)
+                {
+                    buffer.AsSpan((int)(fieldStart - position), (int)(fieldEnd - fieldStart)).Clear();
+                }
+            }
+
             hasher.AppendData(buffer, 0, read);
+            position += read;
             remaining -= read;
         }
     }
