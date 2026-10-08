@@ -226,6 +226,17 @@
       .join(" - ");
   };
 
+  /* When a dropped connection is tried again: at once, then a little longer each time. SignalR
+     gives up after the last, and each page then starts over on its own. One list for both, so
+     the projector and the phone give up at the same moments. */
+  R4B.retryDelays = [0, 1000, 2000, 5000, 10000];
+
+  /* How far through the playing item the bar is, as a width. An item with no end, a stop, keeps
+     its bar empty rather than sitting at a meaningless zero. */
+  R4B.progressWidth = function (elapsedSeconds, durationSeconds) {
+    return durationSeconds > 0 ? Math.min(100, (elapsedSeconds / durationSeconds) * 100) + "%" : "0%";
+  };
+
   /* How long, in words: seconds for a short wait, minutes once it stops being one. */
   R4B.durationPhrase = function (totalSeconds) {
     var rounded = Math.round(totalSeconds);
