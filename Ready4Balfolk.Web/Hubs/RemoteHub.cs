@@ -34,9 +34,10 @@ public sealed class RemoteHub(
 
     /// <summary>The client method that says this phone is not let in any more.</summary>
     /// <remarks>
-    /// Sent before the connection goes, and again by the filter on any command from a token that
-    /// has stopped being good. A remote that silently does nothing reads as a crashed application,
-    /// and the honest answer is the PIN form: the remote is there, the helper needs the new PIN.
+    /// Sent before the connection goes, which the page answers by closing it, and again by the
+    /// filter on any command from a token that has stopped being good. A remote that silently does
+    /// nothing reads as a crashed application, and the honest answer is the PIN form: the remote is
+    /// there, the helper needs the new PIN.
     /// </remarks>
     public const string TurnedOutMethod = "turnedOut";
 
@@ -61,15 +62,17 @@ public sealed class RemoteHub(
     {
         if (!access.IsTokenValid(RemoteTokenFilter.TokenOf(Context)))
         {
-            await Clients.Caller.SendAsync(TurnedOutMethod);
-            Context.Abort();
+            // Told, and left for the page to close, the same way a PIN change turns a phone out.
+            // Aborting straight after the send could drop the notice it had only just queued, and
+            // the page reconnected on the same token instead of asking for the PIN (#334).
+            await connections.TurnOutAsync(Context);
             return;
         }
 
         if (!await connections.AddAsync(Context))
         {
             // A new PIN landed between the check above and the socket being registered. It has
-            // already been told and closed there, and drawing the evening onto it now would be
+            // already been told and turned out there, and drawing the evening onto it now would be
             // pushing the queue at a phone that has just been shut out.
             return;
         }

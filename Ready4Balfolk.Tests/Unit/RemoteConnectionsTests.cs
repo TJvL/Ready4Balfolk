@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.Web.Hubs;
@@ -20,9 +21,13 @@ public sealed class RemoteConnectionsTests
     private const string Pin = "123456";
     private const string Client = "192.168.1.50";
 
+    /// <summary>Well past the moment a told phone has to close its own socket.</summary>
+    private static readonly TimeSpan PastTheBackstop = TimeSpan.FromMinutes(1);
+
     private readonly IHubContext<RemoteHub> _hub = Substitute.For<IHubContext<RemoteHub>>();
     private readonly IHubClients _clients = Substitute.For<IHubClients>();
     private readonly RemoteAccessService _access = new();
+    private readonly FakeTimeProvider _time = new();
 
     public RemoteConnectionsTests()
     {
@@ -35,11 +40,12 @@ public sealed class RemoteConnectionsTests
     {
         var proxy = ProxyFor("phone");
         var phone = Connected("phone");
-        var sut = new RemoteConnections(_hub, _access);
+        var sut = Registry();
         Assert.True(await sut.AddAsync(phone));
 
         _access.Configure(true, "654321");
         await sut.TurnOutStaleAsync();
+        _time.Advance(PastTheBackstop);
 
         // The order is the whole point. A socket that simply dies reads as the hall's wifi
         // dropping, and the page reconnects at it all evening instead of showing the PIN form.
@@ -52,15 +58,58 @@ public sealed class RemoteConnectionsTests
     }
 
     [Fact]
+    public async Task TurnOutStaleAsync_LeavesThePageAMomentToCloseItBeforeClosingItFromHere()
+    {
+        // The send coming back means the notice was handed to the connection, not that it left,
+        // and an abort straight behind it could win and drop it. The phone then saw a dead socket,
+        // reconnected on the same token and was closed again, and the helper read "Reconnecting"
+        // where the PIN form should have been (#334). The page closes the socket itself on reading
+        // the notice; the close from here is for a page that never does.
+        ProxyFor("phone");
+        var phone = Connected("phone");
+        var sut = Registry();
+        Assert.True(await sut.AddAsync(phone));
+
+        _access.Configure(true, "654321");
+        await sut.TurnOutStaleAsync();
+
+        phone.DidNotReceive().Abort();
+
+        _time.Advance(PastTheBackstop);
+
+        phone.Received(1).Abort();
+    }
+
+    [Fact]
+    public async Task TurnOutStaleAsync_APageThatClosedItself_IsNotClosedAgain()
+    {
+        ProxyFor("phone");
+        var phone = Connected("phone");
+        var sut = Registry();
+        Assert.True(await sut.AddAsync(phone));
+
+        _access.Configure(true, "654321");
+        using var closedByThePage = new CancellationTokenSource();
+        phone.ConnectionAborted.Returns(closedByThePage.Token);
+        await sut.TurnOutStaleAsync();
+
+        await closedByThePage.CancelAsync();
+        _time.Advance(PastTheBackstop);
+
+        phone.DidNotReceive().Abort();
+    }
+
+    [Fact]
     public async Task TurnOutStaleAsync_WhenTheRemoteIsSwitchedOff_ClosesThePhoneToo()
     {
         var proxy = ProxyFor("phone");
         var phone = Connected("phone");
-        var sut = new RemoteConnections(_hub, _access);
+        var sut = Registry();
         Assert.True(await sut.AddAsync(phone));
 
         _access.Configure(false, Pin);
         await sut.TurnOutStaleAsync();
+        _time.Advance(PastTheBackstop);
 
         await proxy.Received(1).SendCoreAsync(
             RemoteHub.TurnedOutMethod, Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
@@ -76,11 +125,12 @@ public sealed class RemoteConnectionsTests
         // being pushed the queue all evening. That is the phone the PIN was changed to get rid of.
         var proxy = ProxyFor("phone");
         var phone = Connected("phone");
-        var sut = new RemoteConnections(_hub, _access);
+        var sut = Registry();
 
         _access.Configure(true, "654321");
 
         Assert.False(await sut.AddAsync(phone));
+        _time.Advance(PastTheBackstop);
 
         Received.InOrder(() =>
         {
@@ -95,13 +145,15 @@ public sealed class RemoteConnectionsTests
     {
         var phone = Connected("phone");
         ProxyFor("phone");
-        var sut = new RemoteConnections(_hub, _access);
+        var sut = Registry();
 
         Assert.True(await sut.AddAsync(phone));
+        _time.Advance(PastTheBackstop);
         phone.DidNotReceive().Abort();
 
         _access.Configure(true, "654321");
         await sut.TurnOutStaleAsync();
+        _time.Advance(PastTheBackstop);
 
         phone.Received(1).Abort();
     }
@@ -114,10 +166,11 @@ public sealed class RemoteConnectionsTests
         // ago go down the same path.
         var proxy = ProxyFor("phone");
         var phone = Connected("phone");
-        var sut = new RemoteConnections(_hub, _access);
+        var sut = Registry();
         Assert.True(await sut.AddAsync(phone));
 
         await sut.TurnOutStaleAsync();
+        _time.Advance(PastTheBackstop);
 
         await proxy.DidNotReceive().SendCoreAsync(
             Arg.Any<string>(), Arg.Any<object?[]>(), Arg.Any<CancellationToken>());
@@ -128,12 +181,13 @@ public sealed class RemoteConnectionsTests
     public async Task TurnOutStaleAsync_APhoneThatHasAlreadyGone_IsNotClosedAgain()
     {
         var phone = Connected("phone");
-        var sut = new RemoteConnections(_hub, _access);
+        var sut = Registry();
         Assert.True(await sut.AddAsync(phone));
         sut.Remove(phone);
 
         _access.Configure(true, "654321");
         await sut.TurnOutStaleAsync();
+        _time.Advance(PastTheBackstop);
 
         phone.DidNotReceive().Abort();
     }
@@ -145,12 +199,13 @@ public sealed class RemoteConnectionsTests
         var second = Connected("second");
         ProxyFor("first");
         ProxyFor("second");
-        var sut = new RemoteConnections(_hub, _access);
+        var sut = Registry();
         Assert.True(await sut.AddAsync(first));
         Assert.True(await sut.AddAsync(second));
 
         _access.Configure(true, "654321");
         await sut.TurnOutStaleAsync();
+        _time.Advance(PastTheBackstop);
 
         first.Received(1).Abort();
         second.Received(1).Abort();
@@ -170,16 +225,19 @@ public sealed class RemoteConnectionsTests
 
         var gone = Connected("lost");
         var here = Connected("still-here");
-        var sut = new RemoteConnections(_hub, _access);
+        var sut = Registry();
         Assert.True(await sut.AddAsync(gone));
         Assert.True(await sut.AddAsync(here));
 
         _access.Configure(true, "654321");
         await sut.TurnOutStaleAsync();
+        _time.Advance(PastTheBackstop);
 
         gone.Received(1).Abort();
         here.Received(1).Abort();
     }
+
+    private RemoteConnections Registry() => new(_hub, _access, _time);
 
     /// <summary>A connection carrying a token the service really issued for the current PIN.</summary>
     private HubCallerContext Connected(string connectionId)
