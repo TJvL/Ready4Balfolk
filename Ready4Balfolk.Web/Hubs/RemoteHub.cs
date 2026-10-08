@@ -235,8 +235,7 @@ public sealed class RemoteHub(
                 track.FileInfo.FullName,
                 track.Dance,
                 track.Artist,
-                track.Title,
-                track.Length.TotalSeconds))
+                track.Title))
             .ToList();
 
         return (IReadOnlyList<TrackHitDto>)matches;

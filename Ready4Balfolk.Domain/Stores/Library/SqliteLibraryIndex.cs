@@ -1044,22 +1044,6 @@ public sealed class SqliteLibraryIndex(
         }
     }
 
-    public async Task StopIgnoringValueAsync(string value, CancellationToken token = default)
-    {
-        await _gate.WaitAsync(token);
-        try
-        {
-            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
-            command.CommandText = "DELETE FROM ignored_values WHERE folded_value = $folded;";
-            command.Parameters.AddWithValue("$folded", StringNormalizer.Normalize(value));
-            await command.ExecuteNonQueryAsync(token);
-        }
-        finally
-        {
-            _gate.Release();
-        }
-    }
-
     public async Task<int> CountIndexedAsync(CancellationToken token = default)
     {
         await _gate.WaitAsync(token);

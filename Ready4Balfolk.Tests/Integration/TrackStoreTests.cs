@@ -1165,11 +1165,62 @@ public sealed class TrackStoreTests : IDisposable
         _libraryIndex.ApproveAsync(Arg.Any<IReadOnlyCollection<TrackApproval>>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromException(new OperationCanceledException(somethingElse.Token)));
 
-        await ApplyAsync(directory: _dirA);
+        // The approval written once the scan is through is awaited on the load's own path, so the
+        // same cancellation escapes the load as well, as a fault rather than as being superseded.
+        var escaped = await Record.ExceptionAsync(() => ApplyAsync(directory: _dirA));
+        Assert.IsType<OperationCanceledException>(escaped);
 
         var message = await reported.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Assert.Equal("Failed to record what the rules approved", message);
         _notifications.Received(1).Show(DomainStrings.Library_ScanWriteFailed, NotificationSeverity.Error);
+    }
+
+    /// <summary>A load cancelled by something other than the next load is a failure.</summary>
+    /// <remarks>
+    /// The load used to take any cancellation for being superseded, so one from underneath it ended
+    /// the scan with a debug line, and the DJ was left with an empty library and no word of why.
+    /// </remarks>
+    [Fact]
+    public async Task ALoadCancelledBySomethingElse_IsNotPassedOverAsSuperseded()
+    {
+        CreateFile(_dirA, "a.mp3");
+
+        using var somethingElse = new CancellationTokenSource();
+        await somethingElse.CancelAsync();
+
+        _libraryIndex.IndexedPathsAsync(Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromException<IReadOnlySet<string>>(new OperationCanceledException(somethingElse.Token)));
+
+        var escaped = await Record.ExceptionAsync(() => ApplyAsync(directory: _dirA));
+
+        var canceled = Assert.IsType<OperationCanceledException>(escaped);
+        Assert.Equal(somethingElse.Token, canceled.CancellationToken);
+    }
+
+    /// <summary>A rebuild cancelled by something other than its caller is a failure.</summary>
+    /// <remarks>
+    /// Most rebuilds are handed no token, so a cancellation carrying none matches theirs as well;
+    /// only the caller's token having fired says the rebuild was meant to stop.
+    /// </remarks>
+    [Fact]
+    public async Task ARebuildCancelledBySomethingElse_IsNotPassedOverAsSuperseded()
+    {
+        using var somethingElse = new CancellationTokenSource();
+        await somethingElse.CancelAsync();
+
+        _libraryIndex.ApprovalsAsync(Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromException<IReadOnlyDictionary<string, IReadOnlyList<TrackApproval>>>(
+                new OperationCanceledException(somethingElse.Token)));
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => _sut.RefreshLibraryAsync(TestContext.Current.CancellationToken));
+
+        _libraryIndex.ApprovalsAsync(Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromException<IReadOnlyDictionary<string, IReadOnlyList<TrackApproval>>>(
+                new OperationCanceledException()));
+
+        // No token, as the dance list and the watcher hand it: a cancellation carrying none matches.
+        await Assert.ThrowsAsync<OperationCanceledException>(() => _sut.RefreshLibraryAsync(CancellationToken.None));
     }
 
     /// <summary>A rule change ended by the next rule change is not a failure either.</summary>

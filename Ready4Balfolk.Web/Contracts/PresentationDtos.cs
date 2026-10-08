@@ -69,7 +69,7 @@ public sealed record QueueEntryDto(
 }
 
 /// <summary>A search result on the remote's find tab.</summary>
-public sealed record TrackHitDto(string Id, string Dance, string Artist, string Title, double DurationSeconds);
+public sealed record TrackHitDto(string Id, string Dance, string Artist, string Title);
 
 /// <summary>The result of a command the remote sent.</summary>
 /// <remarks>

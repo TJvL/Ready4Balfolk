@@ -194,6 +194,10 @@ public sealed partial class ReviewRowViewModel : ReactiveObject
     [Reactive] public partial string RefusalText { get; private set; }
 
     /// <summary>How many times this row has been asked and said no.</summary>
+    /// <remarks>
+    /// Only the tests read this, and it stays for them: the flash itself runs on the dispatcher,
+    /// which a test has no pump for, so this is how one sees that the row was told to say no.
+    /// </remarks>
     public int RejectedCount { get; private set; }
 
     /// <summary>
