@@ -112,5 +112,7 @@ magick "${ICO_INPUTS[@]}" -type TrueColorAlpha -strip "$OUT/icon.ico"
 echo "  icon.ico"
 
 # --- Save hash ---
-echo "$CURRENT_HASH" > "$HASH_FILE"
+# The hash and one LF, exactly as generate-icons.ps1 writes it. The file is committed, so any
+# difference between the two scripts shows up as a change to it on every run of the other one.
+printf '%s\n' "$CURRENT_HASH" > "$HASH_FILE"
 echo "Done!"
