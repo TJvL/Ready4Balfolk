@@ -18,7 +18,10 @@ namespace Ready4Balfolk.Web.Security;
 /// open it. Nothing about changing a PIN may put that screen out.
 /// </para>
 /// </remarks>
-public sealed class RemoteConnections(IHubContext<RemoteHub> remoteHub, RemoteAccessService access)
+public sealed class RemoteConnections(
+    IHubContext<RemoteHub> remoteHub,
+    RemoteAccessService access,
+    TimeProvider? timeProvider = null)
 {
     /// <summary>How long a phone gets to be told before its socket goes anyway.</summary>
     /// <remarks>
@@ -29,10 +32,25 @@ public sealed class RemoteConnections(IHubContext<RemoteHub> remoteHub, RemoteAc
     /// </remarks>
     private static readonly TimeSpan NoticeDeadline = TimeSpan.FromSeconds(2);
 
+    /// <summary>How long a told phone has to close its own socket before it is closed from here.</summary>
+    /// <remarks>
+    /// The notice used to be followed by the abort at once, and a send that has come back has only
+    /// handed the message to the connection: the abort could win and drop it. The phone then saw a
+    /// dead socket, reconnected on the same token and was closed again, and the helper read
+    /// "Reconnecting" where the PIN form and its reason should have been (#334). The page closes
+    /// the connection itself when it reads the notice, so this is only for a page that never does,
+    /// and every moment of it is a moment that page goes on being pushed the evening. Two seconds
+    /// is the hall's wifi many times over for a message already on its way, and short enough that
+    /// a phone ignoring the notice sees next to nothing more.
+    /// </remarks>
+    private static readonly TimeSpan CloseBackstop = TimeSpan.FromSeconds(2);
+
+    private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
+
     private readonly ConcurrentDictionary<string, HubCallerContext> _connections = new(StringComparer.Ordinal);
 
     /// <summary>Remembers a socket that got past the token check, unless it has just lost it.</summary>
-    /// <returns>Whether the socket may carry on. A false has already been told and closed.</returns>
+    /// <returns>Whether the socket may carry on. A false has already been told and turned out.</returns>
     /// <remarks>
     /// The token is read again here, after the socket is in the register, because of the gap
     /// between the hub checking it and this line. A PIN change landing in that gap drops the
@@ -52,7 +70,7 @@ public sealed class RemoteConnections(IHubContext<RemoteHub> remoteHub, RemoteAc
             return true;
         }
 
-        await TurnOutAsync(context.ConnectionId, context).ConfigureAwait(false);
+        await TurnOutAsync(context).ConfigureAwait(false);
         return false;
     }
 
@@ -78,17 +96,25 @@ public sealed class RemoteConnections(IHubContext<RemoteHub> remoteHub, RemoteAc
     /// </remarks>
     public Task TurnOutStaleAsync() => Task.WhenAll(_connections
         .Where(connection => !access.IsTokenValid(RemoteTokenFilter.TokenOf(connection.Value)))
-        .Select(connection => TurnOutAsync(connection.Key, connection.Value)));
+        .Select(connection => TurnOutAsync(connection.Value)));
 
-    private async Task TurnOutAsync(string connectionId, HubCallerContext context)
+    /// <summary>Tells a phone it is not let in any more, and sees to it that its socket goes.</summary>
+    /// <remarks>
+    /// Returns once the phone has been told, not once it has gone. The page closes the socket
+    /// itself on reading the notice, and the close from this end is the backstop for a page that
+    /// does not: waiting on it here would hold a settings save, or a phone's connect, for the
+    /// whole of it.
+    /// </remarks>
+    public async Task TurnOutAsync(HubCallerContext context)
     {
-        _connections.TryRemove(connectionId, out _);
+        ArgumentNullException.ThrowIfNull(context);
+        _connections.TryRemove(context.ConnectionId, out _);
 
         using var notice = new CancellationTokenSource(NoticeDeadline);
 
         try
         {
-            await remoteHub.Clients.Client(connectionId)
+            await remoteHub.Clients.Client(context.ConnectionId)
                 .SendAsync(RemoteHub.TurnedOutMethod, notice.Token)
                 .ConfigureAwait(false);
         }
@@ -96,14 +122,28 @@ public sealed class RemoteConnections(IHubContext<RemoteHub> remoteHub, RemoteAc
         {
             // Whatever the notice ran into, it ran into it on a socket that is being closed
             // anyway: a phone carried out of the hall, or a host being torn down underneath. The
-            // connection has already left the register, so an abort skipped here is a phone
+            // connection has already left the register, so a close skipped here is a phone
             // nothing will ever close and no later PIN change will find to try again. That is
-            // also why this does not rethrow: the only caller in the app is a settings save
-            // running unwatched, and one phone's send must not take the rest of the sweep with it.
+            // also why this does not rethrow: a settings save runs the sweep unwatched, and one
+            // phone's send must not take the rest of the sweep with it.
         }
-        finally
+
+        _ = CloseAfterTheBackstopAsync(context);
+    }
+
+    private async Task CloseAfterTheBackstopAsync(HubCallerContext context)
+    {
+        try
         {
-            context.Abort();
+            await Task.Delay(CloseBackstop, _time, context.ConnectionAborted).ConfigureAwait(false);
         }
+        catch (OperationCanceledException)
+        {
+            // The page read the notice and closed the socket itself, which is how this is meant
+            // to end. There is nothing left to close.
+            return;
+        }
+
+        context.Abort();
     }
 }

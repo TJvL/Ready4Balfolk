@@ -175,7 +175,10 @@ public sealed class PresentationWebServer(
                 host.ShutdownTimeout = TimeSpan.FromSeconds(2));
 
             builder.Services.AddSingleton<RemoteTokenFilter>();
-            builder.Services.AddSingleton<RemoteConnections>();
+            // Handed the app's clock rather than registering it, so that nothing of ASP.NET's own
+            // starts reading a test's frozen time.
+            builder.Services.AddSingleton(services => new RemoteConnections(
+                services.GetRequiredService<IHubContext<RemoteHub>>(), _access, time));
             builder.Services
                 .AddSignalR()
                 // Every command from a phone, not only the socket it arrives on: a PIN change has
