@@ -1,5 +1,8 @@
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Services.Logging;
@@ -313,5 +316,89 @@ public sealed class SettingsStoreTests
         var (store, _) = Create();
 
         store.Dispose();
+    }
+
+    /// <summary>The names the settings file is written under, which a rename in code must not move.</summary>
+    /// <remarks>
+    /// The file is read skipping whatever it does not recognise, so a setting whose stored name
+    /// moved is not an error anywhere: it is quietly back at its default on the next start, for
+    /// every DJ who upgrades. Every name here is one a file on somebody's disk already carries.
+    /// </remarks>
+    [Fact]
+    public async Task UpdateAsync_WritesEverySettingUnderTheNameItHasAlwaysHad()
+    {
+        var (store, fileSystem) = Create();
+
+        await store.UpdateAsync(s => s with
+        {
+            PresentationWindowStates = [new WindowState(1, 2, 3, 4)],
+            EqualizerOrNull = EqualizerSettings.Flat with { Enabled = true },
+            DiscoveryOrNull = new DiscoverySettings
+            {
+                TagTrust = new TagTrust { Artist = [TagField.Artist] },
+                CustomDanceTag = "DANCE"
+            },
+            DisplayTemplatesOrNull = DisplayTemplates.Default
+        });
+
+        using var document = JsonDocument.Parse(
+            await fileSystem.File.ReadAllTextAsync(SettingsPathIn(fileSystem), TestContext.Current.CancellationToken));
+        var root = document.RootElement;
+        AssertStoredUnder(root,
+            "MusicDirectoryPath", "MaxQueueItems", "DelaySeconds", "PresentationDisplayCount",
+            "AutoQueueRandomTrack", "AllowDuplicateTracksInQueue", "RequirePlaybackConfirmation",
+            "ApplicationTheme", "ApplicationLanguage", "MainWindowState", "PresentationWindowStates",
+            "ShowButtonText", "QueueCutoffEnabled", "QueueCutoffMinutesOfDay", "QueueCutoffGraceMinutes",
+            "EqualizerOrNull", "WebServerEnabled", "WebServerPort", "WebRemoteControlEnabled",
+            "WebRemoteControlPin", "SetupCompleted", "DiscoveryOrNull", "AllowDancesOutsideTheList",
+            "EndOfNightAudioPath", "PlayEndOfNightAtCutoff", "DisplayTemplatesOrNull",
+            "GapBetweenTracksEnabled", "GapBetweenTracksSeconds");
+        AssertStoredUnder(root.GetProperty("MainWindowState"),
+            "X", "Y", "Width", "Height", "IsMaximized", "IsBorderless");
+        AssertStoredUnder(root.GetProperty("PresentationWindowStates")[0],
+            "X", "Y", "Width", "Height", "IsMaximized", "IsBorderless");
+        AssertStoredUnder(root.GetProperty("EqualizerOrNull"),
+            "Enabled", "LowCutEnabled", "BandGains", "PreampDecibels", "LowCutHertz");
+        AssertStoredUnder(root.GetProperty("DiscoveryOrNull"),
+            "UsesFileNamePatterns", "UsesFolderRoles", "UsesTagTrust", "UsesCustomDanceTag",
+            "FileNamePatterns", "FolderRoles", "TagTrust", "CustomDanceTag");
+        AssertStoredUnder(root.GetProperty("DiscoveryOrNull").GetProperty("TagTrust"),
+            "Artist", "Title", "Dance");
+        AssertStoredUnder(root.GetProperty("DisplayTemplatesOrNull"),
+            "NowPlayingPrimary", "NowPlayingSecondary", "QueueItem", "HistoryItem");
+    }
+
+    /// <summary>Every member the settings file reads back says what it is stored under.</summary>
+    /// <remarks>
+    /// The list above holds the names that exist today; this holds the ones still to come, so a
+    /// setting added without a pinned name fails here rather than the first time somebody tidies
+    /// its C# name. A member with no setter is only ever written and is not read back, so it is
+    /// not held to this.
+    /// </remarks>
+    [Theory]
+    [InlineData(typeof(ApplicationSettings))]
+    [InlineData(typeof(WindowState))]
+    [InlineData(typeof(EqualizerSettings))]
+    [InlineData(typeof(DiscoverySettings))]
+    [InlineData(typeof(TagTrust))]
+    [InlineData(typeof(DisplayTemplates))]
+    public void EveryStoredSetting_PinsTheNameItIsStoredUnder(Type type)
+    {
+        var unpinned = type
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(property => property.SetMethod is not null)
+            .Where(property => property.GetCustomAttribute<JsonIgnoreAttribute>() is null)
+            .Where(property => property.GetCustomAttribute<JsonPropertyNameAttribute>() is null)
+            .Select(property => property.Name);
+
+        Assert.Empty(unpinned);
+    }
+
+    private static void AssertStoredUnder(JsonElement element, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            Assert.True(element.TryGetProperty(name, out _), $"Nothing is stored under \"{name}\" any more.");
+        }
     }
 }

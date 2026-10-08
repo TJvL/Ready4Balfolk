@@ -9,7 +9,8 @@ namespace Ready4Balfolk.Domain.Stores.Settings;
 /// The stock string converter throws, and one throw takes the whole settings file with it: a member
 /// renamed between builds, or a typo in a file the user is invited to edit by hand, and the DJ opens
 /// the app at the venue with every setting back to its factory value. One unreadable field costing
-/// that field is the trade being made here.
+/// that field is the trade being made here. The nights are read with it for the same reason: a
+/// status a later build adds would otherwise make a whole evening unreadable on an earlier one.
 /// </para>
 /// <para>
 /// <c>Enum.TryParse</c> also accepts a number, and hands

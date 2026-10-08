@@ -1,5 +1,7 @@
 using System.IO.Abstractions;
+using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Data.Sqlite;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.History;
@@ -357,6 +359,159 @@ public sealed class QueueHistoryStoreTests : IDisposable
         Assert.True(emissions.Count >= 2); // initial + update
     }
 
+    /// <summary>The names an entry is stored under, which a rename in code must not move.</summary>
+    /// <remarks>
+    /// A night is the only copy there is of an evening. A stored name that moved reads every older
+    /// night back with that member empty, and a track with no path is one the duplicate rule can
+    /// no longer recognise as played.
+    /// </remarks>
+    [Fact]
+    public async Task AddAsync_StoresEveryEntryUnderTheNamesItHasAlwaysHad()
+    {
+        await _sut.AddAsync(Track() with { FinishedAt = DateTime.Now });
+        await _sut.AddAsync(new MessageHistoryEntry("Bal", TimeSpan.FromMinutes(1), CompletionStatus.Finished));
+        await _sut.AddAsync(new DelayHistoryEntry(TimeSpan.FromSeconds(30), CompletionStatus.Skipped));
+        await _sut.AddAsync(new StopHistoryEntry(CompletionStatus.Finished));
+        await _sut.AddAsync(new EndOfNightHistoryEntry(TimeSpan.FromMinutes(2), CompletionStatus.Finished));
+
+        var payloads = await PayloadsAsync();
+
+        string[] common = ["type", "CompletionStatus", "StartedAt", "FinishedAt"];
+        AssertStoredUnder(payloads[0], [.. common, "FilePath", "Dance", "Artist", "Title", "Duration", "RandomlyAdded"]);
+        AssertStoredUnder(payloads[1], [.. common, "Message", "Duration"]);
+        AssertStoredUnder(payloads[2], [.. common, "Duration"]);
+        AssertStoredUnder(payloads[3], common);
+        AssertStoredUnder(payloads[4], [.. common, "Duration"]);
+        Assert.Equal(
+            ["track", "message", "delay", "stop", "endOfNight"],
+            payloads.Select(payload => payload.GetProperty("type").GetString()));
+    }
+
+    /// <summary>Every member an entry reads back says what it is stored under.</summary>
+    /// <remarks>
+    /// The test above holds the names there are today; this holds the ones still to come, so a
+    /// member added without a pinned name fails here rather than the first time somebody tidies
+    /// its C# name.
+    /// </remarks>
+    [Theory]
+    [InlineData(typeof(QueueHistoryEntry))]
+    [InlineData(typeof(TrackHistoryEntry))]
+    [InlineData(typeof(MessageHistoryEntry))]
+    [InlineData(typeof(DelayHistoryEntry))]
+    [InlineData(typeof(StopHistoryEntry))]
+    [InlineData(typeof(EndOfNightHistoryEntry))]
+    public void EveryStoredMemberOfAnEntry_PinsTheNameItIsStoredUnder(Type type)
+    {
+        var unpinned = type
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(property => property.SetMethod is not null)
+            .Where(property => property.GetCustomAttribute<JsonIgnoreAttribute>() is null)
+            .Where(property => property.GetCustomAttribute<JsonPropertyNameAttribute>() is null)
+            .Select(property => property.Name);
+
+        Assert.Empty(unpinned);
+    }
+
+    [Fact]
+    public async Task AddAsync_StampsTheShapeTheNightsWereLaidOutIn()
+    {
+        // Without a stamp a build that changes a table opens the old one, and the first query that
+        // wants the new column fails on every start with nothing to say why.
+        await _sut.AddAsync(Track());
+
+        Assert.NotEqual(0, await CountAsync("PRAGMA user_version;"));
+    }
+
+    [Fact]
+    public async Task ANightStoreWrittenBeforeTheStamp_IsOpenedAsItStandsAndStamped()
+    {
+        // Every file written before the stamp existed reads back zero and was laid out in exactly
+        // this shape, so its evenings are read rather than refused.
+        await _sut.AddAsync(Track());
+        _sut.Dispose();
+        await ExecuteSqlAsync("PRAGMA user_version = 0;");
+
+        var reopened = await ReopenAsync();
+
+        Assert.Single(reopened.Current.Entries);
+        Assert.NotEqual(0, await CountAsync("PRAGMA user_version;"));
+    }
+
+    [Fact]
+    public async Task ANightStoreStampedForAnotherShape_IsReportedAndLeftAsItIs()
+    {
+        // Not rebuilt the way the library index is: that one is derived, and this is the only copy
+        // there is of every evening in it. A build that cannot read the shape writes nothing into
+        // it either, so going back a build costs tonight's record rather than every earlier one.
+        await _sut.AddAsync(Track());
+        await _sut.EndNightAsync();
+        _sut.Dispose();
+        await ExecuteSqlAsync("PRAGMA user_version = 99;");
+        var notifications = Substitute.For<INotificationService>();
+
+        using var reopened = new QueueHistoryStore(
+            _directory, _fileSystem, new NoOpLoggerService(), notifications, TimeProvider.System);
+        await reopened.LoadAsync(TestContext.Current.CancellationToken);
+        await reopened.AddAsync(Track());
+        var nights = await reopened.ListNightsAsync();
+
+        notifications.Received(1).Show(DomainStrings.History_ReadFailed, NotificationSeverity.Error);
+        notifications.Received(1).Show(DomainStrings.History_WriteFailed, NotificationSeverity.Error);
+        Assert.Empty(nights);
+        Assert.Equal(99, await CountAsync("PRAGMA user_version;"));
+        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM nights;"));
+        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM entries;"));
+    }
+
+    [Fact]
+    public async Task DeleteNightAsync_WhenTheNightWillNotGo_KeepsItsEntriesToo()
+    {
+        // Two statements, and a failure between them used to leave a night still listed with
+        // every entry in it gone: an evening that reads as one where nothing happened.
+        await _sut.AddAsync(Track());
+        var nightId = _sut.Current.Id;
+        await _sut.EndNightAsync();
+        await ExecuteSqlAsync(
+            "CREATE TRIGGER refuse BEFORE DELETE ON nights BEGIN SELECT RAISE(ABORT, 'refused'); END;");
+
+        await _sut.DeleteNightAsync(nightId);
+
+        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM nights;"));
+        Assert.Equal(1, await CountAsync("SELECT COUNT(*) FROM entries;"));
+    }
+
+    [Fact]
+    public async Task AStatusFromALaterBuild_CostsThatEntryItsStatusRatherThanTheNight()
+    {
+        // A later build may well add a way for an item to stop. Thrown on, it took the whole
+        // evening with it on any build that had not heard of it.
+        await _sut.AddAsync(Track());
+        await _sut.AddAsync(new StopHistoryEntry(CompletionStatus.Skipped));
+        _sut.Dispose();
+        await ExecuteSqlAsync(
+            "UPDATE entries SET payload = replace(payload, '\"Skipped\"', '\"Interrupted\"');");
+
+        var reopened = await ReopenAsync();
+
+        Assert.Equal(2, reopened.Current.Entries.Count);
+        Assert.Equal(CompletionStatus.Finished, reopened.Current.Entries[1].CompletionStatus);
+    }
+
+    [Fact]
+    public async Task ListNightsAsync_ATimeThatWillNotParse_IsReportedRatherThanThrown()
+    {
+        await _sut.AddAsync(Track());
+        await ExecuteSqlAsync("UPDATE nights SET started_at = 'the night before last';");
+        var notifications = Substitute.For<INotificationService>();
+        using var store = new QueueHistoryStore(
+            _directory, _fileSystem, new NoOpLoggerService(), notifications, TimeProvider.System);
+
+        var nights = await store.ListNightsAsync();
+
+        Assert.Empty(nights);
+        notifications.Received(1).Show(DomainStrings.History_ListNightsFailed, NotificationSeverity.Error);
+    }
+
     private const string TrackPath = "/tmp/test.mp3";
 
     private static TrackHistoryEntry Track() => new(
@@ -386,6 +541,54 @@ public sealed class QueueHistoryStoreTests : IDisposable
         await using var command = connection.CreateCommand();
         command.CommandText = sql;
         return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
+    }
+
+    /// <summary>Changes the file straight from outside, standing in for another build or a bad write.</summary>
+    private async Task ExecuteSqlAsync(string sql)
+    {
+        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = Path.Combine(_tempDir.FullName, "history.sqlite"),
+            Mode = SqliteOpenMode.ReadWrite,
+            Pooling = false
+        }.ToString());
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Every entry's payload as it lies in the file, in the order the night has them.</summary>
+    private async Task<List<JsonElement>> PayloadsAsync()
+    {
+        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = Path.Combine(_tempDir.FullName, "history.sqlite"),
+            Mode = SqliteOpenMode.ReadOnly,
+            Pooling = false
+        }.ToString());
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT payload FROM entries ORDER BY night_id, ordinal;";
+        var payloads = new List<JsonElement>();
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            using var document = JsonDocument.Parse(reader.GetString(0));
+            payloads.Add(document.RootElement.Clone());
+        }
+
+        return payloads;
+    }
+
+    private static void AssertStoredUnder(JsonElement payload, string[] names)
+    {
+        foreach (var name in names)
+        {
+            Assert.True(payload.TryGetProperty(name, out _), $"Nothing is stored under \"{name}\" any more.");
+        }
     }
 
     public void Dispose()

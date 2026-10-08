@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Ready4Balfolk.Domain.Models.History;
 
 /// <summary>The evening was called, and this is when.</summary>
@@ -6,7 +8,7 @@ namespace Ready4Balfolk.Domain.Models.History;
 /// an end in it reads as one that finished.
 /// </remarks>
 public sealed record EndOfNightHistoryEntry(
-    TimeSpan? Duration,
+    [property: JsonPropertyName("Duration")] TimeSpan? Duration,
     CompletionStatus CompletionStatus,
     DateTime? StartedAt = null,
     DateTime? FinishedAt = null) : QueueHistoryEntry(CompletionStatus, StartedAt, FinishedAt);

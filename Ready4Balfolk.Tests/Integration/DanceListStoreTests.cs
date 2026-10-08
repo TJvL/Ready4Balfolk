@@ -287,6 +287,74 @@ public sealed class DanceListStoreTests : IDisposable
         Assert.Contains(expected, moved);
     }
 
+    /// <summary>A refresh that lands while the cached copy is being read is not undone by it.</summary>
+    /// <remarks>
+    /// The read is held open after it has the older copy in hand, which is the window the load used
+    /// to leave unguarded: a refresh finished inside it and the load then published what it had
+    /// read over the list just adopted. The disk held the newer one, so the next start disagreed
+    /// with everything this session had shown.
+    /// </remarks>
+    [Fact]
+    public async Task LoadAsync_ARefreshDuringIt_KeepsTheNewerList()
+    {
+        var mock = new MockFileSystem();
+        var directory = mock.DirectoryInfo.New(_tempDir.FullName);
+        directory.Create();
+        var cachePath = Path.Combine(directory.FullName, CacheFileName);
+        var older = TestData.CreateSimpleDanceList();
+        var newer = older with
+        {
+            Dances = [.. older.Dances, TestData.CreateDance("bourree", ["common"], "Bourree")]
+        };
+        await mock.File.WriteAllTextAsync(cachePath, Serialise(older), TestContext.Current.CancellationToken);
+
+        var read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task<string> ReadThenHold(string path)
+        {
+            var text = await mock.File.ReadAllTextAsync(path, CancellationToken.None);
+            read.TrySetResult();
+            await release.Task;
+            return text;
+        }
+
+        var file = Substitute.For<IFile>();
+        file.ReadAllTextAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => ReadThenHold(call.ArgAt<string>(0)));
+        file.WriteAllTextAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => mock.File.WriteAllTextAsync(
+                call.ArgAt<string>(0), call.ArgAt<string>(1), CancellationToken.None));
+        file.When(f => f.Move(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>()))
+            .Do(call => mock.File.Move(call.ArgAt<string>(0), call.ArgAt<string>(1), call.ArgAt<bool>(2)));
+
+        var fileSystem = Substitute.For<IFileSystem>();
+        fileSystem.File.Returns(file);
+        fileSystem.FileInfo.Returns(mock.FileInfo);
+
+        var settingsDirectory = Substitute.For<IApplicationSettingsDirectory>();
+        settingsDirectory.DirectoryInfoRoot.Returns(_ => mock.DirectoryInfo.New(_tempDir.FullName));
+
+        var feed = Substitute.For<IDanceListFeed>();
+        feed.DownloadAsync(Arg.Any<CancellationToken>()).Returns(Serialise(newer));
+
+        using var store = new DanceListStore(
+            settingsDirectory, fileSystem, feed, new NoOpLoggerService(), Substitute.For<INotificationService>(),
+            TimeProvider.System);
+
+        var load = store.LoadAsync(TestContext.Current.CancellationToken);
+        await read.Task;
+        var refresh = store.RefreshAsync(TestContext.Current.CancellationToken);
+        // Every chance for the refresh to finish while the load holds the older copy. Under the
+        // gate it cannot, so how long this is decides only how reliably the old race shows.
+        await Task.WhenAny(refresh, Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken));
+        release.SetResult();
+        await load;
+        await refresh;
+
+        Assert.Equal(4, store.Current.Dances.Count);
+        Assert.Equal(DanceListOrigin.Downloaded, store.Status.Origin);
+    }
+
     public void Dispose()
     {
         _sut.Dispose();
