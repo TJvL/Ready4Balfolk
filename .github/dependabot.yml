@@ -7,9 +7,18 @@ updates:
     # Stated rather than inferred. Left unset, Dependabot copies the style it finds in each
     # ecosystem's own history, so nuget kept producing bare "Bump ..." subjects while
     # github-actions produced conventional ones, and neither would have corrected itself.
+    #
+    # The scope is part of the prefix rather than asked for with include: "scope", because a
+    # grouped update ignores include: "scope" and titles itself "chore: Bump the ... group", while
+    # a prefix is used as written on both paths. A grouped title also always capitalises "Bump",
+    # with no option to stop it, so lower that one word when the squash subject is written.
     commit-message:
-      prefix: "chore"
-      include: "scope"
+      prefix: "chore(deps)"
+    # Only "dependencies". Left unset, Dependabot adds a label per ecosystem as well (".NET",
+    # "github_actions"), and a pull request carries one label, the one its release notes heading
+    # is chosen by.
+    labels:
+      - "dependencies"
     groups:
       # Minor and patch bumps arrive as one PR; a major arrives alone, so a
       # breaking framework upgrade is never hidden inside a routine batch.
@@ -25,5 +34,6 @@ updates:
     schedule:
       interval: "weekly"
     commit-message:
-      prefix: "chore"
-      include: "scope"
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"

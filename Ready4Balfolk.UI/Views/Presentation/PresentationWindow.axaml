@@ -8,9 +8,22 @@
         x:Class="Ready4Balfolk.UI.Views.Presentation.PresentationWindow"
         x:DataType="local:PresentationDisplayViewModel"
         Title="{x:Static res:UiStrings.Presentation_WindowTitleDefault}"
-        Background="#1a1a1a"
+        Background="{DynamicResource PresentationGroundBrush}"
         MinWidth="400" MinHeight="300"
         Width="800" Height="600">
+
+    <!--A fixed palette rather than the theme's: a projector in a dark hall is the same room whether
+        the desk runs light or dark. Named once here, and kept in step with the web display's
+        colours in app.css.-->
+    <Window.Resources>
+        <SolidColorBrush x:Key="PresentationGroundBrush" Color="#1a1a1a" />
+        <SolidColorBrush x:Key="PresentationLineBrush" Color="#dddddd" />
+        <SolidColorBrush x:Key="PresentationQuietBrush" Color="#888888" />
+        <SolidColorBrush x:Key="PresentationProgressBrush" Color="#4CAF50" />
+        <SolidColorBrush x:Key="PresentationNextTrackBrush" Color="#bbbbbb" />
+        <SolidColorBrush x:Key="PresentationBehindDanceBrush" Color="#cccccc" />
+        <SolidColorBrush x:Key="PresentationBehindTrackBrush" Color="#aaaaaa" />
+    </Window.Resources>
 
     <!--The whole screen is drawn on a fixed surface and scaled to whatever the projector is, so
         nothing below depends on the resolution or the aspect the hall turns out to have.-->
@@ -51,7 +64,7 @@
                                 track with no title does not end in a dangling dash.-->
                             <TextBlock AutomationProperties.AutomationId="display.track"
                                        Text="{Binding CurrentTrack}"
-                                       Foreground="#dddddd"
+                                       Foreground="{StaticResource PresentationLineBrush}"
                                        FontSize="72"
                                        HorizontalAlignment="Center"
                                        TextAlignment="Center"
@@ -72,7 +85,7 @@
                     <TextBlock AutomationProperties.AutomationId="display.idle"
                                IsVisible="{Binding !HasCurrentItem}"
                                Text="{x:Static res:UiStrings.Presentation_NoTrackPlaying}"
-                               Foreground="#888888"
+                               Foreground="{StaticResource PresentationQuietBrush}"
                                FontSize="96"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
@@ -91,7 +104,7 @@
                              Minimum="0"
                              Maximum="{Binding Duration.TotalSeconds}"
                              Value="{Binding Progress.TotalSeconds}"
-                             Foreground="#4CAF50"
+                             Foreground="{StaticResource PresentationProgressBrush}"
                              Height="24"
                              IsVisible="{Binding HasCurrentItem}" />
                 <TextBlock Grid.Column="1"
@@ -115,13 +128,13 @@
                                 VerticalAlignment="Center"
                                 HorizontalAlignment="Center">
                         <TextBlock Text="{x:Static res:UiStrings.Presentation_Next}"
-                                   Foreground="#888888"
+                                   Foreground="{StaticResource PresentationQuietBrush}"
                                    FontSize="56"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,16" />
                         <TextBlock AutomationProperties.AutomationId="display.next-dance"
                                    Text="{Binding NextDance}"
-                                   Foreground="#dddddd"
+                                   Foreground="{StaticResource PresentationLineBrush}"
                                    FontSize="96"
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
@@ -130,7 +143,7 @@
                                    Margin="0,0,0,12" />
                         <TextBlock AutomationProperties.AutomationId="display.next-track"
                                    Text="{Binding NextTrack}"
-                                   Foreground="#bbbbbb"
+                                   Foreground="{StaticResource PresentationNextTrackBrush}"
                                    FontSize="56"
                                    HorizontalAlignment="Center"
                                    TextAlignment="Center"
@@ -142,13 +155,13 @@
                                     HorizontalAlignment="Center"
                                     Margin="0,20,0,0">
                             <TextBlock Text="{x:Static res:UiStrings.Presentation_Then}"
-                                       Foreground="#888888"
+                                       Foreground="{StaticResource PresentationQuietBrush}"
                                        FontSize="40"
                                        HorizontalAlignment="Center"
                                        Margin="0,0,0,8" />
                             <TextBlock AutomationProperties.AutomationId="display.behind-dance"
                                        Text="{Binding BehindDance}"
-                                       Foreground="#cccccc"
+                                       Foreground="{StaticResource PresentationBehindDanceBrush}"
                                        FontSize="72"
                                        FontWeight="Bold"
                                        HorizontalAlignment="Center"
@@ -157,7 +170,7 @@
                                        Margin="0,0,0,8" />
                             <TextBlock AutomationProperties.AutomationId="display.behind-track"
                                        Text="{Binding BehindTrack}"
-                                       Foreground="#aaaaaa"
+                                       Foreground="{StaticResource PresentationBehindTrackBrush}"
                                        FontSize="44"
                                        HorizontalAlignment="Center"
                                        TextAlignment="Center"
@@ -169,7 +182,7 @@
                     <TextBlock AutomationProperties.AutomationId="display.no-next"
                                IsVisible="{Binding !HasNextItem}"
                                Text="{x:Static res:UiStrings.Presentation_NoNextTrack}"
-                               Foreground="#888888"
+                               Foreground="{StaticResource PresentationQuietBrush}"
                                FontSize="64"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
