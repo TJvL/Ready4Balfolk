@@ -22,7 +22,8 @@ public static class ScenarioApplication
     /// </summary>
     /// <remarks>
     /// A static, because the session builds the application itself and takes no argument through.
-    /// Safe because scenarios never run side by side: see AssemblyInfo.
+    /// Safe although scenarios run side by side, because each one runs in a process of its own and
+    /// is the only scenario that process ever sets this for: see HeadlessSession.
     /// </remarks>
     internal static ScenarioWorld? World { get; set; }
 
@@ -45,6 +46,12 @@ public static class ScenarioApplication
                 }
             });
 
+    /// <summary>What the person will pick, for the scenario that is about picking something.</summary>
+    internal static ScenarioPickers Pickers { get; } = new();
+
+    /// <summary>The clock the application reads, for the scenarios that are about time passing.</summary>
+    internal static ScenarioClock Clock { get; } = new();
+
     /// <summary>Points at whichever world is running, rather than at the one that was.</summary>
     /// <remarks>
     /// The session builds this <c>AppBuilder</c> once and then stands up an application from it per
@@ -53,12 +60,6 @@ public static class ScenarioApplication
     /// profile directory, silently: the settings file the scenario had just written was not the one
     /// the application read.
     /// </remarks>
-    /// <summary>What the person will pick, for the scenario that is about picking something.</summary>
-    internal static ScenarioPickers Pickers { get; } = new();
-
-    /// <summary>The clock the application reads, for the scenarios that are about time passing.</summary>
-    internal static ScenarioClock Clock { get; } = new();
-
     private sealed class CurrentWorld : IApplicationSettingsDirectory
     {
         public IDirectoryInfo DirectoryInfoRoot =>

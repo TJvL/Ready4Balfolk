@@ -26,7 +26,7 @@ public sealed class TrackClaimsTests
     [Fact]
     public void EveryFieldOfEveryClaim_SaysWhatItIsAndWhereItCameFrom()
     {
-        var claims = Collect(Evidence("05 - Some Tune (Mazurka)") with { TagArtist = "Naragonia" });
+        var claims = Collect(TestData.CreateEvidence("05 - Some Tune (Mazurka)") with { TagArtist = "Naragonia" });
 
         Assert.All(claims, claim =>
         {
@@ -39,7 +39,7 @@ public sealed class TrackClaimsTests
     [Fact]
     public void ATagAndAFileName_AreSeparateSources()
     {
-        var claims = Collect(Evidence("Some Tune (Mazurka)") with { TagComment = "Scottish" });
+        var claims = Collect(TestData.CreateEvidence("Some Tune (Mazurka)") with { TagComment = "Scottish" });
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Source.Kind == ClaimSourceKind.FileName);
         Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Source.Kind == ClaimSourceKind.Tag);
@@ -50,7 +50,7 @@ public sealed class TrackClaimsTests
     {
         // Which field a dance was written into is a thing the user will want to declare over, and a
         // blob of every tag joined together cannot be declared over.
-        var claims = Collect(Evidence("Some Tune") with { TagAlbum = "Mazurka", TagComment = "Scottish" });
+        var claims = Collect(TestData.CreateEvidence("Some Tune") with { TagAlbum = "Mazurka", TagComment = "Scottish" });
 
         Assert.Contains(claims, claim => claim.Value == "mazurka" && claim.Source.Detail == "album");
         Assert.Contains(claims, claim => claim.Value == "scottish" && claim.Source.Detail == "comment");
@@ -59,7 +59,7 @@ public sealed class TrackClaimsTests
     [Fact]
     public void ADanceInBrackets_IsClaimedAsDeliberate()
     {
-        var claims = Collect(Evidence("La fille du roi (Mazurka)"));
+        var claims = Collect(TestData.CreateEvidence("La fille du roi (Mazurka)"));
 
         Assert.Contains(claims, claim => claim.Value == "mazurka" && claim.Source.IsDeliberate);
     }
@@ -67,7 +67,7 @@ public sealed class TrackClaimsTests
     [Fact]
     public void ADanceLooseInTheName_IsNotDeliberate() =>
         Assert.All(
-            Collect(Evidence("A Mazurka Tune")).Where(claim => claim.Field == TrackField.Dance),
+            Collect(TestData.CreateEvidence("A Mazurka Tune")).Where(claim => claim.Field == TrackField.Dance),
             claim => Assert.False(claim.Source.IsDeliberate));
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class TrackClaimsTests
     {
         // The list not knowing it is the whole reason it has to survive: it is what a person maps,
         // or opens a proposal for, and it is what parks the track until they do.
-        var claims = Collect(Evidence("05 - A Tune (Rond de Landéda)"));
+        var claims = Collect(TestData.CreateEvidence("05 - A Tune (Rond de Landéda)"));
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "Rond de Landéda");
     }
@@ -83,7 +83,7 @@ public sealed class TrackClaimsTests
     [Fact]
     public void AYearInBrackets_IsNotAClaimAboutTheDance() =>
         Assert.DoesNotContain(
-            Collect(Evidence("05 - A Tune (1997)")),
+            Collect(TestData.CreateEvidence("05 - A Tune (1997)")),
             claim => claim.Field == TrackField.Dance);
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class TrackClaimsTests
     {
         // Refusing it while deciding is right; dropping it here is not. "The artist tag says Unknown
         // Artist" and "the file has no artist tag" are different things to be looking at.
-        var claims = Collect(Evidence("01 - Something") with { TagArtist = "Unknown Artist" });
+        var claims = Collect(TestData.CreateEvidence("01 - Something") with { TagArtist = "Unknown Artist" });
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Artist && claim.Value == "Unknown Artist");
     }
@@ -99,7 +99,7 @@ public sealed class TrackClaimsTests
     [Fact]
     public void ArtistClaimsComeOutInTheOrderTheyAreTrusted()
     {
-        var artists = Collect(Evidence("01 - Something")
+        var artists = Collect(TestData.CreateEvidence("01 - Something")
                 with
         { TagArtist = "Toon Van Mierlo", TagAlbumArtist = "Naragonia" })
             .Where(claim => claim.Field == TrackField.Artist)
@@ -113,7 +113,7 @@ public sealed class TrackClaimsTests
     {
         // Level 1 is an artist in one library, a country in the next and a year in a third. Until
         // the user says which, a folder name is not a claim about anything.
-        var claims = Collect(Evidence("01 - Something", segments: ["Naragonia", "Idiosyncrasie (2011)"]));
+        var claims = Collect(TestData.CreateEvidence("01 - Something", segments: ["Naragonia", "Idiosyncrasie (2011)"]));
 
         Assert.DoesNotContain(claims, claim => claim.Value.Contains("Naragonia", StringComparison.Ordinal));
         Assert.DoesNotContain(claims, claim => claim.Value.Contains("Idiosyncrasie", StringComparison.Ordinal));
@@ -122,7 +122,7 @@ public sealed class TrackClaimsTests
     [Fact]
     public void TheFolderAgreement_IsItsOwnSource()
     {
-        var claims = Collect(Evidence("07 - Untitled"), folderDance: "mazurka");
+        var claims = Collect(TestData.CreateEvidence("07 - Untitled"), folderDance: "mazurka");
 
         var folder = Assert.Single(claims, claim => claim.Source.Kind == ClaimSourceKind.Folder);
         Assert.Equal(TrackField.Dance, folder.Field);
@@ -134,7 +134,7 @@ public sealed class TrackClaimsTests
     {
         // Only the track number comes off. Which part of the rest is the title is exactly what an
         // undeclared library cannot be asked.
-        var claims = Collect(Evidence("07 - Bal O'Gadjo - Le badaud"));
+        var claims = Collect(TestData.CreateEvidence("07 - Bal O'Gadjo - Le badaud"));
 
         Assert.Contains(
             claims,
@@ -145,7 +145,7 @@ public sealed class TrackClaimsTests
     public void ADeclaredPattern_ClaimsWhatItPicksOut()
     {
         var claims = Collect(
-            Evidence("Scottish - Bal O'Gadjo - Le badaud"),
+            TestData.CreateEvidence("Scottish - Bal O'Gadjo - Le badaud"),
             Declared(patterns: ["%d - %a - %t"]));
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "Scottish" && claim.Trust == ClaimTrust.Declared);
@@ -167,7 +167,7 @@ public sealed class TrackClaimsTests
         });
 
         var claims = Collect(
-            Evidence("Scottish - Bal O'Gadjo - Le badaud", ["Naragonia"]) with
+            TestData.CreateEvidence("Scottish - Bal O'Gadjo - Le badaud", ["Naragonia"]) with
             {
                 TagComment = "Mazurka",
                 CustomTags = Tags(("DANCE", "Bourrée"))
@@ -189,7 +189,7 @@ public sealed class TrackClaimsTests
         });
 
         var claims = Collect(
-            Evidence("01 - Something") with { TagArtist = "Naragonia", TagTitle = "Salamandre" },
+            TestData.CreateEvidence("01 - Something") with { TagArtist = "Naragonia", TagTitle = "Salamandre" },
             switchedOff);
 
         Assert.Contains(
@@ -204,7 +204,7 @@ public sealed class TrackClaimsTests
     {
         // Order is the user's way of saying which of two overlapping shapes their library means.
         var claims = Collect(
-            Evidence("Naragonia - Mazurka"),
+            TestData.CreateEvidence("Naragonia - Mazurka"),
             Declared(patterns: ["%a - %t", "%d - %t"]));
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Artist && claim.Value == "Naragonia");
@@ -214,7 +214,7 @@ public sealed class TrackClaimsTests
     [Fact]
     public void APatternThatDoesNotMatch_ClaimsNothing() =>
         Assert.DoesNotContain(
-            Collect(Evidence("03-Track 3"), Declared(patterns: ["%d - %a - %t"])),
+            Collect(TestData.CreateEvidence("03-Track 3"), Declared(patterns: ["%d - %a - %t"])),
             claim => claim.Trust == ClaimTrust.Declared);
 
     [Fact]
@@ -223,7 +223,7 @@ public sealed class TrackClaimsTests
         // The tags are not argued with, they are outranked, and they stay on the track so a person
         // can see that the rule disagreed with them.
         var claims = Collect(
-            Evidence("Naragonia - Mazurka") with { TagArtist = "Toon Van Mierlo" },
+            TestData.CreateEvidence("Naragonia - Mazurka") with { TagArtist = "Toon Van Mierlo" },
             Declared(patterns: ["%a - %t"]));
 
         Assert.Contains(claims, claim => claim.Value == "Toon Van Mierlo" && claim.Trust == ClaimTrust.Observed);
@@ -233,7 +233,7 @@ public sealed class TrackClaimsTests
     public void ADeclaredFolderRole_ClaimsTheFolderName()
     {
         var claims = Collect(
-            Evidence("01 - Something", segments: ["Naragonia", "Idiosyncrasie"]),
+            TestData.CreateEvidence("01 - Something", segments: ["Naragonia", "Idiosyncrasie"]),
             Declared(roles: [FolderRole.Artist, FolderRole.Album]));
 
         var artist = Assert.Single(claims, claim => claim.Field == TrackField.Artist);
@@ -249,7 +249,7 @@ public sealed class TrackClaimsTests
     public void AFolderRole_IsAppliedOnlyWhereTheDepthIsThere()
     {
         // Three levels in one corner of a library and one in another is ordinary.
-        var claims = Collect(Evidence("01 - Something", segments: []), Declared(roles: [FolderRole.Artist]));
+        var claims = Collect(TestData.CreateEvidence("01 - Something", segments: []), Declared(roles: [FolderRole.Artist]));
 
         Assert.DoesNotContain(claims, claim => claim.Field == TrackField.Artist);
     }
@@ -257,7 +257,7 @@ public sealed class TrackClaimsTests
     [Fact]
     public void ADeclaredDanceFolder_IsClaimedWhetherOrNotTheListKnowsIt()
     {
-        var claims = Collect(Evidence("01 - Something", segments: ["Rond de Landéda"]), Declared(roles: [FolderRole.Dance]));
+        var claims = Collect(TestData.CreateEvidence("01 - Something", segments: ["Rond de Landéda"]), Declared(roles: [FolderRole.Dance]));
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "Rond de Landéda" && claim.Trust == ClaimTrust.Declared);
     }
@@ -268,7 +268,7 @@ public sealed class TrackClaimsTests
         // The difference between trusting a field and finding a name in it: a declared field is the
         // dance even when the list has never heard of it, which is what parks the track.
         var claims = Collect(
-            Evidence("01 - Something") with { TagComment = "Rond de Landéda" },
+            TestData.CreateEvidence("01 - Something") with { TagComment = "Rond de Landéda" },
             Declared(trust: new TagTrust { Dance = [TagField.Comment] }));
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "Rond de Landéda" && claim.Trust == ClaimTrust.Declared);
@@ -280,7 +280,7 @@ public sealed class TrackClaimsTests
         // Whatever reaches the claims without a member must not throw: every file asks for the
         // name, so one bad entry in a trust list would stop the whole library being read.
         var claims = Collect(
-            Evidence("01 - Something") with { TagComment = "Rond de Landéda" },
+            TestData.CreateEvidence("01 - Something") with { TagComment = "Rond de Landéda" },
             Declared(trust: new TagTrust { Dance = [(TagField)7] }));
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "Rond de Landéda" && claim.Source.Detail == "comment");
@@ -290,7 +290,7 @@ public sealed class TrackClaimsTests
     public void ADeclaredTagOrder_IsADeclaration()
     {
         var claims = Collect(
-            Evidence("01 - Something") with { TagArtist = "Naragonia" },
+            TestData.CreateEvidence("01 - Something") with { TagArtist = "Naragonia" },
             Declared(trust: new TagTrust { Artist = [TagField.Artist] }));
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Artist && claim.Trust == ClaimTrust.Declared);
@@ -299,7 +299,7 @@ public sealed class TrackClaimsTests
     [Fact]
     public void TheDefaultTagOrder_IsAGuessAndIsClaimedAsOne() =>
         Assert.All(
-            Collect(Evidence("01 - Something") with { TagArtist = "Naragonia" })
+            Collect(TestData.CreateEvidence("01 - Something") with { TagArtist = "Naragonia" })
                 .Where(claim => claim.Field == TrackField.Artist),
             claim => Assert.Equal(ClaimTrust.Observed, claim.Trust));
 
@@ -307,7 +307,7 @@ public sealed class TrackClaimsTests
     public void ADeclaredTagList_CanSayThatNothingSpeaks() =>
         Assert.DoesNotContain(
             Collect(
-                Evidence("01 - Something") with { TagArtist = "Naragonia" },
+                TestData.CreateEvidence("01 - Something") with { TagArtist = "Naragonia" },
                 Declared(trust: new TagTrust { Artist = [] })),
             claim => claim.Field == TrackField.Artist);
 
@@ -316,7 +316,7 @@ public sealed class TrackClaimsTests
     {
         // The vocabulary recognising itself is not a guess about what a field means, so it is not
         // governed by tag trust. It stays observed, and it stays.
-        var claims = Collect(Evidence("01 - Something") with { TagAlbum = "Mazurka" });
+        var claims = Collect(TestData.CreateEvidence("01 - Something") with { TagAlbum = "Mazurka" });
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Value == "mazurka");
     }
@@ -332,7 +332,7 @@ public sealed class TrackClaimsTests
             Dances = [TestData.CreateDance("rond-de-saint-vincent", names: ["Rond de Saint-Vincent"])]
         });
 
-        var claims = TrackClaims.Collect(Evidence("Some tune (Rond de Saint-Vincent)"), index);
+        var claims = TrackClaims.Collect(TestData.CreateEvidence("Some tune (Rond de Saint-Vincent)"), index);
 
         Assert.Contains(claims, claim =>
             claim.Field == TrackField.Dance && claim.Source.IsDeliberate);
@@ -347,7 +347,7 @@ public sealed class TrackClaimsTests
             Dances = [TestData.CreateDance("bourree-3-temps", names: ["Bourrée 3 temps"])]
         });
 
-        var claims = TrackClaims.Collect(Evidence("05 - A tune (Bourrée à trois temps)"), index);
+        var claims = TrackClaims.Collect(TestData.CreateEvidence("05 - A tune (Bourrée à trois temps)"), index);
 
         Assert.Contains(claims, claim =>
             claim.Field == TrackField.Dance && claim.Source.IsDeliberate);
@@ -359,7 +359,7 @@ public sealed class TrackClaimsTests
         // Named by the user, so it is a declaration like a trusted field: the value is the dance
         // even when the list has never heard of it, which is what parks the track.
         var claims = Collect(
-            Evidence("01 - Something") with { CustomTags = Tags(("DANCE", "Rond de Landéda")) },
+            TestData.CreateEvidence("01 - Something") with { CustomTags = Tags(("DANCE", "Rond de Landéda")) },
             Declared(customDanceTag: "DANCE"));
 
         Assert.Contains(claims, claim =>
@@ -374,7 +374,7 @@ public sealed class TrackClaimsTests
     public void ACustomTagName_IsMatchedCaseInsensitively()
     {
         var claims = Collect(
-            Evidence("01 - Something") with { CustomTags = Tags(("dance", "Mazurka")) },
+            TestData.CreateEvidence("01 - Something") with { CustomTags = Tags(("dance", "Mazurka")) },
             Declared(customDanceTag: "DANCE"));
 
         Assert.Contains(claims, claim => claim.Field == TrackField.Dance && claim.Trust == ClaimTrust.Declared);
@@ -385,13 +385,13 @@ public sealed class TrackClaimsTests
         // The tag sits in the file either way; without the user naming it, no field of the track
         // is read from it, because what a free-form tag means is not a thing a library can be asked.
         Assert.DoesNotContain(
-            Collect(Evidence("01 - Something") with { CustomTags = Tags(("DANCE", "Rond de Landéda")) }),
+            Collect(TestData.CreateEvidence("01 - Something") with { CustomTags = Tags(("DANCE", "Rond de Landéda")) }),
             claim => claim.Field == TrackField.Dance);
 
     [Fact]
     public void ADeclaredCustomTagTheFileDoesNotCarry_ClaimsNothing() =>
         Assert.DoesNotContain(
-            Collect(Evidence("01 - Something"), Declared(customDanceTag: "DANCE")),
+            Collect(TestData.CreateEvidence("01 - Something"), Declared(customDanceTag: "DANCE")),
             claim => claim.Field == TrackField.Dance);
 
     private static Dictionary<string, string> Tags(params (string Name, string Value)[] entries) =>
@@ -420,13 +420,4 @@ public sealed class TrackClaimsTests
         TrackEvidence evidence, DeclaredDiscovery? declared = null, string? folderDance = null) =>
         TrackClaims.Collect(evidence, _index, declared, folderDance)
             .CastOrToReadOnlyCollection();
-
-    private static TrackEvidence Evidence(string fileName, IReadOnlyList<string>? segments = null) => new()
-    {
-        FileName = fileName + ".mp3",
-        PathSegments = segments ?? ["Artist"],
-        Duration = TimeSpan.FromSeconds(180),
-        Format = AudioFormat.Mp3,
-        ContentHash = [1]
-    };
 }

@@ -33,7 +33,7 @@ public sealed class TrackInformationResolverTests
     public void DanceInBrackets_IsFound()
     {
         // "10. Hep Harz (Cercle).mp3"
-        var resolution = Resolve(Evidence("10. Hep Harz (Cercle)", segments: ["Plantec", "Awen (2012)"]));
+        var resolution = Resolve(TestData.CreateEvidence("10. Hep Harz (Cercle)", segments: ["Plantec", "Awen (2012)"]));
 
         Assert.Equal("cercle-circassien", resolution.DanceSlug);
     }
@@ -41,12 +41,12 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void DanceInBracketsLowercase_IsFound() =>
         // "12. Zero Step (mazurka).mp3"
-        Assert.Equal("mazurka", Resolve(Evidence("12. Zero Step (mazurka)")).DanceSlug);
+        Assert.Equal("mazurka", Resolve(TestData.CreateEvidence("12. Zero Step (mazurka)")).DanceSlug);
 
     [Fact]
     public void DanceAfterATrailingDash_IsFound() =>
         // "11-La Violette - valse 5tps.mp3"
-        Assert.Equal("waltz", Resolve(Evidence("11-La Violette - valse 5tps")).DanceSlug);
+        Assert.Equal("waltz", Resolve(TestData.CreateEvidence("11-La Violette - valse 5tps")).DanceSlug);
 
     [Fact]
     public void AFileNameIsNotSplitIntoFields()
@@ -54,7 +54,7 @@ public sealed class TrackInformationResolverTests
         // "Scottish - Bal O'Gadjo - Le badaud.mp3". The dance is found because the name is in it,
         // not because it sits first. Nothing claims the second field is the artist: in the next
         // library along that same position is an album, a year or a track number.
-        var resolution = Resolve(Evidence("Scottish - Bal O'Gadjo - Le badaud", segments: ["Bal O'Gadjo"]));
+        var resolution = Resolve(TestData.CreateEvidence("Scottish - Bal O'Gadjo - Le badaud", segments: ["Bal O'Gadjo"]));
 
         Assert.Equal("scottish", resolution.DanceSlug);
         Assert.Equal(string.Empty, resolution.Artist);
@@ -66,19 +66,19 @@ public sealed class TrackInformationResolverTests
     {
         // The whole reason this rewrite exists: "An Tri dipop" is a band, not a dance, and the old
         // parser put it in the dance column for twenty files.
-        var resolution = Resolve(Evidence("An Tri dipop - Ar Re Yaouank - Treizhour"));
+        var resolution = Resolve(TestData.CreateEvidence("An Tri dipop - Ar Re Yaouank - Treizhour"));
 
         Assert.Null(resolution.DanceSlug);
     }
 
     [Fact]
-    public void TrackNumberInTheLeadingField_IsNotTakenForADance() => Assert.Null(Resolve(Evidence("07 - Ar Re Yaouank - Tregor")).DanceSlug);
+    public void TrackNumberInTheLeadingField_IsNotTakenForADance() => Assert.Null(Resolve(TestData.CreateEvidence("07 - Ar Re Yaouank - Tregor")).DanceSlug);
 
     [Fact]
     public void NoDanceAnywhere_ResolvesToNothing()
     {
         // "03-Track 3.mp3". Answering with nothing is the right answer.
-        var resolution = Resolve(Evidence("03-Track 3", segments: ["TREF"]));
+        var resolution = Resolve(TestData.CreateEvidence("03-Track 3", segments: ["TREF"]));
 
         Assert.Null(resolution.DanceSlug);
         Assert.False(resolution.IsResolved);
@@ -87,7 +87,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void FileNameAndTagsAgreeing_IsCorroborated()
     {
-        var resolution = Resolve(Evidence("05 - Some Tune (Mazurka)") with { TagComment = "Mazurka" });
+        var resolution = Resolve(TestData.CreateEvidence("05 - Some Tune (Mazurka)") with { TagComment = "Mazurka" });
 
         var sources = resolution.DanceDecision.Chosen.Select(claim => claim.Source.Kind).ToList();
 
@@ -101,7 +101,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void OneSourceAlone_StillResolvesButIsNotCorroborated()
     {
-        var resolution = Resolve(Evidence("05 - Some Tune (Mazurka)"));
+        var resolution = Resolve(TestData.CreateEvidence("05 - Some Tune (Mazurka)"));
 
         Assert.Equal("mazurka", resolution.DanceSlug);
         Assert.False(resolution.IsCorroborated);
@@ -113,7 +113,7 @@ public sealed class TrackInformationResolverTests
         // Neither is bracketed and neither leads the filename, so there is genuinely nothing to
         // choose between them. Inventing a confident answer here is the failure this exists to
         // prevent.
-        var resolution = Resolve(Evidence("Some Mazurka Tune") with { TagComment = "Scottish" });
+        var resolution = Resolve(TestData.CreateEvidence("Some Mazurka Tune") with { TagComment = "Scottish" });
 
         Assert.Null(resolution.DanceSlug);
     }
@@ -122,7 +122,7 @@ public sealed class TrackInformationResolverTests
     public void ADanceInBrackets_BeatsOneWrittenLooseInTheTags()
     {
         // Brackets are what a person wrote on purpose; a dance mentioned in a comment is not.
-        var resolution = Resolve(Evidence("Some Tune (Mazurka)") with { TagComment = "Scottish" });
+        var resolution = Resolve(TestData.CreateEvidence("Some Tune (Mazurka)") with { TagComment = "Scottish" });
 
         Assert.Equal("mazurka", resolution.DanceSlug);
     }
@@ -132,23 +132,23 @@ public sealed class TrackInformationResolverTests
     {
         // The old pattern would have answered "mazurka" because it leads. Sitting first is a
         // position, not evidence, and "An Tri dipop - ..." is the same shape with a band in it.
-        var resolution = Resolve(Evidence("Mazurka - Someone - A Scottish Tune"));
+        var resolution = Resolve(TestData.CreateEvidence("Mazurka - Someone - A Scottish Tune"));
 
         Assert.Null(resolution.DanceSlug);
     }
 
     [Fact]
-    public void LongerNameWins_OverTheOneInsideIt() => Assert.Equal("bourree-3-temps", Resolve(Evidence("04 - Bourrée 3 temps in G")).DanceSlug);
+    public void LongerNameWins_OverTheOneInsideIt() => Assert.Equal("bourree-3-temps", Resolve(TestData.CreateEvidence("04 - Bourrée 3 temps in G")).DanceSlug);
 
     [Fact]
     public void NameInsideALongerWord_DoesNotMatch() =>
         // "Andro" must not be found inside "Androgyne".
-        Assert.Null(Resolve(Evidence("02 - Androgyne")).DanceSlug);
+        Assert.Null(Resolve(TestData.CreateEvidence("02 - Androgyne")).DanceSlug);
 
     [Fact]
     public void FolderAgreement_FillsAGapButIsNotInvented()
     {
-        var evidence = Evidence("07 - Untitled");
+        var evidence = TestData.CreateEvidence("07 - Untitled");
 
         Assert.Null(Resolve(evidence).DanceSlug);
         Assert.Equal("mazurka", Resolve(evidence, folderDance: "mazurka").DanceSlug);
@@ -157,7 +157,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void FolderAgreement_DoesNotOverruleTheFile()
     {
-        var resolution = Resolve(Evidence("07 - Some Tune (Scottish)"), folderDance: "mazurka");
+        var resolution = Resolve(TestData.CreateEvidence("07 - Some Tune (Scottish)"), folderDance: "mazurka");
 
         Assert.Equal("scottish", resolution.DanceSlug);
     }
@@ -167,7 +167,7 @@ public sealed class TrackInformationResolverTests
     {
         // The outermost folder is an artist in one library, a country in the next and a year in a
         // third. Until the user declares what a level means, it says nothing.
-        var resolution = Resolve(Evidence("09. Bourree du 'tyot", segments: ["Tribal Jâze"]));
+        var resolution = Resolve(TestData.CreateEvidence("09. Bourree du 'tyot", segments: ["Tribal Jâze"]));
 
         Assert.Equal(string.Empty, resolution.Artist);
     }
@@ -175,7 +175,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void AlbumArtistIsPreferredOverThePerformer()
     {
-        var resolution = Resolve(Evidence("01 - Something")
+        var resolution = Resolve(TestData.CreateEvidence("01 - Something")
             with
         { TagAlbumArtist = "Naragonia", TagArtist = "Toon Van Mierlo" });
 
@@ -189,7 +189,7 @@ public sealed class TrackInformationResolverTests
     [InlineData("   ")]
     public void RipperDefaults_AreNotBelievedAsArtists(string value)
     {
-        var resolution = Resolve(Evidence("01 - Something", segments: []) with { TagArtist = value });
+        var resolution = Resolve(TestData.CreateEvidence("01 - Something", segments: []) with { TagArtist = value });
 
         Assert.Equal(string.Empty, resolution.Artist);
     }
@@ -197,7 +197,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void ArtistComesFromTheTags()
     {
-        var resolution = Resolve(Evidence("01 - Something") with { TagArtist = "Naragonia" });
+        var resolution = Resolve(TestData.CreateEvidence("01 - Something") with { TagArtist = "Naragonia" });
 
         Assert.Equal("Naragonia", resolution.Artist);
     }
@@ -206,14 +206,14 @@ public sealed class TrackInformationResolverTests
     public void TrackNumberIsStrippedFromTheTitle()
     {
         // A leading number is not a name in any arrangement, so it comes off. Nothing else does.
-        Assert.Equal("Chavirage", Resolve(Evidence("09-Chavirage")).Title);
-        Assert.Equal("Indifférence", Resolve(Evidence("04. Indifférence")).Title);
+        Assert.Equal("Chavirage", Resolve(TestData.CreateEvidence("09-Chavirage")).Title);
+        Assert.Equal("Indifférence", Resolve(TestData.CreateEvidence("04. Indifférence")).Title);
     }
 
     [Fact]
     public void TheTitleTagIsPreferredOverTheFileName()
     {
-        var resolution = Resolve(Evidence("07 - Track 07") with { TagTitle = "Le badaud" });
+        var resolution = Resolve(TestData.CreateEvidence("07 - Track 07") with { TagTitle = "Le badaud" });
 
         Assert.Equal("Le badaud", resolution.Title);
     }
@@ -223,7 +223,7 @@ public sealed class TrackInformationResolverTests
     {
         // A misspelling nothing recognised is not a dance-shaped claim just because it leads the
         // file name: only brackets say a value was meant as the dance.
-        var resolution = Resolve(Evidence("09-Scottiche à Leffondré"));
+        var resolution = Resolve(TestData.CreateEvidence("09-Scottiche à Leffondré"));
 
         Assert.Null(resolution.DanceSlug);
         Assert.Null(resolution.OriginalDance);
@@ -234,7 +234,7 @@ public sealed class TrackInformationResolverTests
     public void OriginalDance_IsNotTakenFromTheLeadingField()
     {
         // "An Tri dipop" is a band. Twenty files of it in the dance column is what this deletes.
-        var resolution = Resolve(Evidence("An Tri dipop - Ar Re Yaouank - Treizhour"));
+        var resolution = Resolve(TestData.CreateEvidence("An Tri dipop - Ar Re Yaouank - Treizhour"));
 
         Assert.Null(resolution.OriginalDance);
     }
@@ -242,7 +242,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void OriginalDance_IsTheBracketedValueWhenItIsNotRecognised()
     {
-        var resolution = Resolve(Evidence("05 - A Tune (Rond de Landéda)"));
+        var resolution = Resolve(TestData.CreateEvidence("05 - A Tune (Rond de Landéda)"));
 
         Assert.Null(resolution.DanceSlug);
         Assert.Equal("Rond de Landéda", resolution.OriginalDance);
@@ -251,7 +251,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void OriginalDance_IgnoresAYearInBrackets()
     {
-        var resolution = Resolve(Evidence("05 - A Tune (1997)"));
+        var resolution = Resolve(TestData.CreateEvidence("05 - A Tune (1997)"));
 
         Assert.NotEqual("1997", resolution.OriginalDance);
     }
@@ -261,7 +261,7 @@ public sealed class TrackInformationResolverTests
     {
         // Real case: "Tour" is a dance, and it collided with the word "tour" in the title. What
         // somebody wrote in brackets is a deliberate statement; a word in a sentence is not.
-        var resolution = Resolve(Evidence("07-La fille du roi dans la tour (Mazurka)")
+        var resolution = Resolve(TestData.CreateEvidence("07-La fille du roi dans la tour (Mazurka)")
             with
         { TagTitle = "La fille du roi dans la tour (Mazurka)" });
 
@@ -273,7 +273,7 @@ public sealed class TrackInformationResolverTests
     {
         // "09. Thijsjes Doopwals (valse 3 temps, mazurka)" names two dances on purpose. Brackets
         // cannot separate them, so nothing is assumed.
-        var resolution = Resolve(Evidence("09. Thijsjes Doopwals (valse, mazurka)"));
+        var resolution = Resolve(TestData.CreateEvidence("09. Thijsjes Doopwals (valse, mazurka)"));
 
         Assert.Null(resolution.DanceSlug);
     }
@@ -281,7 +281,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void TwoDancesAndNoBrackets_StillResolvesToNothing() =>
         // "03-ej lasko . mazurka_valse": genuinely both, and a person decides.
-        Assert.Null(Resolve(Evidence("03-ej lasko . mazurka_valse")).DanceSlug);
+        Assert.Null(Resolve(TestData.CreateEvidence("03-ej lasko . mazurka_valse")).DanceSlug);
 
     [Fact]
     public void ADeclaredValue_ReplacesEverythingObserved()
@@ -306,7 +306,7 @@ public sealed class TrackInformationResolverTests
     [InlineData(true, true, true, "Band A")]
     public void DeclaredRules_AnswerTheArtistInOrder(bool pattern, bool folderRole, bool tagTrust, string expected)
     {
-        var evidence = Evidence("Mazurka - Band A - Title", segments: ["Band C"]) with { TagArtist = "Band B" };
+        var evidence = TestData.CreateEvidence("Mazurka - Band A - Title", segments: ["Band C"]) with { TagArtist = "Band B" };
         var declared = DeclaredDiscovery.Compile(new DiscoverySettings
         {
             UsesFileNamePatterns = pattern,
@@ -351,7 +351,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void ADanceTheListDoesNotKnow_IsUnusableRatherThanSilence()
     {
-        var resolution = Resolve(Evidence("05 - A Tune (Rond de Landéda)"));
+        var resolution = Resolve(TestData.CreateEvidence("05 - A Tune (Rond de Landéda)"));
 
         Assert.Equal(DecisionReason.Unusable, resolution.DanceDecision.Reason);
     }
@@ -359,7 +359,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void TwoDancesWithNothingToSeparateThem_ReadAsContested()
     {
-        var resolution = Resolve(Evidence("03-ej lasko . mazurka_valse"));
+        var resolution = Resolve(TestData.CreateEvidence("03-ej lasko . mazurka_valse"));
 
         Assert.Equal(DecisionReason.Contested, resolution.DanceDecision.Reason);
     }
@@ -368,7 +368,7 @@ public sealed class TrackInformationResolverTests
     public void TheClaimsThatLost_AreStillThere()
     {
         // Nothing is discarded silently. A wrong source is only visible next to what it beat.
-        var resolution = Resolve(Evidence("Some Tune (Mazurka)") with { TagComment = "Scottish" });
+        var resolution = Resolve(TestData.CreateEvidence("Some Tune (Mazurka)") with { TagComment = "Scottish" });
 
         Assert.Equal("mazurka", resolution.DanceSlug);
         Assert.Contains(resolution.ClaimsFor(TrackField.Dance), claim => claim.Value == "scottish");
@@ -377,7 +377,7 @@ public sealed class TrackInformationResolverTests
     [Fact]
     public void ARefusedArtist_IsStillOnTheTrack()
     {
-        var resolution = Resolve(Evidence("01 - Something") with { TagArtist = "Unknown Artist" });
+        var resolution = Resolve(TestData.CreateEvidence("01 - Something") with { TagArtist = "Unknown Artist" });
 
         Assert.Equal(string.Empty, resolution.Artist);
         Assert.Contains(resolution.ClaimsFor(TrackField.Artist), claim => claim.Value == "Unknown Artist");
@@ -407,13 +407,4 @@ public sealed class TrackInformationResolverTests
 
     private TrackResolution Resolve(TrackEvidence evidence, string? folderDance = null)
         => TrackInformationResolver.Resolve(evidence, _index, folderDance: folderDance);
-
-    private static TrackEvidence Evidence(string fileName, IReadOnlyList<string>? segments = null) => new()
-    {
-        FileName = fileName + ".mp3",
-        PathSegments = segments ?? ["Artist"],
-        Duration = TimeSpan.FromSeconds(180),
-        Format = AudioFormat.Mp3,
-        ContentHash = [1]
-    };
 }

@@ -15,8 +15,8 @@ public sealed class NightReportTests
     public void Render_SaysWhoPlayedWhatAndWhen()
     {
         var document = NightReport.Render(Night(
-            Track("Naragonia", "Salamandre", Evening),
-            Track("Trio Loubelya", "Bourrée des Alpes", Evening.AddMinutes(4))));
+            TestData.CreateHistoryEntry("Naragonia", "Salamandre", Evening),
+            TestData.CreateHistoryEntry("Trio Loubelya", "Bourrée des Alpes", Evening.AddMinutes(4))));
 
         Assert.Contains("Naragonia", document, StringComparison.Ordinal);
         Assert.Contains("Salamandre", document, StringComparison.Ordinal);
@@ -29,8 +29,8 @@ public sealed class NightReportTests
     public void Render_PutsTheTracksInTheOrderTheyWerePlayed()
     {
         var document = NightReport.Render(Night(
-            Track("First", "One", Evening),
-            Track("Second", "Two", Evening.AddMinutes(4))));
+            TestData.CreateHistoryEntry("First", "One", Evening),
+            TestData.CreateHistoryEntry("Second", "Two", Evening.AddMinutes(4))));
 
         Assert.True(
             document.IndexOf("First", StringComparison.Ordinal) <
@@ -40,7 +40,7 @@ public sealed class NightReportTests
     [Fact]
     public void Render_HeadsTheDocumentWithTheEveningAndItsColumns()
     {
-        var document = NightReport.Render(Night(Track("Naragonia", "Salamandre", Evening)));
+        var document = NightReport.Render(Night(TestData.CreateHistoryEntry("Naragonia", "Salamandre", Evening)));
         var language = DomainStrings.Culture ?? CultureInfo.CurrentUICulture;
 
         Assert.Contains(DomainStrings.NightReport_Heading, document, StringComparison.Ordinal);
@@ -57,7 +57,7 @@ public sealed class NightReportTests
     {
         using var cultures = new CultureScope(machine, application);
 
-        var document = NightReport.Render(Night(Track("Naragonia", "Salamandre", Evening)));
+        var document = NightReport.Render(Night(TestData.CreateHistoryEntry("Naragonia", "Salamandre", Evening)));
 
         // The heading and columns are in the application's language, so the document says it is
         // in that one, and its date is not in the machine's in between.
@@ -69,7 +69,7 @@ public sealed class NightReportTests
     [Fact]
     public void Render_IsOneHtmlFileABrowserWillOpen()
     {
-        var document = NightReport.Render(Night(Track("Naragonia", "Salamandre", Evening)));
+        var document = NightReport.Render(Night(TestData.CreateHistoryEntry("Naragonia", "Salamandre", Evening)));
 
         Assert.StartsWith("<!doctype html>", document, StringComparison.Ordinal);
         Assert.EndsWith("</html>\n", document, StringComparison.Ordinal);
@@ -85,8 +85,8 @@ public sealed class NightReportTests
     public void Render_PutsTheTracksInATableSoTheyPasteIntoASpreadsheet()
     {
         var document = NightReport.Render(Night(
-            Track("Naragonia", "Salamandre", Evening),
-            Track("Trio Loubelya", "La Belle", Evening.AddMinutes(4))));
+            TestData.CreateHistoryEntry("Naragonia", "Salamandre", Evening),
+            TestData.CreateHistoryEntry("Trio Loubelya", "La Belle", Evening.AddMinutes(4))));
 
         // A real table rather than laid-out text: copied out of the browser it arrives in a
         // spreadsheet with the three columns still three columns.
@@ -101,7 +101,7 @@ public sealed class NightReportTests
         var document = NightReport.Render(new QueueHistory(Evening, [
             new MessageHistoryEntry("Last dance in ten minutes", null, CompletionStatus.Finished, Evening),
             new StopHistoryEntry(CompletionStatus.Finished, Evening.AddMinutes(1)),
-            Track("Naragonia", "Salamandre", Evening.AddMinutes(2))
+            TestData.CreateHistoryEntry("Naragonia", "Salamandre", Evening.AddMinutes(2))
         ]));
 
         Assert.Contains("Salamandre", document, StringComparison.Ordinal);
@@ -112,8 +112,8 @@ public sealed class NightReportTests
     public void Render_LeavesOutATrackThatNeverPlayed()
     {
         var document = NightReport.Render(new QueueHistory(Evening, [
-            Track("Naragonia", "Salamandre", Evening),
-            Track("Missing", "Never Heard", Evening.AddMinutes(4)) with
+            TestData.CreateHistoryEntry("Naragonia", "Salamandre", Evening),
+            TestData.CreateHistoryEntry("Missing", "Never Heard", Evening.AddMinutes(4)) with
             {
                 CompletionStatus = CompletionStatus.FileMissing
             }
@@ -126,7 +126,7 @@ public sealed class NightReportTests
     [Fact]
     public void Render_KeepsWhereTheFileWasOffTheDocument()
     {
-        var document = NightReport.Render(Night(Track("Naragonia", "Salamandre", Evening)));
+        var document = NightReport.Render(Night(TestData.CreateHistoryEntry("Naragonia", "Salamandre", Evening)));
 
         Assert.DoesNotContain("mazurka.mp3", document, StringComparison.Ordinal);
     }
@@ -134,7 +134,7 @@ public sealed class NightReportTests
     [Fact]
     public void Render_WritesAnAccentAsItself()
     {
-        var document = NightReport.Render(Night(Track("Arsène", "Bourrée", Evening)));
+        var document = NightReport.Render(Night(TestData.CreateHistoryEntry("Arsène", "Bourrée", Evening)));
 
         // The file is UTF-8 and says so in its own head, so a name is spelled the way it is spelled.
         Assert.Contains("Arsène", document, StringComparison.Ordinal);
@@ -144,7 +144,7 @@ public sealed class NightReportTests
     [Fact]
     public void Render_EscapesMarkupInATitleRatherThanLettingItCloseTheElement()
     {
-        var document = NightReport.Render(Night(Track("Isaac & Nora", "<Live>", Evening)));
+        var document = NightReport.Render(Night(TestData.CreateHistoryEntry("Isaac & Nora", "<Live>", Evening)));
 
         Assert.Contains("Isaac &amp; Nora", document, StringComparison.Ordinal);
         Assert.Contains("&lt;Live&gt;", document, StringComparison.Ordinal);
@@ -156,7 +156,7 @@ public sealed class NightReportTests
     [Fact]
     public void Render_LeavesOutAControlCharacterATagShouldNeverHaveCarried()
     {
-        var document = NightReport.Render(Night(Track("Ar\u001bt", "Ti\u0008tle", Evening)));
+        var document = NightReport.Render(Night(TestData.CreateHistoryEntry("Ar\u001bt", "Ti\u0008tle", Evening)));
 
         // A control character has no spelling in HTML, so it cannot go in raw.
         Assert.DoesNotContain('\u001b', document);
@@ -177,8 +177,4 @@ public sealed class NightReportTests
 
     private static QueueHistory Night(params QueueHistoryEntry[] entries) =>
         new(Evening, [.. entries]);
-
-    private static TrackHistoryEntry Track(string artist, string title, DateTime startedAt) => new(
-        Path.Combine(Path.GetTempPath(), "mazurka.mp3"), "Mazurka", artist, title,
-        TimeSpan.FromMinutes(3), false, CompletionStatus.Finished, startedAt);
 }
