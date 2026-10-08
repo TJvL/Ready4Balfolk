@@ -76,9 +76,11 @@ public sealed record ApplicationSettings(
     }
 
     /// <summary>Time of day after which the queue stops accepting entries, clamped to a real time.</summary>
+    [JsonIgnore]
     public TimeSpan QueueCutoff => TimeSpan.FromMinutes(Math.Clamp(QueueCutoffMinutesOfDay, 0, (24 * 60) - 1));
 
     /// <summary>How far past the cutoff the queue may still run before adds are refused.</summary>
+    [JsonIgnore]
     public TimeSpan QueueCutoffGrace => TimeSpan.FromMinutes(Math.Max(0, QueueCutoffGraceMinutes));
 
     /// <summary>The port the embedded server listens on, clamped to the unprivileged range.</summary>

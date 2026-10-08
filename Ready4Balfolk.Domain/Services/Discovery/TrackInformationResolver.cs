@@ -184,20 +184,15 @@ public static class TrackInformationResolver
         };
     }
 
-    private static DecisionReason ExtractReason(int kinds, List<Claim> claims)
-    {
-        if (kinds > 1)
-        {
-            return DecisionReason.Corroborated;
-        }
-
-        return claims.Count switch
-        {
-            > 1 => DecisionReason.Preferred,
-            1 => DecisionReason.SoleValue,
-            _ => throw new ArgumentOutOfRangeException(nameof(claims), claims.Count, null)
-        };
-    }
+    private static DecisionReason ExtractReason(int kinds, List<Claim> claims) =>
+        kinds > 1
+            ? DecisionReason.Corroborated
+            : claims.Count switch
+            {
+                > 1 => DecisionReason.Preferred,
+                1 => DecisionReason.SoleValue,
+                _ => throw new ArgumentOutOfRangeException(nameof(claims), claims.Count, null)
+            };
 
     /// <summary>
     /// The dance-shaped text to show, decided or not.

@@ -44,6 +44,7 @@ public sealed class PresentationWebServer(
     private readonly SemaphoreSlim _mutex = new(1, 1);
     private readonly Subject<Unit> _changed = new();
 
+    private bool _disposed;
     private WebApplication? _app;
     private WebServerOptions? _running;
     private WebServerOptions? _desired;
@@ -94,7 +95,10 @@ public sealed class PresentationWebServer(
         await _mutex.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_desired != options)
+            // A settings change can still be on its way in while the app quits, and arrive after
+            // disposal. There is nobody left to tell, and starting a listener now would leave one
+            // open with nothing to close it.
+            if (_disposed || _desired != options)
             {
                 return;
             }
@@ -284,9 +288,20 @@ public sealed class PresentationWebServer(
 
         try
         {
-            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            await app.StopAsync(deadline.Token).ConfigureAwait(false);
-            await app.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                await app.StopAsync(deadline.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                // Whether or not the stop finished, this host is about to be forgotten, and one
+                // that is never disposed keeps its container, hubs and hosted services alive for
+                // the rest of the evening. A stop that ran out of time is exactly when that
+                // happens, so the disposal cannot sit behind the stop succeeding.
+                await app.DisposeAsync().ConfigureAwait(false);
+            }
+
             await logger.InfoAsync("Presentation server stopped").ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -311,13 +326,42 @@ public sealed class PresentationWebServer(
             : Results.NotFound();
     }
 
+    /// <summary>Stops the server, after whatever start or stop is already under way.</summary>
+    /// <remarks>
+    /// <para>
+    /// The app calls this on its way out without waiting, and a settings change can have a start in
+    /// flight at that moment. Taking the lock is what makes this stop the host that start goes on
+    /// to open, rather than finding nothing yet and leaving that one running, and what keeps the
+    /// notifications from being disposed under it.
+    /// </para>
+    /// <para>
+    /// The lock itself is left undisposed on purpose. A call queued behind this one, or arriving
+    /// later, would otherwise throw on a disposed semaphore at an app that is quitting, where it now
+    /// takes the lock, sees the server is gone and returns. A semaphore holds no handle unless asked
+    /// for one, which nothing here does.
+    /// </para>
+    /// </remarks>
     public async ValueTask DisposeAsync()
     {
         _desired = null;
-        await StopCoreAsync().ConfigureAwait(false);
-        State = WebServerState.Stopped;
-        _changed.Dispose();
-        _mutex.Dispose();
+
+        await _mutex.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            await StopCoreAsync().ConfigureAwait(false);
+            State = WebServerState.Stopped;
+            _changed.Dispose();
+        }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 }
 
