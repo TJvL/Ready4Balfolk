@@ -28,7 +28,10 @@ public partial class DanceListStepView : ReactiveUserControl<DanceListStepViewMo
 
                 if (path is not null)
                 {
-                    await ViewModel!.ImportAsync(new FileSystem().FileInfo.New(path));
+                    // The registered file system rather than a new one, so the read goes wherever
+                    // every other read in the application goes.
+                    var fileSystem = App.Services.GetRequiredService<IFileSystem>();
+                    await ViewModel!.ImportAsync(fileSystem.FileInfo.New(path));
                 }
             });
 

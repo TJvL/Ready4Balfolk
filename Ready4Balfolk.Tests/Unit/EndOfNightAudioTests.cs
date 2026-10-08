@@ -16,6 +16,17 @@ public sealed class EndOfNightAudioTests
 
     private static EndOfNightAudio CreateSut(string settingPath, params string[] filesOnDisk)
     {
+        var fileSystem = new MockFileSystem();
+        foreach (var file in filesOnDisk)
+        {
+            fileSystem.AddFile(file, new MockFileData("not really audio"));
+        }
+
+        return CreateSut(settingPath, fileSystem);
+    }
+
+    private static EndOfNightAudio CreateSut(string settingPath, MockFileSystem fileSystem)
+    {
         var settings = new ApplicationSettings() with
         {
             EndOfNightAudioPath = settingPath
@@ -23,12 +34,6 @@ public sealed class EndOfNightAudioTests
         var settingsStore = Substitute.For<ISettingsStore>();
         settingsStore.Current.Returns(settings);
         settingsStore.Observe().Returns(new BehaviorSubject<ApplicationSettings>(settings));
-
-        var fileSystem = new MockFileSystem();
-        foreach (var file in filesOnDisk)
-        {
-            fileSystem.AddFile(file, new MockFileData("not really audio"));
-        }
 
         return new EndOfNightAudio(settingsStore, fileSystem, new NoOpLoggerService());
     }
@@ -67,5 +72,30 @@ public sealed class EndOfNightAudioTests
 
         Assert.NotNull(item);
         Assert.Null(item.Duration);
+    }
+
+    [Fact]
+    public void Create_ReadsTheLengthFromTheFileSystemItWasGiven()
+    {
+        // The existence check and the read have to agree on which disk the file is on. Reading the
+        // length from the real disk would find nothing at this path and quietly leave the
+        // projection short by the last dance of the night.
+        var fileSystem = new MockFileSystem();
+        fileSystem.AddFile(ChosenPath, new MockFileData(EmbeddedAudio("scale.mp3")));
+
+        var item = CreateSut(ChosenPath, fileSystem).Create();
+
+        Assert.NotNull(item);
+        Assert.NotNull(item.Duration);
+        Assert.True(item.Duration > TimeSpan.Zero);
+    }
+
+    private static byte[] EmbeddedAudio(string name)
+    {
+        using var resource = typeof(EndOfNightAudioTests).Assembly.GetManifestResourceStream(name)
+            ?? throw new InvalidOperationException($"Embedded audio '{name}' is missing.");
+        using var copy = new MemoryStream();
+        resource.CopyTo(copy);
+        return copy.ToArray();
     }
 }

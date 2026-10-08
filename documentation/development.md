@@ -214,6 +214,8 @@ The `QueueService` does not contain any validation logic itself. Instead, it del
 
 `UnawaitedWork` is how work nothing can await is started: it runs the work and, when it fails, writes the English log line and shows the screen text (see Logging). A bare discard leaves the exception on a task nobody observes, and an `async void` rethrows it on the UI thread, which closes the application in the middle of an evening. Where a call site already hands `SafeFireAndForget` a handler of its own, that handler is the report and `UnawaitedWork` is not added on top.
 
+`TagLibFileAbstraction` hands TagLib an `IFileInfo` instead of a path, so a tag read goes through the same `IFileSystem` as every other read and a test on a `MockFileSystem` never reaches the disk. File access goes through `System.IO.Abstractions` everywhere, with two agreed exceptions: `SqliteLibraryIndex` deleting its own database files, which SQLite opens on the real disk anyway, and `ManagedBassAudioPlaybackService` looking for the BASS native library next to the executable.
+
 `StringNormalizer.Normalize(string)`: decomposes Unicode (FormD), strips diacritics (non-spacing marks), keeps only letters/digits/spaces, lowercases, and collapses whitespace. Used throughout for case-insensitive, accent-insensitive name matching (resolving a name to a dance, uniqueness checks, search filtering).
 
 ---

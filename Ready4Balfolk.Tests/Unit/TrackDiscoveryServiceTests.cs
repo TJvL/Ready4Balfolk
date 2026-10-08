@@ -1,30 +1,29 @@
 using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Tracks;
 using TagLib;
-using File = System.IO.File;
 
-namespace Ready4Balfolk.Tests.Integration;
+namespace Ready4Balfolk.Tests.Unit;
 
 /// <summary>
 /// Reading a real file and reporting what it says about itself.
 /// </summary>
 /// <remarks>
-/// On disk rather than on a mock, because the whole job of this class is opening a file with
-/// TagLib: a substituted filesystem would prove that the arguments were passed on and nothing else.
-/// The audio is the repository's own smoke-test files, copied into a temporary tree and tagged
-/// there.
+/// The bytes are real audio, the repository's own smoke-test files, and TagLib really parses them;
+/// only the disk is a mock. That holds only because the service opens the file through the file
+/// system it was found on, so every test here would fail if a read went to the real disk instead.
 /// </remarks>
-public sealed class TrackDiscoveryServiceTests : IDisposable
+public sealed class TrackDiscoveryServiceTests
 {
-    private readonly FileSystem _fileSystem = new();
+    private readonly MockFileSystem _fileSystem = new();
     private readonly IDirectoryInfo _root;
     private readonly TrackDiscoveryService _sut = new();
 
     public TrackDiscoveryServiceTests()
     {
-        _root = _fileSystem.DirectoryInfo.New(
-            Path.Combine(Path.GetTempPath(), $"r4b_test_{Guid.NewGuid():N}"));
+        _root = _fileSystem.DirectoryInfo.New(_fileSystem.Path.GetFullPath("/music"));
         _root.Create();
     }
 
@@ -58,7 +57,7 @@ public sealed class TrackDiscoveryServiceTests : IDisposable
         // The declared dance tag is the strongest claim a file can make, so it has to survive the
         // trip out of the file whatever the tagger called it.
         var file = Audio("custom.mp3");
-        using (var taggable = TagLib.File.Create(file.FullName))
+        using (var taggable = TagLib.File.Create(new TagLibFileAbstraction(file)))
         {
             var id3v2 = (TagLib.Id3v2.Tag)taggable.GetTag(TagTypes.Id3v2, true);
             TagLib.Id3v2.UserTextInformationFrame.Get(id3v2, "DANCE", true).Text = ["Mazurka"];
@@ -111,7 +110,7 @@ public sealed class TrackDiscoveryServiceTests : IDisposable
     {
         // The check comes first on purpose: the answer to a .txt in the music folder is that it is
         // not audio, not that it could not be parsed.
-        var notAudio = _fileSystem.FileInfo.New(Path.Combine(_root.FullName, "sleeve-notes.txt"));
+        var notAudio = _fileSystem.FileInfo.New(_fileSystem.Path.Combine(_root.FullName, "sleeve-notes.txt"));
 
         Assert.Throws<ArgumentOutOfRangeException>(() => _sut.Gather(notAudio, _root));
     }
@@ -121,7 +120,7 @@ public sealed class TrackDiscoveryServiceTests : IDisposable
     [Fact]
     public void Gather_PathSegments_AreTheFoldersBetweenTheRootAndTheFile_OutermostFirst()
     {
-        var file = Audio(Path.Combine("Naragonia", "Idem", "01.mp3"));
+        var file = Audio(_fileSystem.Path.Combine("Naragonia", "Idem", "01.mp3"));
 
         var evidence = _sut.Gather(file, _root);
 
@@ -144,10 +143,10 @@ public sealed class TrackDiscoveryServiceTests : IDisposable
         // Nothing in the path of a file that is not in the library means anything about the
         // library, and walking to the filesystem root would read the user's home directory as
         // dance names.
-        var elsewhere = _fileSystem.DirectoryInfo.New(Path.Combine(_root.FullName, "not-the-library"));
+        var elsewhere = _fileSystem.DirectoryInfo.New(_fileSystem.Path.Combine(_root.FullName, "not-the-library"));
         elsewhere.Create();
 
-        var evidence = _sut.Gather(Audio(Path.Combine("Naragonia", "01.mp3")), elsewhere);
+        var evidence = _sut.Gather(Audio(_fileSystem.Path.Combine("Naragonia", "01.mp3")), elsewhere);
 
         Assert.Empty(evidence.PathSegments);
     }
@@ -155,9 +154,9 @@ public sealed class TrackDiscoveryServiceTests : IDisposable
     [Fact]
     public void Gather_ATrailingSeparatorOnTheRoot_IsStillTheSameRoot()
     {
-        var withSeparator = _fileSystem.DirectoryInfo.New(_root.FullName + Path.DirectorySeparatorChar);
+        var withSeparator = _fileSystem.DirectoryInfo.New(_root.FullName + _fileSystem.Path.DirectorySeparatorChar);
 
-        Assert.Equal(["Naragonia"], _sut.Gather(Audio(Path.Combine("Naragonia", "01.mp3")), withSeparator).PathSegments);
+        Assert.Equal(["Naragonia"], _sut.Gather(Audio(_fileSystem.Path.Combine("Naragonia", "01.mp3")), withSeparator).PathSegments);
     }
 
     // --- When the file will not be read ---
@@ -167,7 +166,7 @@ public sealed class TrackDiscoveryServiceTests : IDisposable
     {
         // The watcher and the scanner race with the user's file manager, so a file vanishing
         // mid-scan is ordinary rather than exceptional.
-        var gone = _fileSystem.FileInfo.New(Path.Combine(_root.FullName, "gone.mp3"));
+        var gone = _fileSystem.FileInfo.New(_fileSystem.Path.Combine(_root.FullName, "gone.mp3"));
 
         Assert.ThrowsAny<IOException>(() => _sut.Gather(gone, _root));
     }
@@ -177,8 +176,8 @@ public sealed class TrackDiscoveryServiceTests : IDisposable
     {
         // TagLib's own exception says nothing a user could act on, and the scan reports one line
         // per file that would not read, so the name has to be in it.
-        var path = Path.Combine(_root.FullName, "corrupt.mp3");
-        File.WriteAllText(path, "this is not audio");
+        var path = _fileSystem.Path.Combine(_root.FullName, "corrupt.mp3");
+        _fileSystem.AddFile(path, new MockFileData("this is not audio"));
 
         var exception = Assert.Throws<IOException>(() => _sut.Gather(_fileSystem.FileInfo.New(path), _root));
 
@@ -187,34 +186,32 @@ public sealed class TrackDiscoveryServiceTests : IDisposable
 
     // --- Fixtures ---
 
-    /// <summary>The embedded smoke-test audio, written into the temporary tree at a relative path.</summary>
+    /// <summary>The embedded smoke-test audio, written into the mock tree at a relative path.</summary>
+    /// <remarks>
+    /// Tagged through the same abstraction the service reads with, so the tags are written to the
+    /// mock file and nowhere else.
+    /// </remarks>
     private IFileInfo Audio(string relativePath, Action<Tag>? tag = null, string resource = "scale.mp3")
     {
-        var path = Path.Combine(_root.FullName, relativePath);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var path = _fileSystem.Path.Combine(_root.FullName, relativePath);
 
         using (var source = typeof(TrackDiscoveryServiceTests).Assembly.GetManifestResourceStream(resource)
                             ?? throw new InvalidOperationException($"Embedded audio '{resource}' is missing."))
-        using (var destination = File.Create(path))
+        using (var copy = new MemoryStream())
         {
-            source.CopyTo(destination);
+            source.CopyTo(copy);
+            _fileSystem.AddFile(path, new MockFileData(copy.ToArray()));
         }
+
+        var file = _fileSystem.FileInfo.New(path);
 
         if (tag is not null)
         {
-            using var taggable = TagLib.File.Create(path);
+            using var taggable = TagLib.File.Create(new TagLibFileAbstraction(file));
             tag(taggable.Tag);
             taggable.Save();
         }
 
-        return _fileSystem.FileInfo.New(path);
-    }
-
-    public void Dispose()
-    {
-        if (_root.Exists)
-        {
-            _root.Delete(recursive: true);
-        }
+        return file;
     }
 }
