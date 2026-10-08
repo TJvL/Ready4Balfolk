@@ -15,7 +15,6 @@ using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 using Ready4Balfolk.UI.Views.Queue;
-using RxUnit = System.Reactive.Unit;
 
 namespace Ready4Balfolk.Tests.ViewModels;
 
@@ -36,7 +35,6 @@ public sealed class QueueViewModelTests : IDisposable
     private readonly BehaviorSubject<TimeSpan> _elapsed = new(TimeSpan.Zero);
     private readonly BehaviorSubject<TimeSpan> _totalDuration = new(TimeSpan.Zero);
     private readonly BehaviorSubject<bool> _isPlaying = new(false);
-    private readonly Subject<RxUnit> _itemCompleted = new();
     private readonly BehaviorSubject<ApplicationSettings> _settingsSubject;
     private readonly FakeTimeProvider _time = new();
     private readonly ThrottleClock _timers = new();
@@ -132,7 +130,6 @@ public sealed class QueueViewModelTests : IDisposable
         consumption.WhenElapsedChanged.Returns(_elapsed);
         consumption.WhenTotalDurationChanged.Returns(_totalDuration);
         consumption.WhenIsPlayingChanged.Returns(_isPlaying);
-        consumption.WhenItemCompleted.Returns(_itemCompleted);
         consumption.CurrentItem.Returns(_ => _currentItem.Value);
 
         var settingsStore = Substitute.For<ISettingsStore>();
@@ -781,7 +778,6 @@ public sealed class QueueViewModelTests : IDisposable
         _elapsed.Dispose();
         _totalDuration.Dispose();
         _isPlaying.Dispose();
-        _itemCompleted.Dispose();
         _settingsSubject.Dispose();
     }
 }

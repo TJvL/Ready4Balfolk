@@ -6,8 +6,6 @@ namespace Ready4Balfolk.Domain.Services.Audio;
 public interface IAudioPlaybackService
 {
     bool IsPlaying { get; }
-    bool IsPaused { get; }
-    bool IsStopped { get; }
 
     /// <summary>False when the BASS_FX add-on could not be loaded. Playback still works without it.</summary>
     bool IsEqualizerAvailable { get; }
@@ -32,7 +30,6 @@ public interface IAudioPlaybackService
     Task PreloadNextAsync(Uri source);
     Task ClearPreloadAsync();
 
-    IObservable<Uri?> WhenSelectedChanged { get; }
     IObservable<Unit> WhenPlaybackStarted { get; }
     IObservable<Unit> WhenPlaybackPaused { get; }
     IObservable<Unit> WhenPlaybackRestarted { get; }

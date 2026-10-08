@@ -32,7 +32,4 @@ public sealed record PresentationItem(
 
     /// <summary>Whether there is anything at all to draw.</summary>
     public bool HasContent => Kind is not PresentationItemKind.None;
-
-    /// <summary>Whether the artist and title line should be drawn.</summary>
-    public bool HasSubtitle => Kind is PresentationItemKind.Track && Artist.Length > 0;
 }

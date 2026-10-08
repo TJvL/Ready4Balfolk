@@ -51,16 +51,12 @@ public sealed class ManagedBassPlaybackTests : IDisposable
     }
 
     [Fact]
-    public async Task Selecting_SaysWhatIsNowSelected()
+    public async Task Selecting_OpensTheStreamWithoutPlayingIt()
     {
-        Uri? selected = null;
-        using (_sut.WhenSelectedChanged.Subscribe(value => selected = value))
-        {
-            await _sut.SelectAsync(_track);
-        }
+        await _sut.SelectAsync(_track);
 
-        Assert.Equal(_track, selected);
-        Assert.True(_sut.IsStopped);
+        Assert.NotEqual(0, _sut.OpenChannels.Playing);
+        Assert.False(_sut.IsPlaying);
     }
 
     /// <summary>
@@ -131,7 +127,7 @@ public sealed class ManagedBassPlaybackTests : IDisposable
 
         Assert.Equal(0, announcements);
         Assert.False(lost);
-        Assert.True(_sut.IsStopped);
+        Assert.False(_sut.IsPlaying);
     }
 
     /// <summary>

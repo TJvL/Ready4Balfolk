@@ -133,8 +133,6 @@ public interface ILibraryIndex : IDisposable
 
     Task IgnoreValueAsync(string value, CancellationToken token = default);
 
-    Task StopIgnoringValueAsync(string value, CancellationToken token = default);
-
     /// <summary>
     /// How many files the index knows and can reach, for a scan's progress line. Whether one is in
     /// review is the gate's decision, not a query: the published library reports that count itself.

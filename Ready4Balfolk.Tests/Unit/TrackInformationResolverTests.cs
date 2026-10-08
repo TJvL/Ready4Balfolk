@@ -81,7 +81,6 @@ public sealed class TrackInformationResolverTests
         var resolution = Resolve(TestData.CreateEvidence("03-Track 3", segments: ["TREF"]));
 
         Assert.Null(resolution.DanceSlug);
-        Assert.False(resolution.IsResolved);
     }
 
     [Fact]

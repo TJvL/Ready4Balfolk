@@ -1,4 +1,3 @@
-using System.Reactive;
 using Ready4Balfolk.Domain.Models.QueueItems;
 
 namespace Ready4Balfolk.Domain.Services.Queue;
@@ -13,7 +12,6 @@ public interface IQueueConsumptionService
     IObservable<TimeSpan> WhenElapsedChanged { get; }
     IObservable<TimeSpan> WhenTotalDurationChanged { get; }
     IObservable<bool> WhenIsPlayingChanged { get; }
-    IObservable<Unit> WhenItemCompleted { get; }
 
     /// <summary>Moves the evening on to the next item.</summary>
     /// <param name="requestedFor">

@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using AsyncAwaitBestPractices;
 using ReactiveUI.Reactive;
@@ -27,7 +25,6 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
     private readonly ILoggerService _loggerService;
     private readonly INotificationService _notifications;
     private readonly CompositeDisposable _disposables = [];
-    private readonly Subject<Unit> _finished = new();
 
     [Reactive] public partial int CurrentIndex { get; private set; }
 
@@ -47,9 +44,6 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
     [ObservableAsProperty] public partial string BlockedReason { get; }
 
     public IReadOnlyList<WizardStepViewModel> Steps { get; }
-
-    /// <summary>Fires once, when the last step has been committed and the main screen is back.</summary>
-    public IObservable<Unit> Finished => _finished.AsObservable();
 
     public SetupWizardViewModel(
         WelcomeStepViewModel welcomeStep,
@@ -181,7 +175,6 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
             await _settingsStore.UpdateAsync(settings => settings with { SetupCompleted = true });
             await _loggerService.InfoAsync("Setup wizard completed");
             _navigation.CurrentScreen = Screen.Main;
-            _finished.OnNext(Unit.Default);
         }
         catch (Exception exception)
         {
@@ -193,11 +186,7 @@ public sealed partial class SetupWizardViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        _disposables.Dispose();
-        _finished.Dispose();
-    }
+    public void Dispose() => _disposables.Dispose();
 
     private void EnterCurrentStep() =>
         CurrentStep.EnterAsync().SafeFireAndForget(

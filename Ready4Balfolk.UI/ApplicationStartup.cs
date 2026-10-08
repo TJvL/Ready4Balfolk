@@ -339,7 +339,7 @@ internal sealed class ApplicationStartup(
     /// Not for the smoke test: it drives the application with nobody there to answer a wizard, and
     /// it would simply sit on the first step until CI gave up.
     /// </remarks>
-    public void ShowSetupIfNeeded()
+    private void ShowSetupIfNeeded()
     {
         if (Program.IsSmokeTest || settingsStore.Current.SetupCompleted)
         {
@@ -442,7 +442,6 @@ internal sealed class ApplicationStartup(
             var index = _presentationWindows.Count;
             var window = new PresentationWindow
             {
-                WindowIndex = index,
                 Title = string.Format(CultureInfo.CurrentCulture, UiStrings.Presentation_WindowTitle, index + 1)
             };
 
