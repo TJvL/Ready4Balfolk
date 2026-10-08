@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
@@ -161,12 +160,10 @@ public sealed partial class ReviewViewModel : ReactiveObject, IDisposable
 
         // While it runs the only thing that moves is a count, read from the index rather than from
         // the library: nothing reaches the library during a scan, so counting that would sit at nil.
-        this.WhenAnyValue(x => x.IsScanning)
-            .Select(scanning => scanning
-                ? Observable.Interval(TimeSpan.FromSeconds(1)).Select(_ => Unit.Default)
-                : Observable.Empty<Unit>())
-            .Switch()
-            .SelectMany(_ => Observable.FromAsync(() => _libraryIndex.CountIndexedAsync()))
+        // The rules panel inside this screen already asks the index once a second while a scan
+        // runs, so this reads its count rather than asking a second time.
+        discovery.WhenAnyValue(x => x.IndexedSoFar)
+            .Skip(1)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(count => ScanProgressText = string.Format(
                 CultureInfo.CurrentCulture, UiStrings.Review_Scanning, count))

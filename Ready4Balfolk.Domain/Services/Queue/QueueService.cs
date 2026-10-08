@@ -110,12 +110,7 @@ public sealed class QueueService : IQueueService, IDisposable
     private static Track At(Track track, string path) =>
         track with { FileInfo = track.FileInfo.FileSystem.FileInfo.New(path) };
 
-    private static string? PathOf(IQueueItem item) => item switch
-    {
-        TrackQueueItem track => track.Track.FileInfo.FullName,
-        AutoTrackQueueItem auto => auto.TrackQueueItem.Track.FileInfo.FullName,
-        _ => null
-    };
+    private static string? PathOf(IQueueItem item) => AudioItems.LibraryTrackOf(item)?.FileInfo.FullName;
 
     public IObservable<IChangeSet<IQueueItem>> Connect() => _sourceList.Connect();
 

@@ -1,8 +1,9 @@
 using System;
 using System.Globalization;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.History;
-using Ready4Balfolk.Domain.Services.Presentation;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Views.Queue;
 
 namespace Ready4Balfolk.UI.Views.History;
 
@@ -98,6 +99,5 @@ public sealed class HistoryItemViewModel
 
     private static string When(DateTime value) => value.ToString("HH:mm", CultureInfo.CurrentCulture);
 
-    private static string FormatTime(TimeSpan time)
-        => $"{(int)time.TotalMinutes}:{time.Seconds:D2}";
+    private static string FormatTime(TimeSpan time) => DurationFormatConverter.Format(time);
 }

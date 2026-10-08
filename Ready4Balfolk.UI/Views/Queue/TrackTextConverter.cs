@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Avalonia.Data.Converters;
+using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Tracks;
-using Ready4Balfolk.Domain.Services.Presentation;
 
 namespace Ready4Balfolk.UI.Views.Queue;
 

@@ -14,19 +14,19 @@ public sealed class DuplicateTrackRule(
 
     public QueueRuleVerdict? EvaluateAdd(IQueueItem item, IReadOnlyList<IQueueItem> adjustedItems)
     {
-        var filePath = GetFilePath(item);
+        var filePath = PathOf(item);
         if (filePath is null)
         {
             return null;
         }
 
-        if (adjustedItems.Any(i => GetFilePath(i) == filePath))
+        if (adjustedItems.Any(i => PathOf(i) == filePath))
         {
             return new QueueRuleVerdict(false, DomainStrings.DuplicateTrackRule_AlreadyInQueue);
         }
 
         var currentPlaying = currentItemProvider();
-        if (currentPlaying is not null && GetFilePath(currentPlaying) == filePath)
+        if (currentPlaying is not null && PathOf(currentPlaying) == filePath)
         {
             return new QueueRuleVerdict(false, DomainStrings.DuplicateTrackRule_CurrentlyPlaying);
         }
@@ -46,7 +46,7 @@ public sealed class DuplicateTrackRule(
         var currentPlaying = currentItemProvider();
         if (currentPlaying is not null)
         {
-            var playingPath = GetFilePath(currentPlaying);
+            var playingPath = PathOf(currentPlaying);
             if (playingPath is not null)
             {
                 seenPaths.Add(playingPath);
@@ -67,7 +67,7 @@ public sealed class DuplicateTrackRule(
         var indices = new List<int>();
         for (var i = 0; i < currentItems.Count; i++)
         {
-            var filePath = GetFilePath(currentItems[i]);
+            var filePath = PathOf(currentItems[i]);
             if (filePath is not null && !seenPaths.Add(filePath))
             {
                 indices.Add(i);
@@ -81,10 +81,5 @@ public sealed class DuplicateTrackRule(
     public bool? CanMove(IQueueItem item) => null;
     public bool? CanClear(IReadOnlyList<IQueueItem> currentItems) => null;
 
-    private static string? GetFilePath(IQueueItem item) => item switch
-    {
-        TrackQueueItem t => t.Track.FileInfo.FullName,
-        AutoTrackQueueItem a => a.TrackQueueItem.Track.FileInfo.FullName,
-        _ => null
-    };
+    private static string? PathOf(IQueueItem item) => AudioItems.LibraryTrackOf(item)?.FileInfo.FullName;
 }

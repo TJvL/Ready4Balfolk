@@ -12,7 +12,6 @@ namespace Ready4Balfolk.Domain.Services.Discovery;
 /// </remarks>
 public static class ScannedFileMapping
 {
-    private static readonly TrackField[] AllFields = [TrackField.Dance, TrackField.Artist, TrackField.Title];
 
     /// <summary>
     /// What the user's own rules answered on this file, which they approved by declaring them.
@@ -25,7 +24,7 @@ public static class ScannedFileMapping
     /// </remarks>
     public static IEnumerable<TrackApproval> ByRuleApprovals(ScannedFile scanned)
     {
-        foreach (var field in AllFields)
+        foreach (var field in Enum.GetValues<TrackField>())
         {
             var decision = scanned.Resolution.For(field);
             var chosen = decision.Chosen.FirstOrDefault(claim => claim.Trust is ClaimTrust.Declared);

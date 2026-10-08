@@ -95,8 +95,16 @@ public sealed record DiscoverySettings
         UsesFileNamePatterns || UsesFolderRoles || UsesTagTrust || UsesCustomDanceTag;
 
     /// <summary>The role declared for a level, counted from 1 outermost.</summary>
-    public FolderRole RoleForLevel(int level) =>
-        level >= 1 && level <= FolderRoles.Count ? FolderRoles[level - 1] : FolderRole.Unknown;
+    public FolderRole RoleForLevel(int level) => RoleAt(FolderRoles, level);
+
+    /// <summary>The role a list of declared roles gives a level, counted from 1 outermost.</summary>
+    /// <remarks>
+    /// Unknown past the end, because a library is deeper in one corner than in another and a level
+    /// nobody declared says nothing. Shared with the compiled rules, so the settings screen and the
+    /// scan cannot count levels two ways.
+    /// </remarks>
+    public static FolderRole RoleAt(IReadOnlyList<FolderRole> roles, int level) =>
+        level >= 1 && level <= roles.Count ? roles[level - 1] : FolderRole.Unknown;
 
     /// <summary>
     /// Compares what was declared rather than which list objects hold it.

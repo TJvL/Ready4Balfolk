@@ -195,7 +195,7 @@ public static class ReviewQueueBuilder
     /// still, because they have already vouched for it once.
     /// </remarks>
     private static int ConfidenceOf(LibraryEntry entry, TrackReview review) =>
-        AllFields.Sum(field => Confidence(entry.From(field), review.For(field)));
+        Enum.GetValues<TrackField>().Sum(field => Confidence(entry.From(field), review.For(field)));
 
     private static int Confidence(DerivedFrom from, ReviewedField field) => true switch
     {
@@ -254,5 +254,4 @@ public static class ReviewQueueBuilder
             ? RelativePath.Below(musicRoot, directory) ?? string.Empty
             : string.Empty;
 
-    private static readonly TrackField[] AllFields = [TrackField.Dance, TrackField.Artist, TrackField.Title];
 }

@@ -1,7 +1,7 @@
 using System.Text;
 using Ready4Balfolk.Domain.Models.Tracks;
 
-namespace Ready4Balfolk.Domain.Services.Presentation;
+namespace Ready4Balfolk.Domain.Helpers;
 
 /// <summary>How a track is written on a screen, in the user's own words.</summary>
 /// <remarks>
