@@ -35,8 +35,9 @@ public sealed class RemoteHub(
     /// <summary>The client method that says this phone is not let in any more.</summary>
     /// <remarks>
     /// Sent before the connection goes, which the page answers by closing it, and again by the
-    /// filter on any command from a token that has stopped being good. A remote that silently does nothing reads as a crashed application,
-    /// and the honest answer is the PIN form: the remote is there, the helper needs the new PIN.
+    /// filter on any command from a token that has stopped being good. A remote that silently does
+    /// nothing reads as a crashed application, and the honest answer is the PIN form: the remote is
+    /// there, the helper needs the new PIN.
     /// </remarks>
     public const string TurnedOutMethod = "turnedOut";
 
