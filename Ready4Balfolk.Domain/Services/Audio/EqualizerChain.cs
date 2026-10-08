@@ -15,6 +15,13 @@ namespace Ready4Balfolk.Domain.Services.Audio;
 /// </remarks>
 internal sealed class EqualizerChain
 {
+    // Where each effect sits in the chain. BASS runs a higher priority first, so the low cut takes
+    // the rumble out before anything boosts it, and the shelves and bands then shape what is left.
+    private const int LowCutPriority = 3;
+    private const int LowShelfPriority = 2;
+    private const int PeakingPriority = 1;
+    private const int HighShelfPriority = 0;
+
     /// <summary>Q of a Butterworth high pass, which is maximally flat with no resonant peak.</summary>
     private const double LowCutQ = 0.707;
 
@@ -50,20 +57,20 @@ internal sealed class EqualizerChain
     {
         var sampleRate = Bass.ChannelGetInfo(channel).Frequency;
 
-        var lowShelf = Bass.ChannelSetFX(channel, EffectType.BQF, 2);
+        var lowShelf = Bass.ChannelSetFX(channel, EffectType.BQF, LowShelfPriority);
         if (lowShelf == 0)
         {
             return null;
         }
 
-        var peaking = Bass.ChannelSetFX(channel, EffectType.PeakEQ, 1);
+        var peaking = Bass.ChannelSetFX(channel, EffectType.PeakEQ, PeakingPriority);
         if (peaking == 0)
         {
             Bass.ChannelRemoveFX(channel, lowShelf);
             return null;
         }
 
-        var highShelf = Bass.ChannelSetFX(channel, EffectType.BQF, 0);
+        var highShelf = Bass.ChannelSetFX(channel, EffectType.BQF, HighShelfPriority);
         if (highShelf == 0)
         {
             Bass.ChannelRemoveFX(channel, lowShelf);
@@ -142,7 +149,7 @@ internal sealed class EqualizerChain
 
         if (_lowCutHandle == 0)
         {
-            _lowCutHandle = Bass.ChannelSetFX(_channel, EffectType.BQF, 3);
+            _lowCutHandle = Bass.ChannelSetFX(_channel, EffectType.BQF, LowCutPriority);
 
             if (_lowCutHandle == 0)
             {
