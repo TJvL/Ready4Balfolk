@@ -891,6 +891,23 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
 
             // Pause: the desk's own progress bar has to hold, not just the phone's clock.
             await phone.Tap("pp");
+
+            // The tap comes back once the page has handled the click, and the pause still has to
+            // cross the hub and the UI thread before the desk stops. Read straight away, the
+            // progress came off a track still running and had moved on 300 ms later (#358). The
+            // bar is fed every 100 ms while playing, so a reading that holds for longer than that
+            // is a desk that has stopped.
+            var lastRead = application.ProgressOf("playback.progress");
+            await application.WaitUntilItStays(
+                () =>
+                {
+                    var now = application.ProgressOf("playback.progress");
+                    var held = now == lastRead;
+                    lastRead = now;
+                    return held;
+                },
+                "the phone's pause to reach the desk");
+
             var heldAt = application.ProgressOf("playback.progress");
 
             await Task.Delay(300);
