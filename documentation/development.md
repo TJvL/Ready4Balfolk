@@ -472,7 +472,7 @@ The same five, because Release is stricter than Debug and CI builds Release. `CO
 It is **four jobs that run beside each other**, because a pull request goes green when the slowest one finishes rather than when the longest list of steps does:
 
 - `test`, on Ubuntu and Windows. The tests have to run somewhere they could fail differently: `Directory.Build.targets` resolves the BASS natives from the host OS, and the paths the stores write to are not the same shape on Windows.
-- `style`: `dotnet format --verify-no-changes` and `scripts/check-translations.py`, which compares the `.resx` key sets in both directions, fails on a key nothing reads, and fails on a resx string handed to the logger as its log line. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed. One platform for both: `.gitattributes` normalises line endings, so neither can answer differently per platform.
+- `style`: `dotnet format --verify-no-changes` and `scripts/check-translations.py`, which compares the `.resx` key sets and `{0}` placeholders in both directions, compares each designer file with its resx, fails on a key nothing in the application reads (the tests do not count), fails on a resx string handed to the logger as its log line, and holds the two tables in `wwwroot/strings.js` to the same rules. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed. One platform for both: `.gitattributes` normalises line endings, so neither can answer differently per platform.
 - `scenarios`: the end to end suite. Its own job above all because it is the leg that grows every time a scenario is written, and beside the others it grows on its own rather than on top of them.
 - `verify`, which needs the other three. A matrix reports one check per leg, so requiring those directly means editing the ruleset every time one is split, and a leg nobody remembered to add is a leg that cannot block a merge.
 
@@ -550,7 +550,7 @@ The portable builds are checked inside `build-binaries.yml`, so every pull reque
 7. **Register ViewModel**: add to `ApplicationComposition.cs` as singleton. A top-level screen also needs a `Lazy<T>` and an `IViewFor<T>`; see To add a new screen.
 8. **Navigation**: add to `Screen` enum, wire `IsXxxScreen`, add the `DockPanel` and its `ViewModelViewHost` in `MainWindow.axaml`, add toolbar button.
 9. **Converters**: if needed, add with the static `Instance` pattern in the feature folder.
-10. **Strings**: add the English text to `UiStrings.resx`, the Dutch to `UiStrings.nl.resx`, and the property to `UiStrings.Designer.cs`; the three are kept in step by hand. The same rule holds for `DomainStrings`, for the browser pages' `wwwroot/strings.js`, and for the two manuals, `help.md` and `help.nl.md`: nothing is written in one language only.
+10. **Strings**: add the English text to `UiStrings.resx`, the Dutch to `UiStrings.nl.resx`, and the property to `UiStrings.Designer.cs`. The designer file is written by hand, not generated, so no IDE tool may regenerate it; `scripts/check-translations.py` fails when the three fall out of step. The same rule holds for `DomainStrings`, for the browser pages' `wwwroot/strings.js`, and for the two manuals, `help.md` and `help.nl.md`: nothing is written in one language only.
 
 ### Dutch glossary
 

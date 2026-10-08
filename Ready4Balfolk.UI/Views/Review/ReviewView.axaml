@@ -73,7 +73,6 @@
         </Style>
     </UserControl.Styles>
 
-    <Panel>
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
             <!-- Not a live region: the count moves every second for as long as a first scan
@@ -118,309 +117,311 @@
             </StackPanel>
         </StackPanel>
 
-        <ListBox x:Name="Queue"
-                 AutomationProperties.AutomationId="review.rows"
-                 ItemsSource="{Binding Rows}"
-                 SelectedItem="{Binding Selected, Mode=TwoWay}"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="local:ReviewRowViewModel">
-                    <StackPanel Spacing="0">
-                        <!-- The folder is a band of its own, above the row rather than inside it.
-                             Inside, it took the row's colour and the row's selection, and read as
-                             part of the track underneath instead of as the start of a group. -->
-                        <Border Classes="folderBand" IsVisible="{Binding IsFirstOfGroup}">
-                            <StackPanel Orientation="Horizontal" Spacing="12">
-                                <TextBlock Text="{Binding FolderText}"
-                                           FontWeight="Bold"
-                                           FontSize="15"
-                                           VerticalAlignment="Center" />
-                                <!-- The folder answer sits with the folder it answers, once, rather
-                                     than on every row it would take. -->
-                                <Button AutomationProperties.AutomationId="review.answer-folder"
-                                        Content="{Binding AnswerFolderText}"
-                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveFolderCommand}"
-                                        CommandParameter="{Binding}"
-                                        IsVisible="{Binding CanAnswerFolder}"
-                                        FontSize="11"
-                                        Padding="8,2" />
-                            </StackPanel>
-                        </Border>
-
-                        <Panel>
-                            <!-- The outline is the selection: the list's own highlight is switched
-                                 off, or it would paint the band above as though it belonged to this
-                                 row. -->
-                            <Border Classes="selectable"
-                                    Classes.selected="{Binding $parent[ListBoxItem].IsSelected}"
-                                    BorderThickness="2"
-                                    CornerRadius="4"
-                                    Margin="0,0,0,6">
-                                <Border Background="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}, ConverterParameter=fill}"
-                                        BorderBrush="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}}"
-                                        BorderThickness="4,0,0,0"
-                                        CornerRadius="3"
-                                        Padding="8,6">
-                                    <StackPanel Spacing="4">
-                        <!-- One grid for the row, so the player above lines up with the fields
-                             below: the bar ends where the title box ends rather than running on
-                             under the buttons. -->
-                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,*,150"
-                              ColumnSpacing="8" RowSpacing="4">
-                            <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                                  ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
-                                <!-- One button in two states: the thing that starts it is the thing
-                                     that stops it, in the place the eye already is. -->
-                                <Button Grid.Column="0"
-                                        AutomationProperties.Name="{x:Static res:UiStrings.Review_Preview}"
-                                        Click="OnPreviewClick"
-                                        Tag="{Binding}"
-                                        ToolTip.Tip="{x:Static res:UiStrings.Review_Preview}"
-                                        IsVisible="{Binding !IsPreviewing}"
-                                        Padding="6,2">
-                                    <PathIcon Data="{StaticResource IconPlay}" Width="12" Height="12" />
-                                </Button>
-                                <Button Grid.Column="0"
-                                        AutomationProperties.Name="{x:Static res:UiStrings.Review_StopPreview}"
-                                        Click="OnPreviewClick"
-                                        Tag="{Binding}"
-                                        ToolTip.Tip="{x:Static res:UiStrings.Review_StopPreview}"
-                                        IsVisible="{Binding IsPreviewing}"
-                                        Padding="6,2">
-                                    <PathIcon Data="{StaticResource IconClose}" Width="12" Height="12" />
-                                </Button>
-
-                                <TextBlock Grid.Column="1"
-                                           Text="{Binding FileName}"
-                                           FontSize="11"
-                                           Opacity="0.7"
-                                           VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis" />
-
-                                <!-- A ProgressBar with a click handler, never a Slider: its thumb
-                                     swallows the pointer, so clicking the track does nothing. -->
-                                <ProgressBar Grid.Column="2"
-                                             Minimum="0"
-                                             Maximum="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).PreviewDurationSeconds}"
-                                             Value="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).PreviewPositionSeconds}"
-                                             Height="8"
-                                             VerticalAlignment="Center"
-                                             IsVisible="{Binding IsPreviewing}"
-                                             PointerPressed="OnPreviewBarPressed" />
-                            </Grid>
-
-                            <!-- A fixed column, so no status can ever squeeze the fields: the
-                                 sentence that explains a parked row lives under it instead. -->
-                            <!-- Live regions, both of them: Enter answers the row and moves the
-                                 keyboard straight on to the next one, so what the answered row now
-                                 says is said by nothing the keyboard is on. -->
-                            <TextBlock Grid.Row="0" Grid.Column="3"
-                                       AutomationProperties.AutomationId="review.status"
-                                       AutomationProperties.LiveSetting="Polite"
-                                       Text="{Binding StatusText}"
-                                       FontSize="11"
-                                       VerticalAlignment="Center"
-                                       HorizontalAlignment="Right"
-                                       TextTrimming="CharacterEllipsis"
-                                       Opacity="0.9"
-                                       Foreground="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}}"
-                                       IsVisible="{Binding IsApproved}" />
-                            <TextBlock Grid.Row="0" Grid.Column="3"
-                                       AutomationProperties.AutomationId="review.status"
-                                       AutomationProperties.LiveSetting="Polite"
-                                       Text="{Binding StatusText}"
-                                       FontSize="11"
-                                       VerticalAlignment="Center"
-                                       HorizontalAlignment="Right"
-                                       TextTrimming="CharacterEllipsis"
-                                       Opacity="0.8"
-                                       IsVisible="{Binding !IsApproved}" />
-
-                            <!-- ZIndex: the picker overlay must beat this row's own captions and
-                                 the columns beside it; the ListBoxItem's ZIndex beats the rows
-                                 beneath. Each ZIndex only counts among siblings, hence the chain. -->
-                            <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2" ZIndex="10">
-                                <!-- A text box and a list of our own rather than an AutoCompleteBox:
-                                     that control's dropdown cannot be walked with the arrows, which
-                                     is the whole point of showing four bourrées rather than one.
-                                     Inline rather than in a popup, because a popup takes the focus
-                                     off the box being typed into and the typing stops. -->
-                                <!-- Shut once the row is answered, so what is in the box is what
-                                     was written down. Editable, it read as a correction that had
-                                     been made while the stored answer still held the old value.
-                                     Read-only rather than disabled: a disabled box cannot be
-                                     focused, so answering the row dropped the caret out of the
-                                     queue and the keys stopped working on the row that had just
-                                     been answered. -->
-                                <TextBox Classes="field"
-                                         AutomationProperties.AutomationId="review.dance"
-                                         AutomationProperties.Name="{x:Static res:UiStrings.Review_Dance}"
-                                         Text="{Binding Dance, Mode=TwoWay}"
-                                         IsReadOnly="{Binding IsApproved}"
-                                         PlaceholderText="{x:Static res:UiStrings.Review_Dance}"
-                                         LostFocus="OnDanceLostFocus" />
-
-                                <!-- Zero height on purpose: the matches overlay the rows beneath
-                                     rather than growing this one. Growing it resized the
-                                     virtualized list mid-keystroke and threw the viewport, which
-                                     cost the person the very row they were answering. -->
-                                <Canvas Height="0" ClipToBounds="False" ZIndex="10">
-                                    <!-- A Canvas, not a Panel: a zero-height Panel arranges its
-                                         child to zero height too, and the overlay vanishes. A
-                                         Canvas gives the child its desired size regardless. -->
-                                    <Border IsVisible="{Binding IsPickerOpen}"
-                                            MinWidth="{Binding $parent[Canvas].Bounds.Width}"
-                                            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
-                                            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="4"
-                                            Padding="2">
-                                        <ItemsControl ItemsSource="{Binding DanceMatches}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="local:DanceMatch">
-                                                    <Border Classes="match" Classes.highlighted="{Binding IsHighlighted}">
-                                                        <TextBlock Text="{Binding Name}" FontSize="12" />
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Border>
-                                </Canvas>
-
-                                <TextBlock Text="{Binding DanceSource}" FontSize="10" Opacity="0.6" />
-                            </StackPanel>
-
-                            <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
-                                <TextBox Classes="field"
-                                         AutomationProperties.AutomationId="review.artist"
-                                         AutomationProperties.Name="{x:Static res:UiStrings.Review_Artist}"
-                                         Text="{Binding Artist, Mode=TwoWay}"
-                                         IsReadOnly="{Binding IsApproved}"
-                                         PlaceholderText="{x:Static res:UiStrings.Review_Artist}" />
-                                <TextBlock Text="{Binding ArtistSource}" FontSize="10" Opacity="0.6" />
-                            </StackPanel>
-
-                            <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2">
-                                <TextBox Classes="field"
-                                         AutomationProperties.AutomationId="review.title"
-                                         AutomationProperties.Name="{x:Static res:UiStrings.Review_TitleField}"
-                                         Text="{Binding Title, Mode=TwoWay}"
-                                         IsReadOnly="{Binding IsApproved}"
-                                         PlaceholderText="{x:Static res:UiStrings.Review_TitleField}" />
-                                <TextBlock Text="{Binding TitleSource}" FontSize="10" Opacity="0.6" />
-                            </StackPanel>
-
-                            <StackPanel Grid.Row="1" Grid.Column="3" Spacing="4" VerticalAlignment="Top">
-                                <!-- One place, two states: while the row is a question it asks, and
-                                     once it has been answered it offers the only thing left to do
-                                     with an answer. A button that still says "answer" over a row
-                                     that has been is the screen telling the DJ it was not. -->
-                                <Button AutomationProperties.AutomationId="review.approve"
-                                        Content="{x:Static res:UiStrings.Review_Approve}"
-                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveCommand}"
-                                        CommandParameter="{Binding}"
-                                        IsVisible="{Binding !IsApproved}" />
-                                <Button AutomationProperties.AutomationId="review.withdraw"
-                                        Content="{x:Static res:UiStrings.Review_Withdraw}"
-                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).WithdrawCommand}"
-                                        CommandParameter="{Binding}"
-                                        ToolTip.Tip="{x:Static res:UiStrings.Review_WithdrawHint}"
-                                        IsVisible="{Binding IsApproved}" />
-                            </StackPanel>
-
-                            <!-- Twenty files claiming the same misspelling are one decision about a
-                                 dance, and twenty confirmations about everything else. -->
-                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
-                                        Orientation="Horizontal"
-                                        Spacing="8"
-                                        IsVisible="{Binding HasUnknownValue}">
-                                <Button AutomationProperties.AutomationId="review.use-for-all"
-                                        Content="{Binding SharedText}"
-                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).UseDanceForAllCommand}"
-                                        CommandParameter="{Binding}"
-                                        IsVisible="{Binding IsShared}"
-                                        FontSize="11" />
-                                <ItemsControl ItemsSource="{Binding Suggestions}" IsVisible="{Binding HasSuggestions}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal" Spacing="4" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <!-- Offered, never applied: "Scottiche" is a misspelling
-                                                 of exactly one dance, and saying so is a person's
-                                                 job. Typing it out again is not. -->
-                                            <Button Content="{Binding}"
-                                                    Click="OnSuggestionClick"
-                                                    Tag="{Binding $parent[ItemsControl].DataContext}"
-                                                    FontSize="11" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-
-                                <Button AutomationProperties.AutomationId="review.not-a-dance"
-                                        Content="{Binding NotADanceText}"
-                                        Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).NotADanceCommand}"
-                                        CommandParameter="{Binding}"
-                                        ToolTip.Tip="{x:Static res:UiStrings.Review_NotADanceHint}"
-                                        FontSize="11" />
-                            </StackPanel>
-                        </Grid>
-
-                        <TextBlock Text="{x:Static res:UiStrings.Review_UnknownDanceHint}"
-                                   FontSize="11"
-                                   TextWrapping="Wrap"
-                                   IsVisible="{Binding IsParked}" />
-                                    </StackPanel>
-                                </Border>
+        <Panel>
+            <ListBox x:Name="Queue"
+                     AutomationProperties.AutomationId="review.rows"
+                     ItemsSource="{Binding Rows}"
+                     SelectedItem="{Binding Selected, Mode=TwoWay}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="local:ReviewRowViewModel">
+                        <StackPanel Spacing="0">
+                            <!-- The folder is a band of its own, above the row rather than inside it.
+                                 Inside, it took the row's colour and the row's selection, and read as
+                                 part of the track underneath instead of as the start of a group. -->
+                            <Border Classes="folderBand" IsVisible="{Binding IsFirstOfGroup}">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <TextBlock Text="{Binding FolderText}"
+                                               FontWeight="Bold"
+                                               FontSize="15"
+                                               VerticalAlignment="Center" />
+                                    <!-- The folder answer sits with the folder it answers, once, rather
+                                         than on every row it would take. -->
+                                    <Button AutomationProperties.AutomationId="review.answer-folder"
+                                            Content="{Binding AnswerFolderText}"
+                                            Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveFolderCommand}"
+                                            CommandParameter="{Binding}"
+                                            IsVisible="{Binding CanAnswerFolder}"
+                                            FontSize="11"
+                                            Padding="8,2" />
+                                </StackPanel>
                             </Border>
 
-                            <!-- A refusal has to be seen rather than explained: a keystroke that
-                                 does nothing reads as one that never arrived. Heard as well, for
-                                 somebody who cannot see a flash: the reason is this overlay's name
-                                 for as long as it flashes, and it interrupts, because it is gone
-                                 again in a second. -->
-                            <Border AutomationProperties.AutomationId="review.refusal"
-                                    AutomationProperties.Name="{Binding RefusalText}"
-                                    AutomationProperties.LiveSetting="Assertive"
-                                    Classes.rejected="{Binding IsRejected}"
-                                    Background="{DynamicResource ReviewRejectedBrush}"
-                                    CornerRadius="4"
-                                    Margin="0,0,0,6"
-                                    Opacity="0"
-                                    IsHitTestVisible="False" />
-                        </Panel>
+                            <Panel>
+                                <!-- The outline is the selection: the list's own highlight is switched
+                                     off, or it would paint the band above as though it belonged to this
+                                     row. -->
+                                <Border Classes="selectable"
+                                        Classes.selected="{Binding $parent[ListBoxItem].IsSelected}"
+                                        BorderThickness="2"
+                                        CornerRadius="4"
+                                        Margin="0,0,0,6">
+                                    <Border Background="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}, ConverterParameter=fill}"
+                                            BorderBrush="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}}"
+                                            BorderThickness="4,0,0,0"
+                                            CornerRadius="3"
+                                            Padding="8,6">
+                                        <StackPanel Spacing="4">
+                            <!-- One grid for the row, so the player above lines up with the fields
+                                 below: the bar ends where the title box ends rather than running on
+                                 under the buttons. -->
+                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,*,150"
+                                  ColumnSpacing="8" RowSpacing="4">
+                                <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                                      ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                                    <!-- One button in two states: the thing that starts it is the thing
+                                         that stops it, in the place the eye already is. -->
+                                    <Button Grid.Column="0"
+                                            AutomationProperties.Name="{x:Static res:UiStrings.Review_Preview}"
+                                            Click="OnPreviewClick"
+                                            Tag="{Binding}"
+                                            ToolTip.Tip="{x:Static res:UiStrings.Review_Preview}"
+                                            IsVisible="{Binding !IsPreviewing}"
+                                            Padding="6,2">
+                                        <PathIcon Data="{StaticResource IconPlay}" Width="12" Height="12" />
+                                    </Button>
+                                    <Button Grid.Column="0"
+                                            AutomationProperties.Name="{x:Static res:UiStrings.Review_StopPreview}"
+                                            Click="OnPreviewClick"
+                                            Tag="{Binding}"
+                                            ToolTip.Tip="{x:Static res:UiStrings.Review_StopPreview}"
+                                            IsVisible="{Binding IsPreviewing}"
+                                            Padding="6,2">
+                                        <PathIcon Data="{StaticResource IconClose}" Width="12" Height="12" />
+                                    </Button>
+
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding FileName}"
+                                               FontSize="11"
+                                               Opacity="0.7"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" />
+
+                                    <!-- A ProgressBar with a click handler, never a Slider: its thumb
+                                         swallows the pointer, so clicking the track does nothing. -->
+                                    <ProgressBar Grid.Column="2"
+                                                 Minimum="0"
+                                                 Maximum="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).PreviewDurationSeconds}"
+                                                 Value="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).PreviewPositionSeconds}"
+                                                 Height="8"
+                                                 VerticalAlignment="Center"
+                                                 IsVisible="{Binding IsPreviewing}"
+                                                 PointerPressed="OnPreviewBarPressed" />
+                                </Grid>
+
+                                <!-- A fixed column, so no status can ever squeeze the fields: the
+                                     sentence that explains a parked row lives under it instead. -->
+                                <!-- Live regions, both of them: Enter answers the row and moves the
+                                     keyboard straight on to the next one, so what the answered row now
+                                     says is said by nothing the keyboard is on. -->
+                                <TextBlock Grid.Row="0" Grid.Column="3"
+                                           AutomationProperties.AutomationId="review.status"
+                                           AutomationProperties.LiveSetting="Polite"
+                                           Text="{Binding StatusText}"
+                                           FontSize="11"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"
+                                           TextTrimming="CharacterEllipsis"
+                                           Opacity="0.9"
+                                           Foreground="{Binding State, Converter={x:Static local:ReviewStateBrushConverter.Instance}}"
+                                           IsVisible="{Binding IsApproved}" />
+                                <TextBlock Grid.Row="0" Grid.Column="3"
+                                           AutomationProperties.AutomationId="review.status"
+                                           AutomationProperties.LiveSetting="Polite"
+                                           Text="{Binding StatusText}"
+                                           FontSize="11"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"
+                                           TextTrimming="CharacterEllipsis"
+                                           Opacity="0.8"
+                                           IsVisible="{Binding !IsApproved}" />
+
+                                <!-- ZIndex: the picker overlay must beat this row's own captions and
+                                     the columns beside it; the ListBoxItem's ZIndex beats the rows
+                                     beneath. Each ZIndex only counts among siblings, hence the chain. -->
+                                <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2" ZIndex="10">
+                                    <!-- A text box and a list of our own rather than an AutoCompleteBox:
+                                         that control's dropdown cannot be walked with the arrows, which
+                                         is the whole point of showing four bourrées rather than one.
+                                         Inline rather than in a popup, because a popup takes the focus
+                                         off the box being typed into and the typing stops. -->
+                                    <!-- Shut once the row is answered, so what is in the box is what
+                                         was written down. Editable, it read as a correction that had
+                                         been made while the stored answer still held the old value.
+                                         Read-only rather than disabled: a disabled box cannot be
+                                         focused, so answering the row dropped the caret out of the
+                                         queue and the keys stopped working on the row that had just
+                                         been answered. -->
+                                    <TextBox Classes="field"
+                                             AutomationProperties.AutomationId="review.dance"
+                                             AutomationProperties.Name="{x:Static res:UiStrings.Review_Dance}"
+                                             Text="{Binding Dance, Mode=TwoWay}"
+                                             IsReadOnly="{Binding IsApproved}"
+                                             PlaceholderText="{x:Static res:UiStrings.Review_Dance}"
+                                             LostFocus="OnDanceLostFocus" />
+
+                                    <!-- Zero height on purpose: the matches overlay the rows beneath
+                                         rather than growing this one. Growing it resized the
+                                         virtualized list mid-keystroke and threw the viewport, which
+                                         cost the person the very row they were answering. -->
+                                    <Canvas Height="0" ClipToBounds="False" ZIndex="10">
+                                        <!-- A Canvas, not a Panel: a zero-height Panel arranges its
+                                             child to zero height too, and the overlay vanishes. A
+                                             Canvas gives the child its desired size regardless. -->
+                                        <Border IsVisible="{Binding IsPickerOpen}"
+                                                MinWidth="{Binding $parent[Canvas].Bounds.Width}"
+                                                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="2">
+                                            <ItemsControl ItemsSource="{Binding DanceMatches}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="local:DanceMatch">
+                                                        <Border Classes="match" Classes.highlighted="{Binding IsHighlighted}">
+                                                            <TextBlock Text="{Binding Name}" FontSize="12" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+                                    </Canvas>
+
+                                    <TextBlock Text="{Binding DanceSource}" FontSize="10" Opacity="0.6" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
+                                    <TextBox Classes="field"
+                                             AutomationProperties.AutomationId="review.artist"
+                                             AutomationProperties.Name="{x:Static res:UiStrings.Review_Artist}"
+                                             Text="{Binding Artist, Mode=TwoWay}"
+                                             IsReadOnly="{Binding IsApproved}"
+                                             PlaceholderText="{x:Static res:UiStrings.Review_Artist}" />
+                                    <TextBlock Text="{Binding ArtistSource}" FontSize="10" Opacity="0.6" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2">
+                                    <TextBox Classes="field"
+                                             AutomationProperties.AutomationId="review.title"
+                                             AutomationProperties.Name="{x:Static res:UiStrings.Review_TitleField}"
+                                             Text="{Binding Title, Mode=TwoWay}"
+                                             IsReadOnly="{Binding IsApproved}"
+                                             PlaceholderText="{x:Static res:UiStrings.Review_TitleField}" />
+                                    <TextBlock Text="{Binding TitleSource}" FontSize="10" Opacity="0.6" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.Column="3" Spacing="4" VerticalAlignment="Top">
+                                    <!-- One place, two states: while the row is a question it asks, and
+                                         once it has been answered it offers the only thing left to do
+                                         with an answer. A button that still says "answer" over a row
+                                         that has been is the screen telling the DJ it was not. -->
+                                    <Button AutomationProperties.AutomationId="review.approve"
+                                            Content="{x:Static res:UiStrings.Review_Approve}"
+                                            Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).ApproveCommand}"
+                                            CommandParameter="{Binding}"
+                                            IsVisible="{Binding !IsApproved}" />
+                                    <Button AutomationProperties.AutomationId="review.withdraw"
+                                            Content="{x:Static res:UiStrings.Review_Withdraw}"
+                                            Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).WithdrawCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="{x:Static res:UiStrings.Review_WithdrawHint}"
+                                            IsVisible="{Binding IsApproved}" />
+                                </StackPanel>
+
+                                <!-- Twenty files claiming the same misspelling are one decision about a
+                                     dance, and twenty confirmations about everything else. -->
+                                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
+                                            Orientation="Horizontal"
+                                            Spacing="8"
+                                            IsVisible="{Binding HasUnknownValue}">
+                                    <Button AutomationProperties.AutomationId="review.use-for-all"
+                                            Content="{Binding SharedText}"
+                                            Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).UseDanceForAllCommand}"
+                                            CommandParameter="{Binding}"
+                                            IsVisible="{Binding IsShared}"
+                                            FontSize="11" />
+                                    <ItemsControl ItemsSource="{Binding Suggestions}" IsVisible="{Binding HasSuggestions}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="4" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <!-- Offered, never applied: "Scottiche" is a misspelling
+                                                     of exactly one dance, and saying so is a person's
+                                                     job. Typing it out again is not. -->
+                                                <Button Content="{Binding}"
+                                                        Click="OnSuggestionClick"
+                                                        Tag="{Binding $parent[ItemsControl].DataContext}"
+                                                        FontSize="11" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <Button AutomationProperties.AutomationId="review.not-a-dance"
+                                            Content="{Binding NotADanceText}"
+                                            Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).NotADanceCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="{x:Static res:UiStrings.Review_NotADanceHint}"
+                                            FontSize="11" />
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="{x:Static res:UiStrings.Review_UnknownDanceHint}"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding IsParked}" />
+                                        </StackPanel>
+                                    </Border>
+                                </Border>
+
+                                <!-- A refusal has to be seen rather than explained: a keystroke that
+                                     does nothing reads as one that never arrived. Heard as well, for
+                                     somebody who cannot see a flash: the reason is this overlay's name
+                                     for as long as it flashes, and it interrupts, because it is gone
+                                     again in a second. -->
+                                <Border AutomationProperties.AutomationId="review.refusal"
+                                        AutomationProperties.Name="{Binding RefusalText}"
+                                        AutomationProperties.LiveSetting="Assertive"
+                                        Classes.rejected="{Binding IsRejected}"
+                                        Background="{DynamicResource ReviewRejectedBrush}"
+                                        CornerRadius="4"
+                                        Margin="0,0,0,6"
+                                        Opacity="0"
+                                        IsHitTestVisible="False" />
+                            </Panel>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Hovering over the queue rather than pushing it down: opening the rules must not
+                 move the row somebody was reading, and closing them must not move it back. In the
+                 queue's own cell, so it starts below the header at whatever height the header wraps
+                 to, and can never cover the toggle that closes it. -->
+            <Border x:Name="RulesPanel"
+                    IsVisible="{Binding IsDiscoveryOpen}"
+                    VerticalAlignment="Top"
+                    MaxHeight="620"
+                    Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    BoxShadow="{DynamicResource FloatingPanelShadow}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="12,8,12,12">
+                        <CheckBox Content="{x:Static res:UiStrings.Review_AllowOutsideTheList}"
+                                  IsChecked="{Binding AllowDancesOutsideTheList, Mode=TwoWay}" />
+                        <TextBlock Text="{x:Static res:UiStrings.Review_AllowOutsideTheListHint}"
+                                   FontSize="11"
+                                   Opacity="0.7"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+
+                    <discovery:DiscoveryView DataContext="{Binding Discovery}" />
+                </DockPanel>
+            </Border>
+        </Panel>
     </DockPanel>
-
-    <!-- Hovering over the queue rather than pushing it down: opening the rules must not move the
-         row somebody was reading, and closing them must not move it back. -->
-    <Border x:Name="RulesPanel"
-            IsVisible="{Binding IsDiscoveryOpen}"
-            VerticalAlignment="Top"
-            Margin="0,96,0,0"
-            MaxHeight="620"
-            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
-            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
-            BorderThickness="1"
-            CornerRadius="4"
-            BoxShadow="0 8 24 0 #40000000">
-        <DockPanel>
-            <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="12,8,12,12">
-                <CheckBox Content="{x:Static res:UiStrings.Review_AllowOutsideTheList}"
-                          IsChecked="{Binding AllowDancesOutsideTheList, Mode=TwoWay}" />
-                <TextBlock Text="{x:Static res:UiStrings.Review_AllowOutsideTheListHint}"
-                           FontSize="11"
-                           Opacity="0.7"
-                           TextWrapping="Wrap" />
-            </StackPanel>
-
-            <discovery:DiscoveryView DataContext="{Binding Discovery}" />
-        </DockPanel>
-    </Border>
-    </Panel>
 </UserControl>

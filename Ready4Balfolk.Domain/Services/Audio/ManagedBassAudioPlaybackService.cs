@@ -12,6 +12,10 @@ namespace Ready4Balfolk.Domain.Services.Audio;
 
 public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDisposable
 {
+    /// <summary>How often a playing track's position is read for the progress bars.</summary>
+    /// <remarks>Ten times a second: smooth to the eye, and nothing to a machine playing one file.</remarks>
+    private static readonly TimeSpan ProgressPollInterval = TimeSpan.FromMilliseconds(100);
+
     private readonly Subject<Uri?> _selectedChanged = new();
     private readonly Subject<Unit> _playbackStarted = new();
     private readonly Subject<Unit> _playbackPaused = new();
@@ -60,7 +64,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
         _useNoSoundDevice = useNoSoundDevice;
         _equalizerSettings = settingsStore.Current.Equalizer;
 
-        WhenProgressChanged = Observable.Interval(TimeSpan.FromMilliseconds(100))
+        WhenProgressChanged = Observable.Interval(ProgressPollInterval)
             .Where(_ => IsPlaying)
             .Select(_ => GetPosition())
             .DistinctUntilChanged(t => (int)t.TotalMilliseconds);

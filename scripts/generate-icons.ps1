@@ -110,5 +110,7 @@ if ($LASTEXITCODE -ne 0) { throw 'magick failed for icon.ico' }
 Write-Host '  icon.ico'
 
 # --- Save hash ---
-$CurrentHash | Out-File -FilePath $HashFile -NoNewline -Encoding utf8
+# Byte for byte what generate-icons.sh writes: the hash, one LF, no BOM. The file is committed, so
+# any difference between the two scripts shows up as a change to it on every run of the other one.
+[IO.File]::WriteAllText($HashFile, "$CurrentHash`n")
 Write-Host 'Done!'
