@@ -353,10 +353,15 @@ public sealed class QueueHistoryStoreTests : IDisposable
     {
         var emissions = new List<QueueHistory>();
         using var subscription = _sut.Observe().Subscribe(emissions.Add);
+        var entry = new StopHistoryEntry(CompletionStatus.Finished);
 
-        await _sut.AddAsync(new StopHistoryEntry(CompletionStatus.Finished));
+        await _sut.AddAsync(entry);
 
-        Assert.True(emissions.Count >= 2); // initial + update
+        // The history as it stood when subscribed, and then the history with the entry in it. A
+        // second emission alone says something changed, not that what changed was this entry.
+        Assert.Equal(2, emissions.Count);
+        Assert.Empty(emissions[0].Entries);
+        Assert.Same(entry, Assert.Single(emissions[1].Entries));
     }
 
     /// <summary>The names an entry is stored under, which a rename in code must not move.</summary>

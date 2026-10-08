@@ -521,6 +521,12 @@ public sealed class TrackStoreTests : IDisposable
         Assert.Single(
             _libraryIndex.ReceivedCalls(),
             call => call.GetMethodInfo().Name == nameof(ILibraryIndex.WriteAsync));
+        // A rebuild is the one thing that reads the approvals, so counting those reads counts the
+        // rebuilds. The snapshot is no use for it: the batch reads that as well, to answer the new
+        // files from what their folder already holds.
+        Assert.Single(
+            _libraryIndex.ReceivedCalls(),
+            call => call.GetMethodInfo().Name == nameof(ILibraryIndex.ApprovalsAsync));
     }
 
     [Fact]

@@ -301,12 +301,22 @@ public sealed class SettingsStoreTests
     public async Task UpdateAsync_ConcurrentWriters_AllLandAndTheFileStaysReadable()
     {
         var (store, fileSystem) = Create();
+        var before = store.Current.MaxQueueItems;
 
-        await Task.WhenAll(Enumerable.Range(0, 20).Select(i =>
-            store.UpdateAsync(s => s with { MaxQueueItems = i })));
+        // Each writer builds on what the one before it left, so a write that was lost or applied
+        // to a stale copy shows up as a count short of twenty.
+        await Task.WhenAll(Enumerable.Range(0, 20).Select(_ =>
+            store.UpdateAsync(s => s with { MaxQueueItems = s.MaxQueueItems + 1 })));
 
-        var text = await fileSystem.File.ReadAllTextAsync(SettingsPathIn(fileSystem), TestContext.Current.CancellationToken);
-        Assert.Contains("\"maxQueueItems\"", text, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(before + 20, store.Current.MaxQueueItems);
+        // Read back the way the next start reads it, and held against what this session has. A
+        // file that merely mentions the setting is still a file that disagrees with the screen.
+        var (reloaded, _) = Create(fileSystem);
+        using (reloaded)
+        {
+            Assert.Equivalent(store.Current, reloaded.Current, strict: true);
+        }
+
         Assert.False(fileSystem.File.Exists(SettingsPathIn(fileSystem) + ".tmp"));
     }
 

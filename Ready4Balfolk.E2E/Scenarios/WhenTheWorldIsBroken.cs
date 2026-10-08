@@ -71,8 +71,8 @@ public sealed class WhenTheWorldIsBroken(HeadlessSession session)
     /// World: a music directory holding one real track and one file that is named like audio and is
     /// not, which is what a failed download or a copy that was interrupted leaves behind.
     /// Steps: start the application and let it index what is there.
-    /// Sees: the real track in the catalogue, and the library no smaller for the other one being
-    /// unreadable.
+    /// Sees: the real track in the catalogue, the other file named in the log, and nothing of it
+    /// waiting in review.
     /// </remarks>
     [Fact]
     public async Task AFileThatWillNotDecodeIsReportedNotIndexed()
@@ -92,6 +92,25 @@ public sealed class WhenTheWorldIsBroken(HeadlessSession session)
             Assert.Contains(
                 application.RowsOf("catalog.tracks"),
                 row => row.Contains("Salamandre", StringComparison.Ordinal));
+
+            // The catalogue shows approved tracks only, so a junk file indexed into review leaves it
+            // exactly as it is. What says the file was refused is the log naming it, and the review
+            // screen having nothing of it to ask the DJ about.
+            var log = Path.Combine(world.DirectoryInfoRoot.FullName, "app.log");
+            await application.WaitUntil(
+                () => File.Exists(log)
+                    && File.ReadAllText(log).Contains("half a download.mp3", StringComparison.Ordinal),
+                "the log to name the file that would not decode");
+
+            application.Click("toolbar.review");
+
+            // The real track went straight in on trusted tags, so the review screen has nothing
+            // else to show. Watched for a while rather than looked at once, so a row on its way
+            // has every chance to arrive.
+            await application.NeverHappensWithin(
+                TimeSpan.FromSeconds(2),
+                () => application.RowsOf("review.rows").Count > 0,
+                "the file that would not decode to wait in review");
         });
     }
 
