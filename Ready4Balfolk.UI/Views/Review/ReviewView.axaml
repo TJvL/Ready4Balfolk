@@ -329,11 +329,14 @@
                                 </StackPanel>
 
                                 <!-- Twenty files claiming the same misspelling are one decision about a
-                                     dance, and twenty confirmations about everything else. -->
-                                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
-                                            Orientation="Horizontal"
-                                            Spacing="8"
-                                            IsVisible="{Binding HasUnknownValue}">
+                                     dance, and twenty confirmations about everything else. Wrapped,
+                                     because a bare "Bourrée" offers seven dances: in one line they run
+                                     off the edge of the row and take "not a dance" with them. -->
+                                <WrapPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
+                                           Orientation="Horizontal"
+                                           ItemSpacing="8"
+                                           LineSpacing="4"
+                                           IsVisible="{Binding HasUnknownValue}">
                                     <Button AutomationProperties.AutomationId="review.use-for-all"
                                             Content="{Binding SharedText}"
                                             Command="{Binding $parent[UserControl].((local:ReviewViewModel)DataContext).UseDanceForAllCommand}"
@@ -343,7 +346,7 @@
                                     <ItemsControl ItemsSource="{Binding Suggestions}" IsVisible="{Binding HasSuggestions}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
-                                                <StackPanel Orientation="Horizontal" Spacing="4" />
+                                                <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4" />
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
@@ -365,7 +368,7 @@
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="{x:Static res:UiStrings.Review_NotADanceHint}"
                                             FontSize="11" />
-                                </StackPanel>
+                                </WrapPanel>
                             </Grid>
 
                             <TextBlock Text="{x:Static res:UiStrings.Review_UnknownDanceHint}"

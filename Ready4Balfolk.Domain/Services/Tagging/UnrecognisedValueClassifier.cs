@@ -40,8 +40,12 @@ public static class UnrecognisedValueClassifier
 
         // Too general first, because a value that sits inside several names would also be within
         // edit distance of them, and calling it a misspelling is exactly the wrong answer.
+        // Shortest name first. The plain "Bourrée 2 temps" is the commonest dance a bare "Bourrée"
+        // means, and the list's longest-first order put every regional variant ahead of it.
         var containing = index.FoldedNamesLongestFirst
             .Where(name => ContainsAsWords(name, folded))
+            .OrderBy(name => name.Length)
+            .ThenBy(name => name, StringComparer.Ordinal)
             .Select(index.ResolveSlug)
             .OfType<string>()
             .Distinct(StringComparer.Ordinal)
