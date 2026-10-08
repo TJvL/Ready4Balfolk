@@ -231,8 +231,7 @@ public static class ApplicationComposition
         }
         services.AddSingleton<ILibraryIndex, SqliteLibraryIndex>();
         services.AddSingleton<IFileSystem>(new FileSystem());
-        services.AddSingleton<TrackEditorService>();
-        services.AddSingleton<ITrackEditorService>(sp => sp.GetRequiredService<TrackEditorService>());
+        services.AddSingleton<ITrackEditorService, TrackEditorService>();
         services.AddSingleton<ITrackDiscoveryService, TrackDiscoveryService>();
         services.AddSingleton<IRandomTrackService, RandomTrackService>();
         services.AddSingleton<IPresentationStateService, PresentationStateService>();
@@ -250,15 +249,16 @@ public static class ApplicationComposition
         services.AddSingleton<NavigationService>();
         // Forward to the concrete registration rather than registering the implementation again:
         // AddSingleton<TService, TImplementation> would build a second instance, and both of these
-        // carry state set from outside (the dialog owner, the notification list the overlay binds
-        // to) that would then be written on one instance and read from the other. The domain asks
+        // carry state set from outside (the notification list the overlay binds to, the exit the
+        // missing folder question offers) that would then be written on one instance and read from
+        // the other. The one window every dialog belongs to is held once, by DialogOwner. The domain asks
         // for the notifications by the interface it declares, and gets this same instance.
         services.AddSingleton<NotificationService>();
         services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
-        services.AddSingleton<FilePickerService>();
-        services.AddSingleton<IFilePickerService>(sp => sp.GetRequiredService<FilePickerService>());
-        services.AddSingleton<ConfirmationService>();
-        services.AddSingleton<IConfirmationService>(sp => sp.GetRequiredService<ConfirmationService>());
+        services.AddSingleton<DialogOwner>();
+        services.AddSingleton<IFilePickerService, FilePickerService>();
+        services.AddSingleton<IConfirmationService, ConfirmationService>();
+        services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<MissingFolderPromptService>();
         services.AddSingleton<IMissingFolderPrompt>(sp => sp.GetRequiredService<MissingFolderPromptService>());
 

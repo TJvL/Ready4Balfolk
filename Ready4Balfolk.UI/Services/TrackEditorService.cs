@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
@@ -12,22 +11,19 @@ namespace Ready4Balfolk.UI.Services;
 public sealed class TrackEditorService(
     IDanceListStore danceListStore,
     ILibraryIndex libraryIndex,
-    ITrackStore trackStore) : ITrackEditorService
+    ITrackStore trackStore,
+    DialogOwner owner) : ITrackEditorService
 {
-    private Window? _owner;
-
-    public void SetOwner(Window owner) => _owner = owner;
-
     public async Task EditAsync(Track track)
     {
-        if (_owner is null)
+        if (owner.Current is not { } window)
         {
             return;
         }
 
         var vm = new EditTrackDialogViewModel(track, danceListStore.Index);
         var dialog = new EditTrackDialogView { DataContext = vm };
-        await dialog.ShowDialog(_owner);
+        await dialog.ShowDialog(window);
 
         if (vm.DialogResult == true && vm.DanceToSave is { } dance)
         {

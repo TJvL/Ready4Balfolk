@@ -14,7 +14,8 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
         InitializeComponent();
     }
 
-    private void OnRunSetupClick(object? sender, RoutedEventArgs e) => App.Services.GetRequiredService<ApplicationStartup>().ShowSetup();
+    private void OnRunSetupClick(object? sender, RoutedEventArgs e) =>
+        App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Setup;
 
     /// <summary>
     /// Points the setting at a file the user already has. Nothing is imported or copied: the path

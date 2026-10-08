@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.Domain.Models.QueueItems;
+using Ready4Balfolk.UI.Controls;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
 
@@ -189,19 +190,26 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
 
     private void OnQueueKeyDown(object? sender, KeyEventArgs e)
     {
+        if (ViewModel is not { } model)
+        {
+            return;
+        }
+
+        // Through the commands the toolbar's buttons run, so a key is refused exactly where its
+        // button is disabled: an entry that cannot move or be removed stays where it is.
         if (e.Key == Key.Delete)
         {
-            ViewModel?.DeleteSelectedItem();
+            CommandKeys.Press(model.RemoveSelectedCommand);
             e.Handled = true;
         }
         else if (e.Key == Key.Up && e.KeyModifiers == KeyModifiers.Control)
         {
-            ViewModel?.MoveSelectedUp();
+            CommandKeys.Press(model.MoveSelectedUpCommand);
             e.Handled = true;
         }
         else if (e.Key == Key.Down && e.KeyModifiers == KeyModifiers.Control)
         {
-            ViewModel?.MoveSelectedDown();
+            CommandKeys.Press(model.MoveSelectedDownCommand);
             e.Handled = true;
         }
     }

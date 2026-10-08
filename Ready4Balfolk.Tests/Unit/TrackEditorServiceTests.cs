@@ -19,7 +19,7 @@ public sealed class TrackEditorServiceTests
     {
         var danceListStore = Substitute.For<IDanceListStore>();
         danceListStore.Index.Returns(DanceListIndex.Build(TestData.CreateSimpleDanceList()));
-        _sut = new TrackEditorService(danceListStore, _libraryIndex, _trackStore);
+        _sut = new TrackEditorService(danceListStore, _libraryIndex, _trackStore, new DialogOwner());
     }
 
     [Fact]

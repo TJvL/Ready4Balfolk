@@ -266,7 +266,7 @@ Three kinds of view do not follow the trio:
 
 - **`NotificationOverlayView`** is a plain `UserControl` whose `x:DataType` is the `NotificationService` itself: the bars are the service's list, and a view model in between would only copy it.
 - **`PresentationWindow`** is a plain `Window` over `PresentationDisplayViewModel`, one per display, opened and closed by `ApplicationStartup` rather than navigated to.
-- **The dialogs** in `Views/Dialogs/` are `ReactiveWindow<T>`s, built and shown by the service that asks the question (`ConfirmationService`, `TrackEditorService`, `MissingFolderPromptService` and the like) rather than resolved from the container.
+- **The dialogs** in `Views/Dialogs/` are `ReactiveWindow<T>`s, built and shown by the service that asks the question (`ConfirmationService`, `TrackEditorService`, `MissingFolderPromptService`, `DialogService`) rather than resolved from the container or from a view's code-behind. Every one of them is owned by the window `DialogOwner` holds.
 
 **MainWindow** is the shell. Its `MainWindowViewModel` is handed the always-visible view models (toolbar, playback, equalizer, queue, catalogue) directly, and everything else as a `Lazy<T>`, or a `Func<T>` for the wizard, built on first navigation into a nullable `[Reactive]` property. Each screen is a `DockPanel` whose `IsVisible` follows `Navigation`, holding a `ViewModelViewHost` bound to that property, so the view is resolved through its `IViewFor<T>` registration once there is a view model to show. The `NotificationOverlayView` is always visible on top.
 
@@ -304,6 +304,7 @@ Common cases:
 | **ContainerPrepared styling** | `QueueView.axaml.cs`: adds CSS class `"autoTrack"` to `ListBoxItem` containers for `AutoTrackQueueItem`. |
 | **Focus management** | Various views: programmatic focus after inline edit starts. |
 | **Navigation clicks** | `ToolbarView.axaml.cs`, `MainWindow.axaml.cs`: set `NavigationService.CurrentScreen`. |
+| **Keys standing in for buttons** | `MainWindow.axaml.cs`, `QueueView.axaml.cs`: `CommandKeys.Press(command)`, which asks the command's `CanExecute` first, so a key is refused wherever its button is disabled. |
 
 ### Navigation
 
@@ -327,8 +328,10 @@ public enum Screen { Main, Settings, Help, Review, Setup }
 
 | Service | Purpose |
 |---------|---------|
-| `ConfirmationService` | Shows a modal `ConfirmationDialogView`. Requires `SetOwner(Window)` to be called once at startup (done in `ApplicationStartup.Run`), and is where other dialogs read their owner (`CurrentOwner`). Returns `Task<bool>`. |
-| `MissingFolderPromptService` | Implements the Domain's `IMissingFolderPrompt`: shows `MissingFoldersDialogView` for a scan that found no music where the index says there is some. Marshals onto the UI thread, since a scan does not run on it, and takes its owner window from `ConfirmationService`. Keeping the tracks is what an unanswered question means. |
+| `DialogOwner` | The one window every dialog and picker belongs to, set once in `ApplicationStartup.Run` and read by every service below that puts something up. |
+| `ConfirmationService` | Shows a modal `ConfirmationDialogView`. Returns `Task<bool>`. |
+| `DialogService` | The toolbars' dialogs: asking for a message to queue, and showing an address as a QR code. |
+| `MissingFolderPromptService` | Implements the Domain's `IMissingFolderPrompt`: shows `MissingFoldersDialogView` for a scan that found no music where the index says there is some. Marshals onto the UI thread, since a scan does not run on it, and takes its owner window from `DialogOwner`. Keeping the tracks is what an unanswered question means. |
 | `NotificationService` | Implements the Domain's `INotificationService`: the bars along the bottom of the window, a DynamicData `SourceList<NotificationItem>` bound to `NotificationOverlayView`. Asked from any thread and moves onto the UI thread itself. Auto-dismisses after 4 seconds, counted from when the window opens for anything said before it did. An error already on screen is not shown again beside itself. `NotificationSeverity` is `Information`, `Warning` or `Error`. |
 | `FileLogSinkService` | Implements Avalonia's `ILogSink` to bridge framework logs into the Domain `ILoggerService`. Wired in `ApplicationComposition.cs` via `AfterSetup`. |
 

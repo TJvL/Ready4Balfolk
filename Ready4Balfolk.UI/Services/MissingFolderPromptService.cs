@@ -17,8 +17,7 @@ namespace Ready4Balfolk.UI.Services;
 /// <para>
 /// The scan runs off the UI thread and knows nothing about windows, so this is where the two meet:
 /// it marshals onto the dispatcher, shows the dialog, and hands the answer back. The owner comes
-/// from <see cref="ConfirmationService"/> rather than being set a second time: there is one window,
-/// and the wizard is a screen inside it.
+/// from <see cref="DialogOwner"/>, like every other dialog's.
 /// </para>
 /// <para>
 /// Keeping the tracks is what an unanswered question means: the smoke test, a window that is not up
@@ -28,7 +27,7 @@ namespace Ready4Balfolk.UI.Services;
 /// </para>
 /// </remarks>
 public sealed class MissingFolderPromptService(
-    ConfirmationService owner,
+    DialogOwner owner,
     ILoggerService loggerService,
     INotificationService notifications)
     : IMissingFolderPrompt
@@ -43,7 +42,7 @@ public sealed class MissingFolderPromptService(
     {
         ArgumentNullException.ThrowIfNull(owner);
 
-        if (Program.IsSmokeTest || owner.CurrentOwner is not { } window)
+        if (Program.IsSmokeTest || owner.Current is not { } window)
         {
             return MissingFolderAnswer.KeepThem;
         }

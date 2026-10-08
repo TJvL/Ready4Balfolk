@@ -1,8 +1,8 @@
-using System.Windows.Input;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.DependencyInjection;
+using Ready4Balfolk.UI.Controls;
 using Ready4Balfolk.UI.Platform;
 using Ready4Balfolk.UI.Services;
 
@@ -54,15 +54,15 @@ public sealed partial class MainWindow : Window
         // The media keys are never handed back: no control in this window has a use for one.
         if (e.Key is Key.MediaPlayPause || (e.Key is Key.Space && plain && !typing))
         {
-            Press(model.Playback.PlayPauseCommand);
+            CommandKeys.Press(model.Playback.PlayPauseCommand);
         }
         else if (e.Key is Key.MediaNextTrack || (e.Key is Key.Right && control && !typing))
         {
-            Press(model.Playback.NextOrClearCommand);
+            CommandKeys.Press(model.Playback.NextOrClearCommand);
         }
         else if (e.Key is Key.MediaPreviousTrack || (e.Key is Key.Left && control && !typing))
         {
-            Press(model.Playback.RestartCommand);
+            CommandKeys.Press(model.Playback.RestartCommand);
         }
         else if (e.Key is Key.F && control)
         {
@@ -78,19 +78,5 @@ public sealed partial class MainWindow : Window
         }
 
         e.Handled = true;
-    }
-
-    /// <summary>Runs a transport command, or nothing when there is nothing to run it on.</summary>
-    /// <remarks>
-    /// Asked rather than told. These commands refuse while there is no audio to act on, and a
-    /// keystroke that arrives a moment early should do nothing at all rather than be pushed
-    /// through a command that has already said it cannot run.
-    /// </remarks>
-    private static void Press(ICommand command)
-    {
-        if (command.CanExecute(parameter: null))
-        {
-            command.Execute(parameter: null);
-        }
     }
 }

@@ -12,23 +12,21 @@ namespace Ready4Balfolk.Tests.Unit;
 public sealed class ApplicationCompositionTests
 {
     /// <summary>
-    /// <see cref="ITrackEditorService"/> exists so a caller can depend on the interface rather than
-    /// the concrete <see cref="TrackEditorService"/>, and it forwards to the same singleton
-    /// (<c>SetOwner</c> configures one owner window; two instances would mean the wrong one answers
-    /// a dialog).
+    /// Every dialog belongs to the one window startup hands to <see cref="DialogOwner"/>, so there
+    /// has to be one owner for all of them to read.
     /// </summary>
     /// <remarks>
-    /// Runs the real <see cref="ApplicationComposition.ConfigureServices"/>, not a copy of its
-    /// forwarding line, so deleting that line or turning it back into a second registration fails
-    /// this test rather than only showing up when a scenario exercises the edit dialog.
+    /// Runs the real <see cref="ApplicationComposition.ConfigureServices"/>. A second registration
+    /// would give some dialogs an owner nobody ever set, and those would quietly never open: the
+    /// confirmation answers yes, the picker returns nothing, the editor does nothing.
     /// </remarks>
     [Fact]
-    public void TrackEditorService_IsRegisteredAsTheSameInstanceUnderItsInterface()
+    public void EveryDialogService_ReadsTheOneOwner()
     {
         var services = new ServiceCollection();
         var options = new ApplicationOptions
         {
-            // The concrete stores this service depends on need a real settings directory and a real
+            // The concrete stores the editor depends on need a real settings directory and a real
             // database; registered last, per ApplicationOptions.AlsoRegister, these substitutes win
             // over ConfigureServices' own registrations without either ever being asked to resolve.
             AlsoRegister = s =>
@@ -42,10 +40,15 @@ public sealed class ApplicationCompositionTests
         ApplicationComposition.ConfigureServices(services, options);
         using var provider = services.BuildServiceProvider();
 
-        var concrete = provider.GetRequiredService<TrackEditorService>();
-        var viaInterface = provider.GetRequiredService<ITrackEditorService>();
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(DialogOwner));
+        Assert.Same(provider.GetRequiredService<DialogOwner>(), provider.GetRequiredService<DialogOwner>());
 
-        Assert.Same(concrete, viaInterface);
+        // Each of these takes the owner in its constructor, so resolving them is what proves they
+        // can all be built around the one instance above.
+        Assert.NotNull(provider.GetRequiredService<IConfirmationService>());
+        Assert.NotNull(provider.GetRequiredService<IFilePickerService>());
+        Assert.NotNull(provider.GetRequiredService<ITrackEditorService>());
+        Assert.NotNull(provider.GetRequiredService<IDialogService>());
     }
 
     /// <summary>

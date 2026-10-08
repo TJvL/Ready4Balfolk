@@ -48,14 +48,11 @@ public partial class ToolbarView : ReactiveUserControl<ToolbarViewModel>
     /// Nothing at all when there is no server behind the button, which is one that is starting or
     /// one that failed to bind: an empty code is worse than no code.
     /// </remarks>
-    private async Task ShowAddressAsync(QrCodeDialogViewModel? address)
+    private static async Task ShowAddressAsync(QrCodeDialogViewModel? address)
     {
-        if (address is null || TopLevel.GetTopLevel(this) is not Window owner)
+        if (address is not null)
         {
-            return;
+            await App.Services.GetRequiredService<IDialogService>().ShowAddressAsync(address);
         }
-
-        var dialog = new QrCodeDialogView { DataContext = address };
-        await dialog.ShowDialog(owner);
     }
 }
