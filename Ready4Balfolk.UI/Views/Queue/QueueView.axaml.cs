@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using ReactiveUI.Avalonia.Reactive;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.UI.Controls;
@@ -205,14 +206,33 @@ public partial class QueueView : ReactiveUserControl<QueueViewModel>
         else if (e.Key == Key.Up && e.KeyModifiers == KeyModifiers.Control)
         {
             CommandKeys.Press(model.MoveSelectedUpCommand);
+            KeepTheKeyboardOnTheSelection();
             e.Handled = true;
         }
         else if (e.Key == Key.Down && e.KeyModifiers == KeyModifiers.Control)
         {
             CommandKeys.Press(model.MoveSelectedDownCommand);
+            KeepTheKeyboardOnTheSelection();
             e.Handled = true;
         }
     }
+
+    /// <summary>Puts the keyboard back on the entry that just moved.</summary>
+    /// <remarks>
+    /// A move takes the entry's row out of the list and puts a new one in, and the keyboard went
+    /// with the old row, so a second Ctrl+arrow, or a Delete straight after, landed nowhere. Posted
+    /// behind the move, which puts the selection back on the entry once the list has caught up.
+    /// </remarks>
+    private void KeepTheKeyboardOnTheSelection() =>
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (QueueListBox.SelectedItem is { } item && QueueListBox.ContainerFromItem(item) is { } row)
+                {
+                    row.Focus(NavigationMethod.Directional);
+                }
+            },
+            DispatcherPriority.Background);
 
     private void OnRefreshAutoQueuedClick(object? sender, RoutedEventArgs e) => ViewModel?.RefreshAutoTrack();
 
