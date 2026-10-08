@@ -96,6 +96,105 @@ public sealed class TrackDiscoveryServiceTests
         // every file onto a single row.
         Assert.NotEmpty(_sut.Gather(Audio("hashed.mp3"), _root).ContentHash);
 
+    // --- What the index recognises the file by ---
+
+    [Theory]
+    [InlineData("scale.mp3")]
+    [InlineData("scale.mp2")]
+    [InlineData("scale.ogg")]
+    [InlineData("scale.wav")]
+    [InlineData("scale.flac")]
+    [InlineData("scale.aiff")]
+    public void Gather_RetaggingAFile_KeepsItsContentHash(string resource)
+    {
+        // The hash is the track's row in the index, and its approvals hang off it, so a tag edit
+        // made in another program must not move it. FLAC hashed its metadata blocks, a tagged AIFF
+        // hashed its ID3 chunk and Ogg its page numbers, so fixing a title sent an approved track
+        // back to review.
+        var file = Audio("retagged" + Path.GetExtension(resource), resource: resource);
+        var untagged = _sut.Gather(file, _root).ContentHash;
+
+        Retag(file, tag =>
+        {
+            tag.Title = "Salamandre";
+            tag.Performers = ["Naragonia"];
+            tag.Comment = "Mazurka";
+        });
+        var tagged = _sut.Gather(file, _root).ContentHash;
+
+        // Longer, and with a cover, so the tags outgrow whatever room they had. Big enough that an
+        // Ogg comment spills onto another page and every audio page behind it is renumbered.
+        Retag(file, tag =>
+        {
+            tag.Title = "Salamandre, the long version from the second set";
+            tag.Album = "Idem";
+            ByteVector cover = [.. new byte[96 * 1024]];
+            tag.Pictures = [new Picture(cover)];
+        });
+        var retagged = _sut.Gather(file, _root).ContentHash;
+
+        // And everything taken out again, which a tagger lays out afresh: TagLib then spread an Ogg
+        // setup header over three pages, and its own start position landed on the second.
+        using (var stripped = TagLib.File.Create(new TagLibFileAbstraction(file)))
+        {
+            stripped.RemoveTags(TagTypes.AllTags);
+            stripped.Save();
+        }
+
+        var cleared = _sut.Gather(file, _root).ContentHash;
+
+        Assert.Equal(untagged, tagged);
+        Assert.Equal(untagged, retagged);
+        Assert.Equal(untagged, cleared);
+    }
+
+    [Fact]
+    public void Gather_AFlacWithId3TagsAroundIt_HashesTheSameAsWithout()
+    {
+        // Some taggers put an ID3v2 tag in front of a FLAC stream and an ID3v1 tag behind it, and
+        // write the Vorbis comment as well. None of it is audio, so none of it may move the hash.
+        var file = Audio("id3.flac", resource: "scale.flac");
+        var plain = _sut.Gather(file, _root).ContentHash;
+
+        using (var taggable = TagLib.File.Create(new TagLibFileAbstraction(file)))
+        {
+            taggable.GetTag(TagTypes.Id3v2, true);
+            taggable.GetTag(TagTypes.Id3v1, true);
+            taggable.Tag.Title = "Salamandre";
+            taggable.Save();
+        }
+
+        using (var written = TagLib.File.Create(new TagLibFileAbstraction(file)))
+        {
+            Assert.Equal(TagTypes.Id3v2 | TagTypes.Id3v1, written.TagTypesOnDisk & (TagTypes.Id3v2 | TagTypes.Id3v1));
+        }
+
+        Assert.Equal(plain, _sut.Gather(file, _root).ContentHash);
+    }
+
+    [Fact]
+    public void Gather_TwoAiffRecordingsWithTheSameTags_AreTwoTracks()
+    {
+        // Hashing a tagged AIFF's ID3 chunk gave two recordings tagged alike one hash, and the
+        // content hash is unique in the index, so they became one track.
+        var one = Audio("one.aiff", SameTags, "scale.aiff");
+        var other = Audio("other.aiff", resource: "scale.aiff");
+        var bytes = _fileSystem.File.ReadAllBytes(other.FullName);
+        // The same scale played backwards: as long as the first, and sounding nothing like it.
+        var samples = bytes.AsSpan().IndexOf("SSND"u8) + 16;
+        bytes.AsSpan(samples).Reverse();
+        _fileSystem.File.WriteAllBytes(other.FullName, bytes);
+        Retag(other, SameTags);
+
+        Assert.NotEqual(_sut.Gather(one, _root).ContentHash, _sut.Gather(other, _root).ContentHash);
+
+        static void SameTags(Tag tag)
+        {
+            tag.Title = "Scale";
+            tag.Performers = ["Nobody"];
+        }
+    }
+
     [Theory]
     [InlineData("scale.ogg", "vorbis.ogg", AudioFormat.Ogg)]
     [InlineData("scale.ogg", "vorbis.oga", AudioFormat.Ogg)]
@@ -207,11 +306,17 @@ public sealed class TrackDiscoveryServiceTests
 
         if (tag is not null)
         {
-            using var taggable = TagLib.File.Create(new TagLibFileAbstraction(file));
-            tag(taggable.Tag);
-            taggable.Save();
+            Retag(file, tag);
         }
 
         return file;
+    }
+
+    /// <summary>Writes tags into a file the way a tagger would, through the mock file system.</summary>
+    private static void Retag(IFileInfo file, Action<Tag> tag)
+    {
+        using var taggable = TagLib.File.Create(new TagLibFileAbstraction(file));
+        tag(taggable.Tag);
+        taggable.Save();
     }
 }
