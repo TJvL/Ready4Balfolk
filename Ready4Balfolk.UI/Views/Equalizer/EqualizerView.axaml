@@ -13,125 +13,163 @@
         <conv:BoolToStringConverter x:Key="EnabledLabelConverter"
                                          TrueValue="{x:Static res:UiStrings.Equalizer_On}"
                                          FalseValue="{x:Static res:UiStrings.Equalizer_Off}" />
+        <SolidColorBrush x:Key="TrackEqualizerTrackBrush" Color="{DynamicResource SystemAccentColor}" Opacity="0.35" />
     </UserControl.Resources>
-    <Expander AutomationProperties.AutomationId="equalizer.expander"
-              IsExpanded="{Binding IsExpanded}"
-              HorizontalAlignment="Stretch"
-              HorizontalContentAlignment="Stretch">
-        <Expander.Header>
-            <!-- State on the header, so an equalizer left engaged from last night is visible
-                 without opening the panel. -->
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="{x:Static res:UiStrings.Equalizer_Title}"
-                           FontWeight="Bold"
-                           VerticalAlignment="Center" />
-                <Border Background="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
-                        CornerRadius="4"
-                        Padding="6,1"
-                        VerticalAlignment="Center"
-                        IsVisible="{Binding IsAvailable}">
-                    <TextBlock VerticalAlignment="Center"
-                               FontSize="12"
-                               Text="{Binding Enabled, Converter={StaticResource EnabledLabelConverter}}" />
-                </Border>
-            </StackPanel>
-        </Expander.Header>
+    <UserControl.Styles>
+        <!-- A track's own curve on the sliders looks like nothing else on the screen, so the DJ
+             pulling them knows they are shaping one dance and not the evening. The border is
+             always there and only coloured, so the panel does not move when it changes. -->
+        <Style Selector="Border#Frame">
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Border#Frame.trackEqualizer">
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColor}" />
+        </Style>
+        <Style Selector="Border#Frame.trackEqualizer TextBlock#HeaderText">
+            <Setter Property="Foreground" Value="{DynamicResource SystemAccentColor}" />
+        </Style>
+        <Style Selector="Border#Frame.trackEqualizer Slider">
+            <Setter Property="Foreground" Value="{DynamicResource SystemAccentColor}" />
+            <Setter Property="Background" Value="{StaticResource TrackEqualizerTrackBrush}" />
+        </Style>
+    </UserControl.Styles>
+    <Border x:Name="Frame"
+            AutomationProperties.AutomationId="equalizer.frame"
+            Classes.trackEqualizer="{Binding IsTrackEqualizer}"
+            BorderThickness="2"
+            CornerRadius="4">
+        <Expander AutomationProperties.AutomationId="equalizer.expander"
+                  IsExpanded="{Binding IsExpanded}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch">
+            <Expander.Header>
+                <!-- State on the header, so an equalizer left engaged from last night is visible
+                     without opening the panel. -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock x:Name="HeaderText"
+                               AutomationProperties.AutomationId="equalizer.header"
+                               Text="{Binding Header}"
+                               FontWeight="Bold"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" />
+                    <Border Background="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                            CornerRadius="4"
+                            Padding="6,1"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding IsAvailable}">
+                        <TextBlock VerticalAlignment="Center"
+                                   FontSize="12"
+                                   Text="{Binding Enabled, Converter={StaticResource EnabledLabelConverter}}" />
+                    </Border>
+                </StackPanel>
+            </Expander.Header>
 
-        <Grid RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,8,0,0">
-            <!-- BASS_FX missing: the panel stays but does nothing, playback is unaffected -->
-            <TextBlock Grid.Row="0"
-                       Text="{x:Static res:UiStrings.Equalizer_Unavailable}"
-                       Opacity="0.6"
-                       Margin="0,0,0,8"
-                       IsVisible="{Binding !IsAvailable}" />
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,8,0,0">
+                <!-- BASS_FX missing: the panel stays but does nothing, playback is unaffected -->
+                <TextBlock Grid.Row="0"
+                           Text="{x:Static res:UiStrings.Equalizer_Unavailable}"
+                           Opacity="0.6"
+                           Margin="0,0,0,8"
+                           IsVisible="{Binding !IsAvailable}" />
 
-            <StackPanel Grid.Row="1"
-                        Orientation="Horizontal"
-                        Spacing="16"
-                        Margin="0,0,0,8"
-                        IsEnabled="{Binding IsAvailable}">
-                <CheckBox AutomationProperties.AutomationId="equalizer.enable"
-                          Content="{x:Static res:UiStrings.Equalizer_Enable}"
-                          IsChecked="{Binding Enabled}" />
-                <Button AutomationProperties.AutomationId="equalizer.reset"
-                        Content="{x:Static res:UiStrings.Equalizer_Reset}"
-                        Command="{Binding ResetToFlatCommand}" />
-            </StackPanel>
+                <StackPanel Grid.Row="1"
+                            Orientation="Horizontal"
+                            Spacing="16"
+                            Margin="0,0,0,8"
+                            IsEnabled="{Binding IsAvailable}">
+                    <CheckBox AutomationProperties.AutomationId="equalizer.enable"
+                              Content="{x:Static res:UiStrings.Equalizer_Enable}"
+                              IsChecked="{Binding Enabled}" />
+                    <Button AutomationProperties.AutomationId="equalizer.reset"
+                            Content="{x:Static res:UiStrings.Equalizer_Reset}"
+                            Command="{Binding ResetToFlatCommand}" />
+                    <Button AutomationProperties.AutomationId="equalizer.back-to-global"
+                            Content="{x:Static res:UiStrings.Equalizer_BackToGlobal}"
+                            Command="{Binding BackToGlobalCommand}"
+                            IsVisible="{Binding IsTrackEqualizer}"
+                            VerticalAlignment="Center"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource SystemAccentColor}"
+                            Cursor="Hand" />
+                </StackPanel>
 
-            <!-- Band sliders -->
-            <ItemsControl Grid.Row="2"
-                          AutomationProperties.AutomationId="equalizer.bands"
-                          ItemsSource="{Binding Bands}"
-                          Margin="0,0,0,8"
-                          IsEnabled="{Binding IsAvailable}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Rows="1" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="local:EqualizerBandViewModel">
-                        <StackPanel HorizontalAlignment="Center">
-                            <Slider AutomationProperties.AutomationId="equalizer.band"
-                                    AutomationProperties.Name="{Binding Label}"
-                                    Orientation="Vertical"
-                                    Height="120"
-                                    HorizontalAlignment="Center"
-                                    Minimum="{x:Static settings:EqualizerSettings.MinimumGainDecibels}"
-                                    Maximum="{x:Static settings:EqualizerSettings.MaximumGainDecibels}"
-                                    TickFrequency="3"
-                                    TickPlacement="Outside"
-                                    Value="{Binding Gain}"
-                                    ToolTip.Tip="{Binding Gain, StringFormat={}{0:+0.0;-0.0;0.0} dB}" />
-                            <TextBlock Text="{Binding Label}"
-                                       FontSize="11"
-                                       Opacity="0.7"
-                                       HorizontalAlignment="Center"
-                                       Margin="0,4,0,0" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                <!-- Band sliders -->
+                <ItemsControl Grid.Row="2"
+                              AutomationProperties.AutomationId="equalizer.bands"
+                              ItemsSource="{Binding Bands}"
+                              Margin="0,0,0,8"
+                              IsEnabled="{Binding IsAvailable}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="local:EqualizerBandViewModel">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Slider AutomationProperties.AutomationId="equalizer.band"
+                                        AutomationProperties.Name="{Binding Label}"
+                                        Orientation="Vertical"
+                                        Height="120"
+                                        HorizontalAlignment="Center"
+                                        Minimum="{x:Static settings:EqualizerSettings.MinimumGainDecibels}"
+                                        Maximum="{x:Static settings:EqualizerSettings.MaximumGainDecibels}"
+                                        TickFrequency="3"
+                                        TickPlacement="Outside"
+                                        Value="{Binding Gain}"
+                                        ToolTip.Tip="{Binding Gain, StringFormat={}{0:+0.0;-0.0;0.0} dB}" />
+                                <TextBlock Text="{Binding Label}"
+                                           FontSize="11"
+                                           Opacity="0.7"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,4,0,0" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
-            <Grid Grid.Row="3"
-                  ColumnDefinitions="Auto,*,Auto"
-                  RowDefinitions="Auto,Auto"
-                  IsEnabled="{Binding IsAvailable}">
-                <CheckBox Grid.Row="0" Grid.Column="0"
-                          AutomationProperties.AutomationId="equalizer.low-cut-enable"
-                          Content="{x:Static res:UiStrings.Equalizer_LowCut}"
-                          IsChecked="{Binding LowCutEnabled}"
-                          MinWidth="110" />
-                <Slider Grid.Row="0" Grid.Column="1"
-                        AutomationProperties.AutomationId="equalizer.low-cut-hertz"
-                        AutomationProperties.Name="{x:Static res:UiStrings.Equalizer_LowCut}"
-                        Minimum="{x:Static settings:EqualizerSettings.MinimumLowCutHertz}"
-                        Maximum="{x:Static settings:EqualizerSettings.MaximumLowCutHertz}"
-                        Value="{Binding LowCutHertz}"
-                        IsEnabled="{Binding LowCutEnabled}"
-                        VerticalAlignment="Center" />
-                <TextBlock Grid.Row="0" Grid.Column="2"
-                           Text="{Binding LowCutHertz, StringFormat={}{0:0} Hz}"
-                           VerticalAlignment="Center"
-                           MinWidth="52"
-                           TextAlignment="Right" />
+                <Grid Grid.Row="3"
+                      ColumnDefinitions="Auto,*,Auto"
+                      RowDefinitions="Auto,Auto"
+                      IsEnabled="{Binding IsAvailable}">
+                    <CheckBox Grid.Row="0" Grid.Column="0"
+                              AutomationProperties.AutomationId="equalizer.low-cut-enable"
+                              Content="{x:Static res:UiStrings.Equalizer_LowCut}"
+                              IsChecked="{Binding LowCutEnabled}"
+                              MinWidth="110" />
+                    <Slider Grid.Row="0" Grid.Column="1"
+                            AutomationProperties.AutomationId="equalizer.low-cut-hertz"
+                            AutomationProperties.Name="{x:Static res:UiStrings.Equalizer_LowCut}"
+                            Minimum="{x:Static settings:EqualizerSettings.MinimumLowCutHertz}"
+                            Maximum="{x:Static settings:EqualizerSettings.MaximumLowCutHertz}"
+                            Value="{Binding LowCutHertz}"
+                            IsEnabled="{Binding LowCutEnabled}"
+                            VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="0" Grid.Column="2"
+                               Text="{Binding LowCutHertz, StringFormat={}{0:0} Hz}"
+                               VerticalAlignment="Center"
+                               MinWidth="52"
+                               TextAlignment="Right" />
 
-                <TextBlock Grid.Row="1" Grid.Column="0"
-                           Text="{x:Static res:UiStrings.Equalizer_Preamp}"
-                           VerticalAlignment="Center" />
-                <Slider Grid.Row="1" Grid.Column="1"
-                        AutomationProperties.AutomationId="equalizer.preamp"
-                        AutomationProperties.Name="{x:Static res:UiStrings.Equalizer_Preamp}"
-                        Minimum="{x:Static settings:EqualizerSettings.MinimumGainDecibels}"
-                        Maximum="{x:Static settings:EqualizerSettings.MaximumGainDecibels}"
-                        Value="{Binding PreampDecibels}"
-                        VerticalAlignment="Center" />
-                <TextBlock Grid.Row="1" Grid.Column="2"
-                           Text="{Binding PreampDecibels, StringFormat={}{0:+0.0;-0.0;0.0} dB}"
-                           VerticalAlignment="Center"
-                           MinWidth="52"
-                           TextAlignment="Right" />
+                    <TextBlock Grid.Row="1" Grid.Column="0"
+                               Text="{x:Static res:UiStrings.Equalizer_Preamp}"
+                               VerticalAlignment="Center" />
+                    <Slider Grid.Row="1" Grid.Column="1"
+                            AutomationProperties.AutomationId="equalizer.preamp"
+                            AutomationProperties.Name="{x:Static res:UiStrings.Equalizer_Preamp}"
+                            Minimum="{x:Static settings:EqualizerSettings.MinimumGainDecibels}"
+                            Maximum="{x:Static settings:EqualizerSettings.MaximumGainDecibels}"
+                            Value="{Binding PreampDecibels}"
+                            VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="1" Grid.Column="2"
+                               Text="{Binding PreampDecibels, StringFormat={}{0:+0.0;-0.0;0.0} dB}"
+                               VerticalAlignment="Center"
+                               MinWidth="52"
+                               TextAlignment="Right" />
+                </Grid>
             </Grid>
-        </Grid>
-    </Expander>
+        </Expander>
+    </Border>
 </UserControl>

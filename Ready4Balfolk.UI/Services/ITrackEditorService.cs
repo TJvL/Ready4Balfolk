@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.UI.Services;
@@ -15,9 +16,11 @@ public interface ITrackEditorService
     /// rebuild is what makes the correction show at once. The dance comes in as the name the person
     /// read, which is what "changed" is decided on, and goes down as the slug it stands for. The
     /// likelihood is not an approval and needs none of that: it is written when it moved, and a
-    /// track put back at ×1 is a track nobody ever touched.
+    /// track put back at ×1 is a track nobody ever touched. The equalizer is the same: written when
+    /// it changed, and null is a track with no equalizer of its own.
     /// </remarks>
-    Task ApplyAsync(Track track, string dance, string artist, string title, double likelihood);
+    Task ApplyAsync(
+        Track track, string dance, string artist, string title, double likelihood, EqualizerSettings? equalizer);
 
     /// <summary>
     /// Takes back the answer somebody gave this track, so it leaves the library and waits again.

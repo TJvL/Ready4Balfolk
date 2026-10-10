@@ -195,4 +195,7 @@
   <data name="Audio_NeverCameUp" xml:space="preserve">
     <value>Er kon geen audioapparaat geopend worden, dus er wordt niets afgespeeld. Controleer het audioapparaat en start de applicatie daarna opnieuw.</value>
   </data>
+  <data name="Equalizer_TrackApplyFailed" xml:space="preserve">
+    <value>De eigen equalizer van een nummer kon niet op het geluid toegepast worden</value>
+  </data>
 </root>

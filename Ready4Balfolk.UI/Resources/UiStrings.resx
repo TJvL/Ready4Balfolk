@@ -865,6 +865,12 @@
   <data name="Equalizer_Unavailable" xml:space="preserve">
     <value>Equalizer unavailable</value>
   </data>
+  <data name="Equalizer_TrackHeader" xml:space="preserve">
+    <value>Equalizer: {0} - {1}</value>
+  </data>
+  <data name="Equalizer_BackToGlobal" xml:space="preserve">
+    <value>Back to global</value>
+  </data>
 
   <data name="Settings_WebServerSection" xml:space="preserve">
     <value>Presentation in a browser</value>
@@ -1253,6 +1259,24 @@
   </data>
   <data name="EditTrack_LikelihoodHint" xml:space="preserve">
     <value>Compared with the other tracks of this dance. The dance itself comes up as often as before.</value>
+  </data>
+  <data name="EditTrack_OwnEqualizer" xml:space="preserve">
+    <value>Use own equalizer for this track</value>
+  </data>
+  <data name="EditTrack_OwnEqualizerHint" xml:space="preserve">
+    <value>Only while the equalizer on the main screen is switched on. Copy and Paste carry these settings from one track to another.</value>
+  </data>
+  <data name="EditTrack_CopyEqualizer" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="EditTrack_PasteEqualizer" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="EditTrack_PasteRefused" xml:space="preserve">
+    <value>The clipboard does not hold equalizer settings.</value>
+  </data>
+  <data name="EditTrack_ClipboardFailed" xml:space="preserve">
+    <value>Failed to use the clipboard</value>
   </data>
   <data name="Discovery_FieldArtist" xml:space="preserve">
     <value>Artist</value>

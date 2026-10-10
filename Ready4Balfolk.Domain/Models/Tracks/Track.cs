@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using Ready4Balfolk.Domain.Models.Settings;
 
 namespace Ready4Balfolk.Domain.Models.Tracks;
 
@@ -27,4 +28,16 @@ public sealed record Track(string Dance, string Artist, string Title, IFileInfo 
         get;
         init => field = TrackLikelihood.Normalize(value);
     } = TrackLikelihood.Usual;
+
+    /// <summary>This track's own equalizer, or null when it has never had one.</summary>
+    /// <remarks>
+    /// <see cref="EqualizerSettings.Enabled"/> says whether it is in use: switched off, the curve
+    /// is kept so it can be switched back on, and the global equalizer plays the track as it plays
+    /// everything else. Either way it only ever counts while the global equalizer is switched on.
+    /// Stored beside the approvals in the library index, like the likelihood.
+    /// </remarks>
+    public EqualizerSettings? Equalizer { get; init; }
+
+    /// <summary>Whether this track plays through an equalizer of its own when the global one is on.</summary>
+    public bool HasOwnEqualizer => Equalizer is { Enabled: true };
 }

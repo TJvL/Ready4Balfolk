@@ -2,9 +2,13 @@ using System;
 using System.Reactive.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
+using Avalonia.Interactivity;
 using ReactiveUI.Avalonia.Reactive;
 using ReactiveUI.Reactive;
 using Ready4Balfolk.UI.Platform;
+using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.Dialogs.EditTrack;
 
@@ -27,6 +31,39 @@ public partial class EditTrackDialogView : ReactiveWindow<EditTrackDialogViewMod
         this.WhenActivated(d => d(this.WhenAnyValue(x => x.ViewModel!.DialogResult)
             .Where(result => result.HasValue)
             .Subscribe(_ => Close())));
+    }
+
+    /// <summary>Puts the curve on the sliders on the clipboard, for pasting onto another track.</summary>
+    private void OnCopyEqualizer(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not { } vm || Clipboard is not { } clipboard)
+        {
+            return;
+        }
+
+        var json = vm.EqualizerJson;
+        Handlers.Run(
+            "Failed to copy a track's equalizer to the clipboard",
+            UiStrings.EditTrack_ClipboardFailed,
+            () => clipboard.SetTextAsync(json));
+    }
+
+    /// <summary>Takes a curve off the clipboard; the view model says so when it is not one.</summary>
+    private void OnPasteEqualizer(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not { } vm || Clipboard is not { } clipboard)
+        {
+            return;
+        }
+
+        Handlers.Run(
+            "Failed to paste a track's equalizer from the clipboard",
+            UiStrings.EditTrack_ClipboardFailed,
+            async () =>
+            {
+                var text = await clipboard.TryGetTextAsync();
+                vm.PasteEqualizer(text);
+            });
     }
 
     /// <summary>Keeps the walked-to match visible: a highlight below the fold is no choice at all.</summary>

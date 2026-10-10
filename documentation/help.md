@@ -156,6 +156,15 @@ It is collapsed by default. The header shows **on** or **off**, so an equalizer 
 previous night is visible without opening the panel. Changes take effect immediately, including
 while a track is playing, which is the only practical way to judge a room.
 
+A track can also have an equalizer of its own, given in **Edit track** (see
+[the catalog](#track-catalog)). While such a track plays and the equalizer is switched on, it plays
+through its own settings, and the panel shows them: the header reads **Equalizer: Artist - Title**,
+the border and sliders take the accent colour, and anything you change is saved to that track
+rather than to the global equalizer. **Back to global** switches the track's own equalizer off
+and puts the global one back, keeping the track's settings for later. The next track brings the
+global equalizer back on its own. Switching the equalizer off switches every track's own off with
+it.
+
 ### Bands
 
 Seven sliders, each cutting or boosting by up to 15 dB at a fixed frequency:
@@ -320,6 +329,12 @@ likely than the other tracks of its own dance when a random pick lands on that d
 comes up four times as often as a ×1 track of the same dance. The dance itself comes up exactly as
 often as before. It is kept in the library index rather than in the file, and follows the track
 through a rename or a retag.
+
+**Use own equalizer for this track** gives the track its own bands, low cut and preamp, used
+instead of the global ones whenever it plays while the equalizer is switched on. A track that has
+none yet starts from the global settings. **Copy** puts the settings on the clipboard and **Paste**
+takes them onto another track, switching its own equalizer on. They are kept in the library index
+like the chance in a random pick.
 
 ### Taking an answer back
 

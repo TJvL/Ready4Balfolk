@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Ready4Balfolk.Domain.Models.Settings;
@@ -32,8 +33,11 @@ public sealed record EqualizerSettings
     [JsonPropertyName("LowCutEnabled")]
     public bool LowCutEnabled { get; init; }
 
+    /// <summary>The name the band gains are stored under, which <see cref="FromJson"/> looks for.</summary>
+    private const string BandGainsName = "BandGains";
+
     /// <summary>One gain in dB per entry in <see cref="BandCenterFrequencies"/>.</summary>
-    [JsonPropertyName("BandGains")]
+    [JsonPropertyName(BandGainsName)]
     public IReadOnlyList<double> BandGains
     {
         get;
@@ -60,6 +64,44 @@ public sealed record EqualizerSettings
     /// <summary>True when no band, preamp or low cut would alter the sound.</summary>
     [JsonIgnore]
     public bool IsFlat => !LowCutEnabled && PreampDecibels == 0 && BandGains.All(gain => gain == 0);
+
+    /// <summary>The settings as JSON, in the names the settings file uses.</summary>
+    /// <remarks>
+    /// The one written form, for the library index that keeps a track's own equalizer and for the
+    /// clipboard that carries one from track to track, so a curve pasted anywhere reads exactly as
+    /// it would from either.
+    /// </remarks>
+    public string ToJson() => JsonSerializer.Serialize(this);
+
+    /// <summary>Settings read back from <see cref="ToJson"/>, or null when the text is not that.</summary>
+    /// <remarks>
+    /// Null rather than an exception, because the text comes from a clipboard that can hold
+    /// anything at all. What does parse is clamped by the record itself, so a hand-edited curve
+    /// cannot hand BASS a gain it refuses.
+    /// </remarks>
+    public static EqualizerSettings? FromJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            // An object, and one that names at least the bands: any JSON object deserialises into a
+            // record whose members all have defaults, and "{}" pasted from somewhere else would
+            // otherwise land as a flat curve the DJ never copied.
+            using var document = JsonDocument.Parse(json);
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                   && document.RootElement.TryGetProperty(BandGainsName, out _)
+                ? document.RootElement.Deserialize<EqualizerSettings>()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     public EqualizerSettings WithBandGain(int index, double gain)
     {

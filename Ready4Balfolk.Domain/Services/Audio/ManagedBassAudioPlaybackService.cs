@@ -28,7 +28,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    private readonly Dictionary<int, EqualizerChain> _equalizerChains = [];
+    private readonly Dictionary<int, AttachedEqualizer> _equalizerChains = [];
 
     /// <summary>How long closing waits for an operation already running to finish with the streams.</summary>
     private static readonly TimeSpan TeardownWait = TimeSpan.FromSeconds(5);
@@ -41,6 +41,8 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     private bool _bassFailed;
     private bool _disposed;
     private EqualizerSettings _equalizerSettings = EqualizerSettings.Flat;
+    private IReadOnlyDictionary<string, EqualizerSettings> _trackEqualizers =
+        new Dictionary<string, EqualizerSettings>(StringComparer.Ordinal);
 
     /// <param name="loggerService">Where initialisation results and playback failures are recorded.</param>
     /// <param name="notifications">Where the DJ is told that the sound has gone, or never came.</param>
@@ -128,7 +130,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                                 $"Failed to create stream for '{LogPaths.Name(path)}': {Bass.LastError}");
                         }
 
-                        AttachEqualizer(_channel);
+                        AttachEqualizer(_channel, path);
                         _ = _loggerService.DebugAsync($"Opened a stream for '{LogPaths.Name(path)}'");
                     }
 
@@ -332,7 +334,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
 
                     // The preloaded stream needs the chain too. Without this every second track
                     // plays flat, because selecting it only takes the handle over.
-                    AttachEqualizer(_preloadedChannel);
+                    AttachEqualizer(_preloadedChannel, path);
 
                     _preloadedUri = source;
                     _ = _loggerService.DebugAsync($"Loaded '{LogPaths.Name(path)}' ahead");
@@ -370,6 +372,29 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
                 try
                 {
                     _equalizerSettings = equalizerSettings;
+
+                    ApplyEqualizer(_channel);
+                    ApplyEqualizer(_preloadedChannel);
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
+            });
+    }
+
+    public Task SetTrackEqualizersAsync(IReadOnlyDictionary<string, EqualizerSettings> byPath)
+    {
+        ArgumentNullException.ThrowIfNull(byPath);
+
+        return _bassFailed || !IsEqualizerAvailable
+            ? Task.CompletedTask
+            : Task.Run(async () =>
+            {
+                await _semaphore.WaitAsync();
+                try
+                {
+                    _trackEqualizers = byPath;
 
                     ApplyEqualizer(_channel);
                     ApplyEqualizer(_preloadedChannel);
@@ -581,7 +606,7 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
     /// Builds the effect chain on a freshly created stream and applies the current settings. The
     /// effects are freed along with the stream, so only the lookup needs cleaning up afterwards.
     /// </summary>
-    private void AttachEqualizer(int channel)
+    private void AttachEqualizer(int channel, string path)
     {
         if (!IsEqualizerAvailable || channel == 0)
         {
@@ -596,17 +621,31 @@ public sealed class ManagedBassAudioPlaybackService : IAudioPlaybackService, IDi
             return;
         }
 
-        _equalizerChains[channel] = chain;
-        chain.Apply(_equalizerSettings);
+        _equalizerChains[channel] = new AttachedEqualizer(chain, path);
+        chain.Apply(EqualizerFor(path));
     }
 
     private void ApplyEqualizer(int channel)
     {
-        if (channel != 0 && _equalizerChains.TryGetValue(channel, out var chain))
+        if (channel != 0 && _equalizerChains.TryGetValue(channel, out var attached))
         {
-            chain.Apply(_equalizerSettings);
+            attached.Chain.Apply(EqualizerFor(attached.Path));
         }
     }
+
+    /// <summary>The curve a stream of this file plays through.</summary>
+    /// <remarks>
+    /// A file's own only while the global equalizer is switched on, because switching that off is
+    /// how the DJ takes every effect out of the signal at once, and a track that kept its own would
+    /// be the one thing in the evening the switch did not reach.
+    /// </remarks>
+    private EqualizerSettings EqualizerFor(string path) =>
+        _equalizerSettings.Enabled && _trackEqualizers.TryGetValue(path, out var own) && own.Enabled
+            ? own
+            : _equalizerSettings;
+
+    /// <summary>A stream's effect chain, and the file it is playing, which decides whose curve it gets.</summary>
+    private readonly record struct AttachedEqualizer(EqualizerChain Chain, string Path);
 
     /// <summary>Starts the current channel, and says whether sound is actually on its way.</summary>
     /// <remarks>

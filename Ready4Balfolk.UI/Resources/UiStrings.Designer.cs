@@ -758,6 +758,12 @@ public static class UiStrings
     public static string Equalizer_Unavailable =>
         ResourceManager.GetString("Equalizer_Unavailable", Culture)!;
 
+    public static string Equalizer_TrackHeader =>
+        ResourceManager.GetString("Equalizer_TrackHeader", Culture)!;
+
+    public static string Equalizer_BackToGlobal =>
+        ResourceManager.GetString("Equalizer_BackToGlobal", Culture)!;
+
     public static string Settings_WebServerSection =>
         ResourceManager.GetString("Settings_WebServerSection", Culture)!;
 
@@ -1141,6 +1147,24 @@ public static class UiStrings
 
     public static string EditTrack_LikelihoodHint =>
         ResourceManager.GetString("EditTrack_LikelihoodHint", Culture)!;
+
+    public static string EditTrack_OwnEqualizer =>
+        ResourceManager.GetString("EditTrack_OwnEqualizer", Culture)!;
+
+    public static string EditTrack_OwnEqualizerHint =>
+        ResourceManager.GetString("EditTrack_OwnEqualizerHint", Culture)!;
+
+    public static string EditTrack_CopyEqualizer =>
+        ResourceManager.GetString("EditTrack_CopyEqualizer", Culture)!;
+
+    public static string EditTrack_PasteEqualizer =>
+        ResourceManager.GetString("EditTrack_PasteEqualizer", Culture)!;
+
+    public static string EditTrack_PasteRefused =>
+        ResourceManager.GetString("EditTrack_PasteRefused", Culture)!;
+
+    public static string EditTrack_ClipboardFailed =>
+        ResourceManager.GetString("EditTrack_ClipboardFailed", Culture)!;
 
     public static string Discovery_FieldArtist =>
         ResourceManager.GetString("Discovery_FieldArtist", Culture)!;

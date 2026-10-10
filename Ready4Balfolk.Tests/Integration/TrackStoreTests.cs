@@ -781,6 +781,30 @@ public sealed class TrackStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task AnEqualizerSetFromThePanel_ReplacesTheOneTrackWithoutARebuild()
+    {
+        // Written while a slider is pulled during a dance. A rebuild empties and refills the
+        // catalogue, which would lose the DJ's place in it on every pull.
+        CreateFile(_dirA, "known.mp3");
+        var file = _fileSystem.FileInfo.New(_fileSystem.Path.Combine(_dirA.FullName, "known.mp3"));
+        _indexSnapshot = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
+        {
+            [file.FullName] = IndexedAs(file, "Mazurka")
+        };
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 1);
+        _libraryIndex.ClearReceivedCalls();
+        var own = EqualizerSettings.Flat with { Enabled = true, PreampDecibels = -5 };
+
+        await _sut.SetEqualizerAsync(file.FullName, own, TestContext.Current.CancellationToken);
+
+        await _libraryIndex.Received(1).SetEqualizerAsync(
+            Arg.Is<IReadOnlyCollection<string>>(paths => paths.Contains(file.FullName)), own, Arg.Any<CancellationToken>());
+        Assert.Equal(own, Assert.Single(_sut.Current).Equalizer);
+        await _libraryIndex.DidNotReceive().SnapshotByPathAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task ALikelihoodSetOnTheAudio_ReachesThePublishedTrack()
     {
         // Set on the content hash, as the index keys it, and published on the track a random pick

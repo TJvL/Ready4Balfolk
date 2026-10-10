@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Ready4Balfolk.Domain.Helpers;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Discovery;
@@ -43,7 +44,7 @@ public sealed class SqliteLibraryIndex(
     /// different answer.
     /// </para>
     /// </remarks>
-    private const int SchemaVersion = 3;
+    private const int SchemaVersion = 4;
 
     /// <summary>The three fields whose source is stored, in the order their parameters are bound.</summary>
     private static readonly string[] SourceColumns = ["dance", "artist", "title"];
@@ -202,8 +203,8 @@ public sealed class SqliteLibraryIndex(
     /// <para>
     /// The tracks are the only table thrown away, because the scan an empty one provokes works
     /// every column of it out again. Everything else comes across. The approvals, the ignored
-    /// values and the likelihoods because they are the DJ's own answers and nothing anywhere can
-    /// work them out again. The paths because a scan only puts those back when it can reach the files: the
+    /// values, the likelihoods and the tracks' own equalizers because they are the DJ's own
+    /// answers and nothing anywhere can work them out again. The paths because a scan only puts those back when it can reach the files: the
     /// question asked when a scan finds no music in a folder is asked about the folders the
     /// indexed paths name, so an emptied track_paths asks nothing at all on a start with the drive
     /// unplugged, and the sweep that closes that scan then deletes every approval just carried
@@ -247,9 +248,9 @@ public sealed class SqliteLibraryIndex(
     /// All of it together or none of it. Approvals carried across without the paths they hang on
     /// are approvals the next scan's orphan sweep deletes, so half of this succeeding would be
     /// worse than none of it. The one exception is a table an older shape never had: a file laid
-    /// out before tracks had a likelihood holds none, which is an answer rather than a failure, and
-    /// treating it as one would throw away every approval on the first start of the build that
-    /// added them.
+    /// out before tracks had a likelihood or an equalizer of their own holds none, which is an
+    /// answer rather than a failure, and treating it as one would throw away every approval on the
+    /// first start of the build that added them.
     /// </remarks>
     private async Task<CarriedRows> ReadWhatMustSurviveAsync(SqliteConnection connection, CancellationToken token)
     {
@@ -297,7 +298,19 @@ public sealed class SqliteLibraryIndex(
                 }
             }
 
-            return new CarriedRows(paths, approvals, ignored, likelihoods);
+            var equalizers = new List<(byte[] Hash, string Settings)>();
+            if (await HasTableAsync(connection, "track_equalizers", token))
+            {
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT content_hash, settings FROM track_equalizers;";
+                await using var reader = await command.ExecuteReaderAsync(token);
+                while (await reader.ReadAsync(token))
+                {
+                    equalizers.Add(((byte[])reader["content_hash"], reader.GetString(1)));
+                }
+            }
+
+            return new CarriedRows(paths, approvals, ignored, likelihoods, equalizers);
         }
         catch (Exception exception) when (exception is SqliteException or InvalidCastException)
         {
@@ -312,7 +325,7 @@ public sealed class SqliteLibraryIndex(
                 DomainStrings.Library_AnswersLost,
                 exception);
 
-            return new CarriedRows([], [], [], []);
+            return new CarriedRows([], [], [], [], []);
         }
     }
 
@@ -322,7 +335,8 @@ public sealed class SqliteLibraryIndex(
         if (carried.Paths.Count == 0
             && carried.Approvals.Count == 0
             && carried.IgnoredValues.Count == 0
-            && carried.Likelihoods.Count == 0)
+            && carried.Likelihoods.Count == 0
+            && carried.Equalizers.Count == 0)
         {
             return;
         }
@@ -408,6 +422,21 @@ public sealed class SqliteLibraryIndex(
             {
                 hash.Value = contentHash;
                 multiplier.Value = value;
+                await command.ExecuteNonQueryAsync(token);
+            }
+        }
+
+        await using (var command = connection.CreateCommand())
+        {
+            command.Transaction = (SqliteTransaction)transaction;
+            command.CommandText = "INSERT INTO track_equalizers (content_hash, settings) VALUES ($hash, $settings);";
+            var hash = command.Parameters.Add("$hash", SqliteType.Blob);
+            var settings = command.Parameters.Add("$settings", SqliteType.Text);
+
+            foreach (var (contentHash, value) in carried.Equalizers)
+            {
+                hash.Value = contentHash;
+                settings.Value = value;
                 await command.ExecuteNonQueryAsync(token);
             }
         }
@@ -681,6 +710,9 @@ public sealed class SqliteLibraryIndex(
                 token, (SqliteTransaction)transaction);
             await ExecuteAsync(connection,
                 "DELETE FROM track_likelihoods WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
+                token, (SqliteTransaction)transaction);
+            await ExecuteAsync(connection,
+                "DELETE FROM track_equalizers WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
                 token, (SqliteTransaction)transaction);
 
             await transaction.CommitAsync(token);
@@ -994,6 +1026,9 @@ public sealed class SqliteLibraryIndex(
             await ExecuteAsync(connection,
                 "DELETE FROM track_likelihoods WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
                 token, (SqliteTransaction)transaction);
+            await ExecuteAsync(connection,
+                "DELETE FROM track_equalizers WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
+                token, (SqliteTransaction)transaction);
 
             await transaction.CommitAsync(token);
         }
@@ -1045,6 +1080,9 @@ public sealed class SqliteLibraryIndex(
                 token, (SqliteTransaction)transaction);
             await ExecuteAsync(connection,
                 "DELETE FROM track_likelihoods WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
+                token, (SqliteTransaction)transaction);
+            await ExecuteAsync(connection,
+                "DELETE FROM track_equalizers WHERE content_hash NOT IN (SELECT content_hash FROM track_paths);",
                 token, (SqliteTransaction)transaction);
 
             await transaction.CommitAsync(token);
@@ -1221,6 +1259,82 @@ public sealed class SqliteLibraryIndex(
         }
     }
 
+    public async Task<IReadOnlyDictionary<string, EqualizerSettings>> EqualizersAsync(CancellationToken token = default)
+    {
+        await _gate.WaitAsync(token);
+        try
+        {
+            await using var command = (await EnsureOpenLockedAsync(token)).CreateCommand();
+            command.CommandText = "SELECT content_hash, settings FROM track_equalizers;";
+
+            var byTrack = new Dictionary<string, EqualizerSettings>(StringComparer.Ordinal);
+            await using var reader = await command.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token))
+            {
+                // A row this build cannot read is a track with no equalizer of its own rather than a
+                // library that will not open: the global one is what it would have played through
+                // before anybody gave it one.
+                if (EqualizerSettings.FromJson(reader.GetString(1)) is { } settings)
+                {
+                    byTrack[LibraryKey.For((byte[])reader["content_hash"])] = settings;
+                }
+            }
+
+            return byTrack;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task SetEqualizerAsync(
+        IReadOnlyCollection<string> paths, EqualizerSettings? equalizer, CancellationToken token = default)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+
+        if (paths.Count == 0)
+        {
+            return;
+        }
+
+        await _gate.WaitAsync(token);
+        try
+        {
+            var connection = await EnsureOpenLockedAsync(token);
+            await using var transaction = await connection.BeginTransactionAsync(token);
+            await using var command = connection.CreateCommand();
+            command.Transaction = (SqliteTransaction)transaction;
+
+            // By path onto the audio, like the likelihood: both copies of a duplicated track are one
+            // recording, and they sound like one.
+            command.CommandText = equalizer is null
+                ? """
+                  DELETE FROM track_equalizers
+                  WHERE content_hash IN (SELECT p.content_hash FROM track_paths p WHERE p.path = $path);
+                  """
+                : """
+                  INSERT INTO track_equalizers (content_hash, settings)
+                  SELECT p.content_hash, $settings FROM track_paths p WHERE p.path = $path
+                  ON CONFLICT(content_hash) DO UPDATE SET settings = excluded.settings;
+                  """;
+
+            command.Parameters.AddWithValue("$settings", (object?)equalizer?.ToJson() ?? DBNull.Value);
+            var path = command.Parameters.Add("$path", SqliteType.Text);
+            foreach (var target in paths)
+            {
+                path.Value = target;
+                await command.ExecuteNonQueryAsync(token);
+            }
+
+            await transaction.CommitAsync(token);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public void Dispose()
     {
         _connection?.Dispose();
@@ -1233,7 +1347,8 @@ public sealed class SqliteLibraryIndex(
         IReadOnlyList<IndexedPath> Paths,
         IReadOnlyList<TrackApproval> Approvals,
         IReadOnlyList<(string Folded, string Value)> IgnoredValues,
-        IReadOnlyList<(byte[] Hash, double Multiplier)> Likelihoods);
+        IReadOnlyList<(byte[] Hash, double Multiplier)> Likelihoods,
+        IReadOnlyList<(byte[] Hash, string Settings)> Equalizers);
 
     /// <summary>One row of track_paths as it stood, held while the file it came from is replaced.</summary>
     private sealed record IndexedPath(
@@ -1323,6 +1438,14 @@ public sealed class SqliteLibraryIndex(
         CREATE TABLE IF NOT EXISTS track_likelihoods (
             content_hash BLOB PRIMARY KEY,
             multiplier   REAL NOT NULL
+        );
+
+        -- A track's own equalizer, as the JSON the settings file writes the global one in. Its
+        -- Enabled says whether it is in use, so one switched off keeps its curve. An answer like
+        -- the likelihoods, kept and swept the same way.
+        CREATE TABLE IF NOT EXISTS track_equalizers (
+            content_hash BLOB PRIMARY KEY,
+            settings     TEXT NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS ignored_values (

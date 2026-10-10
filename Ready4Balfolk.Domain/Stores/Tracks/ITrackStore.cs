@@ -1,4 +1,5 @@
 using DynamicData;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Stores.Library;
 
@@ -61,6 +62,17 @@ public interface ITrackStore : ILoadableStore
     /// is already indexed. This is how an approval becomes a track without a rescan.
     /// </remarks>
     Task RefreshLibraryAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gives the track at this path an equalizer of its own, or takes it away with null, and
+    /// publishes the change without rebuilding the library.
+    /// </summary>
+    /// <remarks>
+    /// For the equalizer panel, which writes a playing track's curve as the DJ pulls its sliders.
+    /// Everything that changes more than this goes through the index and
+    /// <see cref="RefreshLibraryAsync"/>.
+    /// </remarks>
+    Task SetEqualizerAsync(string path, EqualizerSettings? equalizer, CancellationToken cancellationToken = default);
 
     IObservable<IChangeSet<Track>> Connect();
     IObservable<IChangeSet<Track>> Connect(IObservable<string> searchText);

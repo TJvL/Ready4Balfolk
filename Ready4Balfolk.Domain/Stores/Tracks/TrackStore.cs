@@ -587,11 +587,42 @@ public sealed class TrackStore : ITrackStore, IDisposable
         }
     }
 
+    public async Task SetEqualizerAsync(string path, EqualizerSettings? equalizer, CancellationToken cancellationToken = default)
+    {
+        // Behind the load gate, so a rebuild that starts after this cannot read the index before
+        // the write has landed and put the old curve back over the new one.
+        await _loadGate.WaitAsync(CancellationToken.None);
+        try
+        {
+            await _libraryIndex.SetEqualizerAsync([path], equalizer, cancellationToken);
+
+            // Replaced where it stands rather than rebuilt: this is called while a slider is being
+            // pulled during a dance, and a rebuild empties and refills the catalogue, which loses
+            // the DJ's place in it on every pull. A second copy of the same audio elsewhere picks
+            // the curve up on the next rebuild, which the index already has right.
+            _tracks.Edit(list =>
+            {
+                for (var index = 0; index < list.Count; index++)
+                {
+                    if (string.Equals(list[index].FileInfo.FullName, path, StringComparison.Ordinal))
+                    {
+                        list[index] = list[index] with { Equalizer = equalizer };
+                    }
+                }
+            });
+        }
+        finally
+        {
+            _loadGate.Release();
+        }
+    }
+
     private async Task RebuildFromIndexAsync(CancellationToken cancellationToken)
     {
         var entries = await _libraryIndex.SnapshotByPathAsync(cancellationToken);
         var approvals = await _libraryIndex.ApprovalsAsync(cancellationToken);
         var likelihoods = await _libraryIndex.LikelihoodsAsync(cancellationToken);
+        var equalizers = await _libraryIndex.EqualizersAsync(cancellationToken);
         var dances = _danceListStore.Index;
 
         // Rows kept because a folder could not be read are not part of the library: nothing about
@@ -625,7 +656,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
                 {
                     OriginalDance = entry.OriginalDance ?? string.Empty,
                     DanceSlug = review.DanceSlug,
-                    Likelihood = likelihoods.GetValueOrDefault(key, TrackLikelihood.Usual)
+                    Likelihood = likelihoods.GetValueOrDefault(key, TrackLikelihood.Usual),
+                    Equalizer = equalizers.GetValueOrDefault(key)
                 });
             }
         }
