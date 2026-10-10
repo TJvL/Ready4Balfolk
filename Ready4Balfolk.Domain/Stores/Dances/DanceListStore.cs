@@ -229,7 +229,7 @@ public sealed class DanceListStore(
     /// </summary>
     /// <remarks>
     /// A copy that will not go is written to the log and not shown: the list it held is already
-    /// gone, which the dance panel says, and the next fetch writes over the file either way.
+    /// gone, which the settings page says, and the next fetch writes over the file either way.
     /// </remarks>
     private void Discard(IFileInfo cachedFileInfo, Exception reason)
     {

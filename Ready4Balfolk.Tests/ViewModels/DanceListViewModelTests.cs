@@ -1,16 +1,11 @@
 using System.Globalization;
-using System.IO.Abstractions;
-using System.IO.Abstractions.TestingHelpers;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
 using DynamicData;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.QueueItems;
 using Ready4Balfolk.Domain.Models.Tracks;
-using Ready4Balfolk.Domain.Resources;
-using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Queue;
@@ -45,7 +40,6 @@ public sealed class DanceListViewModelTests : IDisposable
     };
 
     private readonly BehaviorSubject<DanceList> _lists = new(List);
-    private readonly BehaviorSubject<DanceListStatus> _status = new(DanceListStatus.Unknown);
     private readonly BehaviorSubject<DancePoolSelection> _pools = new(DancePoolSelection.Everything);
     private readonly SourceList<Track> _tracks = new();
     private readonly IDanceListStore _store = Substitute.For<IDanceListStore>();
@@ -54,7 +48,6 @@ public sealed class DanceListViewModelTests : IDisposable
     private readonly IRandomTrackService _randomTracks = Substitute.For<IRandomTrackService>();
     private readonly IQueueService _queueService = Substitute.For<IQueueService>();
     private readonly INotificationService _notifications = Substitute.For<INotificationService>();
-    private readonly IDanceListFeed _feed = Substitute.For<IDanceListFeed>();
     private readonly ILoggerService _logger = Substitute.For<ILoggerService>();
     private readonly ThrottleClock _throttles = new();
     private readonly DanceListViewModel _sut;
@@ -62,19 +55,16 @@ public sealed class DanceListViewModelTests : IDisposable
     public DanceListViewModelTests()
     {
         _store.Observe().Returns(_lists);
-        _store.ObserveStatus().Returns(_status);
-        _store.Status.Returns(_ => _status.Value);
         _store.Current.Returns(_ => _lists.Value);
         _store.Index.Returns(_ => DanceListIndex.Build(_lists.Value));
         _store.IsLoading.Returns(Observable.Return(false));
         _pool.Observe().Returns(_pools);
         _trackStore.Connect().Returns(_tracks.Connect());
         _trackStore.Current.Returns(_ => _tracks.Items.ToList());
-        _feed.HomePage.Returns(new Uri("https://tjvl.github.io/BigBalfolkList/"));
         _queueService.Enqueue(Arg.Any<IQueueItem>()).Returns(QueueAddResult.Allow());
 
         _sut = new DanceListViewModel(_store, _pool, _trackStore, _randomTracks, _queueService,
-            _notifications, _feed, new MockFileSystem(), _logger, _throttles.Scheduler);
+            _notifications, _logger, _throttles.Scheduler);
     }
 
     /// <summary>Spends the fractions of a second the rail waits out, rather than sleeping past them.</summary>
@@ -112,10 +102,6 @@ public sealed class DanceListViewModelTests : IDisposable
         Assert.Equal(
             string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_Summary, 3, 3),
             _sut.SummaryText);
-
-    [Fact]
-    public void TheSourceLink_IsTheReadablePageRatherThanTheRawFile() =>
-        Assert.DoesNotContain("raw.githubusercontent", _sut.SourceUri.ToString(), StringComparison.Ordinal);
 
     // --- Keeping what has not changed ---
 
@@ -413,134 +399,10 @@ public sealed class DanceListViewModelTests : IDisposable
         _notifications.Received(1).Show("The evening has been declared over", NotificationSeverity.Warning);
     }
 
-    // --- Updating the list ---
-
-    [Fact]
-    public async Task Update_Updated_SaysHowManyAreNew()
-    {
-        _store.RefreshAsync(Arg.Any<CancellationToken>()).Returns(DanceListUpdate.Updated(4));
-
-        await _sut.UpdateCommand.Execute().FirstAsync();
-
-        _notifications.Received(1).Show(
-            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_Updated, 4),
-            NotificationSeverity.Information);
-    }
-
-    [Fact]
-    public async Task Update_AlreadyCurrent_SaysSoWithoutFuss()
-    {
-        _store.RefreshAsync(Arg.Any<CancellationToken>()).Returns(DanceListUpdate.Unchanged);
-
-        await _sut.UpdateCommand.Execute().FirstAsync();
-
-        _notifications.Received(1).Show(UiStrings.DanceList_AlreadyCurrent, NotificationSeverity.Information);
-    }
-
-    [Fact]
-    public async Task Update_Failed_IsAWarningRatherThanAnError()
-    {
-        // A hall with no wifi is the normal case. The list already in hand carries on working, so
-        // this is not the application breaking.
-        _status.OnNext(new DanceListStatus(3, 3, DanceListOrigin.Cached, DateTimeOffset.UnixEpoch));
-        _store.RefreshAsync(Arg.Any<CancellationToken>()).Returns(DanceListUpdate.Failed("no route to host"));
-
-        await _sut.UpdateCommand.Execute().FirstAsync();
-
-        _notifications.Received(1).Show(
-            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, "no route to host"),
-            NotificationSeverity.Warning);
-    }
-
-    [Fact]
-    public async Task Update_FailedWithNoListInHand_DoesNotClaimOneIsStillInUse()
-    {
-        _store.RefreshAsync(Arg.Any<CancellationToken>()).Returns(DanceListUpdate.Failed("no route to host"));
-
-        await _sut.UpdateCommand.Execute().FirstAsync();
-
-        _notifications.Received(1).Show(
-            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_NoneArrived, "no route to host"),
-            NotificationSeverity.Warning);
-    }
-
-    [Fact]
-    public async Task Update_WhileItRuns_TheButtonSaysSo()
-    {
-        var fetching = new TaskCompletionSource<DanceListUpdate>();
-        _store.RefreshAsync(Arg.Any<CancellationToken>()).Returns(fetching.Task);
-
-        var running = _sut.UpdateCommand.Execute().FirstAsync().ToTask();
-        Assert.True(_sut.IsUpdating);
-
-        fetching.SetResult(DanceListUpdate.Unchanged);
-        await running;
-
-        Assert.False(_sut.IsUpdating);
-    }
-
-    [Fact]
-    public async Task UpdateFromFile_TheFileIsUnreadable_IsReportedOnceRatherThanThrown()
-    {
-        // The path came from a file picker, so anything can be behind it, including a directory.
-        // One file, one notice, in the words a refusal would have used and in the DJ's language.
-        // What .NET said about it goes to the log with an English line, and never to the screen.
-        _status.OnNext(new DanceListStatus(3, 3, DanceListOrigin.Cached, DateTimeOffset.UnixEpoch));
-        var thrown = new IOException("that is a folder");
-        _store.UpdateFromFileAsync(Arg.Any<IFileInfo>(), Arg.Any<CancellationToken>())
-            .Returns<Task<DanceListUpdate>>(_ => throw thrown);
-
-        await _sut.UpdateFromFileAsync("/somewhere/dances.json");
-
-        await _logger.Received(1).ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
-        await _logger.Received(1).ErrorAsync("Failed to update the dance list from a file", thrown);
-        _notifications.Received(1).Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>());
-        _notifications.Received(1).Show(
-            string.Format(
-                CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, DomainStrings.DanceList_FileUnreadable),
-            NotificationSeverity.Error);
-        Assert.False(_sut.IsUpdating);
-    }
-
-    // --- Where the list came from ---
-
-    [Fact]
-    public void Origin_NoListYet_SaysSo() =>
-        Assert.Equal(UiStrings.DanceList_NoListYet, _sut.OriginText);
-
-    [Fact]
-    public void Origin_Downloaded_SaysWhen()
-    {
-        // A stale list has to be visible rather than assumed: it is the vocabulary everything else
-        // in the application is said in.
-        var obtained = new DateTimeOffset(2026, 8, 20, 19, 30, 0, TimeSpan.Zero);
-        _status.OnNext(new DanceListStatus(3, 3, DanceListOrigin.Downloaded, obtained));
-
-        Assert.Equal(
-            string.Format(ApplicationCulture.Current, UiStrings.DanceList_Obtained, obtained.ToLocalTime().DateTime),
-            _sut.OriginText);
-    }
-
-    [Theory]
-    [InlineData("en-US", "nl")]
-    [InlineData("nl-NL", "en")]
-    public void Origin_NamesTheMonthInTheApplicationsLanguage(string machine, string application)
-    {
-        using var cultures = new CultureScope(machine, application);
-        var obtained = new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero);
-
-        var origin = DanceListReports.Origin(new DanceListStatus(3, 3, DanceListOrigin.Downloaded, obtained));
-
-        // "opgehaald 15 October 2026" was the Dutch application on an English laptop.
-        Assert.Contains(obtained.ToString("MMMM", CultureInfo.GetCultureInfo(application)), origin, StringComparison.Ordinal);
-        Assert.DoesNotContain(obtained.ToString("MMMM", CultureInfo.GetCultureInfo(machine)), origin, StringComparison.Ordinal);
-    }
-
     public void Dispose()
     {
         _sut.Dispose();
         _lists.Dispose();
-        _status.Dispose();
         _pools.Dispose();
         _tracks.Dispose();
     }

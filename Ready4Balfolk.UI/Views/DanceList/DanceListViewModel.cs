@@ -2,20 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.IO.Abstractions;
 using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
 using ReactiveUI.Reactive;
 using ReactiveUI.SourceGenerators;
 using Ready4Balfolk.Domain.Helpers;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.QueueItems;
-using Ready4Balfolk.Domain.Resources;
-using Ready4Balfolk.Domain.Services.Dances;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Notifications;
 using Ready4Balfolk.Domain.Services.Queue;
@@ -51,9 +47,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
     private readonly IRandomTrackService _randomTrackService;
     private readonly IQueueService _queueService;
     private readonly INotificationService _notifications;
-    private readonly IDanceListFeed _feed;
     private readonly ILoggerService _loggerService;
-    private readonly IFileSystem _fileSystem;
     private readonly CompositeDisposable _disposables = [];
 
     [Reactive] public partial string SearchText { get; set; }
@@ -72,14 +66,7 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
     /// <summary>How many dances are showing, and how many the list has in total.</summary>
     [Reactive] public partial string SummaryText { get; private set; }
 
-    /// <summary>Where the list came from and when, so a stale one is visible rather than assumed.</summary>
-    [Reactive] public partial string OriginText { get; private set; }
-
-    [Reactive] public partial bool IsUpdating { get; private set; }
-
     [ObservableAsProperty] public partial bool IsLoading { get; }
-
-    public Uri SourceUri => _feed.HomePage;
 
     /// <remarks>
     /// <c>settleScheduler</c> is where the fractions of a second the rail waits out are counted:
@@ -95,8 +82,6 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         IRandomTrackService randomTrackService,
         IQueueService queueService,
         INotificationService notifications,
-        IDanceListFeed feed,
-        IFileSystem fileSystem,
         ILoggerService loggerService,
         IScheduler? settleScheduler = null)
     {
@@ -106,14 +91,11 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         _randomTrackService = randomTrackService;
         _queueService = queueService;
         _notifications = notifications;
-        _feed = feed;
         _loggerService = loggerService;
-        _fileSystem = fileSystem;
 
         SearchText = string.Empty;
         PoolDescription = UiStrings.DanceList_PoolEverything;
         SummaryText = string.Empty;
-        OriginText = string.Empty;
 
         _isLoadingHelper = store.IsLoading
             .ObserveOn(RxSchedulers.MainThreadScheduler)
@@ -138,19 +120,12 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
             .Subscribe(x => Refresh(x.list, x.selection, x.search))
             .DisposeWith(_disposables);
 
-        store.ObserveStatus()
-            .ObserveOn(RxSchedulers.MainThreadScheduler)
-            .Subscribe(DescribeOrigin)
-            .DisposeWith(_disposables);
-
         _disposables.Add(ToggleTagCommand.ReportFailures(
             _loggerService, "Failed to change the dance pool", _notifications, UiStrings.DanceList_ChangePoolFailed));
         _disposables.Add(ClearPoolCommand.ReportFailures(
             _loggerService, "Failed to clear the dance pool", _notifications, UiStrings.DanceList_ClearPoolFailed));
         _disposables.Add(PickDanceCommand.ReportFailures(
             _loggerService, "Failed to queue a track of that dance", _notifications, UiStrings.DanceList_PickDanceFailed));
-        _disposables.Add(UpdateCommand.ReportFailures(
-            _loggerService, "Failed to update the dance list", _notifications, UiStrings.DanceList_UpdateCommandFailed));
     }
 
     /// <summary>Puts a tag in the pool, or takes it out again.</summary>
@@ -182,56 +157,6 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         if (!result.Allowed)
         {
             _notifications.Show(result.RejectionReason!, NotificationSeverity.Warning);
-        }
-    }
-
-    /// <summary>Asks BigBalfolkList for a newer list.</summary>
-    [ReactiveCommand]
-    private async Task UpdateAsync()
-    {
-        IsUpdating = true;
-        try
-        {
-            _notifications.Show(await _store.RefreshAsync(), _store.Status);
-        }
-        finally
-        {
-            IsUpdating = false;
-        }
-    }
-
-    /// <summary>Takes a list from a file, for a machine that never reaches the internet.</summary>
-    /// <remarks>
-    /// <para>
-    /// Takes the path the file picker handed back rather than a file object, so the code-behind
-    /// does not have to reach for a filesystem of its own to build one.
-    /// </para>
-    /// <para>
-    /// A file the store throws on rather than refuses is reported once, in the words a refusal
-    /// would have used, and written to the log in English beside it. It used to be said twice on
-    /// screen, an English line through the log and the translated one beside it, for the one file,
-    /// and the translated one carried the exception's own text in whatever language it was in.
-    /// </para>
-    /// </remarks>
-    public async Task UpdateFromFileAsync(string sourcePath)
-    {
-        IsUpdating = true;
-        try
-        {
-            _notifications.Show(
-                await _store.UpdateFromFileAsync(_fileSystem.FileInfo.New(sourcePath)), _store.Status);
-        }
-        catch (Exception exception)
-        {
-            _loggerService.Report(
-                "Failed to update the dance list from a file",
-                _notifications,
-                DanceListReports.Failed(DomainStrings.DanceList_FileUnreadable, _store.Status),
-                exception);
-        }
-        finally
-        {
-            IsUpdating = false;
         }
     }
 
@@ -349,6 +274,4 @@ public sealed partial class DanceListViewModel : ReactiveObject, IDisposable
         foldedSearch.Length == 0
         || dance.Names.Any(name =>
             StringNormalizer.Normalize(name).Contains(foldedSearch, StringComparison.Ordinal));
-
-    private void DescribeOrigin(DanceListStatus status) => OriginText = DanceListReports.Origin(status);
 }

@@ -107,8 +107,8 @@ Opens this help screen.
 
 ### Settings
 
-Opens the settings screen: queue behaviour, presentation displays, theme, and the way back into
-setup.
+Opens the settings screen: queue behaviour, presentation displays, theme, a newer dance list, and
+the way back into setup.
 
 ### Review
 
@@ -339,8 +339,8 @@ published: there is nothing to build, nothing to fill in, and nothing in the app
 No copy is shipped with Ready4Balfolk. The first time you open it, setup asks you to fetch the list
 from BigBalfolkList, or to import a `dances.json` somebody carried in on a stick if this machine
 never goes online. Nothing can be answered about your music until one of those has happened, and
-the application never fetches anything on its own: the Update button in the dance list panel is
-how you ask for a newer one.
+the application never fetches anything on its own: **Update** in the settings is how you ask for a
+newer one.
 
 ### What is in it
 
@@ -378,16 +378,6 @@ A dance you own no tracks for says so instead, and can never come up in a random
 
 The search box matches every spelling of every dance, ignoring case, accents and punctuation, so
 `hanterdro` finds *Hanter dro* and `bourree 3` finds *Bourrée à trois temps*.
-
-### Keeping it up to date
-
-- **Update**: fetches the list as BigBalfolkList publishes it right now. Useful when you know
-  something was just added.
-- **From a file**: takes the list from a `dances.json` on this computer, for a machine that never
-  reaches the internet.
-
-Either way the list is replaced whole and checked first; if it cannot be read, the one you already
-have stays in use.
 
 ### Something missing or misspelled?
 
@@ -490,6 +480,19 @@ The settings screen lets you configure application behaviour. All changes are sa
 Where your music is, shown rather than edited: changing it re-reads the whole library and re-decides
 every track, which is setup rather than a setting to nudge. **Run setup again** is how it is changed.
 Everything below that folder counts, however it is arranged.
+
+### Dance list
+
+Where the dance list came from and when, and the two ways to ask for a newer one. Nothing fetches a
+newer list on its own.
+
+- **Update**: fetches the list as BigBalfolkList publishes it right now. Useful when you know
+  something was just added.
+- **From a file**: takes the list from a `dances.json` on this computer, for a machine that never
+  reaches the internet.
+
+Either way the list is replaced whole and checked first; if it cannot be read, the one you already
+have stays in use.
 
 ### Maximum Queue Items
 

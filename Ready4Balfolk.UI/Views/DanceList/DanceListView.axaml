@@ -74,44 +74,16 @@
                                FontSize="12" />
                 </StackPanel>
 
-                <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="0,8,0,0">
-                    <Button Command="{CompiledBinding ClearPoolCommand}"
-                            IsVisible="{CompiledBinding HasPool}"
-                            HorizontalAlignment="Stretch"
-                            Padding="8">
-                        <controls:ButtonContent Icon="{StaticResource IconClose}"
-                                                Text="{x:Static res:UiStrings.DanceList_ClearPool}"
-                                                IconSize="14" />
-                    </Button>
-
-                    <Rectangle Height="1" Margin="0,4"
-                               Fill="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
-
-                    <TextBlock Text="{CompiledBinding OriginText}"
-                               TextWrapping="Wrap"
-                               FontSize="11"
-                               Opacity="0.6" />
-                    <Button AutomationProperties.AutomationId="dancelist.update"
-                            Command="{CompiledBinding UpdateCommand}"
-                            IsEnabled="{CompiledBinding !IsUpdating}"
-                            ToolTip.Tip="{x:Static res:UiStrings.DanceList_UpdateTip}"
-                            HorizontalAlignment="Stretch"
-                            Padding="8">
-                        <controls:ButtonContent Icon="{StaticResource IconDownload}"
-                                                Text="{x:Static res:UiStrings.DanceList_Update}"
-                                                IconSize="14" />
-                    </Button>
-                    <Button AutomationProperties.AutomationId="dancelist.import"
-                            Click="OnUpdateFromFileClick"
-                            IsEnabled="{CompiledBinding !IsUpdating}"
-                            ToolTip.Tip="{x:Static res:UiStrings.DanceList_UpdateFromFileTip}"
-                            HorizontalAlignment="Stretch"
-                            Padding="8">
-                        <controls:ButtonContent Icon="{StaticResource IconFileImport}"
-                                                Text="{x:Static res:UiStrings.DanceList_UpdateFromFile}"
-                                                IconSize="14" />
-                    </Button>
-                </StackPanel>
+                <Button DockPanel.Dock="Bottom"
+                        Command="{CompiledBinding ClearPoolCommand}"
+                        IsVisible="{CompiledBinding HasPool}"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,8,0,0"
+                        Padding="8">
+                    <controls:ButtonContent Icon="{StaticResource IconClose}"
+                                            Text="{x:Static res:UiStrings.DanceList_ClearPool}"
+                                            IconSize="14" />
+                </Button>
 
                 <ScrollViewer>
                     <ItemsControl ItemsSource="{CompiledBinding Tags}">
