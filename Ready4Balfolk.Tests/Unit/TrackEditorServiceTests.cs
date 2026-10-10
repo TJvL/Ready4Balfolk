@@ -1,8 +1,10 @@
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
+using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Services;
@@ -19,7 +21,8 @@ public sealed class TrackEditorServiceTests
     {
         var danceListStore = Substitute.For<IDanceListStore>();
         danceListStore.Index.Returns(DanceListIndex.Build(TestData.CreateSimpleDanceList()));
-        _sut = new TrackEditorService(danceListStore, _libraryIndex, _trackStore, new DialogOwner());
+        _sut = new TrackEditorService(
+            danceListStore, _libraryIndex, _trackStore, Substitute.For<ISettingsStore>(), new DialogOwner());
     }
 
     [Fact]
@@ -29,7 +32,7 @@ public sealed class TrackEditorServiceTests
         // taken back when that rule changes.
         var track = TestData.CreateTrack();
 
-        await _sut.ApplyAsync(track, "Mazurka", track.Artist, "Corrected", track.Likelihood);
+        await _sut.ApplyAsync(track, "Mazurka", track.Artist, "Corrected", track.Likelihood, track.Equalizer);
 
         await _libraryIndex.Received(1).ApproveIndividuallyAsync(
             Arg.Any<IReadOnlyCollection<string>>(),
@@ -47,7 +50,7 @@ public sealed class TrackEditorServiceTests
         // as a name follows the name rather than the dance.
         var track = TestData.CreateTrack();
 
-        await _sut.ApplyAsync(track, "Schottische", track.Artist, track.Title, track.Likelihood);
+        await _sut.ApplyAsync(track, "Schottische", track.Artist, track.Title, track.Likelihood, track.Equalizer);
 
         await _libraryIndex.Received(1).ApproveIndividuallyAsync(
             Arg.Any<IReadOnlyCollection<string>>(),
@@ -94,7 +97,7 @@ public sealed class TrackEditorServiceTests
     {
         var track = TestData.CreateTrack();
 
-        await _sut.ApplyAsync(track, track.Dance, track.Artist, track.Title, track.Likelihood);
+        await _sut.ApplyAsync(track, track.Dance, track.Artist, track.Title, track.Likelihood, track.Equalizer);
 
         await _libraryIndex.DidNotReceiveWithAnyArgs()
             .ApproveIndividuallyAsync(default!, default!, TestContext.Current.CancellationToken);
@@ -110,7 +113,7 @@ public sealed class TrackEditorServiceTests
         // a field a rule answered into one the person answered.
         var track = TestData.CreateTrack();
 
-        await _sut.ApplyAsync(track, track.Dance, track.Artist, track.Title, 4);
+        await _sut.ApplyAsync(track, track.Dance, track.Artist, track.Title, 4, track.Equalizer);
 
         await _libraryIndex.Received(1).SetLikelihoodAsync(
             Arg.Is<IReadOnlyCollection<string>>(paths => paths.Contains(track.FileInfo.FullName)),
@@ -126,9 +129,43 @@ public sealed class TrackEditorServiceTests
     {
         var track = TestData.CreateTrack() with { Likelihood = 2 };
 
-        await _sut.ApplyAsync(track, track.Dance, track.Artist, "Corrected", track.Likelihood);
+        await _sut.ApplyAsync(track, track.Dance, track.Artist, "Corrected", track.Likelihood, track.Equalizer);
 
         await _libraryIndex.DidNotReceiveWithAnyArgs()
             .SetLikelihoodAsync(default!, default, TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task AnOwnEqualizer_IsWrittenAndShowsAtOnce()
+    {
+        var track = TestData.CreateTrack();
+        var own = EqualizerSettings.Flat with { Enabled = true, PreampDecibels = -4 };
+
+        await _sut.ApplyAsync(track, track.Dance, track.Artist, track.Title, track.Likelihood, own);
+
+        await _libraryIndex.Received(1).SetEqualizerAsync(
+            Arg.Is<IReadOnlyCollection<string>>(paths => paths.Contains(track.FileInfo.FullName)),
+            own,
+            Arg.Any<CancellationToken>());
+        await _libraryIndex.DidNotReceiveWithAnyArgs()
+            .ApproveIndividuallyAsync(default!, default!, TestContext.Current.CancellationToken);
+        await _trackStore.Received(1).RefreshLibraryAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AnUntouchedEqualizer_IsNotWritten()
+    {
+        // Equal by value rather than by reference: the dialog builds a new record from its sliders
+        // every time, and an unchanged curve must not read as a change.
+        var own = EqualizerSettings.Flat with { Enabled = true, PreampDecibels = -4 };
+        var track = TestData.CreateTrack() with { Equalizer = own };
+
+        await _sut.ApplyAsync(
+            track, track.Dance, track.Artist, track.Title, track.Likelihood,
+            EqualizerSettings.Flat with { Enabled = true, PreampDecibels = -4 });
+
+        await _libraryIndex.DidNotReceiveWithAnyArgs()
+            .SetEqualizerAsync(default!, default, TestContext.Current.CancellationToken);
+        await _trackStore.DidNotReceive().RefreshLibraryAsync(Arg.Any<CancellationToken>());
     }
 }

@@ -13,6 +13,16 @@ public interface IAudioPlaybackService
     /// <summary>Applies the equalizer to the playing track and to the preloaded one.</summary>
     Task SetEqualizerAsync(EqualizerSettings equalizerSettings);
 
+    /// <summary>The files that play through an equalizer of their own, by path, replacing the last set.</summary>
+    /// <remarks>
+    /// Each stream is shaped by its own file's entry while the global equalizer is switched on, and
+    /// by the global one otherwise. Per stream rather than one setting swapped as the queue moves on,
+    /// because the track loaded ahead is already open and through its effects before it plays: a
+    /// swap at the moment it starts lands a moment late, and the room hears the first bar of the
+    /// next dance through the last one's curve.
+    /// </remarks>
+    Task SetTrackEqualizersAsync(IReadOnlyDictionary<string, EqualizerSettings> byPath);
+
     Task SelectAsync(Uri source);
     Task PlayAsync();
     Task PauseAsync();

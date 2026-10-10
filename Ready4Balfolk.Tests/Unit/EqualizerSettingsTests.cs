@@ -170,4 +170,44 @@ public sealed class EqualizerSettingsTests
 
         Assert.Equal(equalizer, settings.Equalizer);
     }
+
+    [Fact]
+    public void Json_RoundTripsTheWholeCurve()
+    {
+        // The one written form, for the library index and for the clipboard alike.
+        var curve = EqualizerSettings.Flat.WithBandGain(1, 4.5).WithBandGain(6, -3) with
+        {
+            Enabled = true,
+            PreampDecibels = -2,
+            LowCutEnabled = true,
+            LowCutHertz = 80
+        };
+
+        Assert.Equal(curve, EqualizerSettings.FromJson(curve.ToJson()));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("Naragonia - Salamandre")]
+    [InlineData("{}")]
+    [InlineData("[1, 2, 3]")]
+    [InlineData("{\"Enabled\": true")]
+    [InlineData("{\"BandGains\": \"loud\"}")]
+    public void Json_ThatIsNotACurve_ReadsAsNothing(string? text) =>
+        // A clipboard can hold anything. "{}" in particular would otherwise land as a flat curve
+        // nobody copied.
+        Assert.Null(EqualizerSettings.FromJson(text));
+
+    [Fact]
+    public void Json_OutOfRange_IsClampedByTheRecord()
+    {
+        var read = EqualizerSettings.FromJson("{\"BandGains\": [99, -99], \"PreampDecibels\": 40}");
+
+        Assert.NotNull(read);
+        Assert.Equal(EqualizerSettings.MaximumGainDecibels, read.BandGains[0]);
+        Assert.Equal(EqualizerSettings.MinimumGainDecibels, read.BandGains[1]);
+        Assert.Equal(0, read.BandGains[2]);
+        Assert.Equal(EqualizerSettings.MaximumGainDecibels, read.PreampDecibels);
+    }
 }

@@ -5,8 +5,10 @@ using System.Linq;
 using System.Windows.Input;
 using ReactiveUI.Reactive;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.UI.Resources;
+using Ready4Balfolk.UI.Views.Equalizer;
 using Ready4Balfolk.UI.Views.Review;
 
 namespace Ready4Balfolk.UI.Views.Dialogs.EditTrack;
@@ -25,9 +27,16 @@ public sealed class EditTrackDialogViewModel : ReactiveObject
     private readonly DanceListIndex _index;
     private readonly IReadOnlyList<string> _allDances;
     private readonly string _originalDance;
+    private readonly bool _hadEqualizer;
     private bool _taking;
 
-    public EditTrackDialogViewModel(Track track, DanceListIndex index)
+    /// <param name="track">The track as the library holds it now.</param>
+    /// <param name="index">The published list, which is what the dance is checked against.</param>
+    /// <param name="globalEqualizer">
+    /// Where a track that has never had an equalizer of its own starts from: the room as it is
+    /// being corrected tonight, which is closer to what the track wants than a flat curve is.
+    /// </param>
+    public EditTrackDialogViewModel(Track track, DanceListIndex index, EqualizerSettings? globalEqualizer = null)
     {
         _index = index;
         _allDances =
@@ -42,6 +51,14 @@ public sealed class EditTrackDialogViewModel : ReactiveObject
         Artist = track.Artist;
         Title = track.Title;
         LikelihoodStep = Math.Round(Math.Log2(track.Likelihood));
+
+        _hadEqualizer = track.Equalizer is not null;
+        EqualizerBands =
+        [
+            .. EqualizerSettings.BandCenterFrequencies.Select(center => new EqualizerBandViewModel(center))
+        ];
+        LoadCurve(track.Equalizer ?? globalEqualizer ?? EqualizerSettings.Flat);
+        UseOwnEqualizer = track.HasOwnEqualizer;
 
         var canSave = this.WhenAnyValue(x => x.CanSave);
         SaveCommand = ReactiveCommand.Create(() => DialogResult = true, canSave);
@@ -109,6 +126,97 @@ public sealed class EditTrackDialogViewModel : ReactiveObject
         -1.0 => "×½",
         _ => "×" + Likelihood.ToString("0", CultureInfo.CurrentCulture)
     };
+
+    /// <summary>Whether the track plays through the curve below rather than through the global one.</summary>
+    public bool UseOwnEqualizer
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    public IReadOnlyList<EqualizerBandViewModel> EqualizerBands { get; }
+
+    public double EqualizerPreamp
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    public bool EqualizerLowCutEnabled
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    public double EqualizerLowCutHertz
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    /// <summary>Why a paste was refused, or empty.</summary>
+    public string EqualizerProblem
+    {
+        get;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref field, value);
+            this.RaisePropertyChanged(nameof(HasEqualizerProblem));
+        }
+    } = string.Empty;
+
+    public bool HasEqualizerProblem => EqualizerProblem.Length > 0;
+
+    /// <summary>The curve on the sliders as the text Copy puts on the clipboard.</summary>
+    public string EqualizerJson => Curve().ToJson();
+
+    /// <summary>What saving writes as the track's own equalizer, or null for none at all.</summary>
+    /// <remarks>
+    /// A track that never had one and is still not given one has nothing to keep. One that had one
+    /// and is switched off keeps its curve, switched off, so ticking the box again finds it.
+    /// </remarks>
+    public EqualizerSettings? EqualizerToSave =>
+        !_hadEqualizer && !UseOwnEqualizer
+            ? null
+            : Curve() with { Enabled = UseOwnEqualizer };
+
+    /// <summary>Takes a curve off the clipboard's text and puts it on this track.</summary>
+    /// <returns>False, with the reason shown, when the text is not equalizer settings.</returns>
+    public bool PasteEqualizer(string? text)
+    {
+        if (EqualizerSettings.FromJson(text) is not { } pasted)
+        {
+            EqualizerProblem = UiStrings.EditTrack_PasteRefused;
+            return false;
+        }
+
+        // Pasting a curve onto a track is asking for the track to play through it.
+        LoadCurve(pasted);
+        UseOwnEqualizer = true;
+        EqualizerProblem = string.Empty;
+        return true;
+    }
+
+    private EqualizerSettings Curve() => new()
+    {
+        Enabled = true,
+        BandGains = EqualizerBands.Select(band => band.Gain).ToArray(),
+        PreampDecibels = EqualizerPreamp,
+        LowCutEnabled = EqualizerLowCutEnabled,
+        LowCutHertz = EqualizerLowCutHertz
+    };
+
+    private void LoadCurve(EqualizerSettings curve)
+    {
+        for (var index = 0; index < EqualizerBands.Count; index++)
+        {
+            EqualizerBands[index].Gain = curve.BandGains[index];
+        }
+
+        EqualizerPreamp = curve.PreampDecibels;
+        EqualizerLowCutEnabled = curve.LowCutEnabled;
+        EqualizerLowCutHertz = curve.LowCutHertz;
+    }
 
     public IReadOnlyList<DanceMatch> DanceMatches
     {

@@ -166,4 +166,7 @@ public static class DomainStrings
 
     public static string Audio_NeverCameUp =>
         ResourceManager.GetString("Audio_NeverCameUp", Culture)!;
+
+    public static string Equalizer_TrackApplyFailed =>
+        ResourceManager.GetString("Equalizer_TrackApplyFailed", Culture)!;
 }

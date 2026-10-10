@@ -296,6 +296,43 @@ public sealed class ManagedBassPlaybackTests : IDisposable
         Assert.Equal(trim, afterTheHandover, 0.001);
     }
 
+    /// <summary>A track with an equalizer of its own is shaped by it from the moment it is opened.</summary>
+    /// <remarks>
+    /// Per stream: the track loaded ahead carries its own curve while the one playing keeps the
+    /// global one, and switching the global equalizer off takes both back to nothing at once. The
+    /// preamp is what is read, for the same reason as above.
+    /// </remarks>
+    [Fact]
+    public async Task ATrackWithItsOwnEqualizer_IsShapedByItFromTheMomentItIsOpened()
+    {
+        Assert.True(_sut.IsEqualizerAvailable);
+
+        var next = Audio("own.mp3");
+        await _sut.SetEqualizerAsync(new EqualizerSettings { Enabled = true, PreampDecibels = -6 });
+        await _sut.SetTrackEqualizersAsync(new Dictionary<string, EqualizerSettings>(StringComparer.Ordinal)
+        {
+            [next.LocalPath] = new EqualizerSettings { Enabled = true, PreampDecibels = -12 }
+        });
+
+        await _sut.SelectAsync(_track);
+        await _sut.PreloadNextAsync(next);
+        var (playing, preloaded) = _sut.OpenChannels;
+
+        Assert.Equal(Math.Pow(10, -6 / 20.0), VolumeOf(playing), 0.001);
+        Assert.Equal(Math.Pow(10, -12 / 20.0), VolumeOf(preloaded), 0.001);
+
+        await _sut.SetEqualizerAsync(new EqualizerSettings { Enabled = false, PreampDecibels = -6 });
+
+        Assert.Equal(1, VolumeOf(playing), 0.001);
+        Assert.Equal(1, VolumeOf(preloaded), 0.001);
+    }
+
+    private static double VolumeOf(int channel)
+    {
+        Bass.ChannelGetAttribute(channel, ChannelAttribute.Volume, out var volume);
+        return volume;
+    }
+
     /// <summary>The embedded smoke-test audio, written into the temporary tree.</summary>
     private Uri Audio(string name)
     {

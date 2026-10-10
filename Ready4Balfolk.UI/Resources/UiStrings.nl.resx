@@ -790,6 +790,12 @@
   <data name="Equalizer_Unavailable" xml:space="preserve">
     <value>Equalizer niet beschikbaar</value>
   </data>
+  <data name="Equalizer_TrackHeader" xml:space="preserve">
+    <value>Equalizer: {0} - {1}</value>
+  </data>
+  <data name="Equalizer_BackToGlobal" xml:space="preserve">
+    <value>Terug naar algemeen</value>
+  </data>
 
   <data name="Settings_WebServerSection" xml:space="preserve">
     <value>Presentatie in een browser</value>
@@ -1169,6 +1175,24 @@
   </data>
   <data name="EditTrack_LikelihoodHint" xml:space="preserve">
     <value>Vergeleken met de andere nummers van deze dans. De dans zelf komt even vaak aan de beurt als voorheen.</value>
+  </data>
+  <data name="EditTrack_OwnEqualizer" xml:space="preserve">
+    <value>Eigen equalizer gebruiken voor dit nummer</value>
+  </data>
+  <data name="EditTrack_OwnEqualizerHint" xml:space="preserve">
+    <value>Alleen zolang de equalizer op het hoofdscherm aanstaat. Met Kopiëren en Plakken neem je deze instellingen mee van het ene nummer naar het andere.</value>
+  </data>
+  <data name="EditTrack_CopyEqualizer" xml:space="preserve">
+    <value>Kopiëren</value>
+  </data>
+  <data name="EditTrack_PasteEqualizer" xml:space="preserve">
+    <value>Plakken</value>
+  </data>
+  <data name="EditTrack_PasteRefused" xml:space="preserve">
+    <value>Het klembord bevat geen equalizerinstellingen.</value>
+  </data>
+  <data name="EditTrack_ClipboardFailed" xml:space="preserve">
+    <value>Het klembord kon niet gebruikt worden</value>
   </data>
   <data name="Discovery_FieldDance" xml:space="preserve">
     <value>Dans</value>

@@ -1,4 +1,5 @@
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Views.Dialogs.EditTrack;
 
@@ -98,6 +99,78 @@ public sealed class EditTrackDialogViewModelTests
 
         Assert.Equal(multiplier, sut.Likelihood);
         Assert.Equal(reads, sut.LikelihoodText);
+    }
+
+    [Fact]
+    public void ATrackWithoutItsOwn_StartsFromTheGlobalCurveAndSavesNothing()
+    {
+        // The room as it is being corrected tonight is a better start than flat. Looking at it is
+        // not giving the track one, though.
+        var global = EqualizerSettings.Flat with { Enabled = true, PreampDecibels = -3 };
+        var sut = new EditTrackDialogViewModel(TestData.CreateTrack(), _index, global);
+
+        Assert.False(sut.UseOwnEqualizer);
+        Assert.Equal(-3, sut.EqualizerPreamp);
+        Assert.Null(sut.EqualizerToSave);
+    }
+
+    [Fact]
+    public void TickingOwnEqualizer_SavesTheCurveOnTheSliders()
+    {
+        var sut = Build();
+
+        sut.UseOwnEqualizer = true;
+        sut.EqualizerBands[0].Gain = 5;
+        sut.EqualizerPreamp = -2;
+
+        var saved = sut.EqualizerToSave;
+        Assert.NotNull(saved);
+        Assert.True(saved.Enabled);
+        Assert.Equal(5, saved.BandGains[0]);
+        Assert.Equal(-2, saved.PreampDecibels);
+    }
+
+    [Fact]
+    public void UntickingOwnEqualizer_KeepsTheCurveSwitchedOff()
+    {
+        var own = EqualizerSettings.Flat with { Enabled = true, PreampDecibels = -4 };
+        var sut = new EditTrackDialogViewModel(TestData.CreateTrack() with { Equalizer = own }, _index);
+
+        Assert.True(sut.UseOwnEqualizer);
+        sut.UseOwnEqualizer = false;
+
+        Assert.Equal(own with { Enabled = false }, sut.EqualizerToSave);
+    }
+
+    [Fact]
+    public void ACopiedCurve_PastesOntoAnotherTrackAndSwitchesItOn()
+    {
+        var from = new EditTrackDialogViewModel(
+            TestData.CreateTrack() with
+            {
+                Equalizer = EqualizerSettings.Flat.WithBandGain(4, -7) with { Enabled = true, LowCutEnabled = true }
+            },
+            _index);
+        var onto = Build();
+
+        Assert.True(onto.PasteEqualizer(from.EqualizerJson));
+
+        Assert.True(onto.UseOwnEqualizer);
+        Assert.Equal(-7, onto.EqualizerBands[4].Gain);
+        Assert.True(onto.EqualizerLowCutEnabled);
+        Assert.False(onto.HasEqualizerProblem);
+    }
+
+    [Fact]
+    public void PastingSomethingThatIsNotACurve_IsRefusedAndChangesNothing()
+    {
+        var sut = Build();
+
+        Assert.False(sut.PasteEqualizer("Naragonia - Salamandre"));
+
+        Assert.True(sut.HasEqualizerProblem);
+        Assert.False(sut.UseOwnEqualizer);
+        Assert.Null(sut.EqualizerToSave);
     }
 
     [Fact]

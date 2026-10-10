@@ -4,8 +4,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:editTrack="clr-namespace:Ready4Balfolk.UI.Views.Dialogs.EditTrack"
         xmlns:review="clr-namespace:Ready4Balfolk.UI.Views.Review"
+        xmlns:equalizer="clr-namespace:Ready4Balfolk.UI.Views.Equalizer"
+        xmlns:settings="using:Ready4Balfolk.Domain.Models.Settings"
         xmlns:res="using:Ready4Balfolk.UI.Resources"
-        mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="380"
+        mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="720"
         x:Class="Ready4Balfolk.UI.Views.Dialogs.EditTrack.EditTrackDialogView"
         x:DataType="editTrack:EditTrackDialogViewModel"
         Title="{x:Static res:UiStrings.EditTrack_WindowTitle}"
@@ -101,6 +103,106 @@
                            VerticalAlignment="Center" />
             </Grid>
             <TextBlock Text="{x:Static res:UiStrings.EditTrack_LikelihoodHint}"
+                       TextWrapping="Wrap"
+                       FontSize="12"
+                       Opacity="0.7" />
+        </StackPanel>
+
+        <StackPanel Spacing="4">
+            <Grid ColumnDefinitions="*,Auto">
+                <CheckBox Grid.Column="0"
+                          AutomationProperties.AutomationId="edit-track.own-equalizer"
+                          Content="{x:Static res:UiStrings.EditTrack_OwnEqualizer}"
+                          IsChecked="{CompiledBinding UseOwnEqualizer}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button AutomationProperties.AutomationId="edit-track.copy-equalizer"
+                            Content="{x:Static res:UiStrings.EditTrack_CopyEqualizer}"
+                            Click="OnCopyEqualizer" />
+                    <Button AutomationProperties.AutomationId="edit-track.paste-equalizer"
+                            Content="{x:Static res:UiStrings.EditTrack_PasteEqualizer}"
+                            Click="OnPasteEqualizer" />
+                </StackPanel>
+            </Grid>
+
+            <!-- The same bands, preamp and low cut as the panel on the main screen, so a curve
+                 pulled there during a dance reads back here as it was left. -->
+            <StackPanel Spacing="4" IsEnabled="{CompiledBinding UseOwnEqualizer}">
+                <ItemsControl AutomationProperties.AutomationId="edit-track.equalizer-bands"
+                              ItemsSource="{CompiledBinding EqualizerBands}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="equalizer:EqualizerBandViewModel">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Slider AutomationProperties.AutomationId="edit-track.equalizer-band"
+                                        AutomationProperties.Name="{CompiledBinding Label}"
+                                        Orientation="Vertical"
+                                        Height="100"
+                                        HorizontalAlignment="Center"
+                                        Minimum="{x:Static settings:EqualizerSettings.MinimumGainDecibels}"
+                                        Maximum="{x:Static settings:EqualizerSettings.MaximumGainDecibels}"
+                                        TickFrequency="3"
+                                        TickPlacement="Outside"
+                                        Value="{CompiledBinding Gain}"
+                                        ToolTip.Tip="{CompiledBinding Gain, StringFormat={}{0:+0.0;-0.0;0.0} dB}" />
+                                <TextBlock Text="{CompiledBinding Label}"
+                                           FontSize="11"
+                                           Opacity="0.7"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,4,0,0" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+                    <CheckBox Grid.Row="0" Grid.Column="0"
+                              AutomationProperties.AutomationId="edit-track.equalizer-low-cut-enable"
+                              Content="{x:Static res:UiStrings.Equalizer_LowCut}"
+                              IsChecked="{CompiledBinding EqualizerLowCutEnabled}"
+                              MinWidth="110" />
+                    <Slider Grid.Row="0" Grid.Column="1"
+                            AutomationProperties.AutomationId="edit-track.equalizer-low-cut-hertz"
+                            AutomationProperties.Name="{x:Static res:UiStrings.Equalizer_LowCut}"
+                            Minimum="{x:Static settings:EqualizerSettings.MinimumLowCutHertz}"
+                            Maximum="{x:Static settings:EqualizerSettings.MaximumLowCutHertz}"
+                            Value="{CompiledBinding EqualizerLowCutHertz}"
+                            IsEnabled="{CompiledBinding EqualizerLowCutEnabled}"
+                            VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="0" Grid.Column="2"
+                               Text="{CompiledBinding EqualizerLowCutHertz, StringFormat={}{0:0} Hz}"
+                               VerticalAlignment="Center"
+                               MinWidth="52"
+                               TextAlignment="Right" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0"
+                               Text="{x:Static res:UiStrings.Equalizer_Preamp}"
+                               VerticalAlignment="Center" />
+                    <Slider Grid.Row="1" Grid.Column="1"
+                            AutomationProperties.AutomationId="edit-track.equalizer-preamp"
+                            AutomationProperties.Name="{x:Static res:UiStrings.Equalizer_Preamp}"
+                            Minimum="{x:Static settings:EqualizerSettings.MinimumGainDecibels}"
+                            Maximum="{x:Static settings:EqualizerSettings.MaximumGainDecibels}"
+                            Value="{CompiledBinding EqualizerPreamp}"
+                            VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="1" Grid.Column="2"
+                               Text="{CompiledBinding EqualizerPreamp, StringFormat={}{0:+0.0;-0.0;0.0} dB}"
+                               VerticalAlignment="Center"
+                               MinWidth="52"
+                               TextAlignment="Right" />
+                </Grid>
+            </StackPanel>
+
+            <TextBlock AutomationProperties.AutomationId="edit-track.equalizer-problem"
+                       Text="{CompiledBinding EqualizerProblem}"
+                       IsVisible="{CompiledBinding HasEqualizerProblem}"
+                       Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}"
+                       TextWrapping="Wrap"
+                       FontSize="12" />
+            <TextBlock Text="{x:Static res:UiStrings.EditTrack_OwnEqualizerHint}"
                        TextWrapping="Wrap"
                        FontSize="12"
                        Opacity="0.7" />

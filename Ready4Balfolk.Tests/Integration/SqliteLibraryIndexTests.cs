@@ -2,6 +2,7 @@ using System.IO.Abstractions;
 using Microsoft.Data.Sqlite;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Services.Discovery;
 using Ready4Balfolk.Domain.Services.Library;
@@ -363,7 +364,7 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await using (var connection = await RawConnectionAsync())
         await using (var command = connection.CreateCommand())
         {
-            command.CommandText = "DROP TABLE track_likelihoods; PRAGMA user_version = 2;";
+            command.CommandText = "DROP TABLE track_likelihoods; DROP TABLE track_equalizers; PRAGMA user_version = 2;";
             await command.ExecuteNonQueryAsync(Token);
         }
 
@@ -374,6 +375,44 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         Assert.Equal(["/music/a.mp3"], await rebuilt.IndexedPathsAsync(Token));
         Assert.Empty(await rebuilt.LikelihoodsAsync(Token));
         Assert.Empty(notifications.ReceivedCalls());
+    }
+
+    [Fact]
+    public async Task AnIndexFromBeforeTrackEqualizers_KeepsItsApprovalsAndLikelihoods()
+    {
+        // The shape before tracks had an equalizer of their own: the likelihoods are there, the
+        // equalizers are not, and the missing table must not cost the ones that are.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/a.mp3"], [new FieldAnswer(TrackField.Title, "Le Tourdion")], Token);
+        await _sut.SetLikelihoodAsync(["/music/a.mp3"], 2, Token);
+        _sut.Dispose();
+        await using (var connection = await RawConnectionAsync())
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "DROP TABLE track_equalizers; PRAGMA user_version = 3;";
+            await command.ExecuteNonQueryAsync(Token);
+        }
+
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
+
+        Assert.Equal("Le Tourdion", Assert.Single((await rebuilt.ApprovalsAsync(Token))[LibraryKey.For([9])]).Value);
+        Assert.Equal(2, (await rebuilt.LikelihoodsAsync(Token))[LibraryKey.For([9])]);
+        Assert.Empty(await rebuilt.EqualizersAsync(Token));
+    }
+
+    [Fact]
+    public async Task AnIndexLaidOutForAnotherSchema_KeepsTheTracksOwnEqualizers()
+    {
+        var own = EqualizerSettings.Flat with { Enabled = true, PreampDecibels = -3 };
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+        await _sut.SetEqualizerAsync(["/music/a.mp3"], own, Token);
+        _sut.Dispose();
+        await StampSchemaVersionAsync(ALaterSchema);
+
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
+
+        Assert.Equal(own, (await rebuilt.EqualizersAsync(Token))[LibraryKey.For([9])]);
     }
 
     [Fact]
@@ -972,6 +1011,66 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         var likelihoods = await _sut.LikelihoodsAsync(Token);
         Assert.Equal(TrackLikelihood.Highest, likelihoods[LibraryKey.For([1])]);
         Assert.False(likelihoods.ContainsKey(LibraryKey.For([2])));
+    }
+
+    [Fact]
+    public async Task AnOwnEqualizer_IsKeptOnTheAudio_SoBothCopiesHaveIt()
+    {
+        var own = EqualizerSettings.Flat.WithBandGain(2, -6) with { Enabled = true, LowCutEnabled = true };
+        await _sut.WriteAsync([Entry("/music/loose.mp3", [9]), Entry("/music/album/track.mp3", [9])], Token);
+
+        await _sut.SetEqualizerAsync(["/music/loose.mp3"], own, Token);
+
+        Assert.Equal(own, Assert.Single(await _sut.EqualizersAsync(Token)).Value);
+    }
+
+    [Fact]
+    public async Task AnOwnEqualizerSwitchedOff_KeepsItsCurve()
+    {
+        var off = EqualizerSettings.Flat with { Enabled = false, PreampDecibels = -4 };
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+
+        await _sut.SetEqualizerAsync(["/music/a.mp3"], off, Token);
+
+        var kept = (await _sut.EqualizersAsync(Token))[LibraryKey.For([1])];
+        Assert.False(kept.Enabled);
+        Assert.Equal(-4, kept.PreampDecibels);
+    }
+
+    [Fact]
+    public async Task NoEqualizer_LeavesNoTrace()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+        await _sut.SetEqualizerAsync(["/music/a.mp3"], EqualizerSettings.Flat with { Enabled = true }, Token);
+
+        await _sut.SetEqualizerAsync(["/music/a.mp3"], null, Token);
+
+        Assert.Empty(await _sut.EqualizersAsync(Token));
+    }
+
+    [Fact]
+    public async Task AudioNothingPointsAtAnyMore_TakesItsEqualizerWithIt()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2]), Entry("/music/c.mp3", [3])], Token);
+        await _sut.SetEqualizerAsync(
+            ["/music/a.mp3", "/music/b.mp3", "/music/c.mp3"], EqualizerSettings.Flat with { Enabled = true }, Token);
+
+        await _sut.DeletePathsAsync(["/music/a.mp3"], Token);
+        await _sut.DeleteMissingAsync(["/music/c.mp3"], [], Token);
+
+        Assert.Equal([LibraryKey.For([3])], (await _sut.EqualizersAsync(Token)).Keys);
+    }
+
+    [Fact]
+    public async Task AnOwnEqualizer_FollowsTheAudioThroughAMove()
+    {
+        var own = EqualizerSettings.Flat with { Enabled = true, PreampDecibels = -2 };
+        await _sut.WriteAsync([Entry("/music/album/a.mp3", [1])], Token);
+        await _sut.SetEqualizerAsync(["/music/album/a.mp3"], own, Token);
+
+        await _sut.MovePathsAsync([new PathMove("/music/album/a.mp3", "/music/Naragonia/a.mp3")], Token);
+
+        Assert.Equal(own, (await _sut.EqualizersAsync(Token))[LibraryKey.For([1])]);
     }
 
     private static LibraryEntry Entry(string path, byte[] hash, string? slug = "mazurka")

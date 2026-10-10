@@ -219,6 +219,7 @@ public static class ApplicationComposition
             sp.GetRequiredService<TimeProvider>(),
             RxSchedulers.MainThreadScheduler));
         services.AddSingleton<IEndOfNightAudio, EndOfNightAudio>();
+        services.AddSingleton<ITrackEqualizerService, TrackEqualizerService>();
         // Registered from the options when a run brought its own, which is how a scenario gets a
         // data directory of its own without the stores hanging off it being anything but real.
         if (options.SettingsDirectory is { } settingsDirectory)

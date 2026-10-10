@@ -1,3 +1,4 @@
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.Domain.Models.Tracks;
 
 namespace Ready4Balfolk.Domain.Stores.Library;
@@ -166,4 +167,18 @@ public interface ILibraryIndex : IDisposable
     /// audio itself leaves the index.
     /// </remarks>
     Task SetLikelihoodAsync(IReadOnlyCollection<string> paths, double multiplier, CancellationToken token = default);
+
+    /// <summary>Every track's own equalizer, by content hash, for the tracks that have one.</summary>
+    /// <remarks>
+    /// Keyed by <see cref="LibraryKey.For(byte[])"/>, as the approvals are. One that is switched off
+    /// is still here, so switching it back on finds the curve where it was left.
+    /// </remarks>
+    Task<IReadOnlyDictionary<string, EqualizerSettings>> EqualizersAsync(CancellationToken token = default);
+
+    /// <summary>Gives the tracks at these paths an equalizer of their own, or takes it away with null.</summary>
+    /// <remarks>
+    /// By path onto the audio, like the likelihood, and an answer like it: no scan touches it.
+    /// </remarks>
+    Task SetEqualizerAsync(
+        IReadOnlyCollection<string> paths, EqualizerSettings? equalizer, CancellationToken token = default);
 }

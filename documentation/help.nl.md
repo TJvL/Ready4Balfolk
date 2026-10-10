@@ -159,6 +159,15 @@ Hij is standaard ingeklapt. De kop toont **aan** of **uit**, zodat een equalizer
 avond nog aanstaat zichtbaar is zonder het paneel te openen. Wijzigingen werken meteen, ook terwijl
 een nummer speelt, de enige praktische manier om een zaal te beoordelen.
 
+Een nummer kan ook een eigen equalizer hebben, ingesteld bij **Nummer bewerken** (zie
+[de catalogus](#nummercatalogus)). Zolang zo'n nummer speelt en de equalizer aanstaat, klinkt het
+door zijn eigen instellingen, en het paneel toont die: de kop wordt **Equalizer: Artiest - Titel**,
+de rand en de schuiven krijgen de accentkleur, en wat je verandert wordt bij dat nummer bewaard in
+plaats van bij de algemene equalizer. **Terug naar algemeen** zet de eigen equalizer van het nummer
+uit en brengt de algemene terug, met de instellingen van het nummer bewaard voor later. Het volgende
+nummer brengt de algemene equalizer vanzelf terug. Zet je de equalizer uit, dan gaat de eigen
+equalizer van elk nummer mee uit.
+
 ### Banden
 
 Zeven schuiven, elk tot 15 dB versterking of verzwakking op een vaste frequentie:
@@ -327,6 +336,13 @@ willekeurige keuze op die dans valt, zodat een nummer op ×4 vier keer zo vaak o
 nummer op ×1 van dezelfde dans. De dans zelf komt precies even vaak aan de beurt als voorheen. Het
 wordt in de bibliotheekindex bewaard en niet in het bestand, en volgt het nummer bij een andere
 naam of andere tags.
+
+**Eigen equalizer gebruiken voor dit nummer** geeft het nummer eigen banden, laagafsnijding en
+voorversterking, die in plaats van de algemene gelden wanneer het speelt terwijl de equalizer
+aanstaat. Een nummer dat er nog geen heeft begint bij de algemene instellingen. **Kopiëren** zet de
+instellingen op het klembord en **Plakken** neemt ze over op een ander nummer, waarbij diens eigen
+equalizer aangaat. Ze worden net als de kans bij een willekeurige keuze in de bibliotheekindex
+bewaard.
 
 ### Een antwoord terugnemen
 
