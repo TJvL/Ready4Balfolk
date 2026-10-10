@@ -7,5 +7,4 @@ public interface IQueueItem
 
     string Description { get; }
     TimeSpan? Duration { get; }
-    bool RandomlyAdded { get; }
 }

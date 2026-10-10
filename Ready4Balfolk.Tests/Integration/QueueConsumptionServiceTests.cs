@@ -169,6 +169,22 @@ public sealed class QueueConsumptionServiceTests : IDisposable
             .AddAsync(Arg.Is<TrackHistoryEntry>(e => e!.CompletionStatus == CompletionStatus.Skipped));
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task AdvanceAsync_RecordsWhetherTheDanceWasPickedAtRandom(bool randomly, bool auto)
+    {
+        // The night's report tells the requests from what the machine picked.
+        var track = new TrackQueueItem(TestData.CreateTrack(), randomly);
+        _queue.Enqueue(auto ? new AutoTrackQueueItem(track) : track);
+        await _sut.AdvanceAsync();
+
+        await _sut.AdvanceAsync();
+
+        await _history.Received(1).AddAsync(Arg.Is<TrackHistoryEntry>(e => e!.RandomlyAdded == randomly));
+    }
+
     [Fact]
     public async Task AdvanceAsync_RecordsWhenTheTrackStarted()
     {
@@ -540,6 +556,143 @@ public sealed class QueueConsumptionServiceTests : IDisposable
 
         Assert.NotNull(_sut.CurrentItem);
         Assert.Equal(0, _queue.Count);
+    }
+
+    [Fact]
+    public async Task AGap_RunsOutByItself_AndTheDanceWaitingBehindItStarts()
+    {
+        var waiting = await StartAGapAsync();
+        _audio.ClearReceivedCalls();
+
+        _time.Advance(TimeSpan.FromSeconds(4.9));
+        Assert.IsType<GapQueueItem>(_sut.CurrentItem);
+
+        var started = new TaskCompletionSource();
+        using var watching = _sut.WhenCurrentItemChanged
+            .Where(item => item is TrackQueueItem)
+            .Take(1)
+            .Subscribe(_ => started.TrySetResult());
+        _time.Advance(TimeSpan.FromSeconds(0.1));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        await _audio.Received(1).SelectAsync(waiting);
+        Assert.Equal(0, _queue.Count);
+
+        // The gap is the space between two rows of the night, never a row of its own.
+        await _history.Received(1).AddAsync(Arg.Any<QueueHistoryEntry>());
+        await _history.Received(1).AddAsync(Arg.Any<TrackHistoryEntry>());
+    }
+
+    [Fact]
+    public async Task ADanceThatRunsOut_IsRecordedAsFinished()
+    {
+        // Finished is what keeps a dance from being queued twice in one night; skipped does not.
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+
+        _playbackEnded.OnNext(RxUnit.Default);
+
+        await _history.Received(1)
+            .AddAsync(Arg.Is<TrackHistoryEntry>(e => e!.CompletionStatus == CompletionStatus.Finished));
+    }
+
+    [Fact]
+    public async Task TheOutputRestarting_IsTheEveningPlaying_AndTheOutputClearingIsNot()
+    {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+
+        var isPlaying = false;
+        using var subscription = _sut.WhenIsPlayingChanged.Subscribe(v => isPlaying = v);
+
+        _playbackRestarted.OnNext(RxUnit.Default);
+        Assert.True(isPlaying);
+
+        _playbackCleared.OnNext(RxUnit.Default);
+        Assert.False(isPlaying);
+    }
+
+    [Fact]
+    public async Task ADanceRunningOut_IsNoLongerPlaying()
+    {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+
+        var isPlaying = false;
+        using var subscription = _sut.WhenIsPlayingChanged.Subscribe(v => isPlaying = v);
+        _playbackStarted.OnNext(RxUnit.Default);
+        Assert.True(isPlaying);
+
+        // The player says nothing on its own when a stream runs out: without this, every screen
+        // and the phone keep saying a dance is on.
+        _playbackEnded.OnNext(RxUnit.Default);
+
+        Assert.False(isPlaying);
+    }
+
+    [Fact]
+    public async Task SeekAsync_OnADance_MovesTheOutputAndTheElapsedTime()
+    {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+
+        var elapsed = TimeSpan.Zero;
+        using var subscription = _sut.WhenElapsedChanged.Subscribe(value => elapsed = value);
+
+        Assert.True(await _sut.SeekAsync(TimeSpan.FromSeconds(90)));
+
+        await _audio.Received(1).SeekAsync(TimeSpan.FromSeconds(90));
+        Assert.Equal(TimeSpan.FromSeconds(90), elapsed);
+    }
+
+    [Fact]
+    public async Task ThePlayingDance_SaysHowLongItIsAndHowMuchIsLeft()
+    {
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+
+        _durationChanged.OnNext(TimeSpan.FromMinutes(3));
+        _progressChanged.OnNext(TimeSpan.FromMinutes(1));
+
+        Assert.Equal(TimeSpan.FromMinutes(2), _sut.CurrentItemRemaining);
+
+        // A position read past the end is a dance that is over, not one with time owed to it.
+        _progressChanged.OnNext(TimeSpan.FromMinutes(4));
+        Assert.Equal(TimeSpan.Zero, _sut.CurrentItemRemaining);
+    }
+
+    [Fact]
+    public async Task ADelay_CountsDownItsOwnLength()
+    {
+        _queue.Enqueue(new DelayQueueItem(TimeSpan.FromSeconds(5)));
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+
+        var length = TimeSpan.Zero;
+        using var subscription = _sut.WhenTotalDurationChanged.Subscribe(value => length = value);
+        Assert.Equal(TimeSpan.FromSeconds(5), length);
+
+        _time.Advance(TimeSpan.FromSeconds(2));
+
+        Assert.IsType<DelayQueueItem>(_sut.CurrentItem);
+        Assert.Equal(TimeSpan.FromSeconds(3), _sut.CurrentItemRemaining);
+    }
+
+    [Fact]
+    public async Task ADelaySkippedEarly_StopsCountingDown()
+    {
+        _queue.Enqueue(new DelayQueueItem(TimeSpan.FromSeconds(5)));
+        _queue.Enqueue(new TrackQueueItem(TestData.CreateTrack(), false));
+        await _sut.AdvanceAsync();
+        await _sut.AdvanceAsync();
+
+        var elapsed = new List<TimeSpan>();
+        using var subscription = _sut.WhenElapsedChanged.Subscribe(elapsed.Add);
+        _time.Advance(TimeSpan.FromSeconds(2));
+
+        // The dance has said nothing about its position yet, so anything moving the clock on it
+        // is the delay's countdown still running under it.
+        Assert.All(elapsed, value => Assert.Equal(TimeSpan.Zero, value));
     }
 
     [Fact]

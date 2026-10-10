@@ -233,7 +233,8 @@ public sealed class QueueService : IQueueService, IDisposable
                 return;
             }
 
-            var removed = 0;
+            // Only the end of the night takes anything out, and it goes to the bottom whatever
+            // the index, so what it removes never moves where it lands.
             if (result.RemovalPredicate is { } predicate)
             {
                 for (var i = list.Count - 1; i >= 0; i--)
@@ -241,16 +242,11 @@ public sealed class QueueService : IQueueService, IDisposable
                     if (predicate(list[i]))
                     {
                         list.RemoveAt(i);
-                        if (i < index)
-                        {
-                            removed++;
-                        }
                     }
                 }
             }
 
-            var target = Math.Max(0, index - removed);
-            list.Insert(ClampInsertIndex(list, item, target), item);
+            list.Insert(ClampInsertIndex(list, item, index), item);
         });
         return result;
     }
@@ -276,10 +272,11 @@ public sealed class QueueService : IQueueService, IDisposable
                 return;
             }
 
+            // Every way into the queue puts a row above the pinned tail, so the row being moved is
+            // above it too, and taking it out first shifts the tail up by one.
             if (!IsPinnedToTail(item) && FirstPinnedIndex(list) is { } pinnedIndex)
             {
-                // Removing the item first shifts everything after it down by one.
-                newIndex = Math.Min(newIndex, oldIndex < pinnedIndex ? pinnedIndex - 1 : pinnedIndex);
+                newIndex = Math.Min(newIndex, pinnedIndex - 1);
             }
 
             list.Move(oldIndex, newIndex);
