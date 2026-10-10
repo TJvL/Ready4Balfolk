@@ -5,5 +5,4 @@ public sealed record AutoTrackQueueItem(TrackQueueItem TrackQueueItem) : IQueueI
     public QueueItemId Id { get; init; } = QueueItemId.New();
     public string Description => TrackQueueItem.Description;
     public TimeSpan? Duration => TrackQueueItem.Duration;
-    public bool RandomlyAdded => TrackQueueItem.RandomlyAdded;
 }

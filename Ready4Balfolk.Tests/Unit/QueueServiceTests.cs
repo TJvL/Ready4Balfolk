@@ -443,12 +443,18 @@ public sealed class QueueServiceTests : IDisposable
             MaxQueueItems = 2
         });
 
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
-        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("B"), false));
+        var first = new TrackQueueItem(TestData.CreateTrack("A"), false);
+        var second = new TrackQueueItem(TestData.CreateTrack("B"), false);
+        _sut.Enqueue(first);
+        _sut.Enqueue(second);
 
         var result = _sut.InsertAt(0, new TrackQueueItem(TestData.CreateTrack("C"), false));
         Assert.False(result.Allowed);
         Assert.Contains(string.Format(CultureInfo.CurrentCulture, DomainStrings.MaxItemsRule_QueueFull, 2), result.RejectionReason!);
+
+        // A refusal is the queue as it was. Reporting one and inserting anyway is a request the
+        // DJ was told did not go in, playing anyway.
+        Assert.Equal([first, second], _sut.Items);
     }
 
     [Fact]
@@ -664,6 +670,20 @@ public sealed class QueueServiceTests : IDisposable
         _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true)));
 
         Assert.True(_sut.Enqueue(EndOfNight()).Allowed);
+
+        Assert.Equal(2, _sut.Count);
+        Assert.DoesNotContain(_sut.Items, i => i is AutoTrackQueueItem);
+        Assert.IsType<EndOfNightQueueItem>(_sut.Items[^1]);
+    }
+
+    [Fact]
+    public void InsertAt_EndOfNight_TakesTheAutoTrackWithItAndGoesLast()
+    {
+        // Wherever it is dropped: the end of the night is the last thing the room hears.
+        _sut.Enqueue(new TrackQueueItem(TestData.CreateTrack("A"), false));
+        _sut.Enqueue(new AutoTrackQueueItem(new TrackQueueItem(TestData.CreateTrack("B"), true)));
+
+        Assert.True(_sut.InsertAt(0, EndOfNight()).Allowed);
 
         Assert.Equal(2, _sut.Count);
         Assert.DoesNotContain(_sut.Items, i => i is AutoTrackQueueItem);

@@ -390,10 +390,6 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 {
                     StartCountdown(item, duration);
                 }
-                else
-                {
-                    _totalDuration.OnNext(TimeSpan.Zero);
-                }
 
                 return true;
             case StopQueueItem:
@@ -557,7 +553,8 @@ public sealed class QueueConsumptionService : IQueueConsumptionService, IDisposa
                 track.Artist,
                 track.Title,
                 track.Length,
-                item.RandomlyAdded,
+                item is TrackQueueItem { RandomlyAdded: true }
+                    or AutoTrackQueueItem { TrackQueueItem.RandomlyAdded: true },
                 status,
                 _currentItemStartedAt,
                 finishedAt),

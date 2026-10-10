@@ -47,12 +47,8 @@ public sealed class RandomTrackService(
             return null;
         }
 
+        // Never zero: every dance's share is whole, and a likelihood is never below a quarter.
         var totalWeight = candidates.Sum(candidate => candidate.Weight);
-        if (totalWeight <= 0)
-        {
-            return null;
-        }
-
         var roll = _random.NextDouble() * totalWeight;
         var cumulative = 0.0;
         foreach (var (track, weight) in candidates)
