@@ -17,10 +17,12 @@ using Ready4Balfolk.Domain.Models.Tracks;
 using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Notifications;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.UI.Platform;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
+using Ready4Balfolk.UI.Views.DanceList;
 using Ready4Balfolk.Web;
 using Ready4Balfolk.Web.Security;
 
@@ -29,6 +31,7 @@ namespace Ready4Balfolk.UI.Views.Settings;
 public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
 {
     private readonly ISettingsStore _settingsStore;
+    private readonly IDanceListStore _danceListStore;
     private readonly ILoggerService _loggerService;
     private readonly INotificationService _notifications;
     private readonly IConfirmationService _confirmationService;
@@ -94,6 +97,11 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     /// </summary>
     [Reactive] public partial bool IsWebServerBusy { get; set; }
 
+    /// <summary>Where the dance list came from and when, so a stale one is visible rather than assumed.</summary>
+    [Reactive] public partial string DanceListOriginText { get; private set; }
+
+    [Reactive] public partial bool IsUpdatingDanceList { get; private set; }
+
     [Reactive] public partial ApplicationTheme SelectedTheme { get; set; }
     [Reactive] public partial ApplicationLanguage SelectedLanguage { get; set; }
 
@@ -119,11 +127,12 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     /// The real one ends in <see cref="Environment.Exit(int)"/>, which would take the test host
     /// with it, so the accepted half of a language change is otherwise unreachable.
     /// </remarks>
-    public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
+    public SettingsViewModel(ISettingsStore settingsStore, IDanceListStore danceListStore, ILoggerService loggerService,
         INotificationService notifications, IConfirmationService confirmationService,
         PresentationWebServer webServer, IFileSystem fileSystem, Action restart,
         IScheduler? saveScheduler = null)
-        : this(settingsStore, loggerService, notifications, confirmationService, webServer, fileSystem, saveScheduler)
+        : this(settingsStore, danceListStore, loggerService, notifications, confirmationService, webServer, fileSystem,
+            saveScheduler)
     {
         _restart = restart;
     }
@@ -134,12 +143,13 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
     /// only a test does: sleeping past a real throttle is the failure that passes on a quiet
     /// machine and fails on a busy one.
     /// </remarks>
-    public SettingsViewModel(ISettingsStore settingsStore, ILoggerService loggerService,
+    public SettingsViewModel(ISettingsStore settingsStore, IDanceListStore danceListStore, ILoggerService loggerService,
         INotificationService notifications, IConfirmationService confirmationService,
         PresentationWebServer webServer, IFileSystem fileSystem, IScheduler? saveScheduler = null)
     {
         _saveScheduler = saveScheduler ?? DefaultScheduler.Instance;
         _settingsStore = settingsStore;
+        _danceListStore = danceListStore;
         _loggerService = loggerService;
         _notifications = notifications;
         _confirmationService = confirmationService;
@@ -150,6 +160,7 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         WebServerStatus = "";
         WebServerAddresses = "";
         IsWebServerBusy = false;
+        DanceListOriginText = string.Empty;
 
         _fields = Fields();
         foreach (var field in _fields)
@@ -198,8 +209,15 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
             .Subscribe(_ => UpdateWebServerStatus())
             .DisposeWith(_disposables);
 
+        danceListStore.ObserveStatus()
+            .ObserveOn(RxSchedulers.MainThreadScheduler)
+            .Subscribe(status => DanceListOriginText = DanceListReports.Origin(status))
+            .DisposeWith(_disposables);
+
         _disposables.Add(RegeneratePinCommand.ReportFailures(
             _loggerService, "Failed to make a new PIN", _notifications, UiStrings.Settings_NewPinFailed));
+        _disposables.Add(UpdateDanceListCommand.ReportFailures(
+            _loggerService, "Failed to update the dance list", _notifications, UiStrings.DanceList_UpdateCommandFailed));
     }
 
     /// <summary>
@@ -237,6 +255,61 @@ public sealed partial class SettingsViewModel : ReactiveObject, IDisposable
         CommitDirectAsync(s => s with { WebRemoteControlPin = pin }).SafeFireAndForget(exception =>
             _loggerService.Report(
                 "Failed to save the remote control pin", _notifications, UiStrings.Settings_PinSaveFailed, exception));
+    }
+
+    /// <summary>Asks BigBalfolkList for a newer dance list.</summary>
+    /// <remarks>
+    /// Here rather than on the dance panel, which is where it used to be: that panel is for choosing
+    /// what random picks from, and nobody looked there for upkeep of the list itself.
+    /// </remarks>
+    [ReactiveCommand]
+    private async Task UpdateDanceListAsync()
+    {
+        IsUpdatingDanceList = true;
+        try
+        {
+            _notifications.Show(await _danceListStore.RefreshAsync(), _danceListStore.Status);
+        }
+        finally
+        {
+            IsUpdatingDanceList = false;
+        }
+    }
+
+    /// <summary>Takes a dance list from a file, for a machine that never reaches the internet.</summary>
+    /// <remarks>
+    /// <para>
+    /// Takes the path the file picker handed back rather than a file object, so the code-behind
+    /// does not have to reach for a filesystem of its own to build one.
+    /// </para>
+    /// <para>
+    /// A file the store throws on rather than refuses is reported once, in the words a refusal
+    /// would have used, and written to the log in English beside it. It used to be said twice on
+    /// screen, an English line through the log and the translated one beside it, for the one file,
+    /// and the translated one carried the exception's own text in whatever language it was in.
+    /// </para>
+    /// </remarks>
+    public async Task UpdateDanceListFromFileAsync(string sourcePath)
+    {
+        IsUpdatingDanceList = true;
+        try
+        {
+            _notifications.Show(
+                await _danceListStore.UpdateFromFileAsync(_fileSystem.FileInfo.New(sourcePath)),
+                _danceListStore.Status);
+        }
+        catch (Exception exception)
+        {
+            _loggerService.Report(
+                "Failed to update the dance list from a file",
+                _notifications,
+                DanceListReports.Failed(DomainStrings.DanceList_FileUnreadable, _danceListStore.Status),
+                exception);
+        }
+        finally
+        {
+            IsUpdatingDanceList = false;
+        }
     }
 
     private void UpdateWebServerStatus()

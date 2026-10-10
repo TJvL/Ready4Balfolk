@@ -23,7 +23,7 @@ namespace Ready4Balfolk.UI.Views.Wizard;
 /// importing a file somebody carried in. It blocks until one has, because a library cannot be
 /// answered without a vocabulary and finding that out later is worse than being asked now.
 ///
-/// What came of a fetch or an import is said the way the dance panel says it
+/// What came of a fetch or an import is said the way the settings page says it
 /// (<see cref="DanceListReports" />). A hall with no network is exactly where this step is used,
 /// so a fetch that fails here has to say so rather than just stop spinning.
 /// </remarks>

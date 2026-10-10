@@ -7,10 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI.Avalonia.Reactive;
-using Ready4Balfolk.UI.Resources;
-using Ready4Balfolk.UI.Services;
 
 namespace Ready4Balfolk.UI.Views.DanceList;
 
@@ -29,31 +26,12 @@ public partial class DanceListView : ReactiveUserControl<DanceListViewModel>
         AddHandler(GotFocusEvent, WhateverTookTheKeyboard, RoutingStrategies.Bubble);
     }
 
-    /// <summary>
-    /// The offline path to a newer list: a <c>dances.json</c> carried in on a stick, for a machine
-    /// that never reaches the internet. It goes through the same reader a download does.
-    /// </summary>
-    private void OnUpdateFromFileClick(object? sender, RoutedEventArgs e) =>
-        Handlers.Run(
-            "Failed to update the dance list from a file", UiStrings.DanceList_UpdateFromFileFailed, async () =>
-            {
-                var path = await App.Services.GetRequiredService<IFilePickerService>()
-                    .PickFileToOpenAsync(UiStrings.DanceList_UpdateFromFileTip, FileKind.Json);
-
-                if (path is not null)
-                {
-                    // Every failure is reported by the view model as a notification, because a refused
-                    // file is an ordinary answer here rather than an exception the user can act on.
-                    await ViewModel!.UpdateFromFileAsync(path);
-                }
-            });
-
     /// <summary>Remembers what the keyboard is on, so the panel can give it back.</summary>
     private void WhateverTookTheKeyboard(object? sender, FocusChangedEventArgs e)
     {
         Forget();
 
-        // Only the things drawn one per card or one per chip. The search box and the buttons down
+        // Only the things drawn one per card or one per chip. The search box and the button down
         // the side are drawn once and stay, so nothing ever takes them away from under the DJ.
         if (e.Source is Control control && control.DataContext is IKeepsItsPlace)
         {

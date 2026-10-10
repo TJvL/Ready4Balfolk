@@ -18,6 +18,25 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
         App.Services.GetRequiredService<NavigationService>().CurrentScreen = Screen.Setup;
 
     /// <summary>
+    /// The offline path to a newer dance list: a <c>dances.json</c> carried in on a stick, for a
+    /// machine that never reaches the internet. It goes through the same reader a download does.
+    /// </summary>
+    private void OnUpdateDanceListFromFileClick(object? sender, RoutedEventArgs e) =>
+        Handlers.Run(
+            "Failed to update the dance list from a file", UiStrings.DanceList_UpdateFromFileFailed, async () =>
+            {
+                var path = await App.Services.GetRequiredService<IFilePickerService>()
+                    .PickFileToOpenAsync(UiStrings.DanceList_UpdateFromFileTip, FileKind.Json);
+
+                if (path is not null)
+                {
+                    // Every failure is reported by the view model as a notification, because a refused
+                    // file is an ordinary answer here rather than an exception the user can act on.
+                    await ViewModel!.UpdateDanceListFromFileAsync(path);
+                }
+            });
+
+    /// <summary>
     /// Points the setting at a file the user already has. Nothing is imported or copied: the path
     /// is the whole of the setting.
     /// </summary>
