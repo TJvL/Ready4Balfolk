@@ -110,7 +110,10 @@ public sealed class RemoteConnections(
         ArgumentNullException.ThrowIfNull(context);
         _connections.TryRemove(context.ConnectionId, out _);
 
-        using var notice = new CancellationTokenSource(NoticeDeadline);
+        // On the same clock as the close that backs it up. On two, a notice given up on in real
+        // time could leave that close waiting on a clock nobody was moving, and the phone sat
+        // connected, told nothing.
+        using var notice = new CancellationTokenSource(NoticeDeadline, _time);
 
         try
         {

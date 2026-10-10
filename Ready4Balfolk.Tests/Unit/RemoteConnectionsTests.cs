@@ -237,6 +237,37 @@ public sealed class RemoteConnectionsTests
         here.Received(1).Abort();
     }
 
+    [Fact]
+    public async Task TurnOutStaleAsync_ANoticeThatHangs_IsGivenUpOnAndTheCloseFollows()
+    {
+        // A send that never comes back. The notice is given up on and the close follows, both
+        // timed on the app's own clock: a notice timed on the machine's while the close waited on
+        // the app's left the phone connected and told nothing wherever the two disagreed.
+        var hung = ProxyFor("phone");
+        var sending = CancellationToken.None;
+        hung.SendCoreAsync(Arg.Any<string>(), Arg.Any<object?[]>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                sending = call.ArgAt<CancellationToken>(2);
+                return Task.Delay(Timeout.Infinite, sending);
+            });
+
+        var phone = Connected("phone");
+        var sut = Registry();
+        Assert.True(await sut.AddAsync(phone));
+
+        _access.Configure(true, "654321");
+        var turningOut = sut.TurnOutStaleAsync();
+        Assert.False(sending.IsCancellationRequested);
+
+        _time.Advance(TimeSpan.FromSeconds(2));
+        Assert.True(sending.IsCancellationRequested);
+        await turningOut;
+
+        _time.Advance(PastTheBackstop);
+        phone.Received(1).Abort();
+    }
+
     private RemoteConnections Registry() => new(_hub, _access, _time);
 
     /// <summary>A connection carrying a token the service really issued for the current PIN.</summary>
