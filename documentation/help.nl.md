@@ -109,8 +109,8 @@ Opent dit helpscherm.
 
 ### Instellingen
 
-Opent het instellingenscherm: wachtrijgedrag, presentatieschermen, thema, en de weg terug naar de
-setup.
+Opent het instellingenscherm: wachtrijgedrag, presentatieschermen, thema, een nieuwere
+dansenlijst, en de weg terug naar de setup.
 
 ### Nakijken
 
@@ -353,8 +353,8 @@ bewerkt hem.
 Er wordt geen kopie meegeleverd. De eerste keer dat je het programma opent vraagt de installatie je
 om de lijst bij BigBalfolkList op te halen, of om een `dances.json` te importeren die iemand op een
 stick heeft meegenomen als deze machine nooit online komt. Zolang dat niet gebeurd is valt er niets
-over je muziek te beantwoorden, en het programma haalt nooit uit zichzelf iets op: de knop
-Bijwerken in het dansenlijstpaneel is hoe je om een nieuwere vraagt.
+over je muziek te beantwoorden, en het programma haalt nooit uit zichzelf iets op: **Bijwerken** in
+de instellingen is hoe je om een nieuwere vraagt.
 
 ### Wat erin staat
 
@@ -395,16 +395,6 @@ willekeurige keuze opduiken.
 
 Het zoekveld matcht elke spelling van elke dans, ongeacht hoofdletters, accenten en leestekens:
 `hanterdro` vindt *Hanter dro* en `bourree 3` vindt *Bourrée à trois temps*.
-
-### Bijhouden
-
-- **Bijwerken**: haalt de lijst op zoals BigBalfolkList hem nu publiceert. Handig als je weet dat
-  er net iets is toegevoegd.
-- **Uit een bestand**: neemt de lijst uit een `dances.json` op deze computer, voor een machine die
-  nooit internet ziet.
-
-In beide gevallen wordt de lijst in zijn geheel vervangen en eerst gecontroleerd; is hij
-onleesbaar, dan blijft de lijst die je al had in gebruik.
 
 ### Iets dat ontbreekt of verkeerd gespeld is?
 
@@ -513,6 +503,19 @@ Waar je muziek staat, getoond in plaats van bewerkt: hem wijzigen leest de hele 
 opnieuw en beslist elk nummer opnieuw, en dat is setup in plaats van een instelling om aan te
 schuiven. **Instellen opnieuw doorlopen** is de weg. Alles onder die map telt mee, hoe hij ook is
 ingedeeld.
+
+### Dansenlijst
+
+Waar de dansenlijst vandaan komt en wanneer, en de twee manieren om een nieuwere aan te vragen. Er
+wordt nooit uit zichzelf een nieuwere lijst opgehaald.
+
+- **Bijwerken**: haalt de lijst op zoals BigBalfolkList hem nu publiceert. Handig als je weet dat
+  er net iets is toegevoegd.
+- **Uit een bestand**: neemt de lijst uit een `dances.json` op deze computer, voor een machine die
+  nooit internet ziet.
+
+In beide gevallen wordt de lijst in zijn geheel vervangen en eerst gecontroleerd; is hij
+onleesbaar, dan blijft de lijst die je al had in gebruik.
 
 ### Maximaal aantal wachtrijitems
 

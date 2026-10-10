@@ -1,17 +1,23 @@
 using System.Globalization;
+using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using NSubstitute;
+using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Settings;
+using Ready4Balfolk.Domain.Resources;
 using Ready4Balfolk.Domain.Services.Logging;
 using Ready4Balfolk.Domain.Services.Notifications;
+using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Resources;
 using Ready4Balfolk.UI.Services;
+using Ready4Balfolk.UI.Views.DanceList;
 using Ready4Balfolk.UI.Views.Settings;
 using Ready4Balfolk.Web;
 
@@ -25,12 +31,17 @@ namespace Ready4Balfolk.Tests.ViewModels;
 /// <see cref="Unit.SettingsStoreTests"/> already covers from the other side. What is here is the
 /// rest: the debounce that keeps a slider from writing the file on every pixel, the guard that
 /// stops a change arriving from the store being written straight back out, the PIN that has to
-/// exist before the remote is reachable, and a language change that ends in a restart.
+/// exist before the remote is reachable, a language change that ends in a restart, and asking for a
+/// newer dance list.
 /// </remarks>
 public sealed class SettingsViewModelTests : IDisposable
 {
     private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
     private readonly IConfirmationService _confirmations = Substitute.For<IConfirmationService>();
+    private readonly IDanceListStore _danceListStore = Substitute.For<IDanceListStore>();
+    private readonly BehaviorSubject<DanceListStatus> _danceListStatus = new(DanceListStatus.Unknown);
+    private readonly INotificationService _notifications = Substitute.For<INotificationService>();
+    private readonly ILoggerService _logger = Substitute.For<ILoggerService>();
     private readonly BehaviorSubject<ApplicationSettings> _stored;
     private readonly MockFileSystem _fileSystem = new();
     private readonly ThrottleClock _throttles = new();
@@ -53,12 +64,15 @@ public sealed class SettingsViewModelTests : IDisposable
                 return Task.CompletedTask;
             });
 
+        _danceListStore.ObserveStatus().Returns(_danceListStatus);
+        _danceListStore.Status.Returns(_ => _danceListStatus.Value);
+
         // Never started, so it reports Stopped. Sealed, so there is nothing to substitute, and
         // starting one would mean binding a socket.
         _webServer = new PresentationWebServer(
             Substitute.For<IServiceProvider>(), new NoOpLoggerService(), TimeProvider.System);
 
-        _sut = new SettingsViewModel(_settingsStore, new NoOpLoggerService(), Substitute.For<INotificationService>(), _confirmations,
+        _sut = new SettingsViewModel(_settingsStore, _danceListStore, _logger, _notifications, _confirmations,
             _webServer, _fileSystem, () => _restarts++, _throttles.Scheduler);
     }
 
@@ -245,7 +259,8 @@ public sealed class SettingsViewModelTests : IDisposable
     }
 
     private SettingsViewModel Panel(PresentationWebServer webServer) => new(
-        _settingsStore, new NoOpLoggerService(), Substitute.For<INotificationService>(), _confirmations, webServer, _fileSystem);
+        _settingsStore, _danceListStore, new NoOpLoggerService(), Substitute.For<INotificationService>(), _confirmations,
+        webServer, _fileSystem);
 
     private static NetworkAdapter Wifi(string address) =>
         new(NetworkInterfaceType.Wireless80211, true, [IPAddress.Parse(address)]);
@@ -326,18 +341,142 @@ public sealed class SettingsViewModelTests : IDisposable
     public async Task ExportLog_HandsThePathToTheLogger()
     {
         var logger = Substitute.For<ILoggerService>();
-        using var panel = new SettingsViewModel(_settingsStore, logger, Substitute.For<INotificationService>(), _confirmations,
-            _webServer, _fileSystem, () => { });
+        using var panel = new SettingsViewModel(_settingsStore, _danceListStore, logger, Substitute.For<INotificationService>(),
+            _confirmations, _webServer, _fileSystem, () => { });
 
         await panel.ExportLogAsync("/tmp/ready4balfolk.log");
 
         await logger.Received(1).ExportAsync("/tmp/ready4balfolk.log");
     }
 
+    // --- Updating the dance list ---
+
+    [Fact]
+    public async Task UpdateDanceList_Updated_SaysHowManyAreNew()
+    {
+        _danceListStore.RefreshAsync(Arg.Any<CancellationToken>()).Returns(DanceListUpdate.Updated(4));
+
+        await _sut.UpdateDanceListCommand.Execute().FirstAsync();
+
+        _notifications.Received(1).Show(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_Updated, 4),
+            NotificationSeverity.Information);
+    }
+
+    [Fact]
+    public async Task UpdateDanceList_AlreadyCurrent_SaysSoWithoutFuss()
+    {
+        _danceListStore.RefreshAsync(Arg.Any<CancellationToken>()).Returns(DanceListUpdate.Unchanged);
+
+        await _sut.UpdateDanceListCommand.Execute().FirstAsync();
+
+        _notifications.Received(1).Show(UiStrings.DanceList_AlreadyCurrent, NotificationSeverity.Information);
+    }
+
+    [Fact]
+    public async Task UpdateDanceList_Failed_IsAWarningRatherThanAnError()
+    {
+        // A hall with no wifi is the normal case. The list already in hand carries on working, so
+        // this is not the application breaking.
+        _danceListStatus.OnNext(new DanceListStatus(3, 3, DanceListOrigin.Cached, DateTimeOffset.UnixEpoch));
+        _danceListStore.RefreshAsync(Arg.Any<CancellationToken>()).Returns(DanceListUpdate.Failed("no route to host"));
+
+        await _sut.UpdateDanceListCommand.Execute().FirstAsync();
+
+        _notifications.Received(1).Show(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, "no route to host"),
+            NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task UpdateDanceList_FailedWithNoListInHand_DoesNotClaimOneIsStillInUse()
+    {
+        _danceListStore.RefreshAsync(Arg.Any<CancellationToken>()).Returns(DanceListUpdate.Failed("no route to host"));
+
+        await _sut.UpdateDanceListCommand.Execute().FirstAsync();
+
+        _notifications.Received(1).Show(
+            string.Format(CultureInfo.CurrentCulture, UiStrings.DanceList_NoneArrived, "no route to host"),
+            NotificationSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task UpdateDanceList_WhileItRuns_TheButtonsSaySo()
+    {
+        var fetching = new TaskCompletionSource<DanceListUpdate>();
+        _danceListStore.RefreshAsync(Arg.Any<CancellationToken>()).Returns(fetching.Task);
+
+        var running = _sut.UpdateDanceListCommand.Execute().FirstAsync().ToTask();
+        Assert.True(_sut.IsUpdatingDanceList);
+
+        fetching.SetResult(DanceListUpdate.Unchanged);
+        await running;
+
+        Assert.False(_sut.IsUpdatingDanceList);
+    }
+
+    [Fact]
+    public async Task UpdateDanceListFromFile_TheFileIsUnreadable_IsReportedOnceRatherThanThrown()
+    {
+        // The path came from a file picker, so anything can be behind it, including a directory.
+        // One file, one notice, in the words a refusal would have used and in the DJ's language.
+        // What .NET said about it goes to the log with an English line, and never to the screen.
+        _danceListStatus.OnNext(new DanceListStatus(3, 3, DanceListOrigin.Cached, DateTimeOffset.UnixEpoch));
+        var thrown = new IOException("that is a folder");
+        _danceListStore.UpdateFromFileAsync(Arg.Any<IFileInfo>(), Arg.Any<CancellationToken>())
+            .Returns<Task<DanceListUpdate>>(_ => throw thrown);
+
+        await _sut.UpdateDanceListFromFileAsync("/somewhere/dances.json");
+
+        await _logger.Received(1).ErrorAsync(Arg.Any<string>(), Arg.Any<Exception>());
+        await _logger.Received(1).ErrorAsync("Failed to update the dance list from a file", thrown);
+        _notifications.Received(1).Show(Arg.Any<string>(), Arg.Any<NotificationSeverity>());
+        _notifications.Received(1).Show(
+            string.Format(
+                CultureInfo.CurrentCulture, UiStrings.DanceList_UpdateFailed, DomainStrings.DanceList_FileUnreadable),
+            NotificationSeverity.Error);
+        Assert.False(_sut.IsUpdatingDanceList);
+    }
+
+    // --- Where the dance list came from ---
+
+    [Fact]
+    public void DanceListOrigin_NoListYet_SaysSo() =>
+        Assert.Equal(UiStrings.DanceList_NoListYet, _sut.DanceListOriginText);
+
+    [Fact]
+    public void DanceListOrigin_Downloaded_SaysWhen()
+    {
+        // A stale list has to be visible rather than assumed: it is the vocabulary everything else
+        // in the application is said in.
+        var obtained = new DateTimeOffset(2026, 8, 20, 19, 30, 0, TimeSpan.Zero);
+        _danceListStatus.OnNext(new DanceListStatus(3, 3, DanceListOrigin.Downloaded, obtained));
+
+        Assert.Equal(
+            string.Format(ApplicationCulture.Current, UiStrings.DanceList_Obtained, obtained.ToLocalTime().DateTime),
+            _sut.DanceListOriginText);
+    }
+
+    [Theory]
+    [InlineData("en-US", "nl")]
+    [InlineData("nl-NL", "en")]
+    public void DanceListOrigin_NamesTheMonthInTheApplicationsLanguage(string machine, string application)
+    {
+        using var cultures = new CultureScope(machine, application);
+        var obtained = new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero);
+
+        var origin = DanceListReports.Origin(new DanceListStatus(3, 3, DanceListOrigin.Downloaded, obtained));
+
+        // "opgehaald 15 October 2026" was the Dutch application on an English laptop.
+        Assert.Contains(obtained.ToString("MMMM", CultureInfo.GetCultureInfo(application)), origin, StringComparison.Ordinal);
+        Assert.DoesNotContain(obtained.ToString("MMMM", CultureInfo.GetCultureInfo(machine)), origin, StringComparison.Ordinal);
+    }
+
     public void Dispose()
     {
         _sut.Dispose();
         _stored.Dispose();
+        _danceListStatus.Dispose();
         _webServer.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }

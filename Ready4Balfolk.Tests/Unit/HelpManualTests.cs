@@ -54,15 +54,15 @@ public sealed class HelpManualTests
         { "TrackCatalog_EditTrack", 36 },         // ### Fixing a typo where you see it
         { "EditTrack_Likelihood", 36 },           // ### Fixing a typo where you see it
         { "TrackCatalog_WithdrawTrack", 37 },     // ### Taking an answer back (Track Catalog)
-        { "Settings_RunSetupAgain", 53 },         // ### Music Directory (Settings)
+        { "Settings_RunSetupAgain", 52 },         // ### Music Directory (Settings)
         { "Discovery_ProposalAccept", 5 },        // ### Rules: telling it how your files are named
         { "Review_Rules", 5 },                    // ### Rules: telling it how your files are named
         { "Discovery_PatternsHeader", 5 },        // ### Rules: telling it how your files are named
         { "Settings_ThemeAuto", 66 },             // ### Theme
         { "Settings_ThemeLight", 66 },            // ### Theme
         { "Settings_ThemeDark", 66 },             // ### Theme
-        { "DanceList_Update", 44 },               // ### Keeping it up to date
-        { "DanceList_UpdateFromFile", 44 },       // ### Keeping it up to date
+        { "DanceList_Update", 53 },               // ### Dance list (Settings)
+        { "DanceList_UpdateFromFile", 53 },       // ### Dance list (Settings)
         { "DanceList_ClearPool", 41 },            // ### Choosing what random picks from
     };
 

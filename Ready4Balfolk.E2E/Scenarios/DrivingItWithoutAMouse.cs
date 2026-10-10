@@ -446,9 +446,10 @@ public sealed class DrivingItWithoutAMouse(HeadlessSession session)
     /// it asks for in the queue. The panel used to build every card again whenever any of the four
     /// moved, so the button somebody had just tabbed to was destroyed under them and the space they
     /// pressed a moment later ran the transport instead of the dice.
-    /// The two steps that move the keyboard themselves, because typing and pressing a button are
-    /// what they are, ask the other half of the same question: whether the button a DJ was standing
-    /// on is still the button that is there afterwards.
+    /// Typing moves the keyboard itself, because that is what typing is, so that step asks the
+    /// other half of the same question: whether the button a DJ was standing on is still the
+    /// button that is there afterwards. The list lands without a button being pressed for it,
+    /// because the button that asks for one is in the settings, not under the DJ's hands.
     /// </remarks>
     [Fact]
     public async Task TheDanceListKeepsTheKeyboardWhileTheFourThingsItWatchesMove()
@@ -515,18 +516,19 @@ public sealed class DrivingItWithoutAMouse(HeadlessSession session)
                 application.TheKeyboardIsOn(dice),
                 $"The pool changing took the keyboard off the dice, on to {application.WhateverHasTheKeyboardIsCalled()}.");
 
-            // The list itself, imported from a file, which is the fourth of them.
-            RunningApplication.TheDjWillPick(newerList);
-            application.Click("dancelist.import");
+            // The list itself, a newer one landing from a file, which is the fourth of them.
+            await application.ANewerDanceListArrivesFrom(newerList);
 
             await application.WaitUntil(
                 () => !application.SeesAnywhere("Mazurka-Waltz"),
                 "the newer list to arrive and take a dance out of the panel");
 
             Assert.Same(dice, application.Find("dancelist.pick"));
+            Assert.True(
+                application.TheKeyboardIsOn(dice),
+                $"The newer list took the keyboard off the dice, on to {application.WhateverHasTheKeyboardIsCalled()}.");
 
             // And the whole point of standing on it: a space presses the dice.
-            application.GiveTheKeyboardTo(dice);
             application.Press(PhysicalKey.Space);
 
             await application.WaitUntil(
@@ -545,9 +547,9 @@ public sealed class DrivingItWithoutAMouse(HeadlessSession session)
     /// keyboard on that new one rather than nowhere.
     /// This is the one shape of list change that reorders. A dance added or taken away leaves
     /// every survivor where it was, so keeping the card is enough there and is not enough here.
-    /// The list lands without a button being pressed for it, because pressing Import would put the
-    /// keyboard on the Import button: what this is about is a DJ whose hands are back in the panel
-    /// while the list they asked for a second ago is still on its way.
+    /// The list lands without a button being pressed for it, because the button is in the
+    /// settings: what this is about is a DJ whose hands are back in the panel while the list they
+    /// asked for a second ago is still on its way.
     /// </remarks>
     [Fact]
     public async Task TheDanceListKeepsTheKeyboardWhileACardMovesUnderIt()

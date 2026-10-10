@@ -1000,6 +1000,12 @@ public static class UiStrings
     public static string Settings_MusicDirectoryChangeHint =>
         ResourceManager.GetString("Settings_MusicDirectoryChangeHint", Culture)!;
 
+    public static string Settings_DanceList =>
+        ResourceManager.GetString("Settings_DanceList", Culture)!;
+
+    public static string Settings_DanceListDescription =>
+        ResourceManager.GetString("Settings_DanceListDescription", Culture)!;
+
     // Advanced discovery
     public static string Discovery_Intro =>
         ResourceManager.GetString("Discovery_Intro", Culture)!;

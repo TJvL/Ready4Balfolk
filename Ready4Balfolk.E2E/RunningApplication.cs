@@ -647,10 +647,10 @@ public sealed class RunningApplication : IAsyncDisposable
 
     /// <summary>A newer dance list lands, without a button being pressed to ask for it.</summary>
     /// <remarks>
-    /// Through the store the Import button goes through, and not through the button, because
-    /// pressing Import puts the keyboard on the Import button. The moment worth a scenario is the
-    /// other one: the DJ asked for a list a second ago, their hands are back in the panel, and it
-    /// lands under them. Awaited, so what follows is the panel with the newer list already in it.
+    /// Through the store the import button in the settings goes through, and not through the
+    /// button, because the button is on another screen. The moment worth a scenario is the DJ
+    /// back in the dance list panel while a list they asked for a second ago lands under their
+    /// hands. Awaited, so what follows is the panel with the newer list already in it.
     /// </remarks>
     public async Task ANewerDanceListArrivesFrom(string path)
     {

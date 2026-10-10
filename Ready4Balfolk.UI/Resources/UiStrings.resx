@@ -967,7 +967,7 @@
     <value>Import a dances.json</value>
   </data>
   <data name="Wizard_DanceList_Detail" xml:space="preserve">
-    <value>No copy comes with Ready4Balfolk. Fetch the list from BigBalfolkList once, or import a dances.json somebody carried in if this machine never goes online. It is kept on this computer afterwards, and the dance panel is where you ask for a newer one.</value>
+    <value>No copy comes with Ready4Balfolk. Fetch the list from BigBalfolkList once, or import a dances.json somebody carried in if this machine never goes online. It is kept on this computer afterwards, and Settings is where you ask for a newer one.</value>
   </data>
   <data name="DanceList_SearchWatermark" xml:space="preserve">
     <value>Search every spelling…</value>
@@ -1095,6 +1095,12 @@
   </data>
   <data name="Settings_MusicDirectoryChangeHint" xml:space="preserve">
     <value>Changing this re-reads your whole library, so it is part of setup rather than a setting on its own.</value>
+  </data>
+  <data name="Settings_DanceList" xml:space="preserve">
+    <value>Dance list</value>
+  </data>
+  <data name="Settings_DanceListDescription" xml:space="preserve">
+    <value>The dances and every name they go by, as BigBalfolkList publishes them. Nothing fetches a newer list on its own: Update asks BigBalfolkList for one, and From a file takes a dances.json somebody carried in, for a machine that never goes online. If the new list cannot be read, the one you have stays in use.</value>
   </data>
 
   <!-- Advanced discovery -->
