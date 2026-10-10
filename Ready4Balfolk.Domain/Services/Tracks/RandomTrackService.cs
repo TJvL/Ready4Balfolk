@@ -12,7 +12,9 @@ namespace Ready4Balfolk.Domain.Services.Tracks;
 /// <remarks>
 /// Every dance in the pool is equally likely, and a dance's own tracks share its share. So a dance
 /// with forty recordings is no likelier to come up than one with four, which is what stops a
-/// well-stocked waltz drowning out everything else in the pool.
+/// well-stocked waltz drowning out everything else in the pool. How the share is split is the
+/// tracks' own likelihoods, and only within the dance: favouring one recording takes its chances
+/// from the other recordings of that dance and from nothing else.
 /// </remarks>
 public sealed class RandomTrackService(
     IDanceListStore danceListStore,
@@ -32,26 +34,7 @@ public sealed class RandomTrackService(
             return null;
         }
 
-        // Grouped by slug, so a track follows the dance it resolved to rather than whatever the
-        // dance happens to be spelled as at the moment.
-        var tracksBySlug = trackStore.Current
-            .Where(track => track.DanceSlug is not null)
-            .GroupBy(track => track.DanceSlug!, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
-
-        var candidates = new List<(Models.Tracks.Track Track, double Weight)>();
-        foreach (var slug in slugs)
-        {
-            if (!tracksBySlug.TryGetValue(slug, out var matching))
-            {
-                // A dance nobody owns a track for simply cannot come up, which is why the list
-                // needs no notion of the dances this user plays.
-                continue;
-            }
-
-            var weightPerTrack = 1.0 / matching.Count;
-            candidates.AddRange(matching.Select(track => (track, weightPerTrack)));
-        }
+        var candidates = Weigh(slugs, trackStore.Current);
 
         if (!allowDuplicates)
         {
@@ -82,6 +65,40 @@ public sealed class RandomTrackService(
         }
 
         return candidates[^1].Track;
+    }
+
+    /// <summary>Every track of these dances, with the share of a pick it holds.</summary>
+    /// <remarks>
+    /// Each dance holds one share, whatever it owns, and splits it among its own tracks by their
+    /// likelihoods: a track at ×4 is four times as likely as one at ×1 of the same dance, and the
+    /// dance as a whole is exactly as likely as every other one. With every track at ×1 this is the
+    /// even split it always was.
+    /// </remarks>
+    internal static List<(Models.Tracks.Track Track, double Weight)> Weigh(
+        IReadOnlyList<string> slugs, IEnumerable<Models.Tracks.Track> library)
+    {
+        // Grouped by slug, so a track follows the dance it resolved to rather than whatever the
+        // dance happens to be spelled as at the moment.
+        var tracksBySlug = library
+            .Where(track => track.DanceSlug is not null)
+            .GroupBy(track => track.DanceSlug!, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
+
+        var candidates = new List<(Models.Tracks.Track Track, double Weight)>();
+        foreach (var slug in slugs)
+        {
+            if (!tracksBySlug.TryGetValue(slug, out var matching))
+            {
+                // A dance nobody owns a track for simply cannot come up, which is why the list
+                // needs no notion of the dances this user plays.
+                continue;
+            }
+
+            var danceTotal = matching.Sum(track => track.Likelihood);
+            candidates.AddRange(matching.Select(track => (track, track.Likelihood / danceTotal)));
+        }
+
+        return candidates;
     }
 
     private static List<string> CollectDanceSlugs(DanceList list, RandomSelectionScope scope) =>

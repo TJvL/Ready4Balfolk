@@ -1248,6 +1248,12 @@
   <data name="EditTrack_UnknownDance" xml:space="preserve">
     <value>The dance list does not know "{0}". A missing dance is a proposal at BigBalfolkList, not a local override.</value>
   </data>
+  <data name="EditTrack_Likelihood" xml:space="preserve">
+    <value>Chance in a random pick</value>
+  </data>
+  <data name="EditTrack_LikelihoodHint" xml:space="preserve">
+    <value>Compared with the other tracks of this dance. The dance itself comes up as often as before.</value>
+  </data>
   <data name="Discovery_FieldArtist" xml:space="preserve">
     <value>Artist</value>
   </data>

@@ -1136,6 +1136,12 @@ public static class UiStrings
     public static string EditTrack_UnknownDance =>
         ResourceManager.GetString("EditTrack_UnknownDance", Culture)!;
 
+    public static string EditTrack_Likelihood =>
+        ResourceManager.GetString("EditTrack_Likelihood", Culture)!;
+
+    public static string EditTrack_LikelihoodHint =>
+        ResourceManager.GetString("EditTrack_LikelihoodHint", Culture)!;
+
     public static string Discovery_FieldArtist =>
         ResourceManager.GetString("Discovery_FieldArtist", Culture)!;
 

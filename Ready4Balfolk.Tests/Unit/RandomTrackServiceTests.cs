@@ -222,5 +222,77 @@ public sealed class RandomTrackServiceTests
         Assert.NotNull(_sut.PickRandomTrack(RandomSelectionScope.EntireList, true));
     }
 
+    [Fact]
+    public void TracksAllAtTheUsualLikelihood_SplitTheirDanceEvenly()
+    {
+        // Exactly as a pick always behaved: a third each for three recordings of one dance.
+        var weights = RandomTrackService.Weigh(
+            ["mazurka"],
+            [TestData.CreateTrack(title: "A"), TestData.CreateTrack(title: "B"), TestData.CreateTrack(title: "C")]);
+
+        Assert.All(weights, candidate => Assert.Equal(1.0 / 3, candidate.Weight, 12));
+    }
+
+    [Fact]
+    public void ATrackAtFour_IsFourTimesAsLikelyAsOneAtOneOfTheSameDance()
+    {
+        var favourite = TestData.CreateTrack(title: "Favourite") with { Likelihood = 4 };
+        var usual = TestData.CreateTrack(title: "Usual");
+
+        var weights = RandomTrackService.Weigh(["mazurka"], [favourite, usual]);
+
+        Assert.Equal(4, WeightOf(weights, favourite) / WeightOf(weights, usual), 12);
+    }
+
+    [Fact]
+    public void ATrackAtAQuarter_IsAQuarterAsLikelyAsOneAtOneOfTheSameDance()
+    {
+        var rare = TestData.CreateTrack(title: "Rare") with { Likelihood = 0.25 };
+        var usual = TestData.CreateTrack(title: "Usual");
+
+        var weights = RandomTrackService.Weigh(["mazurka"], [rare, usual]);
+
+        Assert.Equal(0.25, WeightOf(weights, rare) / WeightOf(weights, usual), 12);
+    }
+
+    [Fact]
+    public void ALikelihood_NeverMovesTheDancesShareOfThePool()
+    {
+        // The multiplier works inside the dance and nowhere else: a waltz whose one favourite is at
+        // x4 comes up exactly as often as a plinn nobody touched, and each dance holds one share.
+        var weights = RandomTrackService.Weigh(
+            ["mazurka", "plinn"],
+            [
+                TestData.CreateTrack(title: "Favourite") with { Likelihood = 4 },
+                TestData.CreateTrack(title: "Usual"),
+                TestData.CreateTrack(title: "Rare") with { Likelihood = 0.25 },
+                TestData.CreateTrack("Plinn", title: "Only")
+            ]);
+
+        var shareByDance = weights
+            .GroupBy(candidate => candidate.Track.DanceSlug)
+            .ToDictionary(group => group.Key!, group => group.Sum(candidate => candidate.Weight));
+
+        Assert.Equal(1, shareByDance["mazurka"], 12);
+        Assert.Equal(1, shareByDance["plinn"], 12);
+    }
+
+    [Fact]
+    public void AFavouredTrack_ComesUpMoreOftenThanTheRestOfItsDance()
+    {
+        // The pick itself, not only its weights: over many draws the x4 track has to win most of
+        // them. Loose bounds, because this is chance; 4 to 1 is 80 percent and the bound is 65.
+        var favourite = TestData.CreateTrack(title: "Favourite") with { Likelihood = 4 };
+        Tracks(favourite, TestData.CreateTrack(title: "Usual"));
+
+        var favouriteCount = Enumerable.Range(0, 1000)
+            .Count(_ => _sut.PickRandomTrack(new RandomSelectionScope.SingleDance("mazurka"), true) == favourite);
+
+        Assert.InRange(favouriteCount, 650, 950);
+    }
+
+    private static double WeightOf(List<(Track Track, double Weight)> weights, Track track) =>
+        weights.Single(candidate => candidate.Track == track).Weight;
+
     private void Tracks(params Track[] tracks) => _trackStore.Current.Returns(tracks.ToList());
 }

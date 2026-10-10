@@ -1170,6 +1170,12 @@
   <data name="EditTrack_UnknownDance" xml:space="preserve">
     <value>De dansenlijst kent "{0}" niet. Een ontbrekende dans is een voorstel bij BigBalfolkList, geen lokale uitzondering.</value>
   </data>
+  <data name="EditTrack_Likelihood" xml:space="preserve">
+    <value>Kans bij een willekeurige keuze</value>
+  </data>
+  <data name="EditTrack_LikelihoodHint" xml:space="preserve">
+    <value>Vergeleken met de andere nummers van deze dans. De dans zelf komt even vaak aan de beurt als voorheen.</value>
+  </data>
   <data name="Discovery_FieldDance" xml:space="preserve">
     <value>Dans</value>
   </data>

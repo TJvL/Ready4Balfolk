@@ -315,6 +315,12 @@ what you change is saved as your own answer, and only the fields you actually ch
 The dance still has to be one the published list knows; a missing dance is a proposal at
 [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/), not a local override.
 
+The same dialog has **Chance in a random pick**, from ×¼ to ×4. It makes a track more or less
+likely than the other tracks of its own dance when a random pick lands on that dance, so a ×4 track
+comes up four times as often as a ×1 track of the same dance. The dance itself comes up exactly as
+often as before. It is kept in the library index rather than in the file, and follows the track
+through a rename or a retag.
+
 ### Taking an answer back
 
 Right-click a track and choose **Take my answer back** to put it out of your library and back in

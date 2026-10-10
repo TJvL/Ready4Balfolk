@@ -401,6 +401,71 @@ public sealed class GettingMusicIntoTheLibrary(HeadlessSession session)
         });
     }
 
+    /// <summary>The DJ makes one recording of a dance come up more often in a random pick.</summary>
+    /// <remarks>
+    /// World: two mazurkas in the library.
+    /// Steps: right-click one in the catalogue, pull its chance in a random pick up to ×4 and
+    /// correct its title in the same go, save, and then open it again.
+    /// Sees: the dialog opening on ×4 the second time, read back out of the library index through
+    /// the track the catalogue holds, and the other mazurka still at ×1. The title is corrected
+    /// only so there is something on screen to wait for: the catalogue shows it once the library
+    /// has been rebuilt, and that one rebuild is what carries the likelihood as well.
+    /// </remarks>
+    [Fact]
+    public async Task DjMakesAFavouriteRecordingMoreLikely()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WithTrack(dance: "Mazurka", artist: "Duo Absynthe", title: "La Belle")
+            .WhereTheTagsAreTrusted()
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 2,
+                "both mazurkas to reach the catalogue");
+
+            await OpenTheEditorOn(application, "Salamandre");
+            Assert.Equal("×1", application.TextOf("edit-track.likelihood-value"));
+
+            application.Move("edit-track.likelihood", 2);
+            Assert.Equal("×4", application.TextOf("edit-track.likelihood-value"));
+            application.TypeInto("edit-track.title", "Salamandre Favourite");
+            application.Click("edit-track.save");
+
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks")
+                    .Any(row => row.Contains("Salamandre Favourite", StringComparison.Ordinal)),
+                "the library to be rebuilt with what was saved");
+
+            await OpenTheEditorOn(application, "Salamandre Favourite");
+            Assert.Equal("×4", application.TextOf("edit-track.likelihood-value"));
+            Assert.Equal(2, application.ValueOf("edit-track.likelihood"));
+            application.Click("edit-track.cancel");
+
+            await application.WaitUntil(
+                () => !application.IsShowing("edit-track.likelihood"),
+                "the dialog to close");
+
+            await OpenTheEditorOn(application, "La Belle");
+            Assert.Equal("×1", application.TextOf("edit-track.likelihood-value"));
+            application.Click("edit-track.cancel");
+        });
+    }
+
+    private static async Task OpenTheEditorOn(RunningApplication application, string title)
+    {
+        var row = application.Row("catalog.tracks", title);
+        application.Click(row);
+        application.RightClick(row);
+        application.Click("catalog.edit-track");
+
+        await application.WaitUntil(
+            () => application.IsShowing("edit-track.likelihood"),
+            "the edit dialog to come up");
+    }
+
     /// <summary>A dance the published list has never heard of keeps its track out.</summary>
     /// <remarks>
     /// World: a library whose tags the DJ trusts, holding one track whose dance is a name

@@ -591,6 +591,7 @@ public sealed class TrackStore : ITrackStore, IDisposable
     {
         var entries = await _libraryIndex.SnapshotByPathAsync(cancellationToken);
         var approvals = await _libraryIndex.ApprovalsAsync(cancellationToken);
+        var likelihoods = await _libraryIndex.LikelihoodsAsync(cancellationToken);
         var dances = _danceListStore.Index;
 
         // Rows kept because a folder could not be read are not part of the library: nothing about
@@ -602,9 +603,10 @@ public sealed class TrackStore : ITrackStore, IDisposable
         var inLibrary = new List<Track>();
         foreach (var entry in reachable)
         {
+            var key = LibraryKey.For(entry.ContentHash);
             var review = ReviewGate.Evaluate(
                 entry,
-                approvals.GetValueOrDefault(LibraryKey.For(entry.ContentHash), []),
+                approvals.GetValueOrDefault(key, []),
                 dances,
                 _allowDancesOutsideTheList);
 
@@ -622,7 +624,8 @@ public sealed class TrackStore : ITrackStore, IDisposable
                     entry.Format)
                 {
                     OriginalDance = entry.OriginalDance ?? string.Empty,
-                    DanceSlug = review.DanceSlug
+                    DanceSlug = review.DanceSlug,
+                    Likelihood = likelihoods.GetValueOrDefault(key, TrackLikelihood.Usual)
                 });
             }
         }

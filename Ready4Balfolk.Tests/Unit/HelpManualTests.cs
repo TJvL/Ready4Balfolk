@@ -52,6 +52,7 @@ public sealed class HelpManualTests
         { "HistoryToolbar_DeleteLabel", 29 },     // ### History Toolbar
         { "TrackCatalog_SwitchToDanceList", 38 }, // ### Switch to the dance list
         { "TrackCatalog_EditTrack", 36 },         // ### Fixing a typo where you see it
+        { "EditTrack_Likelihood", 36 },           // ### Fixing a typo where you see it
         { "TrackCatalog_WithdrawTrack", 37 },     // ### Taking an answer back (Track Catalog)
         { "Settings_RunSetupAgain", 52 },         // ### Music Directory (Settings)
         { "Discovery_ProposalAccept", 5 },        // ### Rules: telling it how your files are named

@@ -72,4 +72,41 @@ public sealed class EditTrackDialogViewModelTests
         Assert.False(sut.IsPickerOpen);
         Assert.True(sut.CanSave);
     }
+
+    [Fact]
+    public void TheLikelihood_StartsWhereTheTrackHasIt()
+    {
+        var sut = new EditTrackDialogViewModel(TestData.CreateTrack() with { Likelihood = 0.5 }, _index);
+
+        Assert.Equal(0.5, sut.Likelihood);
+        Assert.Equal("×½", sut.LikelihoodText);
+    }
+
+    [Theory]
+    [InlineData(-2, 0.25, "×¼")]
+    [InlineData(-1, 0.5, "×½")]
+    [InlineData(0, 1, "×1")]
+    [InlineData(1, 2, "×2")]
+    [InlineData(2, 4, "×4")]
+    public void EachStepOfTheSlider_IsAWholeDoubling(double step, double multiplier, string reads)
+    {
+        // Doublings either side of x1, so x1/4 and x4 are equally far from the middle and the slider
+        // can only land on a multiplier a DJ would say out loud.
+        var sut = Build();
+
+        sut.LikelihoodStep = step;
+
+        Assert.Equal(multiplier, sut.Likelihood);
+        Assert.Equal(reads, sut.LikelihoodText);
+    }
+
+    [Fact]
+    public void ASliderLeftBetweenSteps_LandsOnTheNearestOne()
+    {
+        var sut = Build();
+
+        sut.LikelihoodStep = 1.4;
+
+        Assert.Equal(2, sut.Likelihood);
+    }
 }
