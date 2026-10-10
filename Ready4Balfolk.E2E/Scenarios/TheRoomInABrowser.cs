@@ -652,6 +652,50 @@ public sealed class TheRoomInABrowser(HeadlessSession session)
         });
     }
 
+    /// <summary>A phone that cannot reach the app on reload keeps its login.</summary>
+    /// <remarks>
+    /// World: a library of one dance, and the server and the remote on with a PIN.
+    /// Steps: unlock the remote, then reload the page while the connection cannot get through, and
+    /// let it through again.
+    /// Sees: the page saying the app cannot be reached, and then the remote back on the token it
+    /// already had, without anybody typing the PIN again.
+    /// </remarks>
+    [Fact]
+    public async Task TheRemoteKeepsItsLoginWhenTheAppCannotBeReachedOnReload()
+    {
+        using var world = ScenarioWorld.Create()
+            .WithTrack(dance: "Mazurka", artist: "Naragonia", title: "Salamandre")
+            .WhereTheTagsAreTrusted()
+            .WithTheServerOn(remotePin: "418257")
+            .Save();
+
+        await session.RunAsync(world, async application =>
+        {
+            await application.WaitUntil(
+                () => application.RowsOf("catalog.tracks").Count == 1,
+                "the library to be indexed");
+
+            await using var phone = await TheBrowser.OpenAt($"{world.ServerAddress}/remote");
+
+            await phone.TypeInto("pin", "418257");
+            await phone.Tap("gateButton");
+            await phone.Page.Locator("#app").WaitForAsync();
+
+            // The page itself still loads: what fails is the connection behind it, which is what a
+            // Wi-Fi drop or an application that was just closed looks like to a page already open.
+            await phone.Page.RouteAsync("**/hubs/remote/negotiate**", route => route.AbortAsync());
+            await phone.Page.ReloadAsync();
+
+            await phone.WaitUntilItReads("gateError", "The app cannot be reached");
+            Assert.NotNull(await phone.Page.EvaluateAsync<string?>("window.localStorage.getItem('r4b-token')"));
+
+            await phone.Page.UnrouteAllAsync();
+
+            await phone.Page.Locator("#app").WaitForAsync(new LocatorWaitForOptions { Timeout = 15_000 });
+            Assert.False(await phone.IsShowing("gate"), "The remote wanted the PIN again.");
+        });
+    }
+
     /// <summary>Longer than SignalR's own reconnect list, which gives up about eighteen seconds in.</summary>
     private static Task WaitOutSignalRsOwnRetries() =>
         Task.Delay(TimeSpan.FromSeconds(22), TestContext.Current.CancellationToken);
