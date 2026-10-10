@@ -781,6 +781,30 @@ public sealed class TrackStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ALikelihoodSetOnTheAudio_ReachesThePublishedTrack()
+    {
+        // Set on the content hash, as the index keys it, and published on the track a random pick
+        // reads. A track the index says nothing about is at the usual x1.
+        CreateFile(_dirA, "favourite.mp3");
+        CreateFile(_dirA, "other.mp3");
+        var favourite = _fileSystem.FileInfo.New(_fileSystem.Path.Combine(_dirA.FullName, "favourite.mp3"));
+        var other = _fileSystem.FileInfo.New(_fileSystem.Path.Combine(_dirA.FullName, "other.mp3"));
+        _indexSnapshot = new Dictionary<string, LibraryEntry>(StringComparer.Ordinal)
+        {
+            [favourite.FullName] = IndexedAs(favourite, "Mazurka"),
+            [other.FullName] = IndexedAs(other, "Mazurka") with { ContentHash = [8] }
+        };
+        _libraryIndex.LikelihoodsAsync(Arg.Any<CancellationToken>())
+            .Returns(new Dictionary<string, double>(StringComparer.Ordinal) { [LibraryKey.For([7])] = 4 });
+
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => _sut.Current.Count == 2);
+
+        Assert.Equal(4, _sut.Current.Single(track => track.FileInfo.Name == "favourite.mp3").Likelihood);
+        Assert.Equal(TrackLikelihood.Usual, _sut.Current.Single(track => track.FileInfo.Name == "other.mp3").Likelihood);
+    }
+
+    [Fact]
     public async Task ARestartUnderTheSameRules_OpensNoUnchangedFile()
     {
         // Startup hands over the directory and the rules together. Compared against the store's

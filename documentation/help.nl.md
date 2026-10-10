@@ -321,6 +321,13 @@ daadwerkelijk veranderde worden geraakt. De dans moet nog steeds een zijn die de
 lijst kent; een ontbrekende dans is een voorstel bij
 [BigBalfolkList](https://tjvl.github.io/BigBalfolkList/), geen lokale uitzondering.
 
+In hetzelfde venster staat **Kans bij een willekeurige keuze**, van ×¼ tot ×4. Daarmee wordt een
+nummer meer of minder waarschijnlijk dan de andere nummers van zijn eigen dans wanneer een
+willekeurige keuze op die dans valt, zodat een nummer op ×4 vier keer zo vaak opduikt als een
+nummer op ×1 van dezelfde dans. De dans zelf komt precies even vaak aan de beurt als voorheen. Het
+wordt in de bibliotheekindex bewaard en niet in het bestand, en volgt het nummer bij een andere
+naam of andere tags.
+
 ### Een antwoord terugnemen
 
 Rechtsklik een nummer en kies **Mijn antwoord terugnemen** om het uit je bibliotheek en terug in

@@ -13,9 +13,11 @@ public interface ITrackEditorService
     /// Only what changed: an untouched field keeps whatever approval it already had, so one a rule
     /// answered is still taken back when that rule changes. The track never leaves the library; the
     /// rebuild is what makes the correction show at once. The dance comes in as the name the person
-    /// read, which is what "changed" is decided on, and goes down as the slug it stands for.
+    /// read, which is what "changed" is decided on, and goes down as the slug it stands for. The
+    /// likelihood is not an approval and needs none of that: it is written when it moved, and a
+    /// track put back at ×1 is a track nobody ever touched.
     /// </remarks>
-    Task ApplyAsync(Track track, string dance, string artist, string title);
+    Task ApplyAsync(Track track, string dance, string artist, string title, double likelihood);
 
     /// <summary>
     /// Takes back the answer somebody gave this track, so it leaves the library and waits again.

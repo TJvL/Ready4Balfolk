@@ -16,4 +16,15 @@ public sealed record Track(string Dance, string Artist, string Title, IFileInfo 
     /// what that slug is currently displayed as.
     /// </remarks>
     public string? DanceSlug { get; init; }
+
+    /// <summary>How much likelier a random pick is to land on this track than on another of its dance.</summary>
+    /// <remarks>
+    /// What a person set on the track, stored beside its approvals in the library index rather than
+    /// in the file's tags, so it follows the audio through a retag or a rename.
+    /// </remarks>
+    public double Likelihood
+    {
+        get;
+        init => field = TrackLikelihood.Normalize(value);
+    } = TrackLikelihood.Usual;
 }

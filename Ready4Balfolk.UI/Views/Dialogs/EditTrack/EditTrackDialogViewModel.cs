@@ -41,6 +41,7 @@ public sealed class EditTrackDialogViewModel : ReactiveObject
         Dance = track.Dance;
         Artist = track.Artist;
         Title = track.Title;
+        LikelihoodStep = Math.Round(Math.Log2(track.Likelihood));
 
         var canSave = this.WhenAnyValue(x => x.CanSave);
         SaveCommand = ReactiveCommand.Create(() => DialogResult = true, canSave);
@@ -77,6 +78,37 @@ public sealed class EditTrackDialogViewModel : ReactiveObject
         get;
         set => this.RaiseAndSetIfChanged(ref field, value);
     } = string.Empty;
+
+    /// <summary>Where the likelihood slider sits: whole doublings either side of ×1.</summary>
+    /// <remarks>
+    /// The slider moves in powers of two rather than in the multiplier itself, so ×¼ and ×4 are as
+    /// far from ×1 as each other, and ×1 sits in the middle where a DJ expects to find it.
+    /// </remarks>
+    public double LikelihoodStep
+    {
+        get;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref field, Math.Clamp(Math.Round(value), LowestStep, HighestStep));
+            this.RaisePropertyChanged(nameof(Likelihood));
+            this.RaisePropertyChanged(nameof(LikelihoodText));
+        }
+    }
+
+    public static double LowestStep => Math.Log2(TrackLikelihood.Lowest);
+
+    public static double HighestStep => Math.Log2(TrackLikelihood.Highest);
+
+    /// <summary>The multiplier saving writes down.</summary>
+    public double Likelihood => Math.Pow(2, LikelihoodStep);
+
+    /// <summary>The multiplier as a DJ reads it: ×¼, ×½, ×1, ×2, ×4.</summary>
+    public string LikelihoodText => LikelihoodStep switch
+    {
+        -2.0 => "×¼",
+        -1.0 => "×½",
+        _ => "×" + Likelihood.ToString("0", CultureInfo.CurrentCulture)
+    };
 
     public IReadOnlyList<DanceMatch> DanceMatches
     {

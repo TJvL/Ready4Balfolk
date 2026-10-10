@@ -29,7 +29,7 @@ public sealed class TrackEditorServiceTests
         // taken back when that rule changes.
         var track = TestData.CreateTrack();
 
-        await _sut.ApplyAsync(track, "Mazurka", track.Artist, "Corrected");
+        await _sut.ApplyAsync(track, "Mazurka", track.Artist, "Corrected", track.Likelihood);
 
         await _libraryIndex.Received(1).ApproveIndividuallyAsync(
             Arg.Any<IReadOnlyCollection<string>>(),
@@ -47,7 +47,7 @@ public sealed class TrackEditorServiceTests
         // as a name follows the name rather than the dance.
         var track = TestData.CreateTrack();
 
-        await _sut.ApplyAsync(track, "Schottische", track.Artist, track.Title);
+        await _sut.ApplyAsync(track, "Schottische", track.Artist, track.Title, track.Likelihood);
 
         await _libraryIndex.Received(1).ApproveIndividuallyAsync(
             Arg.Any<IReadOnlyCollection<string>>(),
@@ -94,10 +94,41 @@ public sealed class TrackEditorServiceTests
     {
         var track = TestData.CreateTrack();
 
-        await _sut.ApplyAsync(track, track.Dance, track.Artist, track.Title);
+        await _sut.ApplyAsync(track, track.Dance, track.Artist, track.Title, track.Likelihood);
 
         await _libraryIndex.DidNotReceiveWithAnyArgs()
             .ApproveIndividuallyAsync(default!, default!, TestContext.Current.CancellationToken);
+        await _libraryIndex.DidNotReceiveWithAnyArgs()
+            .SetLikelihoodAsync(default!, default, TestContext.Current.CancellationToken);
         await _trackStore.DidNotReceive().RefreshLibraryAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AMovedLikelihood_IsWrittenAndShowsAtOnce_WithoutApprovingAnything()
+    {
+        // A likelihood is not an answer about what the track is, so moving it alone must not turn
+        // a field a rule answered into one the person answered.
+        var track = TestData.CreateTrack();
+
+        await _sut.ApplyAsync(track, track.Dance, track.Artist, track.Title, 4);
+
+        await _libraryIndex.Received(1).SetLikelihoodAsync(
+            Arg.Is<IReadOnlyCollection<string>>(paths => paths.Contains(track.FileInfo.FullName)),
+            4,
+            Arg.Any<CancellationToken>());
+        await _libraryIndex.DidNotReceiveWithAnyArgs()
+            .ApproveIndividuallyAsync(default!, default!, TestContext.Current.CancellationToken);
+        await _trackStore.Received(1).RefreshLibraryAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AnUntouchedLikelihood_IsNotWrittenWhenAFieldChanges()
+    {
+        var track = TestData.CreateTrack() with { Likelihood = 2 };
+
+        await _sut.ApplyAsync(track, track.Dance, track.Artist, "Corrected", track.Likelihood);
+
+        await _libraryIndex.DidNotReceiveWithAnyArgs()
+            .SetLikelihoodAsync(default!, default, TestContext.Current.CancellationToken);
     }
 }

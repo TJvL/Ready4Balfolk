@@ -149,4 +149,21 @@ public interface ILibraryIndex : IDisposable
     /// <summary>Records that every file has just been read under these rules.</summary>
     Task RecordRulesReadUnderAsync(string rules, CancellationToken token = default);
 
+    /// <summary>
+    /// How likely a random pick is to land on each track somebody moved off the usual ×1, by content
+    /// hash.
+    /// </summary>
+    /// <remarks>
+    /// Keyed by <see cref="LibraryKey.For(byte[])"/>, as the approvals are. A track that is not here
+    /// is at <see cref="TrackLikelihood.Usual"/>.
+    /// </remarks>
+    Task<IReadOnlyDictionary<string, double>> LikelihoodsAsync(CancellationToken token = default);
+
+    /// <summary>Sets how likely a random pick is to land on the tracks at these paths.</summary>
+    /// <remarks>
+    /// By path, but it lands on the audio, so both copies of a duplicated track move together. Like an
+    /// approval it is an answer and not a reading: no scan touches it, and it goes only when the
+    /// audio itself leaves the index.
+    /// </remarks>
+    Task SetLikelihoodAsync(IReadOnlyCollection<string> paths, double multiplier, CancellationToken token = default);
 }

@@ -27,11 +27,11 @@ public sealed class TrackEditorService(
 
         if (vm.DialogResult == true && vm.DanceToSave is { } dance)
         {
-            await ApplyAsync(track, dance, vm.Artist.Trim(), vm.Title.Trim());
+            await ApplyAsync(track, dance, vm.Artist.Trim(), vm.Title.Trim(), vm.Likelihood);
         }
     }
 
-    public async Task ApplyAsync(Track track, string dance, string artist, string title)
+    public async Task ApplyAsync(Track track, string dance, string artist, string title, double likelihood)
     {
         var answers = new List<FieldAnswer>();
         if (!string.Equals(dance, track.Dance, System.StringComparison.Ordinal))
@@ -49,9 +49,20 @@ public sealed class TrackEditorService(
             answers.Add(new FieldAnswer(TrackField.Title, title));
         }
 
+        var likelihoodMoved = TrackLikelihood.Normalize(likelihood) != track.Likelihood;
+
         if (answers.Count > 0)
         {
             await libraryIndex.ApproveIndividuallyAsync([track.FileInfo.FullName], answers);
+        }
+
+        if (likelihoodMoved)
+        {
+            await libraryIndex.SetLikelihoodAsync([track.FileInfo.FullName], likelihood);
+        }
+
+        if (answers.Count > 0 || likelihoodMoved)
+        {
             await trackStore.RefreshLibraryAsync();
         }
     }

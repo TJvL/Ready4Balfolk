@@ -80,6 +80,32 @@
                      Text="{CompiledBinding Title}" />
         </StackPanel>
 
+        <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:UiStrings.EditTrack_Likelihood}" />
+            <Grid ColumnDefinitions="*,Auto">
+                <Slider Grid.Column="0"
+                        AutomationProperties.AutomationId="edit-track.likelihood"
+                        AutomationProperties.Name="{x:Static res:UiStrings.EditTrack_Likelihood}"
+                        Minimum="{x:Static editTrack:EditTrackDialogViewModel.LowestStep}"
+                        Maximum="{x:Static editTrack:EditTrackDialogViewModel.HighestStep}"
+                        TickFrequency="1"
+                        IsSnapToTickEnabled="True"
+                        TickPlacement="BottomRight"
+                        Value="{CompiledBinding LikelihoodStep}"
+                        VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1"
+                           AutomationProperties.AutomationId="edit-track.likelihood-value"
+                           Text="{CompiledBinding LikelihoodText}"
+                           MinWidth="40"
+                           TextAlignment="Right"
+                           VerticalAlignment="Center" />
+            </Grid>
+            <TextBlock Text="{x:Static res:UiStrings.EditTrack_LikelihoodHint}"
+                       TextWrapping="Wrap"
+                       FontSize="12"
+                       Opacity="0.7" />
+        </StackPanel>
+
         <StackPanel Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="8"

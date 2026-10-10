@@ -336,6 +336,47 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AnIndexLaidOutForAnotherSchema_KeepsTheLikelihoods()
+    {
+        // Set by a person and worked out by nothing, exactly like an approval.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+        await _sut.SetLikelihoodAsync(["/music/a.mp3"], 4, Token);
+        _sut.Dispose();
+        await StampSchemaVersionAsync(ALaterSchema);
+
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), Substitute.For<INotificationService>());
+
+        Assert.Empty(await rebuilt.SnapshotByPathAsync(Token));
+        Assert.Equal(4, (await rebuilt.LikelihoodsAsync(Token))[LibraryKey.For([9])]);
+    }
+
+    [Fact]
+    public async Task AnIndexFromBeforeLikelihoods_KeepsItsApprovals()
+    {
+        // The upgrade every existing library goes through once: a file in the shape before tracks
+        // had a likelihood, which has no table for them. That is an index with no likelihoods set,
+        // not an unreadable one, and reading it as unreadable would throw every answer away.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [9], slug: null)], Token);
+        await _sut.ApproveIndividuallyAsync(
+            ["/music/a.mp3"], [new FieldAnswer(TrackField.Title, "Le Tourdion")], Token);
+        _sut.Dispose();
+        await using (var connection = await RawConnectionAsync())
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "DROP TABLE track_likelihoods; PRAGMA user_version = 2;";
+            await command.ExecuteNonQueryAsync(Token);
+        }
+
+        var notifications = Substitute.For<INotificationService>();
+        using var rebuilt = new SqliteLibraryIndex(DirectoryPointingAtTemp(), new NoOpLoggerService(), notifications);
+
+        Assert.Equal("Le Tourdion", Assert.Single((await rebuilt.ApprovalsAsync(Token))[LibraryKey.For([9])]).Value);
+        Assert.Equal(["/music/a.mp3"], await rebuilt.IndexedPathsAsync(Token));
+        Assert.Empty(await rebuilt.LikelihoodsAsync(Token));
+        Assert.Empty(notifications.ReceivedCalls());
+    }
+
+    [Fact]
     public async Task AnIndexOfThisSchema_IsOpenedAsItStands()
     {
         // The other half of the guard: throwing the index away on a launch that changed nothing
@@ -848,6 +889,89 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.MovePathsAsync([], Token);
 
         Assert.Empty(await _sut.SnapshotByPathAsync(Token));
+    }
+
+    [Fact]
+    public async Task ALikelihood_IsKeptOnTheAudio()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2])], Token);
+
+        await _sut.SetLikelihoodAsync(["/music/a.mp3"], 0.25, Token);
+
+        var likelihoods = await _sut.LikelihoodsAsync(Token);
+        Assert.Equal(0.25, Assert.Single(likelihoods).Value);
+        Assert.Equal(0.25, likelihoods[LibraryKey.For([1])]);
+    }
+
+    [Fact]
+    public async Task ALikelihoodLandsOnTheAudio_SoBothCopiesOfATrackGetIt()
+    {
+        // One recording in two places is one track, and favouring it is favouring both copies.
+        await _sut.WriteAsync([Entry("/music/loose.mp3", [9]), Entry("/music/album/track.mp3", [9])], Token);
+
+        await _sut.SetLikelihoodAsync(["/music/loose.mp3"], 2, Token);
+
+        Assert.Equal(2, Assert.Single(await _sut.LikelihoodsAsync(Token)).Value);
+    }
+
+    [Fact]
+    public async Task ALikelihoodPutBackToOne_LeavesNoTrace()
+    {
+        // The usual likelihood is the absence of a row, so a track moved back is a track nobody
+        // ever touched rather than one carrying an answer that says nothing.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1])], Token);
+        await _sut.SetLikelihoodAsync(["/music/a.mp3"], 4, Token);
+
+        await _sut.SetLikelihoodAsync(["/music/a.mp3"], TrackLikelihood.Usual, Token);
+
+        Assert.Empty(await _sut.LikelihoodsAsync(Token));
+    }
+
+    [Fact]
+    public async Task ALikelihood_SurvivesTheScanThatRewritesTheTrack()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: "mazurka")], Token);
+        await _sut.SetLikelihoodAsync(["/music/a.mp3"], 4, Token);
+
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1], slug: "scottish")], Token);
+
+        Assert.Equal(4, (await _sut.LikelihoodsAsync(Token))[LibraryKey.For([1])]);
+    }
+
+    [Fact]
+    public async Task ALikelihood_FollowsTheAudioThroughAMove()
+    {
+        await _sut.WriteAsync([Entry("/music/album/a.mp3", [1])], Token);
+        await _sut.SetLikelihoodAsync(["/music/album/a.mp3"], 0.5, Token);
+
+        await _sut.MovePathsAsync([new PathMove("/music/album/a.mp3", "/music/Naragonia/a.mp3")], Token);
+
+        Assert.Equal(0.5, (await _sut.LikelihoodsAsync(Token))[LibraryKey.For([1])]);
+    }
+
+    [Fact]
+    public async Task AudioNothingPointsAtAnyMore_TakesItsLikelihoodWithIt()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2]), Entry("/music/c.mp3", [3])], Token);
+        await _sut.SetLikelihoodAsync(["/music/a.mp3", "/music/b.mp3", "/music/c.mp3"], 4, Token);
+
+        await _sut.DeletePathsAsync(["/music/a.mp3"], Token);
+        await _sut.DeleteMissingAsync(["/music/c.mp3"], [], Token);
+
+        Assert.Equal([LibraryKey.For([3])], (await _sut.LikelihoodsAsync(Token)).Keys);
+    }
+
+    [Fact]
+    public async Task ALikelihoodOutOfRange_IsBroughtBackIntoIt()
+    {
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2])], Token);
+
+        await _sut.SetLikelihoodAsync(["/music/a.mp3"], 100, Token);
+        await _sut.SetLikelihoodAsync(["/music/b.mp3"], double.NaN, Token);
+
+        var likelihoods = await _sut.LikelihoodsAsync(Token);
+        Assert.Equal(TrackLikelihood.Highest, likelihoods[LibraryKey.For([1])]);
+        Assert.False(likelihoods.ContainsKey(LibraryKey.For([2])));
     }
 
     private static LibraryEntry Entry(string path, byte[] hash, string? slug = "mazurka")
