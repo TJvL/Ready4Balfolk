@@ -1,5 +1,5 @@
-using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Dances;
 using Ready4Balfolk.Domain.Models.Settings;
@@ -11,6 +11,7 @@ using Ready4Balfolk.Domain.Stores.Dances;
 using Ready4Balfolk.Domain.Stores.Library;
 using Ready4Balfolk.Domain.Stores.Settings;
 using Ready4Balfolk.Domain.Stores.Tracks;
+using Ready4Balfolk.Tests.Helpers;
 using Ready4Balfolk.UI.Views.Discovery;
 
 namespace Ready4Balfolk.Tests.ViewModels;
@@ -33,8 +34,10 @@ public sealed class DiscoveryViewModelTests : IDisposable
     ];
 
     private readonly ISettingsStore _settingsStore = Substitute.For<ISettingsStore>();
-    // Where the pause after the last keystroke is counted, moved by the test rather than waited out.
-    private readonly HistoricalScheduler _typing = new();
+    // Where the pause after the last keystroke and the second between two counts of a scan are
+    // counted, moved by the test rather than waited out.
+    private readonly ThrottleClock _timers = new();
+    private readonly BehaviorSubject<bool> _isLoading = new(false);
     private readonly ILibraryIndex _libraryIndex = Substitute.For<ILibraryIndex>();
     private readonly DiscoveryViewModel _sut;
 
@@ -65,14 +68,14 @@ public sealed class DiscoveryViewModelTests : IDisposable
             }));
 
         var trackStore = Substitute.For<ITrackStore>();
-        trackStore.IsLoading.Returns(Observable.Return(false));
+        trackStore.IsLoading.Returns(_isLoading);
 
         var danceListStore = Substitute.For<IDanceListStore>();
         danceListStore.Index.Returns(DanceListIndex.Empty);
 
         _sut = new DiscoveryViewModel(
             _settingsStore, _libraryIndex, danceListStore, trackStore, Substitute.For<ILoggerService>(),
-            Substitute.For<INotificationService>(), _typing);
+            Substitute.For<INotificationService>(), _timers.Scheduler);
     }
 
     public void Dispose() => _sut.Dispose();
@@ -99,11 +102,46 @@ public sealed class DiscoveryViewModelTests : IDisposable
         await Refresh();
 
         _sut.DraftPattern = "%d - %a - %t";
-        _typing.AdvanceBy(DiscoveryViewModel.DraftPreviewQuiet - TimeSpan.FromMilliseconds(1));
+        _timers.MoveOn(DiscoveryViewModel.DraftPreviewQuiet - TimeSpan.FromMilliseconds(1));
         Assert.Empty(_sut.DraftSamples);
 
-        _typing.AdvanceBy(TimeSpan.FromMilliseconds(1));
+        _timers.MoveOn(TimeSpan.FromMilliseconds(1));
         Assert.NotEmpty(_sut.DraftSamples);
+    }
+
+    [Fact]
+    public void WhileTheLibraryIsRead_TheIndexIsCountedOnceASecond()
+    {
+        // The count is the whole screen while a scan runs, so it has to move, and it is read from
+        // the index rather than the library, which holds nothing until the scan is done.
+        _libraryIndex.CountIndexedAsync(Arg.Any<CancellationToken>()).Returns(40, 90);
+        _isLoading.OnNext(true);
+
+        Assert.True(_sut.IsScanning);
+        _timers.MoveOn(TimeSpan.FromSeconds(1) - TimeSpan.FromMilliseconds(1));
+        Assert.Equal(0, _sut.IndexedSoFar);
+
+        _timers.MoveOn(TimeSpan.FromMilliseconds(1));
+        Assert.Equal(40, _sut.IndexedSoFar);
+        Assert.Contains("40", _sut.ScanProgressText);
+
+        _timers.MoveOn(TimeSpan.FromSeconds(1));
+        Assert.Equal(90, _sut.IndexedSoFar);
+    }
+
+    [Fact]
+    public void OnceTheLibraryIsRead_TheIndexIsNoLongerCounted()
+    {
+        _libraryIndex.CountIndexedAsync(Arg.Any<CancellationToken>()).Returns(40);
+        _isLoading.OnNext(true);
+        _timers.MoveOn(TimeSpan.FromSeconds(1));
+        _libraryIndex.ClearReceivedCalls();
+
+        _isLoading.OnNext(false);
+        _timers.MoveOn(TimeSpan.FromSeconds(5));
+
+        Assert.False(_sut.IsScanning);
+        _ = _libraryIndex.DidNotReceive().CountIndexedAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -427,5 +465,5 @@ public sealed class DiscoveryViewModelTests : IDisposable
     /// timer, so it asks for the same measurement directly.
     /// </summary>
     /// <summary>Stops typing for as long as the screen waits before measuring the draft.</summary>
-    private void Preview() => _typing.AdvanceBy(DiscoveryViewModel.DraftPreviewQuiet);
+    private void Preview() => _timers.MoveOn(DiscoveryViewModel.DraftPreviewQuiet);
 }

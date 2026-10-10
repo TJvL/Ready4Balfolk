@@ -72,8 +72,9 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
     internal static readonly TimeSpan DraftPreviewQuiet = TimeSpan.FromMilliseconds(200);
 
     /// <remarks>
-    /// <c>previewScheduler</c> is where the pause after the last keystroke in a draft pattern is
-    /// counted. Real time unless a caller says otherwise, and only a test does.
+    /// <c>timerScheduler</c> is where the two clocks on this screen run: the pause after the last
+    /// keystroke in a draft pattern, and the second between two counts of the index while the
+    /// library is being read. Real time unless a caller says otherwise, and only a test does.
     /// </remarks>
     public DiscoveryViewModel(
         ISettingsStore settingsStore,
@@ -82,8 +83,9 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         ITrackStore trackStore,
         ILoggerService loggerService,
         INotificationService notifications,
-        IScheduler? previewScheduler = null)
+        IScheduler? timerScheduler = null)
     {
+        var timers = timerScheduler ?? DefaultScheduler.Instance;
         _settingsStore = settingsStore;
         _libraryIndex = libraryIndex;
         _danceListStore = danceListStore;
@@ -111,7 +113,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         // second and nowhere else: the review screen holds this one and reads the count off it.
         this.WhenAnyValue(x => x.IsScanning)
             .Select(scanning => scanning
-                ? Observable.Interval(TimeSpan.FromSeconds(1))
+                ? Observable.Interval(TimeSpan.FromSeconds(1), timers)
                 : Observable.Empty<long>())
             .Switch()
             .SelectMany(_ => Observable.FromAsync(() => _libraryIndex.CountIndexedAsync()))
@@ -148,7 +150,7 @@ public sealed partial class DiscoveryViewModel : ReactiveObject, IDisposable
         // The preview runs as the pattern is typed, because a rule is agreed to on the strength of
         // what it does, and asking for a separate "check" step is asking for it to be skipped.
         this.WhenAnyValue(x => x.DraftPattern)
-            .Throttle(DraftPreviewQuiet, previewScheduler ?? DefaultScheduler.Instance)
+            .Throttle(DraftPreviewQuiet, timers)
             .ObserveOn(RxSchedulers.MainThreadScheduler)
             .Subscribe(_ => PreviewDraft())
             .DisposeWith(_disposables);
