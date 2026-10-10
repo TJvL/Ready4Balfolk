@@ -898,7 +898,7 @@
     <value>Een dances.json importeren</value>
   </data>
   <data name="Wizard_DanceList_Detail" xml:space="preserve">
-    <value>Er wordt geen kopie met Ready4Balfolk meegeleverd. Haal de lijst één keer op bij BigBalfolkList, of importeer een dances.json die iemand meegenomen heeft als deze machine nooit online komt. Daarna blijft hij op deze computer staan, en in het dansenpaneel vraag je om een nieuwere.</value>
+    <value>Er wordt geen kopie met Ready4Balfolk meegeleverd. Haal de lijst één keer op bij BigBalfolkList, of importeer een dances.json die iemand meegenomen heeft als deze machine nooit online komt. Daarna blijft hij op deze computer staan, en in de instellingen vraag je om een nieuwere.</value>
   </data>
   <data name="DanceList_SearchWatermark" xml:space="preserve">
     <value>Zoek in elke schrijfwijze…</value>
@@ -1026,6 +1026,12 @@
   </data>
   <data name="Settings_MusicDirectoryChangeHint" xml:space="preserve">
     <value>Dit veranderen leest je hele bibliotheek opnieuw in, dus het hoort bij het instellen en niet bij de losse instellingen.</value>
+  </data>
+  <data name="Settings_DanceList" xml:space="preserve">
+    <value>Dansenlijst</value>
+  </data>
+  <data name="Settings_DanceListDescription" xml:space="preserve">
+    <value>De dansen en elke naam die ze dragen, zoals BigBalfolkList ze publiceert. Er wordt nooit uit zichzelf een nieuwere lijst opgehaald: Bijwerken vraagt er een aan BigBalfolkList, en Uit een bestand neemt een dances.json over die iemand meegenomen heeft, voor een machine die nooit online komt. Is de nieuwe lijst onleesbaar, dan blijft de lijst die je al had in gebruik.</value>
   </data>
 
   <!-- Advanced discovery -->

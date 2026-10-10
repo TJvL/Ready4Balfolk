@@ -8,7 +8,7 @@ namespace Ready4Balfolk.UI.Views.DanceList;
 /// <summary>What the DJ reads about the dance list: where it came from, and what came of asking.</summary>
 /// <remarks>
 /// <para>
-/// The setup step and the dance panel fetch and import the same list, and used to say so each in
+/// The setup step and the settings page fetch and import the same list, and used to say so each in
 /// its own way: the step threw away what the store answered, so a fetch that failed in the setup
 /// ended with the spinner gone and nothing said, and an import it could not take was told only in
 /// the store's own English. Both read it from here now, so they cannot drift apart again.

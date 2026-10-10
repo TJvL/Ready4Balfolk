@@ -1,3 +1,5 @@
+using Ready4Balfolk.UI.Resources;
+
 namespace Ready4Balfolk.E2E.Scenarios;
 
 /// <summary>What the application makes of the machine it is started on.</summary>
@@ -124,8 +126,8 @@ public sealed class StartingOnWhatIsThere(HeadlessSession session)
     /// <remarks>
     /// World: a machine with no dance list and no way to reach BigBalfolkList, which is a cellar
     /// with a laptop in it.
-    /// Steps: open the dance list panel and ask for the published list.
-    /// Sees: a message saying it could not be had, and still no list, rather than a panel that
+    /// Steps: open the settings and ask for the published list.
+    /// Sees: a message saying it could not be had, and still no list, rather than a page that
     /// looks like it worked.
     /// </remarks>
     [Fact]
@@ -139,18 +141,15 @@ public sealed class StartingOnWhatIsThere(HeadlessSession session)
 
         await session.RunAsync(world, async application =>
         {
-            await application.WaitUntil(
-                () => application.IsShowing("catalog.tracks"),
-                "the main screen");
+            await TheDanceListSettingsAreOpen(application);
 
-            application.Click("catalog.show-dances");
-            application.Click("dancelist.update");
+            application.Click("settings.dance-list-update");
 
             await application.WaitUntil(
                 () => application.IsShowing("notification.message"),
                 "the application to say that the list could not be fetched");
 
-            Assert.False(application.SeesAnywhere("Mazurka"), "A dance list arrived from nowhere.");
+            Assert.Equal(UiStrings.DanceList_NoListYet, application.TextOf("settings.dance-list-origin"));
         });
     }
 
@@ -158,8 +157,8 @@ public sealed class StartingOnWhatIsThere(HeadlessSession session)
     /// <remarks>
     /// World: a machine with no dance list, and a network, which is the one scenario here that
     /// needs one: this is the act of reaching BigBalfolkList.
-    /// Steps: open the dance list panel and ask for the published list.
-    /// Sees: the dances arriving, and the panel showing them.
+    /// Steps: open the settings, ask for the published list, and go to the dance list panel.
+    /// Sees: the settings saying a list has arrived, and the panel showing its dances.
     /// </remarks>
     [Fact]
     public async Task DjFetchesTheDanceListFromBigBalfolkList()
@@ -173,23 +172,18 @@ public sealed class StartingOnWhatIsThere(HeadlessSession session)
 
         await session.RunAsync(world, async application =>
         {
-            await application.WaitUntil(
-                () => application.IsShowing("catalog.tracks"),
-                "the main screen");
+            await TheDanceListSettingsAreOpen(application);
 
-            application.Click("catalog.show-dances");
-            application.Click("dancelist.update");
+            application.Click("settings.dance-list-update");
 
-            await application.WaitUntil(
-                () => application.SeesAnywhere("Mazurka"),
-                "the published list to arrive and be shown");
+            await TheDanceListArrivesInThePanel(application, "the published list to arrive");
         });
     }
 
     /// <summary>The DJ imports a dance list from a file, for a machine that is never online.</summary>
     /// <remarks>
     /// World: a machine with no dance list, no internet, and a dances.json somebody carried in.
-    /// Steps: open the dance list panel and import that file.
+    /// Steps: open the settings, import that file, and go to the dance list panel.
     /// Sees: the dances arriving, on a machine that will never reach BigBalfolkList.
     /// </remarks>
     [Fact]
@@ -205,24 +199,19 @@ public sealed class StartingOnWhatIsThere(HeadlessSession session)
 
         await session.RunAsync(world, async application =>
         {
-            await application.WaitUntil(
-                () => application.IsShowing("catalog.tracks"),
-                "the main screen");
+            await TheDanceListSettingsAreOpen(application);
 
             RunningApplication.TheDjWillPick(carriedIn);
-            application.Click("catalog.show-dances");
-            application.Click("dancelist.import");
+            application.Click("settings.dance-list-import");
 
-            await application.WaitUntil(
-                () => application.SeesAnywhere("Mazurka"),
-                "the list from the file to be shown");
+            await TheDanceListArrivesInThePanel(application, "the list from the file to arrive");
         });
     }
 
     /// <summary>The file the DJ picked is not a dance list, and the machine says so.</summary>
     /// <remarks>
     /// World: a machine with no dance list, and a file that is named like one and is not.
-    /// Steps: open the dance list panel and import it.
+    /// Steps: open the settings and import it.
     /// Sees: the import refused with a reason, and still no vocabulary, rather than a list that
     /// quietly became empty.
     /// </remarks>
@@ -239,19 +228,52 @@ public sealed class StartingOnWhatIsThere(HeadlessSession session)
 
         await session.RunAsync(world, async application =>
         {
-            await application.WaitUntil(
-                () => application.IsShowing("catalog.tracks"),
-                "the main screen");
+            await TheDanceListSettingsAreOpen(application);
 
             RunningApplication.TheDjWillPick(nonsense);
-            application.Click("catalog.show-dances");
-            application.Click("dancelist.import");
+            application.Click("settings.dance-list-import");
 
             await application.WaitUntil(
                 () => application.IsShowing("notification.message"),
                 "the application to say why the file was refused");
 
-            Assert.False(application.SeesAnywhere("Mazurka"), "A dance list arrived from a file that is not one.");
+            Assert.Equal(UiStrings.DanceList_NoListYet, application.TextOf("settings.dance-list-origin"));
         });
+    }
+
+    /// <summary>From the main screen to where a newer dance list is asked for.</summary>
+    private static async Task TheDanceListSettingsAreOpen(RunningApplication application)
+    {
+        await application.WaitUntil(
+            () => application.IsShowing("catalog.tracks"),
+            "the main screen");
+
+        application.Click("toolbar.settings");
+
+        await application.WaitUntil(
+            () => application.IsShowing("settings.dance-list-update"),
+            "the settings to come up");
+
+        Assert.Equal(UiStrings.DanceList_NoListYet, application.TextOf("settings.dance-list-origin"));
+    }
+
+    /// <summary>A list asked for in the settings, there, and then in the dance list panel.</summary>
+    /// <remarks>
+    /// The settings say where the list came from, so that is where it is seen to land first. The
+    /// panel is where its dances are, and the only place a DJ would ever look to check.
+    /// </remarks>
+    private static async Task TheDanceListArrivesInThePanel(RunningApplication application, string what)
+    {
+        await application.WaitUntil(
+            () => !application.TextOf("settings.dance-list-origin")
+                .Equals(UiStrings.DanceList_NoListYet, StringComparison.Ordinal),
+            what);
+
+        application.Click("screen.back");
+        application.Click("catalog.show-dances");
+
+        await application.WaitUntil(
+            () => application.SeesAnywhere("Mazurka"),
+            "the dance list panel to show the dances that arrived");
     }
 }
