@@ -923,6 +923,23 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task MovingAPathOntoAnother_ForgetsWhatWasDecidedAboutTheAudioItReplaced()
+    {
+        // b's recording is no longer anywhere. If it comes back later it is a new file to the
+        // library, not one that quietly picks up an answer, a likelihood and an equalizer.
+        await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2])], Token);
+        await _sut.ApproveIndividuallyAsync(["/music/b.mp3"], [new FieldAnswer(TrackField.Dance, "mazurka")], Token);
+        await _sut.SetLikelihoodAsync(["/music/b.mp3"], 4, Token);
+        await _sut.SetEqualizerAsync(["/music/b.mp3"], EqualizerSettings.Flat with { Enabled = true }, Token);
+
+        await _sut.MovePathsAsync([new PathMove("/music/a.mp3", "/music/b.mp3")], Token);
+
+        Assert.Empty(await _sut.ApprovalsAsync(Token));
+        Assert.Empty(await _sut.LikelihoodsAsync(Token));
+        Assert.Empty(await _sut.EqualizersAsync(Token));
+    }
+
+    [Fact]
     public async Task MovingNothing_DoesNotThrow()
     {
         await _sut.MovePathsAsync([], Token);
@@ -994,9 +1011,12 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
         await _sut.WriteAsync([Entry("/music/a.mp3", [1]), Entry("/music/b.mp3", [2]), Entry("/music/c.mp3", [3])], Token);
         await _sut.SetLikelihoodAsync(["/music/a.mp3", "/music/b.mp3", "/music/c.mp3"], 4, Token);
 
+        // Each way of losing a path on its own: the scan's sweep would otherwise tidy up after a
+        // deletion that left something behind, and the file coming back would get it again.
         await _sut.DeletePathsAsync(["/music/a.mp3"], Token);
-        await _sut.DeleteMissingAsync(["/music/c.mp3"], [], Token);
+        Assert.Equal([LibraryKey.For([2]), LibraryKey.For([3])], (await _sut.LikelihoodsAsync(Token)).Keys.Order());
 
+        await _sut.DeleteMissingAsync(["/music/c.mp3"], [], Token);
         Assert.Equal([LibraryKey.For([3])], (await _sut.LikelihoodsAsync(Token)).Keys);
     }
 
@@ -1056,8 +1076,9 @@ public sealed class SqliteLibraryIndexTests : IAsyncLifetime
             ["/music/a.mp3", "/music/b.mp3", "/music/c.mp3"], EqualizerSettings.Flat with { Enabled = true }, Token);
 
         await _sut.DeletePathsAsync(["/music/a.mp3"], Token);
-        await _sut.DeleteMissingAsync(["/music/c.mp3"], [], Token);
+        Assert.Equal([LibraryKey.For([2]), LibraryKey.For([3])], (await _sut.EqualizersAsync(Token)).Keys.Order());
 
+        await _sut.DeleteMissingAsync(["/music/c.mp3"], [], Token);
         Assert.Equal([LibraryKey.For([3])], (await _sut.EqualizersAsync(Token)).Keys);
     }
 

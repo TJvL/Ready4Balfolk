@@ -530,6 +530,27 @@ public sealed class TrackStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task AFullScan_WritesWhatTheFolderAnsweredIntoTheIndex()
+    {
+        // The scan writes as it reads, which is before the folder has been heard as a whole. What
+        // the folder settles afterwards has to be written again, or the index keeps the file as
+        // unanswered and it is back on the review screen at the next start.
+        CreateFile(_dirA, "b.mp3");
+        CreateFile(_dirA, "Mazurka - c.mp3");
+
+        var isLoading = true;
+        using var loading = _sut.IsLoading.Subscribe(value => isLoading = value);
+        await ApplyAsync(directory: _dirA);
+        await WaitUntilAsync(() => !isLoading && _sut.Current.Count == 2);
+
+        var quiet = _fileSystem.Path.Combine(_dirA.FullName, "b.mp3");
+        lock (_indexSnapshot)
+        {
+            Assert.Equal("mazurka", _indexSnapshot[quiet].DanceSlug);
+        }
+    }
+
+    [Fact]
     public async Task FilesThatArriveTogether_SpeakForEachOther()
     {
         // A folder of ten mazurkas dropped in at once is one batch, and answering each of its
