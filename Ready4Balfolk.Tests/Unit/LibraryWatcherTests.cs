@@ -147,6 +147,16 @@ public sealed class LibraryWatcherTests : IDisposable
     }
 
     [Fact]
+    public void Watch_LooksIntoEveryFolderUnderTheDirectory()
+    {
+        // A library is folders inside folders. Watching only the top level sees nothing at all of
+        // an album copied into its artist's folder, and says nothing about it either.
+        _sut.Watch(Directory("/music"));
+
+        Assert.True(Latest.IncludeSubdirectories);
+    }
+
+    [Fact]
     public void Watch_AsksForABufferThatHoldsABurst()
     {
         // The buffer the operating system fills while nobody is reading it. An album copied in
