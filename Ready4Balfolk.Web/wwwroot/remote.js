@@ -564,7 +564,7 @@
           id("pin").value = "";
           return null;
         })
-        .catch(function () { error.textContent = t("connectionLost"); });
+        .catch(function () { error.textContent = t("unreachable"); });
     });
   }
 
@@ -582,13 +582,16 @@
     var saved = null;
     try { saved = window.localStorage.getItem("r4b-token"); } catch (e) { saved = null; }
     if (saved) {
-      /* Only a connect that is still the page's own speaks for the saved token. One stopped because
-         the PIN was entered meanwhile fails too, and by then the token in storage is the new one. */
+      /* A connect that fails has not judged the token: one the app no longer accepts gets through
+         the handshake and is turned out after it, which askForThePinAgain handles. Failing here is
+         the network or an app that is not running, so the token is kept and tried again until it
+         lands or a PIN is entered, which replaces the connection and ends the retries. */
       var attempt = connect(saved);
       var mine = connection;
       attempt.catch(function () {
         if (connection !== mine) return;
-        try { window.localStorage.removeItem("r4b-token"); } catch (e) { /* ignore */ }
+        text("gateError", t("unreachable"));
+        connectAgainLater(saved, mine);
       });
     }
   });
