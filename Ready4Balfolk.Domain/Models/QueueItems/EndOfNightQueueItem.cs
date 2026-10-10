@@ -13,5 +13,4 @@ public sealed record EndOfNightQueueItem(string FilePath, TimeSpan? Duration) : 
 {
     public QueueItemId Id { get; init; } = QueueItemId.New();
     public string Description => DomainStrings.EndOfNightQueueItem_Description;
-    public bool RandomlyAdded => false;
 }
