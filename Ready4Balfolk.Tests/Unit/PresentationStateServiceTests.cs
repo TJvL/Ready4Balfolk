@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using DynamicData;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.Presentation;
@@ -13,7 +14,7 @@ namespace Ready4Balfolk.Tests.Unit;
 /// Covers the mapping both presentation surfaces read. The desktop window and the browser draw the
 /// same pictures from it, so a wrong kind here is wrong in two places at once.
 /// </summary>
-public sealed class PresentationStateServiceTests
+public sealed class PresentationStateServiceTests : IDisposable
 {
     // --- Map ---
 
@@ -142,6 +143,114 @@ public sealed class PresentationStateServiceTests
         Assert.Equal(0.5d, progress.Fraction, 3);
     }
 
+    // --- What the screens are told ---
+
+    private readonly Subject<IQueueItem?> _currentItems = new();
+    private readonly Subject<bool> _playing = new();
+    private readonly Subject<TimeSpan> _elapsed = new();
+    private readonly Subject<TimeSpan> _lengths = new();
+    private readonly SourceList<IQueueItem> _queued = new();
+
+    private PresentationStateService Following()
+    {
+        var consumption = Substitute.For<IQueueConsumptionService>();
+        consumption.WhenCurrentItemChanged.Returns(_currentItems);
+        consumption.WhenIsPlayingChanged.Returns(_playing);
+        consumption.WhenElapsedChanged.Returns(_elapsed);
+        consumption.WhenTotalDurationChanged.Returns(_lengths);
+        var queue = Substitute.For<IQueueService>();
+        queue.Connect().Returns(_ => _queued.Connect());
+        queue.Items.Returns(_ => _queued.Items.ToList());
+
+        return new PresentationStateService(consumption, queue);
+    }
+
+    private static TrackQueueItem Dance(string dance) => new(TestData.CreateTrack(dance), false);
+
+    [Fact]
+    public void TheState_FollowsWhatIsOnWhatIsNextAndWhetherItPlays()
+    {
+        using var sut = Following();
+        var states = new List<PresentationState>();
+        using var watching = sut.WhenStateChanged.Subscribe(states.Add);
+
+        _currentItems.OnNext(Dance("Scottish"));
+        Assert.Equal("Scottish", sut.Current.Current.Primary);
+
+        _queued.Add(Dance("Mazurka"));
+        Assert.Equal("Mazurka", sut.Current.Next.Primary);
+
+        _playing.OnNext(true);
+        Assert.True(sut.Current.IsPlaying);
+
+        // Each change is told to the screens as it happens, not saved up for the next one.
+        Assert.Equal(sut.Current, states[^1]);
+    }
+
+    [Theory]
+    [InlineData("delay")]
+    [InlineData("stop")]
+    [InlineData("message")]
+    public void APauseNext_ShowsTheDanceWaitingBehindIt(string pause)
+    {
+        using var sut = Following();
+        IQueueItem next = pause switch
+        {
+            "delay" => new DelayQueueItem(TimeSpan.FromMinutes(1)),
+            "stop" => new StopQueueItem(),
+            _ => new MessageQueueItem("Bar closes at midnight")
+        };
+
+        _queued.AddRange([next, Dance("Bourrée")]);
+
+        Assert.Equal("Bourrée", sut.Current.Behind.Primary);
+    }
+
+    [Fact]
+    public void ADanceNext_HasNothingShownBehindIt()
+    {
+        using var sut = Following();
+
+        _queued.AddRange([Dance("Scottish"), Dance("Bourrée")]);
+
+        Assert.Equal(PresentationItemKind.None, sut.Current.Behind.Kind);
+    }
+
+    [Fact]
+    public void APauseBeforeAnotherPause_HasNothingShownBehindIt()
+    {
+        using var sut = Following();
+
+        _queued.AddRange([new DelayQueueItem(TimeSpan.FromMinutes(1)), new StopQueueItem()]);
+
+        Assert.Equal(PresentationItemKind.None, sut.Current.Behind.Kind);
+    }
+
+    [Fact]
+    public void APauseWithNothingAfterIt_HasNothingShownBehindIt()
+    {
+        using var sut = Following();
+
+        _queued.Add(new DelayQueueItem(TimeSpan.FromMinutes(1)));
+
+        Assert.Equal(PresentationItemKind.Delay, sut.Current.Next.Kind);
+        Assert.Equal(PresentationItemKind.None, sut.Current.Behind.Kind);
+    }
+
+    [Fact]
+    public void TheProgress_FollowsTheElapsedTimeAndTheLength()
+    {
+        using var sut = Following();
+        PresentationProgress? progress = null;
+        using var watching = sut.WhenProgressChanged.Subscribe(value => progress = value);
+
+        // Either one moving is news to the screens, whichever of them comes last.
+        _elapsed.OnNext(TimeSpan.FromMinutes(1));
+        _lengths.OnNext(TimeSpan.FromMinutes(3));
+
+        Assert.Equal(new PresentationProgress(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(3)), progress);
+    }
+
     // --- Dispose ---
 
     [Fact]
@@ -165,5 +274,14 @@ public sealed class PresentationStateServiceTests
         Assert.Null(Record.Exception(() => sut.WhenStateChanged.Subscribe(_ => { }).Dispose()));
         Assert.Null(Record.Exception(() => sut.WhenProgressChanged.Subscribe(_ => { }).Dispose()));
         Assert.Null(Record.Exception(() => sut.Current));
+    }
+
+    public void Dispose()
+    {
+        _currentItems.Dispose();
+        _playing.Dispose();
+        _elapsed.Dispose();
+        _lengths.Dispose();
+        _queued.Dispose();
     }
 }

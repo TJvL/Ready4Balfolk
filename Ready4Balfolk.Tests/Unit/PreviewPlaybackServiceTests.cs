@@ -1,4 +1,3 @@
-using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Ready4Balfolk.Domain.Models.QueueItems;
@@ -13,6 +12,7 @@ public sealed class PreviewPlaybackServiceTests : IDisposable
     private readonly IAudioPlaybackService _playback = Substitute.For<IAudioPlaybackService>();
     private readonly IQueueConsumptionService _consumption = Substitute.For<IQueueConsumptionService>();
     private readonly Subject<IQueueItem?> _currentItems = new();
+    private readonly Subject<System.Reactive.Unit> _ended = new();
     private IQueueItem? _currentItem;
     private readonly PreviewPlaybackService _sut;
 
@@ -22,11 +22,65 @@ public sealed class PreviewPlaybackServiceTests : IDisposable
 
     public PreviewPlaybackServiceTests()
     {
-        _playback.WhenPlaybackEnded.Returns(Observable.Never<System.Reactive.Unit>());
+        _playback.WhenPlaybackEnded.Returns(_ended);
         _consumption.CurrentItem.Returns(_ => _currentItem);
         _consumption.WhenCurrentItemChanged.Returns(_currentItems);
 
         _sut = new PreviewPlaybackService(_playback, _consumption);
+    }
+
+    [Fact]
+    public async Task APreview_PlaysTheFileAndSaysWhichItIs()
+    {
+        Assert.True(await _sut.PlayAsync(TrackPath));
+
+        await _playback.Received(1).SelectAsync(new Uri(TrackPath));
+        await _playback.Received(1).PlayAsync();
+        Assert.Equal(TrackPath, _sut.Previewing);
+    }
+
+    [Fact]
+    public async Task APreview_WhileTheQueueOwnsTheOutput_IsRefused()
+    {
+        // The room is dancing to that output. A preview on it is the hall hearing a file nobody
+        // queued.
+        _currentItem = new TrackQueueItem(TestData.CreateTrack(), false);
+
+        Assert.False(await _sut.PlayAsync(TrackPath));
+
+        await _playback.DidNotReceive().SelectAsync(Arg.Any<Uri>());
+        Assert.Null(_sut.Previewing);
+    }
+
+    [Fact]
+    public async Task APreviewThatRunsOut_ClosesItself()
+    {
+        await _sut.PlayAsync(TrackPath);
+
+        _ended.OnNext(System.Reactive.Unit.Default);
+
+        Assert.Null(_sut.Previewing);
+    }
+
+    [Fact]
+    public async Task StoppingWithNothingPreviewed_LeavesTheOutputAlone()
+    {
+        await _sut.StopAsync();
+
+        await _playback.DidNotReceive().ClearAsync();
+    }
+
+    [Fact]
+    public async Task Seeking_MovesThePreviewAndNothingElse()
+    {
+        // Nothing previewed: the output may be the queue's, and seeking it would jump the dance.
+        await _sut.SeekAsync(TimeSpan.FromSeconds(30));
+        await _playback.DidNotReceive().SeekAsync(Arg.Any<TimeSpan>());
+
+        await _sut.PlayAsync(TrackPath);
+        await _sut.SeekAsync(TimeSpan.FromSeconds(30));
+
+        await _playback.Received(1).SeekAsync(TimeSpan.FromSeconds(30));
     }
 
     [Fact]
@@ -82,5 +136,6 @@ public sealed class PreviewPlaybackServiceTests : IDisposable
     {
         _sut.Dispose();
         _currentItems.Dispose();
+        _ended.Dispose();
     }
 }
