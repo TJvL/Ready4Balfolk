@@ -32,13 +32,14 @@ its own pin. Keep a `build/bass-native` from that era if you expect to need it.
 
 ## What CI will check
 
-Run these five before opening a pull request, because Release is stricter than Debug and CI runs
+Run these six before opening a pull request, because Release is stricter than Debug and CI runs
 Release:
 
 ```bash
 dotnet build Ready4Balfolk.sln -c Release
 dotnet format Ready4Balfolk.sln --verify-no-changes
 python3 scripts/check-translations.py
+python3 scripts/check-docs.py
 dotnet test --project Ready4Balfolk.Tests/Ready4Balfolk.Tests.csproj -c Release
 dotnet test --project Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj -c Release
 ```

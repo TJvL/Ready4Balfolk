@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using Ready4Balfolk.Domain.Models.Settings;
 using Ready4Balfolk.UI.Resources;
 
 namespace Ready4Balfolk.Tests.Unit;
@@ -130,20 +131,80 @@ public sealed class HelpManualTests
         => Assert.DoesNotContain(name, Manual("en"), StringComparison.Ordinal);
 
     /// <summary>
-    /// One translation of the other, section for section. A paragraph added to one language and not
-    /// the other is how the two came to describe different applications.
+    /// One translation of the other, section for section: the same headings at the same depth, and
+    /// under each the same number of tables, table lines, links and bold labels. A paragraph added
+    /// to one language and not the other is how the two came to describe different applications,
+    /// and the headings alone let a label, a row or a link go missing from one of them unseen.
     /// </summary>
     [Fact]
     public void TheTwoManualsHaveTheSameShape()
-        => Assert.Equal(Headings(Manual("en")), Headings(Manual("nl")));
+    {
+        var english = Sections(Manual("en"));
+        var dutch = Sections(Manual("nl"));
 
-    private static List<string> Headings(string manual) =>
-    [
-        .. manual.Split('\n')
-            .Select(line => line.TrimEnd('\r'))
-            .Where(line => line.StartsWith('#'))
-            .Select(line => new string('#', line.Length - line.TrimStart('#').Length))
-    ];
+        Assert.Equal(english.Count, dutch.Count);
+        foreach (var (theirs, ours, ordinal) in english.Zip(dutch, Enumerable.Range(1, english.Count)))
+        {
+            Assert.True(
+                theirs.Shape == ours.Shape,
+                $"section {ordinal} ('{theirs.Heading}' / '{ours.Heading}') is {theirs.Shape} in English "
+                + $"and {ours.Shape} in Dutch");
+        }
+    }
+
+    /// <summary>
+    /// The one default the Settings section states as a number, held to the value the application
+    /// starts with. The manual writes it in words, so the number is this test's and the words are
+    /// the manual's: a changed default has to move both, and the other language with it.
+    /// </summary>
+    [Theory]
+    [InlineData("en", "ten seconds")]
+    [InlineData("nl", "tien seconden")]
+    public void TheSettingsSectionStatesTheDefaultGapBetweenDances(string language, string words)
+    {
+        Assert.Equal(10, new ApplicationSettings().GapBetweenTracksSeconds);
+        Assert.Contains(words, Section(Manual(language), 56), StringComparison.Ordinal); // ### A moment between dances
+    }
+
+    /// <summary>What a section has to have the same amount of in both languages.</summary>
+    private sealed record SectionShape(int Depth, int Tables, int TableLines, int Links, int BoldLabels);
+
+    private sealed record ManualSection(string Heading, SectionShape Shape);
+
+    /// <summary>
+    /// Every heading with the shape of the text under it, up to the next heading of any depth. Bold
+    /// labels are counted over the lines joined with a space, because a label that Markdown
+    /// soft-wraps across two source lines is still one label.
+    /// </summary>
+    private static List<ManualSection> Sections(string manual)
+    {
+        var lines = manual.Split('\n').Select(line => line.TrimEnd('\r')).ToList();
+        var sections = new List<ManualSection>();
+        var headingIndices = lines
+            .Select((line, index) => (line, index))
+            .Where(entry => entry.line.StartsWith('#'))
+            .Select(entry => entry.index)
+            .ToList();
+
+        for (var i = 0; i < headingIndices.Count; i++)
+        {
+            var start = headingIndices[i];
+            var end = i + 1 < headingIndices.Count ? headingIndices[i + 1] : lines.Count;
+            var body = lines.GetRange(start + 1, end - start - 1);
+            var joined = string.Join(' ', body);
+
+            sections.Add(new ManualSection(
+                lines[start],
+                new SectionShape(
+                    Depth: lines[start].TakeWhile(c => c == '#').Count(),
+                    Tables: body.Count(line => line.StartsWith("|---", StringComparison.Ordinal)),
+                    TableLines: body.Count(line => line.StartsWith('|')),
+                    Links: joined.Split("](").Length - 1,
+                    BoldLabels: joined.Split("**").Length / 2)));
+        }
+
+        return sections;
+    }
 
     /// <summary>
     /// The text of one section: from the nth heading in the document (1-based, every #, ##, ###
