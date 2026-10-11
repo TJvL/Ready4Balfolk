@@ -50,7 +50,7 @@ internal static class SmokeTest
     /// nothing about these.
     /// </summary>
     private static readonly string[] ServedAssets =
-        ["display.js", "app.css", "strings.js", "remote.js", "lib/signalr.min.js"];
+        ["display.js", "app.css", "strings.js", "remote.js", SignalRVersions.ClientAsset];
 
     /// <summary>Cold start on a runner with software rendering is slow, but not this slow.</summary>
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(120);
@@ -206,7 +206,8 @@ internal static class SmokeTest
         if (failures.Count == 0)
         {
             Report($"passed: window opened, BASS, BASSFLAC and BASS_FX all loaded, "
-                   + $"{decoded} media files decoded, display page and web assets served, log clean");
+                   + $"{decoded} media files decoded, display page and web assets served, "
+                   + "SignalR client on the server's major, log clean");
             exitCode = Passed;
         }
         else
@@ -400,9 +401,21 @@ internal static class SmokeTest
                         continue;
                     }
 
-                    if ((await response.Content.ReadAsStringAsync()).Length == 0)
+                    var body = await response.Content.ReadAsStringAsync();
+                    if (body.Length == 0)
                     {
                         failures.Add($"{asset} was served empty");
+                        continue;
+                    }
+
+                    // The browser client is vendored and the server's SignalR comes with the
+                    // runtime, which every framework bump raises; nothing else notices when the
+                    // two part. The check is here, against the served file, because it is the
+                    // file a phone in the hall would actually load.
+                    if (asset == SignalRVersions.ClientAsset
+                        && SignalRVersions.Mismatch(body) is { } mismatch)
+                    {
+                        failures.Add(mismatch);
                     }
                 }
             }
