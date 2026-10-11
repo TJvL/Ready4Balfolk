@@ -22,5 +22,6 @@ fails without the change, and say so plainly if it does not.
 - [ ] `dotnet build Ready4Balfolk.sln -c Release`
 - [ ] `dotnet format Ready4Balfolk.sln --verify-no-changes`
 - [ ] `python3 scripts/check-translations.py`
+- [ ] `python3 scripts/check-docs.py`
 - [ ] `dotnet test --project Ready4Balfolk.Tests/Ready4Balfolk.Tests.csproj -c Release`
 - [ ] `dotnet test --project Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj -c Release`

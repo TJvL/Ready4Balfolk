@@ -105,6 +105,11 @@ jobs:
       - name: Check translations
         run: python3 scripts/check-translations.py
 
+      # The documents against the code they describe: every backticked name exists, every relative
+      # link resolves, no line number is cited, and the manuals' keyboard tables match the handlers.
+      - name: Check documentation
+        run: python3 scripts/check-docs.py
+
   # Its own job for the same reason, and more so as time goes on: these start a real application,
   # index a real library, decode real audio and drive a browser, so this is the leg that grows every
   # time a scenario is written. Beside the others it grows on its own rather than on top of them.

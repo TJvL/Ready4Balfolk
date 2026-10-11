@@ -87,7 +87,7 @@ How each field is then decided:
 - **Matching is on whole words** (`DanceNameScanner`), longest name first: "Bourrée 3 temps" beats the "Bourrée" inside it, and "Andro" must not match inside "Androgyne".
 - **Names are compared on a match key, not on their spelling** (`DanceWords`). The published file carries two word lists: a number word becomes its digit and glue is dropped, so `Bourrée à trois temps`, `Bourrée in 3`, `Bourrée 3t` and `Bourrée 3` are one key and one dance. The same pass runs over a file name before scanning it, which is what lets a library written in French, Dutch or German match at all. Measured on the reference library: 921 file names carried a recognisable dance without it, 972 with, and 9 answers changed: 8 of them corrections, `Valse 8 temps` having been filed as a 3-time waltz.
 - **Glue is stepped over rather than ending a match**, so `valse à 3 temps` finds `valse 3`. The cost is that glue no longer separates: `Valse de la mazurka` reads as `valse mazurka`. That is the same trade the list makes on its own names, and a word that is not glue still ends a match, so `Bourrée du Berry 3 temps` is not `Bourrée 3 temps`.
-- **Genre is not evidence.** Measured on the reference library, of 400 resolved tracks only 69 carry a genre at all and the whole set of values is `Music`, `Folk`, `Balfolk`, `Breton`; across ~530 files a genre supplied a dance name once. It is not read at all.
+- **Genre is not evidence.** Measured on the reference library, of 400 resolved tracks only 69 carry a genre at all and the whole set of values is "Music", "Folk", "Balfolk", "Breton"; across ~530 files a genre supplied a dance name once. It is not read at all.
 - **Undeclared, the artist comes from tags and the title from the title tag or the whole file name.** Neither is taken from a path segment or a file name field unless the user declared what that level or field means, because that is exactly what an unconfigured library cannot say. `ArtistNames` blocks ripper placeholders (`Unknown Artist`, `Various Artists`, digits-only): dances are a closed set the dance list defines and get a whitelist, artists are open and get a blocklist.
 
 **Claims.** `Services/Discovery/Claims/` holds one `IClaimDiscovery` per thing that can speak about a file, and `TrackClaims.Collect` asks them in this order:
@@ -96,7 +96,7 @@ How each field is then decided:
 2. `FolderClaimDiscovery`: the folder levels the user gave a role, where the file is deep enough to have them. `Declared`.
 3. `DanceClaimDiscovery`: a declared dance tag or custom tag, read whole (`Declared`); names from the list found in the title, album and comment tags and in the file name, bracketed or not, and the dance the rest of the folder agreed on (`Observed`).
 4. `TagClaimDiscovery`: the tag fields for artist and title, in the declared order (`Declared`) or the built-in one (`Observed`).
-5. `FilenameTitleDiscovery`: the whole file name as a title, with a leading track number taken off. `Observed`.
+5. `FileNameTitleClaimDiscovery`: the whole file name as a title, with a leading track number taken off. `Observed`.
 
 The tier decides first and the order only inside it: a declared pattern beats a declared folder role, and both beat a declared tag order, while any declaration beats every observed claim wherever it was emitted.
 
@@ -472,16 +472,17 @@ Before opening a pull request, run what `verify.yml` runs:
 dotnet build Ready4Balfolk.sln -c Release
 dotnet format Ready4Balfolk.sln --verify-no-changes
 python3 scripts/check-translations.py
+python3 scripts/check-docs.py
 dotnet test --project Ready4Balfolk.Tests/Ready4Balfolk.Tests.csproj -c Release
 dotnet test --project Ready4Balfolk.E2E/Ready4Balfolk.E2E.csproj -c Release
 ```
 
-The same five, because Release is stricter than Debug and CI builds Release. `CONTRIBUTING.md` and the pull request template list the same set.
+The same six, because Release is stricter than Debug and CI builds Release. `CONTRIBUTING.md` and the pull request template list the same set.
 
 It is **four jobs that run beside each other**, because a pull request goes green when the slowest one finishes rather than when the longest list of steps does:
 
 - `test`, on Ubuntu and Windows. The tests have to run somewhere they could fail differently: `Directory.Build.targets` resolves the BASS natives from the host OS, and the paths the stores write to are not the same shape on Windows.
-- `style`: `dotnet format --verify-no-changes` and `scripts/check-translations.py`, which compares the `.resx` key sets and `{0}` placeholders in both directions, compares each designer file with its resx, fails on a key nothing in the application reads (the tests do not count), fails on a resx string handed to the logger as its log line, and holds the two tables in `wwwroot/strings.js` to the same rules. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed. One platform for both: `.gitattributes` normalises line endings, so neither can answer differently per platform.
+- `style`: `dotnet format --verify-no-changes` and `scripts/check-translations.py`, which compares the `.resx` key sets and `{0}` placeholders in both directions, compares each designer file with its resx, fails on a key nothing in the application reads (the tests do not count), fails on a resx string handed to the logger as its log line, and holds the two tables in `wwwroot/strings.js` to the same rules. A missing Dutch key falls back to English at runtime, which reads as a bug nobody reported rather than a build that failed. Then `scripts/check-docs.py`, which reads this guide, the manuals, the README and the contributor files against the code: every backticked code name is typed somewhere in a source file or names a file or a workflow, every relative link resolves, a line-number citation fails wherever it is written, a backticked name in a C# comment is held to the same rule, and the manuals' keyboard tables name every key the main screen, the queue and the review screen answer and no key they do not. This guide had been brought back in line with the code twice in a month by people reading and comparing, and had drifted again by the time the check was written. One platform for all three: `.gitattributes` normalises line endings, so neither can answer differently per platform.
 - `scenarios`: the end to end suite. Its own job above all because it is the leg that grows every time a scenario is written, and beside the others it grows on its own rather than on top of them.
 - `verify`, which needs the other three. A matrix reports one check per leg, so requiring those directly means editing the ruleset every time one is split, and a leg nobody remembered to add is a leg that cannot block a merge.
 
